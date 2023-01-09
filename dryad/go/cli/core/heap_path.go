@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 )
 
-func GardenFind(path string) (string, error) {
+func HeapPath(path string) (string, error) {
 	var working_path, err = filepath.Abs(path)
 	if err != nil {
 		log.Fatal(err)
@@ -19,7 +19,7 @@ func GardenFind(path string) (string, error) {
 	for working_path != "/" {
 
 		if fileInfoErr == nil && fileInfo.IsDir() {
-			return working_path, nil
+			return heap_path, nil
 		}
 
 		working_path = filepath.Dir(working_path)
@@ -27,5 +27,5 @@ func GardenFind(path string) (string, error) {
 		fileInfo, fileInfoErr = os.Stat(heap_path)
 	}
 
-	return "", errors.New("dyd garden path not found")
+	return "", errors.New("dyd heap path not found")
 }

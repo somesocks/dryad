@@ -38,7 +38,7 @@ func walk(filename string, linkDirname string, walkFn filepath.WalkFunc) error {
 }
 
 func StemWalk(path string, walkFn filepath.WalkFunc) error {
-	var stem_path, err = StemFind(path)
+	var stem_path, err = StemPath(path)
 	// log.Print("stem_path ", stem_path)
 	walk(stem_path, stem_path, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {

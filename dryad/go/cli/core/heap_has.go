@@ -6,7 +6,7 @@ import (
 )
 
 func HeapHas(path string, fingerprint string) (bool, error) {
-	var heapPath, heapErr = HeapFind(path)
+	var heapPath, heapErr = HeapPath(path)
 	if heapErr != nil {
 		return false, heapErr
 	}

@@ -37,13 +37,13 @@ func main() {
 			}
 			dryad.GardenInit(path)
 		}
-	case "garden::find":
+	case "garden::path":
 		{
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
 			}
-			path, err = dryad.GardenFind(path)
+			path, err = dryad.GardenPath(path)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -51,13 +51,13 @@ func main() {
 		}
 	case "garden::build":
 		fmt.Println("COMMAND garden build")
-	case "heap::find":
+	case "heap::path":
 		{
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
 			}
-			path, err = dryad.HeapFind(path)
+			path, err = dryad.HeapPath(path)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -71,25 +71,25 @@ func main() {
 			}
 			dryad.RootInit(path)
 		}
-	case "roots::find":
+	case "roots::path":
 		{
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
 			}
-			path, err = dryad.RootsFind(path)
+			path, err = dryad.RootsPath(path)
 			if err != nil {
 				log.Fatal(err)
 			}
 			fmt.Println(path)
 		}
-	case "stems::find":
+	case "stems::path":
 		{
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
 			}
-			path, err = dryad.StemsFind(path)
+			path, err = dryad.StemsPath(path)
 			if err != nil {
 				log.Fatal(err)
 			}

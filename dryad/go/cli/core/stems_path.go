@@ -7,13 +7,13 @@ import (
 	"path/filepath"
 )
 
-func HeapFind(path string) (string, error) {
+func StemsPath(path string) (string, error) {
 	var working_path, err = filepath.Abs(path)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	var heap_path = filepath.Join(working_path, "dyd", "heap")
+	var heap_path = filepath.Join(working_path, "dyd", "stems")
 	var fileInfo, fileInfoErr = os.Stat(heap_path)
 
 	for working_path != "/" {
@@ -23,9 +23,9 @@ func HeapFind(path string) (string, error) {
 		}
 
 		working_path = filepath.Dir(working_path)
-		heap_path = filepath.Join(working_path, "dyd", "heap")
+		heap_path = filepath.Join(working_path, "dyd", "stems")
 		fileInfo, fileInfoErr = os.Stat(heap_path)
 	}
 
-	return "", errors.New("dyd heap path not found")
+	return "", errors.New("dyd stems path not found")
 }

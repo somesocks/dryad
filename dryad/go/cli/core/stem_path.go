@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 )
 
-func StemFind(path string) (string, error) {
+func StemPath(path string) (string, error) {
 	var working_path, err = filepath.Abs(path)
 	if err != nil {
 		log.Fatal(err)

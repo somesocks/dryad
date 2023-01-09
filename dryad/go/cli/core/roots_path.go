@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 )
 
-func RootsFind(path string) (string, error) {
+func RootsPath(path string) (string, error) {
 	var working_path, err = filepath.Abs(path)
 	if err != nil {
 		log.Fatal(err)
