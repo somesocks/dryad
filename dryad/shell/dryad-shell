@@ -1,0 +1,238 @@
+#!/usr/bin/env sh
+
+# use for debugging
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf
+
+LOG_FILE=./log
+
+
+FIND_DYD_HEAP() {
+	(cd ${1:-$(pwd)}; while [ $PWD != "/" ]; do test -d dyd/heap && { echo "$(pwd)/dyd/heap"; break; }; cd .. ; done)
+}
+
+FIND_DYD_ROOTS() {
+	(cd ${1:-$(pwd)}; while [ $PWD != "/" ]; do test -d dyd/roots && { echo "$(pwd)/dyd/roots"; break; }; cd .. ; done)
+}
+
+FIND_DYD_STEMS() {
+	(cd ${1:-$(pwd)}; while [ $PWD != "/" ]; do test -d dyd/stems && { echo "$(pwd)/dyd/stems"; break; }; cd .. ; done)
+}
+
+FIND_DYD_STEM() {
+	(cd ${1:-$(pwd)}; while [ $PWD != "/" ]; do test -d dyd/traits && { echo "$(pwd)"; break; }; cd .. ; done)
+}
+
+DYD_STEM_FINGERPRINT() {
+	LOG=$(cd $1 && find -L . \
+		\( -type f -path "./dyd/main" \) \
+		-or \( -type f -path "./dyd/traits/*" \) \
+		-or \( -type f -path "./dyd/assets/*" \) \
+		-or \( -type f -path "./dyd/stems/*/dyd/fingerprint" \) | sort | xargs md5sum | xargs echo -n )
+	echo $LOG >> $LOG_FILE
+
+	# TODO : replace the | xargs echo -n with a better string sanitizer
+	# I only did this to make compatibility with dryad-go easier 
+	FINGERPRINT=$(cd $1 && find -L . \
+		\( -type f -path "./dyd/main" \) \
+		-or \( -type f -path "./dyd/traits/*" \) \
+		-or \( -type f -path "./dyd/assets/*" \) \
+		-or \( -type f -path "./dyd/stems/*/dyd/fingerprint" \) | sort | xargs md5sum | xargs echo -n | md5sum )
+	FINGERPRINT=$(echo $FINGERPRINT | cut -d ' ' -f 1)
+	FINGERPRINT="md5sum:$FINGERPRINT"
+	echo "$FINGERPRINT"
+}
+
+DYD_STEM_ADD() {
+	HEAP_DIR=${HEAP_DIR:-$(FIND_DYD_HEAP)}
+	FINGERPRINT=$1
+	TARGET_DIR=$2
+
+	SRC_DIR=$HEAP_DIR/stems/$FINGERPRINT
+
+	if test -d "$TARGET_DIR/dyd/assets"
+	then
+		# echo "$TARGET_DIR FAST STEM CHECK PASSED" >> $LOG_FILE
+		return;
+	# else
+		# echo "$TARGET_DIR FAST STEM CHECK FAILED" >> $LOG_FILE
+	fi
+
+	rsync \
+		--recursive \
+		--copy-links \
+		--copy-dirlinks \
+		--perms \
+		--executability \
+		$SRC_DIR/ \
+		$TARGET_DIR/
+
+	TARGET_STEMS=$TARGET_DIR/dyd/stems
+
+	find $TARGET_STEMS/ -mindepth 1 -maxdepth 2 | \
+	while read FILE;
+	do
+		TARGET_STEM_FINGERPRINT=$(cat $FILE/dyd/fingerprint)
+		HEAP_DIR=$HEAP_DIR DYD_STEM_ADD $TARGET_STEM_FINGERPRINT "$FILE";
+	done
+}
+
+DYD_GARDEN_CREATE() {
+	WD=$(pwd)
+	mkdir -p dyd/config
+	mkdir -p dyd/heap
+	mkdir -p dyd/roots
+	mkdir -p dyd/stems
+	mkdir -p dyd/path
+	echo "[info] finished creating garden in $WD"
+}
+
+
+DYD_ROOT_CREATE() {
+	WD=$(pwd)
+	mkdir -p dyd/traits
+	mkdir -p dyd/assets
+	touch dyd/main
+	echo "#!/usr/bin/env sh" > dyd/main
+	chmod +x dyd/main
+	mkdir -p dyd/roots
+	mkdir -p dyd/stems
+	echo "[info] finished creating root in $WD"
+}
+
+DYD_ROOT_ADD() {
+	ROOTS="$(FIND_DYD_ROOTS)"
+	ROOT=$(cd $1 && pwd)
+	ALIAS=${2:-$(basename $ROOT)}
+	# echo "[info] dryad adding root $ROOT to $WD/dyd/roots as $ALIAS"
+	ln -s $ROOT "$ROOTS/$ALIAS"
+	echo "[info] finished adding root $ROOT to $ROOTS as $ALIAS"
+}
+
+DYD_ROOT_REMOVE() {
+	ROOTS="$(FIND_DYD_ROOTS)"
+	ROOT=$ROOTS/$1
+	rm $ROOT
+}
+
+DYD_ROOT_LIST() {
+	ROOTS="$(FIND_DYD_ROOTS)"
+	find $ROOTS -mindepth 1 -maxdepth 2 -printf "%f\n"
+}
+
+DYD_ROOT_FINGERPRINT() {
+	ROOT=$(cd $1 && pwd)
+	ROOT=$(FIND_DYD_STEM $ROOT)
+	DYD_STEM_FINGERPRINT $ROOT
+}
+
+DYD_ROOT_BUILD() {
+	HEAP_DIR=${HEAP_DIR:-$(FIND_DYD_HEAP)}
+
+	ROOT_DIR=$1
+
+	# for each dependency root, build said root into a stem and add it
+	ROOTS_DIR=$1/dyd/roots
+	STEMS_DIR=$1/dyd/stems
+
+	find $ROOTS_DIR/ -mindepth 1 -maxdepth 2 | \
+	while read FILE;
+	do
+		DEP_NAME=$(basename $FILE);
+		DEP_FINGERPRINT=$(DYD_ROOT_BUILD "$FILE");
+		DYD_STEM_ADD $DEP_FINGERPRINT $STEMS_DIR/$DEP_NAME
+	done
+
+	# rebuild check, see if built version of root is already in the heap
+	ROOT_FINGERPRINT=$(DYD_STEM_FINGERPRINT $ROOT_DIR)
+	if test -d "$HEAP_DIR/stems/$ROOT_FINGERPRINT"
+	then
+		# echo "$ROOT_DIR FAST REBUILD PASSED" >> $LOG_FILE
+		echo "$ROOT_FINGERPRINT";
+	else
+		# echo "$ROOT_DIR FAST REBUILD FAILED" >> $LOG_FILE
+		# convert the root into a stem
+		BUILD_DIR=$(mktemp -d)
+		rsync \
+			--recursive \
+			--copy-links \
+			--copy-dirlinks \
+			--perms \
+			--executability \
+			--include="/dyd/" \
+			--include="/dyd/assets/" \
+			--include="/dyd/assets/**" \
+			--include="/dyd/main" \
+			--include="/dyd/stems/" \
+			--include="/dyd/stems/*/" \
+			--include="/dyd/stems/*/dyd/" \
+			--include="/dyd/stems/*/dyd/fingerprint" \
+			--include="/dyd/stems/*/dyd/traits/" \
+			--include="/dyd/stems/*/dyd/traits/*" \
+			--include="/dyd/traits/" \
+			--include="/dyd/traits/*" \
+			--exclude="*" \
+			$ROOT_DIR/ \
+			$BUILD_DIR/ \
+		# --itemize-changes \
+
+		# ls -ltR $BUILD_DIR
+
+		FINGERPRINT=$(DYD_STEM_FINGERPRINT $BUILD_DIR)		
+		echo -n "$FINGERPRINT" > $BUILD_DIR/dyd/fingerprint
+
+		mkdir -p $HEAP_DIR/stems/$FINGERPRINT
+
+		rsync \
+			--recursive \
+			--perms \
+			--executability \
+			$BUILD_DIR/ \
+			$HEAP_DIR/stems/$FINGERPRINT/
+
+		rm -rf $BUILD_DIR
+		echo "$FINGERPRINT";
+
+		# cat $BUILD_DIR/dyd/fingerprint
+		# ls -ltR $BUILD_DIR
+	fi
+}
+
+DYD_GARDEN_BUILD() {
+	# echo "" > $LOG_FILE
+	HEAP_DIR=$(FIND_DYD_HEAP)
+	ROOTS_DIR=$(FIND_DYD_ROOTS)
+	find $ROOTS_DIR/ -mindepth 1 -maxdepth 2 | \
+	while read FILE; do HEAP_DIR=$HEAP_DIR DYD_ROOT_BUILD "$FILE"; done
+	echo "[info] finished garden build"
+}
+
+
+
+
+
+ARG1=${1:-}
+ARG2=${2:-}
+ARG3=${3:-}
+ARG4=${4:-}
+
+COMMAND="$ARG1::$ARG2"
+
+case $COMMAND in
+	# "garden::") echo $COMMAND;;
+	"garden::init") DYD_GARDEN_CREATE;;
+	"garden::build") DYD_GARDEN_BUILD;;
+	"root::init") DYD_ROOT_CREATE;;
+	"root::add") DYD_ROOT_ADD "$ARG3";;
+	"root::remove") DYD_ROOT_REMOVE "$ARG3";;
+	"root::list") DYD_ROOT_LIST;;
+	"root::fingerprint") DYD_ROOT_FINGERPRINT "$ARG3";;
+	"stem::add") DYD_STEM_ADD "$ARG3" "$ARG4";;
+	"stem::") echo $COMMAND;;
+	*) echo "bad command";;
+esac
+
