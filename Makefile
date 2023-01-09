@@ -15,4 +15,4 @@ help:
 ##
 .PHONY: build
 build:
-	@(cd ./dryad/go/cli && go build)
+	@(cd ./dryad/go/cli && go build -ldflags '-s -w')

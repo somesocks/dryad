@@ -7,9 +7,9 @@ import (
 	"regexp"
 )
 
-var STEM_REGEXP = `^((dyd/assets/.*)|(dyd/fingerprint)|(dyd/main)|(dyd/stems/.*/dyd/fingerprint)|(dyd/stems/.*/dyd/traits/.*)|(dyd/traits/.*))$`
+var ROOT_REGEXP = `^((dyd/assets/.*)|(dyd/fingerprint)|(dyd/main)|(dyd/stems/.*/dyd/fingerprint)|(dyd/stems/.*/dyd/traits/.*)|(dyd/traits/.*))$`
 
-func stemWalk(filename string, linkDirname string, walkFn filepath.WalkFunc) error {
+func rootWalk(filename string, linkDirname string, walkFn filepath.WalkFunc) error {
 	symWalkFunc := func(path string, info os.FileInfo, err error) error {
 
 		if fname, err := filepath.Rel(filename, path); err == nil {
@@ -28,7 +28,7 @@ func stemWalk(filename string, linkDirname string, walkFn filepath.WalkFunc) err
 				return walkFn(path, info, err)
 			}
 			if info.IsDir() {
-				return stemWalk(finalPath, path, walkFn)
+				return rootWalk(finalPath, path, walkFn)
 			}
 		}
 
@@ -37,10 +37,10 @@ func stemWalk(filename string, linkDirname string, walkFn filepath.WalkFunc) err
 	return filepath.Walk(filename, symWalkFunc)
 }
 
-func StemWalk(path string, walkFn filepath.WalkFunc) error {
-	var stem_path, err = StemPath(path)
+func RootWalk(path string, walkFn filepath.WalkFunc) error {
+	var stem_path, err = RootPath(path)
 	// log.Print("stem_path ", stem_path)
-	stemWalk(stem_path, stem_path, func(path string, info fs.FileInfo, err error) error {
+	rootWalk(stem_path, stem_path, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
