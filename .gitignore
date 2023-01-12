@@ -1,14 +1,9 @@
 
-# gitignore paths for dryad
+# gitignore paths for dryad garden
 /**/dyd/heap/
+/**/dyd/garden/
 
 /**/dyd/path/
-/**/dyd/stems/*/*
-!/**/dyd/stems/*/dyd/traits/
-
-# if you dont want package pinning, comment out this line,
-# and package pins won't be saved to the repo
-!/**/dyd/stems/*/dyd/fingerprint
 
 # ignore the built bin
 dryad/go/cli/dryad-go

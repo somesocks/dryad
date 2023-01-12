@@ -22,6 +22,7 @@ func RootBuild(rootPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer os.RemoveAll(workspacePath)
 
 	// shallow-clone into the workspace so we have something to modify
 	err = StemWalk(rootPath, func(srcPath string, info fs.FileInfo, err error) error {
@@ -100,7 +101,7 @@ func RootBuild(rootPath string) (string, error) {
 	}
 
 	gardenHeapPath := filepath.Join(gardenPath, "dyd", "heap")
-	gardenStemsPath := filepath.Join(gardenPath, "dyd", "stems")
+	gardenStemsPath := filepath.Join(gardenPath, "dyd", "garden")
 
 	finalStemPath := filepath.Join(gardenStemsPath, rootFingerprint)
 

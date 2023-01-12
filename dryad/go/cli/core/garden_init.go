@@ -27,7 +27,7 @@ func GardenInit(path string) {
 		log.Fatal(err)
 	}
 
-	var stemsPath string = filepath.Join(gardenPath, "stems")
+	var stemsPath string = filepath.Join(gardenPath, "garden")
 	if err := os.MkdirAll(stemsPath, os.ModePerm); err != nil {
 		log.Fatal(err)
 	}
