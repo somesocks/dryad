@@ -12,6 +12,8 @@ import (
 func main() {
 	var arg1 string
 	var arg2 string
+	var arg3 string
+	var arg4 string
 	var command string
 
 	switch len(os.Args) {
@@ -19,12 +21,28 @@ func main() {
 	case 1:
 		arg1 = ""
 		arg2 = ""
+		arg3 = ""
+		arg4 = ""
 	case 2:
 		arg1 = os.Args[1]
 		arg2 = ""
+		arg3 = ""
+		arg4 = ""
+	case 3:
+		arg1 = os.Args[1]
+		arg2 = os.Args[2]
+		arg3 = ""
+		arg4 = ""
+	case 4:
+		arg1 = os.Args[1]
+		arg2 = os.Args[2]
+		arg3 = os.Args[3]
+		arg4 = ""
 	default:
 		arg1 = os.Args[1]
 		arg2 = os.Args[2]
+		arg3 = os.Args[3]
+		arg4 = os.Args[4]
 	}
 
 	command = arg1 + "::" + arg2
@@ -34,7 +52,7 @@ func main() {
 		{
 			fmt.Print(
 				"\n",
-				"dryad commands follow a 'dryad <RESOURCE> <ACTION>' pattern\n\n",
+				"dryad commands follow a 'dryad <resource> <action>' pattern\n\n",
 				"resources:\n",
 				"  garden\n",
 				"  heap\n",
@@ -43,7 +61,7 @@ func main() {
 				"  stem\n",
 				"  stems\n",
 				"\n",
-				"to see actions for a resource, run 'dryad <RESOUCE>'\n",
+				"to see actions for a resource, run 'dryad <resource>'\n",
 				"\n",
 			)
 		}
@@ -85,7 +103,13 @@ func main() {
 			fmt.Println(path)
 		}
 	case "garden::build":
-		fmt.Println("COMMAND garden build")
+		{
+			var path, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+			dryad.GardenBuild(path)
+		}
 	case "heap::path":
 		{
 			var path, err = os.Getwd()
@@ -97,6 +121,36 @@ func main() {
 				log.Fatal(err)
 			}
 			fmt.Println(path)
+		}
+	case "root::":
+		{
+			fmt.Print(
+				"\n",
+				"dryad root commands:\n",
+				"\n",
+				"  dryad root init\n",
+				"    initialize a root in the current directory\n",
+				"\n",
+				"  dryad root path\n",
+				"    return the path of the parent root to this directory\n",
+				"\n",
+				"  dryad root add <path> <alias?>\n",
+				"    add a root as a dependency to this root\n",
+				"    <path> - the path to the root to add as a dependency\n",
+				"    <alias?> - an optional alias for the dependency. if not specified, the basename to the dependency root folder is used\n",
+				"\n",
+			)
+		}
+	case "root::add":
+		{
+			var path, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+			err = dryad.RootAdd(path, arg3, arg4)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	case "root::init":
 		{
@@ -117,6 +171,31 @@ func main() {
 				log.Fatal(err)
 			}
 			fmt.Println(path)
+		}
+	case "root::pack":
+		{
+			var path, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+			path, err = dryad.StemPack(path, "")
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(path)
+		}
+	case "root::build":
+		{
+			var path, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+			var rootFingerprint string
+			rootFingerprint, err = dryad.RootBuild(path)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(rootFingerprint)
 		}
 	case "roots::list":
 		{

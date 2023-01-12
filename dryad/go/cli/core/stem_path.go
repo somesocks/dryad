@@ -13,8 +13,8 @@ func StemPath(path string) (string, error) {
 		log.Fatal(err)
 	}
 
-	var traits_path = filepath.Join(working_path, "dyd", "traits")
-	var fileInfo, fileInfoErr = os.Stat(traits_path)
+	var dyd_path = filepath.Join(working_path, "dyd")
+	var fileInfo, fileInfoErr = os.Stat(dyd_path)
 
 	for working_path != "/" {
 
@@ -23,8 +23,8 @@ func StemPath(path string) (string, error) {
 		}
 
 		working_path = filepath.Dir(working_path)
-		traits_path = filepath.Join(working_path, "dyd", "traits")
-		fileInfo, fileInfoErr = os.Stat(traits_path)
+		dyd_path = filepath.Join(working_path, "dyd")
+		fileInfo, fileInfoErr = os.Stat(dyd_path)
 	}
 
 	return "", errors.New("dyd stem path not found")

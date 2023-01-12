@@ -27,6 +27,11 @@ func RootInit(path string) {
 		log.Fatal(err)
 	}
 
+	var traits_path string = filepath.Join(root_path, "traits")
+	if err := os.MkdirAll(traits_path, os.ModePerm); err != nil {
+		log.Fatal(err)
+	}
+
 	var main_path string = filepath.Join(root_path, "main")
 	var _, main_err = os.Create(main_path)
 	if main_err != nil {

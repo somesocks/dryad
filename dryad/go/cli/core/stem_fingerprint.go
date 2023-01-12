@@ -37,7 +37,7 @@ func hash_file_md5(filePath string) (string, error) {
 func StemFingerprint(path string) (string, error) {
 	var checksumMap = make(map[string]string)
 
-	StemWalk(
+	err := StemWalk(
 		path,
 		func(walk string, info fs.FileInfo, err error) error {
 			var rel, relErr = filepath.Rel(path, walk)
@@ -54,9 +54,14 @@ func StemFingerprint(path string) (string, error) {
 
 			checksumMap[rel] = hash
 
+			// fmt.Println("StemFingerprint ", path, " ", rel, " ", hash)
+
 			return nil
 		},
 	)
+	if err != nil {
+		return "", err
+	}
 
 	var keys []string
 	for key, _ := range checksumMap {
@@ -76,7 +81,7 @@ func StemFingerprint(path string) (string, error) {
 
 	var fingerprintHashBytes = md5.Sum([]byte(checksumString))
 	var fingerprintHash = hex.EncodeToString(fingerprintHashBytes[:])
-	var fingerprint = "md5sum:" + fingerprintHash
+	var fingerprint = "md5sum-" + fingerprintHash
 	// fmt.Printf("Key: %d, Value: %s\n", key, checksumMap[key])
 	// log.Print(checksumTable)
 	return fingerprint, nil

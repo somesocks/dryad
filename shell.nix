@@ -8,4 +8,8 @@ in pkgs.mkShell {
 		pkgs.go
 		pkgs.gnumake
 	];
+
+	# shellHook = ''
+	# '';
+
 }

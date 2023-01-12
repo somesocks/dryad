@@ -50,7 +50,7 @@ func RootWalk(path string, walkFn filepath.WalkFunc) error {
 			return relErr
 		}
 
-		var re, reErr = regexp.Compile(STEM_REGEXP)
+		var re, reErr = regexp.Compile(ROOT_REGEXP)
 		if reErr != nil {
 			return reErr
 		}

@@ -7,7 +7,9 @@ import (
 	"regexp"
 )
 
-var STEM_REGEXP = `^((dyd/assets/.*)|(dyd/fingerprint)|(dyd/main)|(dyd/stems/.*/dyd/fingerprint)|(dyd/stems/.*/dyd/traits/.*)|(dyd/traits/.*))$`
+var STEM_DIRS_MATCH = `^((\.)|(dyd)|(dyd/assets)|(dyd/assets/.*)|(dyd/traits)|(dyd/traits/.*)|(dyd/stems)|(dyd/stems/[^/]*)|(dyd/stems/.*/dyd)|(dyd/stems/.*/dyd/traits(/.*)?))$`
+
+var STEM_FILES_MATCH = `^((dyd/assets/.*)|(dyd/fingerprint)|(dyd/main)|(dyd/stems/.*/dyd/fingerprint)|(dyd/stems/.*/dyd/traits/.*)|(dyd/traits/.*))$`
 
 func stemWalk(filename string, linkDirname string, walkFn filepath.WalkFunc) error {
 	symWalkFunc := func(path string, info os.FileInfo, err error) error {
@@ -40,8 +42,9 @@ func stemWalk(filename string, linkDirname string, walkFn filepath.WalkFunc) err
 func StemWalk(path string, walkFn filepath.WalkFunc) error {
 	var stem_path, err = StemPath(path)
 	// log.Print("stem_path ", stem_path)
-	stemWalk(stem_path, stem_path, func(path string, info fs.FileInfo, err error) error {
+	err = stemWalk(stem_path, stem_path, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
+			// fmt.Println("stemwalk patherror ", stem_path, " ", path, " ", err)
 			return err
 		}
 
@@ -50,18 +53,36 @@ func StemWalk(path string, walkFn filepath.WalkFunc) error {
 			return relErr
 		}
 
-		var re, reErr = regexp.Compile(STEM_REGEXP)
-		if reErr != nil {
-			return reErr
+		if info.IsDir() {
+			var re, reErr = regexp.Compile(STEM_DIRS_MATCH)
+			if reErr != nil {
+				return reErr
+			}
+
+			var match = re.MatchString(relPath)
+			// fmt.Println("StemWalk dir match (", path, ") (", relPath, ") (", match, " ", re)
+
+			if match {
+				return nil
+			} else {
+				return filepath.SkipDir
+			}
+		} else {
+			var re, reErr = regexp.Compile(STEM_FILES_MATCH)
+			if reErr != nil {
+				return reErr
+			}
+
+			var match = re.MatchString(relPath)
+			// fmt.Println("StemWalk file match ", path, " ", relPath, " ", match)
+
+			if match {
+				return walkFn(path, info, err)
+			} else {
+				return nil
+			}
 		}
 
-		var match = re.MatchString(relPath)
-
-		if match {
-			return walkFn(path, info, err)
-		}
-
-		return nil
 	})
 	return err
 }

@@ -1,23 +1,25 @@
 package core
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 )
 
-func HeapHas(path string, fingerprint string) (bool, error) {
+func HeapHas(path string, fingerprint string) (string, error) {
 	var heapPath, heapErr = HeapPath(path)
+	fmt.Println("HeapHas heapPath ", heapPath)
 	if heapErr != nil {
-		return false, heapErr
+		return "", heapErr
 	}
 
 	var stemPath = filepath.Join(heapPath, fingerprint)
 	var fileInfo, fileInfoErr = os.Stat(stemPath)
 
 	if fileInfoErr == nil && fileInfo.IsDir() {
-		return true, nil
+		return stemPath, nil
 	} else {
-		return false, nil
+		return "", nil
 	}
 
 }
