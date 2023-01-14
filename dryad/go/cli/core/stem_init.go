@@ -1,0 +1,37 @@
+package core
+
+import (
+	"os"
+	"path/filepath"
+)
+
+func StemInit(path string) error {
+	var root_path string = filepath.Join(path, "dyd")
+	if err := os.MkdirAll(root_path, os.ModePerm); err != nil {
+		return err
+	}
+
+	var assets_path string = filepath.Join(root_path, "assets")
+	if err := os.MkdirAll(assets_path, os.ModePerm); err != nil {
+		return err
+	}
+
+	var stems_path string = filepath.Join(root_path, "stems")
+	if err := os.MkdirAll(stems_path, os.ModePerm); err != nil {
+		return err
+	}
+
+	var traits_path string = filepath.Join(root_path, "traits")
+	if err := os.MkdirAll(traits_path, os.ModePerm); err != nil {
+		return err
+	}
+
+	var main_path string = filepath.Join(root_path, "main")
+	var _, main_err = os.Create(main_path)
+	if main_err != nil {
+		return main_err
+	}
+	os.Chmod(main_path, 0775)
+
+	return nil
+}

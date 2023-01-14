@@ -44,6 +44,11 @@ func HeapAdd(heapPath string, filePath string) (string, error) {
 			return "", err
 		}
 
+		err = destFile.Chmod(os.ModePerm)
+		if err != nil {
+			return "", err
+		}
+
 		err = destFile.Sync()
 		if err != nil {
 			return "", err

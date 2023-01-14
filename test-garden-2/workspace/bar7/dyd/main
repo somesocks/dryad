@@ -1,3 +1,16 @@
 #!/usr/bin/env sh
 
 echo "package bar7"
+
+SRC_DIR=$(pwd)
+
+DEST_DIR=$1
+DEST_ASSETS=$DEST_DIR/dyd/assets
+DEST_MAIN=$DEST_DIR/dyd/main
+
+mkdir -p $DEST_ASSETS
+
+cp -R $SRC_DIR/dyd/assets/* $DEST_ASSETS/
+
+touch $DEST_MAIN
+chmod +x $DEST_MAIN
