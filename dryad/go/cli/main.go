@@ -84,11 +84,14 @@ func main() {
 		}
 	case "garden::init":
 		{
-			var path, err = os.Getwd()
+			path, err := os.Getwd()
 			if err != nil {
 				log.Fatal(err)
 			}
-			dryad.GardenInit(path)
+			err = dryad.GardenInit(path)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	case "garden::path":
 		{

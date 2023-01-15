@@ -392,5 +392,38 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	// add the built fingerprint to the context
 	context.RootFingerprints[absRootPath] = stemBuildFingerprint
 
+	relRootPath, err := filepath.Rel(
+		filepath.Join(gardenPath, "dyd", "roots"),
+		rootPath,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	sproutPath := filepath.Join(gardenPath, "dyd", "sprouts", relRootPath)
+	sproutParent := filepath.Dir(sproutPath)
+	relSproutLink, err := filepath.Rel(
+		sproutParent,
+		filepath.Join(gardenPath, "dyd", "garden", stemBuildFingerprint),
+	)
+	if err != nil {
+		return "", err
+	}
+
+	err = os.MkdirAll(sproutParent, fs.ModePerm)
+	if err != nil {
+		return "", err
+	}
+
+	err = os.RemoveAll(sproutPath)
+	if err != nil {
+		return "", err
+	}
+
+	err = os.Symlink(relSproutLink, sproutPath)
+	if err != nil {
+		return "", err
+	}
+
 	return stemBuildFingerprint, nil
 }
