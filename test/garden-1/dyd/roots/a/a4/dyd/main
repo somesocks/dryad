@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-echo "package a1"
+echo "package a4"
 
 SRC_DIR=$(pwd)
 
