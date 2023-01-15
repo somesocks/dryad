@@ -108,7 +108,12 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			dryad.GardenBuild(path)
+			dryad.GardenBuild(
+				dryad.BuildContext{
+					map[string]string{},
+				},
+				path,
+			)
 		}
 	case "heap::path":
 		{
@@ -191,7 +196,12 @@ func main() {
 				log.Fatal(err)
 			}
 			var rootFingerprint string
-			rootFingerprint, err = dryad.RootBuild(path)
+			rootFingerprint, err = dryad.RootBuild(
+				dryad.BuildContext{
+					map[string]string{},
+				},
+				path,
+			)
 			if err != nil {
 				log.Fatal(err)
 			}

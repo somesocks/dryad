@@ -12,11 +12,6 @@ func GardenInit(path string) {
 		log.Fatal(err)
 	}
 
-	var configPath string = filepath.Join(gardenPath, "config")
-	if err := os.MkdirAll(configPath, os.ModePerm); err != nil {
-		log.Fatal(err)
-	}
-
 	var heapPath string = filepath.Join(gardenPath, "heap")
 	if err := os.MkdirAll(heapPath, os.ModePerm); err != nil {
 		log.Fatal(err)
@@ -24,6 +19,11 @@ func GardenInit(path string) {
 
 	var rootsPath string = filepath.Join(gardenPath, "roots")
 	if err := os.MkdirAll(rootsPath, os.ModePerm); err != nil {
+		log.Fatal(err)
+	}
+
+	var sproutsPath string = filepath.Join(gardenPath, "sprouts")
+	if err := os.MkdirAll(sproutsPath, os.ModePerm); err != nil {
 		log.Fatal(err)
 	}
 

@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -41,7 +40,7 @@ func rootBuild_stage0(rootPath string, workspacePath string) error {
 
 // stage 1 - walk through the root dependencies,
 // and add the fingerprint as a dependency
-func rootBuild_stage1(rootPath string, workspacePath string) error {
+func rootBuild_stage1(context BuildContext, rootPath string, workspacePath string) error {
 	// walk through the dependencies, build them, and add the fingerprint as a dependency
 	rootsPath := filepath.Join(rootPath, "dyd", "roots")
 
@@ -51,7 +50,7 @@ func rootBuild_stage1(rootPath string, workspacePath string) error {
 	}
 
 	for _, dependencyPath := range dependencies {
-		dependencyFingerprint, err := RootBuild(dependencyPath)
+		dependencyFingerprint, err := RootBuild(context, dependencyPath)
 		if err != nil {
 			return err
 		}
@@ -317,13 +316,24 @@ func rootBuild_stage5(gardenPath string, sourcePath string, stemFingerprint stri
 	return finalStemPath, nil
 }
 
-func RootBuild(rootPath string) (string, error) {
+func RootBuild(context BuildContext, rootPath string) (string, error) {
 	// fmt.Println("RootBuild ", rootPath)
 
 	// sanitize the root path
 	rootPath, err := RootPath(rootPath)
 	if err != nil {
 		return "", err
+	}
+
+	absRootPath, err := filepath.EvalSymlinks(rootPath)
+	if err != nil {
+		return "", err
+	}
+
+	// check if the root is already present in the context
+	rootFingerprint, contextHasRootFingerprint := context.RootFingerprints[absRootPath]
+	if contextHasRootFingerprint {
+		return rootFingerprint, nil
 	}
 
 	// check to see if the stem already exists in the garden
@@ -344,12 +354,12 @@ func RootBuild(rootPath string) (string, error) {
 		return "", err
 	}
 
-	err = rootBuild_stage1(rootPath, workspacePath)
+	err = rootBuild_stage1(context, rootPath, workspacePath)
 	if err != nil {
 		return "", err
 	}
 
-	rootFingerprint, err := rootBuild_stage2(rootPath, workspacePath)
+	rootFingerprint, err = rootBuild_stage2(rootPath, workspacePath)
 	if err != nil {
 		return "", err
 	}
@@ -377,7 +387,10 @@ func RootBuild(rootPath string) (string, error) {
 	}
 
 	// fmt.Println("build stem path ", stemBuildPath)
-	fmt.Println("build stem fingerprint ", stemBuildFingerprint)
+	// fmt.Println("root build final fingerprint ", stemBuildFingerprint)
+
+	// add the built fingerprint to the context
+	context.RootFingerprints[absRootPath] = stemBuildFingerprint
 
 	return stemBuildFingerprint, nil
 }

@@ -1,10 +1,11 @@
 package core
 
 import (
+	"io/fs"
 	"path/filepath"
 )
 
-func GardenBuild(gardenPath string) error {
+func GardenBuild(context BuildContext, gardenPath string) error {
 
 	var err error
 	gardenPath, err = GardenPath(gardenPath)
@@ -14,19 +15,17 @@ func GardenBuild(gardenPath string) error {
 
 	var rootsPath = filepath.Join(gardenPath, "dyd", "roots")
 
-	var aliases []string
-	aliases, err = filepath.Glob(rootsPath + "/*")
-	if err != nil {
-		return err
-	}
-	//
-	// build all dependencies
-	for _, alias := range aliases {
-		_, err = RootBuild(alias)
-		if err != nil {
-			return err
-		}
-	}
+	err = GardenRootsWalk(
+		rootsPath,
+		func(path string, info fs.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
 
-	return nil
+			_, err = RootBuild(context, path)
+			return err
+		},
+	)
+
+	return err
 }
