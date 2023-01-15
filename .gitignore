@@ -2,6 +2,8 @@
 # gitignore paths for dryad garden
 /**/dyd/heap/
 /**/dyd/garden/
+/**/dyd/derivations/
+/**/dyd/sprouts/
 
 /**/dyd/path/
 
