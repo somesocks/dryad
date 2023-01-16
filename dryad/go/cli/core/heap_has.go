@@ -13,7 +13,7 @@ func HeapHas(path string, fingerprint string) (string, error) {
 		return "", heapErr
 	}
 
-	var stemPath = filepath.Join(heapPath, fingerprint)
+	var stemPath = filepath.Join(heapPath, "stems", fingerprint)
 	var fileInfo, fileInfoErr = os.Stat(stemPath)
 
 	if fileInfoErr == nil && fileInfo.IsDir() {

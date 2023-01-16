@@ -94,8 +94,8 @@ func rootBuild_stage2(rootPath string, workspacePath string) (string, error) {
 // and add it if it doesn't
 func rootBuild_stage3(gardenPath string, workspacePath string, rootFingerprint string) (string, error) {
 
-	gardenHeapPath := filepath.Join(gardenPath, "dyd", "heap")
-	gardenStemsPath := filepath.Join(gardenPath, "dyd", "garden")
+	gardenFilesPath := filepath.Join(gardenPath, "dyd", "heap", "files")
+	gardenStemsPath := filepath.Join(gardenPath, "dyd", "heap", "stems")
 
 	finalStemPath := filepath.Join(gardenStemsPath, rootFingerprint)
 
@@ -129,12 +129,12 @@ func rootBuild_stage3(gardenPath string, workspacePath string, rootFingerprint s
 				return err
 			}
 
-			fileFingerprint, err := HeapAdd(gardenHeapPath, srcPath)
+			fileFingerprint, err := HeapAdd(gardenFilesPath, srcPath)
 			if err != nil {
 				return err
 			}
 
-			fileHeapPath := filepath.Join(gardenHeapPath, fileFingerprint)
+			fileHeapPath := filepath.Join(gardenFilesPath, fileFingerprint)
 
 			relativeFilePath, err := filepath.Rel(filepath.Dir(destPath), fileHeapPath)
 			if err != nil {
@@ -224,8 +224,8 @@ func rootBuild_stage4(rootStemPath string, stemBuildPath string, rootFingerprint
 // stage 5 - pack the dervied stem into the heap and garden
 func rootBuild_stage5(gardenPath string, sourcePath string, stemFingerprint string) (string, error) {
 
-	gardenHeapPath := filepath.Join(gardenPath, "dyd", "heap")
-	gardenStemsPath := filepath.Join(gardenPath, "dyd", "garden")
+	gardenFilesPath := filepath.Join(gardenPath, "dyd", "heap", "files")
+	gardenStemsPath := filepath.Join(gardenPath, "dyd", "heap", "stems")
 
 	finalStemPath := filepath.Join(gardenStemsPath, stemFingerprint)
 
@@ -258,12 +258,12 @@ func rootBuild_stage5(gardenPath string, sourcePath string, stemFingerprint stri
 				return err
 			}
 
-			fileFingerprint, err := HeapAdd(gardenHeapPath, srcPath)
+			fileFingerprint, err := HeapAdd(gardenFilesPath, srcPath)
 			if err != nil {
 				return err
 			}
 
-			fileHeapPath := filepath.Join(gardenHeapPath, fileFingerprint)
+			fileHeapPath := filepath.Join(gardenFilesPath, fileFingerprint)
 
 			relativeFilePath, err := filepath.Rel(filepath.Dir(destPath), fileHeapPath)
 			if err != nil {
@@ -369,28 +369,72 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		return "", err
 	}
 
-	// now run the root in a build env
-	stemBuildPath, err := os.MkdirTemp("", "dryad-build-*")
+	var stemBuildFingerprint string
+
+	// if the derivation link already exists,
+	// then return it directly
+	derivationsPath := filepath.Join(gardenPath, "dyd", "heap", "derivations", rootFingerprint)
+	derivationFileExists, err := fileExists(derivationsPath)
 	if err != nil {
 		return "", err
 	}
-	defer os.RemoveAll(stemBuildPath)
+	// fmt.Println("derivationsPath", derivationsPath, " ", derivationFileExists)
 
-	stemBuildFingerprint, err := rootBuild_stage4(finalStemPath, stemBuildPath, rootFingerprint)
-	if err != nil {
-		return "", err
-	}
+	if derivationFileExists {
+		derivationsFingerprintFile := filepath.Join(derivationsPath, "dyd", "fingerprint")
+		derivationsFingerprintBytes, err := ioutil.ReadFile(derivationsFingerprintFile)
+		if err != nil {
+			return "", err
+		}
+		derivationsFingerprint := string(derivationsFingerprintBytes)
 
-	_, err = rootBuild_stage5(gardenPath, stemBuildPath, stemBuildFingerprint)
-	if err != nil {
-		return "", err
+		// add the built fingerprint to the context
+		context.RootFingerprints[absRootPath] = derivationsFingerprint
+
+		stemBuildFingerprint = derivationsFingerprint
+
+	} else {
+		// otherwise run the root in a build env
+		stemBuildPath, err := os.MkdirTemp("", "dryad-build-*")
+		if err != nil {
+			return "", err
+		}
+		defer os.RemoveAll(stemBuildPath)
+
+		stemBuildFingerprint, err := rootBuild_stage4(finalStemPath, stemBuildPath, rootFingerprint)
+		if err != nil {
+			return "", err
+		}
+
+		finalStemPath, err = rootBuild_stage5(gardenPath, stemBuildPath, stemBuildFingerprint)
+		if err != nil {
+			return "", err
+		}
+
+		// add the built fingerprint to the context
+		context.RootFingerprints[absRootPath] = stemBuildFingerprint
+
+		// add the derivation link
+		derivationsLinkPath, err := filepath.Rel(
+			filepath.Dir(derivationsPath),
+			finalStemPath,
+		)
+		if err != nil {
+			return "", err
+		}
+		err = os.RemoveAll(derivationsPath)
+		if err != nil {
+			return "", err
+		}
+		err = os.Symlink(derivationsLinkPath, derivationsPath)
+		if err != nil {
+			return "", err
+		}
+
 	}
 
 	// fmt.Println("build stem path ", stemBuildPath)
 	// fmt.Println("root build final fingerprint ", stemBuildFingerprint)
-
-	// add the built fingerprint to the context
-	context.RootFingerprints[absRootPath] = stemBuildFingerprint
 
 	relRootPath, err := filepath.Rel(
 		filepath.Join(gardenPath, "dyd", "roots"),
@@ -415,8 +459,8 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		return "", err
 	}
 
-	err = os.RemoveAll(sproutPath)
-	if err != nil {
+	err = os.Remove(sproutPath)
+	if err != nil && !os.IsNotExist(err) {
 		return "", err
 	}
 

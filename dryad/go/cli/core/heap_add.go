@@ -18,7 +18,7 @@ func HeapAdd(heapPath string, filePath string) (string, error) {
 
 	fingerprint := fileHashAlgorithm + "-" + fileHash
 
-	destPath := filepath.Join(heapPath, fingerprint)
+	destPath := filepath.Join(heapPath, "files", fingerprint)
 
 	fileExists, err := fileExists(destPath)
 	if err != nil {

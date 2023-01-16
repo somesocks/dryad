@@ -6,13 +6,28 @@ import (
 )
 
 func GardenInit(path string) error {
-	var gardenPath string = filepath.Join(path, "dyd")
+	gardenPath := filepath.Join(path, "dyd")
 	if err := os.MkdirAll(gardenPath, os.ModePerm); err != nil {
 		return err
 	}
 
-	var heapPath string = filepath.Join(gardenPath, "heap")
+	heapPath := filepath.Join(gardenPath, "heap")
 	if err := os.MkdirAll(heapPath, os.ModePerm); err != nil {
+		return err
+	}
+
+	heapFilesPath := filepath.Join(heapPath, "files")
+	if err := os.MkdirAll(heapFilesPath, os.ModePerm); err != nil {
+		return err
+	}
+
+	heapStemsPath := filepath.Join(heapPath, "stems")
+	if err := os.MkdirAll(heapStemsPath, os.ModePerm); err != nil {
+		return err
+	}
+
+	heapDerivationsPath := filepath.Join(heapPath, "derivations")
+	if err := os.MkdirAll(heapDerivationsPath, os.ModePerm); err != nil {
 		return err
 	}
 
@@ -23,16 +38,6 @@ func GardenInit(path string) error {
 
 	var sproutsPath string = filepath.Join(gardenPath, "sprouts")
 	if err := os.MkdirAll(sproutsPath, os.ModePerm); err != nil {
-		return err
-	}
-
-	var stemsPath string = filepath.Join(gardenPath, "garden")
-	if err := os.MkdirAll(stemsPath, os.ModePerm); err != nil {
-		return err
-	}
-
-	derivationsPath := filepath.Join(gardenPath, "derivations")
-	if err := os.MkdirAll(derivationsPath, os.ModePerm); err != nil {
 		return err
 	}
 

@@ -111,12 +111,15 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			dryad.GardenBuild(
+			err = dryad.GardenBuild(
 				dryad.BuildContext{
 					map[string]string{},
 				},
 				path,
 			)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	case "heap::path":
 		{
