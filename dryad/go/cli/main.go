@@ -80,6 +80,10 @@ func main() {
 				"  dryad garden build\n",
 				"    build all roots in the garden\n",
 				"\n",
+				"  dryad garden wipe\n",
+				"    wipes the heap and sprouts, removing all artifacts in the garden.\n",
+				"    this does not remove the roots\n",
+				"\n",
 			)
 		}
 	case "garden::init":
@@ -115,6 +119,19 @@ func main() {
 				dryad.BuildContext{
 					map[string]string{},
 				},
+				path,
+			)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	case "garden::wipe":
+		{
+			var path, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+			err = dryad.GardenWipe(
 				path,
 			)
 			if err != nil {
