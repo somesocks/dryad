@@ -1,4 +1,4 @@
-module dryad-go
+module dryad
 
 go 1.19
 

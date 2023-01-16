@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	dryad "dryad-go/core"
+	dryad "dryad/core"
 )
 
 func main() {
@@ -264,6 +264,15 @@ func main() {
 				log.Fatal(err)
 			}
 			fmt.Println(path)
+		}
+	case "stem::exec":
+		{
+			path := arg3
+			args := os.Args[4:]
+			err := dryad.StemExec(path, args...)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	case "stem::fingerprint":
 		{

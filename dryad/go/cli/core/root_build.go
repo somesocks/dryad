@@ -97,9 +97,7 @@ func rootBuild_stage2(workspacePath string) error {
 		basename := filepath.Base(dependencyPath)
 
 		baseTemplate := fmt.Sprintf(
-			"#!/usr/bin/env sh\nPACKAGE=\"./dyd/stems/%s/\" PATH=\"../stems/%s/dyd/path\" ../stems/%s/dyd/main",
-			basename,
-			basename,
+			"#!/usr/bin/env sh\ndryad stem exec ./dyd/stems/%s $@",
 			basename,
 		)
 
@@ -434,10 +432,10 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		}
 		derivationsFingerprint := string(derivationsFingerprintBytes)
 
+		stemBuildFingerprint = derivationsFingerprint
+
 		// add the built fingerprint to the context
 		context.RootFingerprints[absRootPath] = derivationsFingerprint
-
-		stemBuildFingerprint = derivationsFingerprint
 
 	} else {
 		// otherwise run the root in a build env
@@ -447,7 +445,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		}
 		defer os.RemoveAll(stemBuildPath)
 
-		stemBuildFingerprint, err := rootBuild_stage5(finalStemPath, stemBuildPath, rootFingerprint)
+		stemBuildFingerprint, err = rootBuild_stage5(finalStemPath, stemBuildPath, rootFingerprint)
 		if err != nil {
 			return "", err
 		}
@@ -489,9 +487,10 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 
 	sproutPath := filepath.Join(gardenPath, "dyd", "sprouts", relRootPath)
 	sproutParent := filepath.Dir(sproutPath)
+	sproutHeapPath := filepath.Join(gardenPath, "dyd", "heap", "stems", stemBuildFingerprint)
 	relSproutLink, err := filepath.Rel(
 		sproutParent,
-		filepath.Join(gardenPath, "dyd", "heap", "stems", stemBuildFingerprint),
+		sproutHeapPath,
 	)
 	if err != nil {
 		return "", err
