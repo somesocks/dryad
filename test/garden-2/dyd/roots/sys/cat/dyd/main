@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-echo "package sys/mkdir build"
+echo "package sys/cat build"
 
 SRC_DIR=$(pwd)
 
