@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+echo $PATH
+
+which ls
+
+ls -al ./dyd/path
