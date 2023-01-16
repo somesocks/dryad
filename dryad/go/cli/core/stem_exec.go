@@ -1,6 +1,9 @@
 package core
 
-import "os/exec"
+import (
+	"os"
+	"os/exec"
+)
 
 func StemExec(stemPath string, args ...string) error {
 	// rootMain := filepath.Join(finalStemPath, "dyd", "main")
@@ -17,6 +20,11 @@ func StemExec(stemPath string, args ...string) error {
 		"sh",
 		extendedArgs...,
 	)
+
+	// pipe the exec logs to us
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
 	err := cmd.Run()
 	if err != nil {
 		return err

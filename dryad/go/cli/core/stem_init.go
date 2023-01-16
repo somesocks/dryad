@@ -26,12 +26,5 @@ func StemInit(path string) error {
 		return err
 	}
 
-	var main_path string = filepath.Join(root_path, "main")
-	var _, main_err = os.Create(main_path)
-	if main_err != nil {
-		return main_err
-	}
-	os.Chmod(main_path, 0775)
-
 	return nil
 }

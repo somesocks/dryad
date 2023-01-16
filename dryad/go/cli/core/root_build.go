@@ -12,7 +12,6 @@ import (
 // so we have something to modify, and a place to generate the fingerprint
 func rootBuild_stage0(rootPath string, workspacePath string) error {
 	err := StemWalk(rootPath, func(srcPath string, info fs.FileInfo, err error) error {
-		// fmt.Println("RootBuild shallow clone StemWalk ", rootPath, " ", srcPath)
 		if err != nil {
 			return err
 		}
@@ -74,7 +73,6 @@ func rootBuild_stage1(context BuildContext, rootPath string, workspacePath strin
 // stage 2 - generate the fingerprint for the newly-constructed root,
 // and write it out to the fingerprint file
 func rootBuild_stage2(rootPath string, workspacePath string) (string, error) {
-	// fmt.Println("RootBuild StemFingerprint", rootPath, " ", workspacePath)
 
 	rootFingerprint, err := StemFingerprint(workspacePath)
 	if err != nil {
@@ -113,7 +111,6 @@ func rootBuild_stage3(gardenPath string, workspacePath string, rootFingerprint s
 
 		// walk the packed root files and copy them into the garden heap
 		err = StemWalk(workspacePath, func(srcPath string, info fs.FileInfo, err error) error {
-			// fmt.Println("StemWalk pack into garden ", rootPath, " ", srcPath)
 			if err != nil {
 				return err
 			}
@@ -242,7 +239,6 @@ func rootBuild_stage5(gardenPath string, sourcePath string, stemFingerprint stri
 
 		// walk the packed root files and copy them into the garden heap
 		err = StemWalk(sourcePath, func(srcPath string, info fs.FileInfo, err error) error {
-			// fmt.Println("StemWalk pack into garden ", rootPath, " ", srcPath)
 			if err != nil {
 				return err
 			}
@@ -317,7 +313,6 @@ func rootBuild_stage5(gardenPath string, sourcePath string, stemFingerprint stri
 }
 
 func RootBuild(context BuildContext, rootPath string) (string, error) {
-	// fmt.Println("RootBuild ", rootPath)
 
 	// sanitize the root path
 	rootPath, err := RootPath(rootPath)
@@ -378,7 +373,6 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// fmt.Println("derivationsPath", derivationsPath, " ", derivationFileExists)
 
 	if derivationFileExists {
 		derivationsFingerprintFile := filepath.Join(derivationsPath, "dyd", "fingerprint")
@@ -433,9 +427,6 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 
 	}
 
-	// fmt.Println("build stem path ", stemBuildPath)
-	// fmt.Println("root build final fingerprint ", stemBuildFingerprint)
-
 	relRootPath, err := filepath.Rel(
 		filepath.Join(gardenPath, "dyd", "roots"),
 		rootPath,
@@ -448,7 +439,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	sproutParent := filepath.Dir(sproutPath)
 	relSproutLink, err := filepath.Rel(
 		sproutParent,
-		filepath.Join(gardenPath, "dyd", "garden", stemBuildFingerprint),
+		filepath.Join(gardenPath, "dyd", "heap", "stems", stemBuildFingerprint),
 	)
 	if err != nil {
 		return "", err
