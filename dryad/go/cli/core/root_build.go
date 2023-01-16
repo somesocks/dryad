@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -70,9 +71,55 @@ func rootBuild_stage1(context BuildContext, rootPath string, workspacePath strin
 	return nil
 }
 
-// stage 2 - generate the fingerprint for the newly-constructed root,
+// stage 2 - generate the artificial links to all executable stems for the path
+func rootBuild_stage2(workspacePath string) error {
+	pathPath := filepath.Join(workspacePath, "dyd", "path")
+
+	err := os.RemoveAll(pathPath)
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(pathPath, fs.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	// walk through the dependencies, build them, and add the fingerprint as a dependency
+	dependenciesPath := filepath.Join(workspacePath, "dyd", "stems")
+
+	dependencies, err := filepath.Glob(filepath.Join(dependenciesPath, "*"))
+	if err != nil {
+		return err
+	}
+
+	for _, dependencyPath := range dependencies {
+		basename := filepath.Base(dependencyPath)
+
+		baseTemplate := fmt.Sprintf(
+			"#!/usr/bin/env sh\nPACKAGE=\"./dyd/stems/%s/\" PATH=\"../stems/%s/dyd/path\" ../stems/%s/dyd/main",
+			basename,
+			basename,
+			basename,
+		)
+
+		err = os.WriteFile(
+			filepath.Join(pathPath, basename),
+			[]byte(baseTemplate),
+			fs.ModePerm,
+		)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	return nil
+}
+
+// stage 3 - generate the fingerprint for the newly-constructed root,
 // and write it out to the fingerprint file
-func rootBuild_stage2(rootPath string, workspacePath string) (string, error) {
+func rootBuild_stage3(rootPath string, workspacePath string) (string, error) {
 
 	rootFingerprint, err := StemFingerprint(workspacePath)
 	if err != nil {
@@ -88,9 +135,9 @@ func rootBuild_stage2(rootPath string, workspacePath string) (string, error) {
 	return rootFingerprint, nil
 }
 
-// stage 3 - check the garden to see if the stem exists,
+// stage 4 - check the garden to see if the stem exists,
 // and add it if it doesn't
-func rootBuild_stage3(gardenPath string, workspacePath string, rootFingerprint string) (string, error) {
+func rootBuild_stage4(gardenPath string, workspacePath string, rootFingerprint string) (string, error) {
 
 	gardenFilesPath := filepath.Join(gardenPath, "dyd", "heap", "files")
 	gardenStemsPath := filepath.Join(gardenPath, "dyd", "heap", "stems")
@@ -184,8 +231,8 @@ func rootBuild_stage3(gardenPath string, workspacePath string, rootFingerprint s
 	return finalStemPath, nil
 }
 
-// stage 4 - execute the root to build its stem,
-func rootBuild_stage4(rootStemPath string, stemBuildPath string, rootFingerprint string) (string, error) {
+// stage 5 - execute the root to build its stem,
+func rootBuild_stage5(rootStemPath string, stemBuildPath string, rootFingerprint string) (string, error) {
 	var err error
 
 	err = StemInit(stemBuildPath)
@@ -218,8 +265,8 @@ func rootBuild_stage4(rootStemPath string, stemBuildPath string, rootFingerprint
 	return stemBuildFingerprint, err
 }
 
-// stage 5 - pack the dervied stem into the heap and garden
-func rootBuild_stage5(gardenPath string, sourcePath string, stemFingerprint string) (string, error) {
+// stage 6 - pack the dervied stem into the heap and garden
+func rootBuild_stage6(gardenPath string, sourcePath string, stemFingerprint string) (string, error) {
 
 	gardenFilesPath := filepath.Join(gardenPath, "dyd", "heap", "files")
 	gardenStemsPath := filepath.Join(gardenPath, "dyd", "heap", "stems")
@@ -354,12 +401,17 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		return "", err
 	}
 
-	rootFingerprint, err = rootBuild_stage2(rootPath, workspacePath)
+	err = rootBuild_stage2(workspacePath)
 	if err != nil {
 		return "", err
 	}
 
-	finalStemPath, err := rootBuild_stage3(gardenPath, workspacePath, rootFingerprint)
+	rootFingerprint, err = rootBuild_stage3(rootPath, workspacePath)
+	if err != nil {
+		return "", err
+	}
+
+	finalStemPath, err := rootBuild_stage4(gardenPath, workspacePath, rootFingerprint)
 	if err != nil {
 		return "", err
 	}
@@ -395,12 +447,12 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		}
 		defer os.RemoveAll(stemBuildPath)
 
-		stemBuildFingerprint, err := rootBuild_stage4(finalStemPath, stemBuildPath, rootFingerprint)
+		stemBuildFingerprint, err := rootBuild_stage5(finalStemPath, stemBuildPath, rootFingerprint)
 		if err != nil {
 			return "", err
 		}
 
-		finalStemPath, err = rootBuild_stage5(gardenPath, stemBuildPath, stemBuildFingerprint)
+		finalStemPath, err = rootBuild_stage6(gardenPath, stemBuildPath, stemBuildFingerprint)
 		if err != nil {
 			return "", err
 		}

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 )
@@ -8,22 +9,25 @@ import (
 func StemExec(stemPath string, args ...string) error {
 	// rootMain := filepath.Join(finalStemPath, "dyd", "main")
 
-	var extendedArgs = []string{
-		"-c",
-		"cd " + stemPath + " && ./dyd/main $@",
-		"dyd-main",
-	}
-
-	extendedArgs = append(extendedArgs, args...)
-
 	cmd := exec.Command(
-		"sh",
-		extendedArgs...,
+		stemPath + "/dyd/main",
 	)
 
 	// pipe the exec logs to us
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
+	envPath := fmt.Sprintf(
+		"PATH=%s:%s",
+		stemPath+"/dyd/path",
+		"/usr/bin/",
+	)
+
+	cmd.Env = []string{
+		envPath,
+	}
+
+	cmd.Dir = stemPath
 
 	err := cmd.Run()
 	if err != nil {
