@@ -25,7 +25,7 @@ func gardenRootsWalk(filename string, linkDirname string, walkFn filepath.WalkFu
 				return walkFn(path, info, err)
 			}
 			if info.IsDir() {
-				return stemWalk(finalPath, path, walkFn)
+				return gardenRootsWalk(finalPath, path, walkFn)
 			}
 		}
 

@@ -46,6 +46,10 @@ func StemFingerprint(path string) (string, error) {
 				return relErr
 			}
 
+			if info.IsDir() {
+				return nil
+			}
+
 			var hash, hashErr = hash_file_md5(walk)
 
 			if hashErr != nil {

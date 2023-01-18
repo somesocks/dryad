@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+
+echo "package sys/gpg build"
+
+SRC_DIR=$(pwd)
+
+DEST_DIR=$1
+
+DEST_MAIN=$DEST_DIR/dyd/main
+
+cp --symbolic-link $SRC_DIR/dyd/assets/main $DEST_MAIN
+
+echo "gpg" > $DEST_DIR/dyd/traits/name

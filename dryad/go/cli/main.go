@@ -286,7 +286,7 @@ func main() {
 		{
 			path := arg3
 			args := os.Args[4:]
-			err := dryad.StemExec(path, args...)
+			err := dryad.StemExec(path, nil, args...)
 			if err != nil {
 				log.Fatal(err)
 			}

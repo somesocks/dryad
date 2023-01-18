@@ -7,7 +7,8 @@ import (
 	"path/filepath"
 )
 
-func StemExec(stemPath string, args ...string) error {
+func StemExec(stemPath string, env map[string]string, args ...string) error {
+
 	if !filepath.IsAbs(stemPath) {
 		wd, err := os.Getwd()
 		if err != nil {
@@ -34,7 +35,20 @@ func StemExec(stemPath string, args ...string) error {
 		args...,
 	)
 
+	if len(env) > 0 {
+		var envList []string
+
+		for key, val := range env {
+			envList = append(envList, key+"="+val)
+		}
+
+		cmd.Env = envList
+	} else {
+		cmd.Env = []string{}
+	}
+
 	// pipe the exec logs to us
+	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -45,9 +59,7 @@ func StemExec(stemPath string, args ...string) error {
 		"/usr/bin/",
 	)
 
-	cmd.Env = []string{
-		envPath,
-	}
+	cmd.Env = append(cmd.Env, envPath)
 
 	cmd.Dir = stemPath
 
