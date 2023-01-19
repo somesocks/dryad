@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"path/filepath"
 	"regexp"
 
 	dryad "dryad/core"
@@ -108,11 +109,30 @@ func _buildCLI() cli.App {
 		})
 
 	var rootInit = cli.NewCommand("init", "create a new root directory structure in the current dir").
+		WithArg(cli.NewArg("path", "the path to init the root at. defaults to current directory").AsOptional()).
 		WithAction(func(args []string, options map[string]string) int {
-			var path, err = os.Getwd()
-			if err != nil {
-				log.Fatal(err)
+			var path string = ""
+
+			if len(args) > 0 {
+				path = args[0]
 			}
+
+			if path == "" {
+				var cwd, err = os.Getwd()
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				path = cwd
+			} else if !filepath.IsAbs(path) {
+				var cwd, err = os.Getwd()
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				path = filepath.Join(cwd, path)
+			}
+
 			dryad.RootInit(path)
 
 			return 0

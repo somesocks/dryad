@@ -343,7 +343,22 @@ func rootBuild_stage6(rootStemPath string, stemBuildPath string, rootFingerprint
 	}
 
 	// write out the source file
-	err = os.WriteFile(filepath.Join(stemBuildPath, "dyd", "traits", "source"), []byte(rootFingerprint), fs.ModePerm)
+	sourceFile := filepath.Join(stemBuildPath, "dyd", "traits", "source")
+	sourceFileExists, err := fileExists(sourceFile)
+	if err != nil {
+		return "", err
+	}
+	if sourceFileExists {
+		err = os.Remove(sourceFile)
+		if err != nil {
+			return "", err
+		}
+	}
+	err = os.WriteFile(
+		sourceFile,
+		[]byte(rootFingerprint),
+		fs.ModePerm,
+	)
 	if err != nil {
 		return "", err
 	}

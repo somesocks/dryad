@@ -12,6 +12,8 @@ import (
 	"strings"
 )
 
+var STEM_FINGERPRINT_MATCH_ALLOW, _ = regexp.Compile(`^((dyd/path/.*)|(dyd/assets/.*)|(dyd/main)|(dyd/env)|(dyd/stems/.*/dyd/fingerprint)|(dyd/stems/.*/dyd/traits/.*)|(dyd/traits/.*))$`)
+
 func hash_file_md5(filePath string) (string, error) {
 	//Initialize variable returnMD5String now in case an error has to be returned
 	var returnMD5String string
@@ -69,9 +71,10 @@ func StemFingerprint(args StemFingerprintArgs) (string, error) {
 
 	err := StemWalk(
 		StemWalkArgs{
-			BasePath:  args.BasePath,
-			MatchDeny: args.MatchDeny,
-			OnMatch:   onMatch,
+			BasePath:   args.BasePath,
+			MatchAllow: STEM_FINGERPRINT_MATCH_ALLOW,
+			MatchDeny:  args.MatchDeny,
+			OnMatch:    onMatch,
 		},
 	)
 	if err != nil {
@@ -98,6 +101,5 @@ func StemFingerprint(args StemFingerprintArgs) (string, error) {
 	var fingerprintHash = hex.EncodeToString(fingerprintHashBytes[:])
 	var fingerprint = "md5sum-" + fingerprintHash
 	// fmt.Printf("Key: %d, Value: %s\n", key, checksumMap[key])
-	// log.Print(checksumTable)
 	return fingerprint, nil
 }
