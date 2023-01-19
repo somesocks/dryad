@@ -1,0 +1,35 @@
+#!/usr/bin/env sh
+
+set -eu
+
+echo "[info] verifying package signature..."
+
+PARTIAL_FINGERPRINT=$(cd $PACKAGE_DIR && dryad stem fingerprint --exclude="^((dyd/traits/signature-fingerprint)|(dyd/traits/signature)|(dyd/traits/source))$")
+PARTIAL_FINGERPRINT2="$(cat $PACKAGE_DIR/dyd/traits/signature-fingerprint)"
+
+echo "[info] partial package fingerprint $PARTIAL_FINGERPRINT"
+
+echo "[info] step 1 - checking partial package fingerprint matches dyd/traits/signature-fingerprint"
+if [ "$PARTIAL_FINGERPRINT" != "$PARTIAL_FINGERPRINT2" ]
+then
+	echo "[error] signature fingerprint verification failed!"
+	exit 1
+fi
+echo "[info] done"
+
+echo "[info] step 2 - verifying dyd/traits/signature is valid"
+echo "$GPG_KEY_PUB" | gpg --import
+
+gpg --verify $PACKAGE_DIR/dyd/traits/signature
+echo "[info] done"
+
+echo "[info] step 3 - extracting fingerprint from signature and matching against partial package fingerprint"
+PARTIAL_FINGERPRINT3="$(gpg --verify --output - $PACKAGE_DIR/dyd/traits/signature)"
+if [ "$PARTIAL_FINGERPRINT" != "$PARTIAL_FINGERPRINT3" ]
+then
+	echo "[error] signature fingerprint verification failed!"
+	exit 1
+fi
+echo "[info] done"
+
+echo "[info] all checks pass, package signature verified!"

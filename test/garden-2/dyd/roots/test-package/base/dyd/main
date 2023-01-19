@@ -5,7 +5,7 @@ set -e
 
 SRC_DIR=$(pwd)
 
-echo "package test"
+echo "test-package:base"
 
 # ls -al $SRC_DIR/dyd/stems
 
@@ -21,7 +21,7 @@ cp --symbolic-link $SRC_DIR/dyd/assets/main $DEST_MAIN
 
 ln -s $SRC_DIR/dyd/stems/echo $DEST_DIR/dyd/stems/echo
 
-echo $NAME > $DEST_DIR/dyd/traits/name
+echo "test-package" > $DEST_DIR/dyd/traits/name
 echo "socks" > $DEST_DIR/dyd/traits/author
 
 ls -al $DEST_DIR/dyd/traits

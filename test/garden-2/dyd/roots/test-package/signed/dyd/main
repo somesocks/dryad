@@ -6,10 +6,6 @@ echo "signing test package"
 
 SRC_DIR=$(pwd)
 
-echo "package test build"
-
-echo "package FOO=$FOO"
-
 # ls -al $SRC_DIR/dyd/stems
 
 # which ls
@@ -24,14 +20,15 @@ DEST_MAIN=$DEST_DIR/dyd/main
 cat $SRC_DIR/dyd/fingerprint
 echo ""
 
-cp -r --symbolic-link $SRC_DIR/dyd/stems/test/* $DEST_DIR/
+cp -r --symbolic-link $SRC_DIR/dyd/stems/base/* $DEST_DIR/
 
 PACKAGE_DIR="$DEST_DIR" \
 GPG_KEY_ID="$TEST_KEY_ID" \
 GPG_KEY_PUB="$TEST_KEY_PUB" \
 GPG_KEY_PRIV="$TEST_KEY_PRIV" \
 GPG_KEY_PASS="$TEST_KEY_PASS" \
-	sign-package
+GPG_KEY_FAKE_TIME="$TEST_KEY_FAKE_TIME" \
+	gpg-package-sign
 
 # echo "$TEST_KEY_PUB" | gpg --import
 # echo "$TEST_KEY_PRIV" | gpg --import --allow-secret-key-import

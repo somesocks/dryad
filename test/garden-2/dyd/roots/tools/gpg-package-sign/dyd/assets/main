@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+
+set -eu
+
+echo "signing package $(cat $PACKAGE_DIR/dyd/fingerprint)"
+
+PARTIAL_FINGERPRINT=$(cd $PACKAGE_DIR && dryad stem fingerprint --exclude="^((dyd/traits/signature-fingerprint)|(dyd/traits/signature)|(dyd/traits/source))$")
+
+echo "partial package fingerprint $PARTIAL_FINGERPRINT"
+
+echo "$PARTIAL_FINGERPRINT" > $PACKAGE_DIR/dyd/traits/signature-fingerprint
+
+echo "$GPG_KEY_PUB" | gpg --import
+echo "$GPG_KEY_PRIV" | gpg --import --allow-secret-key-import
+echo "$GPG_KEY_PASS" | gpg --sign \
+	--pinentry-mode loopback \
+	--yes \
+	--passphrase-fd 0 \
+	-u $GPG_KEY_ID \
+	--armor \
+	--output $PACKAGE_DIR/dyd/traits/signature \
+	--faked-system-time $GPG_KEY_FAKE_TIME \
+	$PACKAGE_DIR/dyd/traits/signature-fingerprint
+
+echo "done"
+
