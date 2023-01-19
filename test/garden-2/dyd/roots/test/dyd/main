@@ -1,19 +1,17 @@
 #!/usr/bin/env sh
 
 set -e
-set -x
+# set -x
 
 SRC_DIR=$(pwd)
 
-echo "package test build"
-
-echo "package FOO=$FOO"
+echo "package test"
 
 # ls -al $SRC_DIR/dyd/stems
 
 # which ls
 # which cat
-which cp
+# which cp
 # which dryad
 
 DEST_DIR=$1

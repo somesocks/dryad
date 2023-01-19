@@ -2,7 +2,7 @@
 
 set -eu
 
-echo "signing package... $(cat PACKAGE_DIR/dyd/fingerprint)"
+echo "signing package... $(cat $PACKAGE_DIR/dyd/fingerprint)"
 
 echo "$GPG_KEY_PUB" | gpg --import
 echo "$GPG_KEY_PRIV" | gpg --import --allow-secret-key-import
