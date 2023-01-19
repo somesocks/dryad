@@ -10,11 +10,9 @@ func StemFiles(path string) error {
 		StemWalkArgs{
 			BasePath: path,
 			OnMatch: func(walk string, info fs.FileInfo, err error) error {
-				// var rel, relErr = filepath.Rel(path, walk)
-				// if relErr != nil {
-				// 	return relErr
-				// }
-				fmt.Println(walk)
+				if !info.IsDir() {
+					fmt.Println(walk)
+				}
 				return nil
 			},
 		},
