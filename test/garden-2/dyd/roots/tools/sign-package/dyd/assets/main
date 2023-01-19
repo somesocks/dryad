@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+
+set -eu
+
+echo "signing package... $(cat PACKAGE_DIR/dyd/fingerprint)"
+
+echo "$GPG_KEY_PUB" | gpg --import
+echo "$GPG_KEY_PRIV" | gpg --import --allow-secret-key-import
+echo "$GPG_KEY_PASS" | gpg --sign \
+	--pinentry-mode loopback \
+	--yes \
+	--passphrase-fd 0 \
+	-u $GPG_KEY_ID \
+	--armor \
+	--output $PACKAGE_DIR/dyd/traits/signature \
+	$PACKAGE_DIR/dyd/fingerprint
+
+echo "done"
+

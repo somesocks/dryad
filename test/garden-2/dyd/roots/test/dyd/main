@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 
 set -e
+set -x
 
 SRC_DIR=$(pwd)
 
@@ -12,7 +13,7 @@ echo "package FOO=$FOO"
 
 # which ls
 # which cat
-# which cp
+which cp
 # which dryad
 
 DEST_DIR=$1
