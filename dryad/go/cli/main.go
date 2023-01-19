@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"regexp"
 
 	dryad "dryad/core"
 
@@ -211,12 +212,29 @@ func _buildCLI() cli.App {
 
 	var stemFingerprint = cli.NewCommand("fingerprint", "calculate the fingerprint for a stem dir").
 		// WithArg(cli.NewArg("path", "path to the stem base dir")).
+		WithOption(cli.NewOption("exclude", "a regular expression to exclude files from the fingerprint calculation. the regexp matches against the file path relative to the stem base directory")).
 		WithAction(func(args []string, options map[string]string) int {
-			var path, err = os.Getwd()
+			var err error
+			var matchExclude *regexp.Regexp
+
+			if options["exclude"] != "" {
+				matchExclude, err = regexp.Compile(options["exclude"])
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+
+			var path string
+			path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
 			}
-			var fingerprintString, fingerprintErr = dryad.StemFingerprint(path)
+			var fingerprintString, fingerprintErr = dryad.StemFingerprint(
+				dryad.StemFingerprintArgs{
+					BasePath:  path,
+					MatchDeny: matchExclude,
+				},
+			)
 			if fingerprintErr != nil {
 				log.Fatal(fingerprintErr)
 			}
@@ -227,12 +245,29 @@ func _buildCLI() cli.App {
 
 	var stemFiles = cli.NewCommand("files", "list the files in a stem").
 		// WithArg(cli.NewArg("path", "path to the stem base dir")).
+		WithOption(cli.NewOption("exclude", "a regular expression to exclude files from the list. the regexp matches against the file path relative to the stem base directory")).
 		WithAction(func(args []string, options map[string]string) int {
-			var path, err = os.Getwd()
+			var err error
+			var matchExclude *regexp.Regexp
+
+			if options["exclude"] != "" {
+				matchExclude, err = regexp.Compile(options["exclude"])
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+
+			var path string
+			path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
 			}
-			err = dryad.StemFiles(path)
+			err = dryad.StemFiles(
+				dryad.StemFilesArgs{
+					BasePath:  path,
+					MatchDeny: matchExclude,
+				},
+			)
 			if err != nil {
 				log.Fatal(err)
 			}

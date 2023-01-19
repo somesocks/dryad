@@ -3,12 +3,19 @@ package core
 import (
 	"fmt"
 	"io/fs"
+	"regexp"
 )
 
-func StemFiles(path string) error {
+type StemFilesArgs struct {
+	BasePath  string
+	MatchDeny *regexp.Regexp
+}
+
+func StemFiles(args StemFilesArgs) error {
 	StemWalk(
 		StemWalkArgs{
-			BasePath: path,
+			BasePath:  args.BasePath,
+			MatchDeny: args.MatchDeny,
 			OnMatch: func(walk string, info fs.FileInfo, err error) error {
 				if !info.IsDir() {
 					fmt.Println(walk)

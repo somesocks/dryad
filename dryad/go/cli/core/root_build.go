@@ -202,7 +202,11 @@ func rootbuild_stage3(rootPath string, workspacePath string) (map[string]string,
 func rootBuild_stage4(rootPath string, workspacePath string) (string, error) {
 	// 	fmt.Println("rootBuild_stage4 ", rootPath, " ", workspacePath)
 
-	rootFingerprint, err := StemFingerprint(workspacePath)
+	rootFingerprint, err := StemFingerprint(
+		StemFingerprintArgs{
+			BasePath: workspacePath,
+		},
+	)
 	if err != nil {
 		return "", err
 	}
@@ -344,7 +348,11 @@ func rootBuild_stage6(rootStemPath string, stemBuildPath string, rootFingerprint
 		return "", err
 	}
 
-	stemBuildFingerprint, err := StemFingerprint(stemBuildPath)
+	stemBuildFingerprint, err := StemFingerprint(
+		StemFingerprintArgs{
+			BasePath: stemBuildPath,
+		},
+	)
 	if err != nil {
 		return "", err
 	}

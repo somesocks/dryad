@@ -105,7 +105,11 @@ func StemPack(stemPath string, targetPath string) (string, error) {
 
 	if !fingerprintExists {
 		var stemFingerprint string
-		stemFingerprint, err = StemFingerprint(targetPath)
+		stemFingerprint, err = StemFingerprint(
+			StemFingerprintArgs{
+				BasePath: targetPath,
+			},
+		)
 		if err != nil {
 			return "", err
 		}

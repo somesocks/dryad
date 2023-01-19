@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -34,11 +35,16 @@ func hash_file_md5(filePath string) (string, error) {
 	return returnMD5String, nil
 }
 
-func StemFingerprint(path string) (string, error) {
+type StemFingerprintArgs struct {
+	BasePath  string
+	MatchDeny *regexp.Regexp
+}
+
+func StemFingerprint(args StemFingerprintArgs) (string, error) {
 	var checksumMap = make(map[string]string)
 
 	var onMatch = func(walk string, info fs.FileInfo, err error) error {
-		var rel, relErr = filepath.Rel(path, walk)
+		var rel, relErr = filepath.Rel(args.BasePath, walk)
 
 		if relErr != nil {
 			return relErr
@@ -63,8 +69,9 @@ func StemFingerprint(path string) (string, error) {
 
 	err := StemWalk(
 		StemWalkArgs{
-			BasePath: path,
-			OnMatch:  onMatch,
+			BasePath:  args.BasePath,
+			MatchDeny: args.MatchDeny,
+			OnMatch:   onMatch,
 		},
 	)
 	if err != nil {
