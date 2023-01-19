@@ -7,87 +7,14 @@ import (
 	"os"
 
 	dryad "dryad/core"
+
+	cli "dryad/cli-1.0.1"
 )
 
-func main() {
-	var arg1 string
-	var arg2 string
-	var arg3 string
-	var arg4 string
-	var command string
+func _buildCLI() cli.App {
 
-	switch len(os.Args) {
-	case 0:
-	case 1:
-		arg1 = ""
-		arg2 = ""
-		arg3 = ""
-		arg4 = ""
-	case 2:
-		arg1 = os.Args[1]
-		arg2 = ""
-		arg3 = ""
-		arg4 = ""
-	case 3:
-		arg1 = os.Args[1]
-		arg2 = os.Args[2]
-		arg3 = ""
-		arg4 = ""
-	case 4:
-		arg1 = os.Args[1]
-		arg2 = os.Args[2]
-		arg3 = os.Args[3]
-		arg4 = ""
-	default:
-		arg1 = os.Args[1]
-		arg2 = os.Args[2]
-		arg3 = os.Args[3]
-		arg4 = os.Args[4]
-	}
-
-	command = arg1 + "::" + arg2
-
-	switch command {
-	case "::":
-		{
-			fmt.Print(
-				"\n",
-				"dryad commands follow a 'dryad <resource> <action>' pattern\n\n",
-				"resources:\n",
-				"  garden\n",
-				"  heap\n",
-				"  root\n",
-				"  roots\n",
-				"  stem\n",
-				"  stems\n",
-				"\n",
-				"to see actions for a resource, run 'dryad <resource>'\n",
-				"\n",
-			)
-		}
-	case "garden::":
-		{
-			fmt.Print(
-				"\n",
-				"dryad garden commands:\n",
-				"\n",
-				"  dryad garden init\n",
-				"    initialize a garden in the current directory\n",
-				"\n",
-				"  dryad garden path\n",
-				"    return the path of the parent garden to this directory\n",
-				"\n",
-				"  dryad garden build\n",
-				"    build all roots in the garden\n",
-				"\n",
-				"  dryad garden wipe\n",
-				"    wipes the heap and sprouts, removing all artifacts in the garden.\n",
-				"    this does not remove the roots\n",
-				"\n",
-			)
-		}
-	case "garden::init":
-		{
+	var gardenInit = cli.NewCommand("init", "initialize a garden").
+		WithAction(func(args []string, options map[string]string) int {
 			path, err := os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -96,9 +23,12 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-		}
-	case "garden::path":
-		{
+
+			return 0
+		})
+
+	var gardenPath = cli.NewCommand("path", "return the base path for a garden").
+		WithAction(func(args []string, options map[string]string) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -108,25 +38,31 @@ func main() {
 				log.Fatal(err)
 			}
 			fmt.Println(path)
-		}
-	case "garden::build":
-		{
+
+			return 0
+		})
+
+	var gardenBuild = cli.NewCommand("build", "build all roots in the garden").
+		WithAction(func(args []string, options map[string]string) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
 			}
 			err = dryad.GardenBuild(
 				dryad.BuildContext{
-					map[string]string{},
+					RootFingerprints: map[string]string{},
 				},
 				path,
 			)
 			if err != nil {
 				log.Fatal(err)
 			}
-		}
-	case "garden::wipe":
-		{
+
+			return 0
+		})
+
+	var gardenWipe = cli.NewCommand("wipe", "clear all build artifacts out of the garden").
+		WithAction(func(args []string, options map[string]string) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -137,59 +73,52 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-		}
-	case "heap::path":
-		{
-			var path, err = os.Getwd()
+
+			return 0
+		})
+
+	var garden = cli.NewCommand("garden", "commands to work with a dryad garden").
+		WithCommand(gardenInit).
+		WithCommand(gardenBuild).
+		WithCommand(gardenWipe).
+		WithCommand(gardenPath)
+
+	var rootAdd = cli.NewCommand("add", "add a root as a dependency of the current root").
+		WithArg(cli.NewArg("path", "path to the root you want to add as a dependency")).
+		WithArg(cli.NewArg("alias", "the alias to add the root under. if not specified, this defaults to the basename of the added root").AsOptional()).
+		WithAction(func(args []string, options map[string]string) int {
+			var rootPath, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
 			}
-			path, err = dryad.HeapPath(path)
+
+			var path = args[0]
+			var alias = ""
+			if len(args) > 1 {
+				alias = args[1]
+			}
+
+			err = dryad.RootAdd(rootPath, path, alias)
 			if err != nil {
 				log.Fatal(err)
 			}
-			fmt.Println(path)
-		}
-	case "root::":
-		{
-			fmt.Print(
-				"\n",
-				"dryad root commands:\n",
-				"\n",
-				"  dryad root init\n",
-				"    initialize a root in the current directory\n",
-				"\n",
-				"  dryad root path\n",
-				"    return the path of the parent root to this directory\n",
-				"\n",
-				"  dryad root add <path> <alias?>\n",
-				"    add a root as a dependency to this root\n",
-				"    <path> - the path to the root to add as a dependency\n",
-				"    <alias?> - an optional alias for the dependency. if not specified, the basename to the dependency root folder is used\n",
-				"\n",
-			)
-		}
-	case "root::add":
-		{
-			var path, err = os.Getwd()
-			if err != nil {
-				log.Fatal(err)
-			}
-			err = dryad.RootAdd(path, arg3, arg4)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-	case "root::init":
-		{
+
+			return 0
+		})
+
+	var rootInit = cli.NewCommand("init", "create a new root directory structure in the current dir").
+		WithAction(func(args []string, options map[string]string) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
 			}
 			dryad.RootInit(path)
-		}
-	case "root::path":
-		{
+
+			return 0
+		})
+
+	var rootPath = cli.NewCommand("path", "return the base path of the current root").
+		WithAction(func(args []string, options map[string]string) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -199,21 +128,12 @@ func main() {
 				log.Fatal(err)
 			}
 			fmt.Println(path)
-		}
-	case "root::pack":
-		{
-			var path, err = os.Getwd()
-			if err != nil {
-				log.Fatal(err)
-			}
-			path, err = dryad.StemPack(path, "")
-			if err != nil {
-				log.Fatal(err)
-			}
-			fmt.Println(path)
-		}
-	case "root::build":
-		{
+
+			return 0
+		})
+
+	var rootBuild = cli.NewCommand("build", "build the current root").
+		WithAction(func(args []string, options map[string]string) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -221,7 +141,7 @@ func main() {
 			var rootFingerprint string
 			rootFingerprint, err = dryad.RootBuild(
 				dryad.BuildContext{
-					map[string]string{},
+					RootFingerprints: map[string]string{},
 				},
 				path,
 			)
@@ -229,9 +149,18 @@ func main() {
 				log.Fatal(err)
 			}
 			fmt.Println(rootFingerprint)
-		}
-	case "roots::list":
-		{
+
+			return 0
+		})
+
+	var root = cli.NewCommand("root", "commands to work with a dryad root").
+		WithCommand(rootAdd).
+		WithCommand(rootInit).
+		WithCommand(rootBuild).
+		WithCommand(rootPath)
+
+	var rootsList = cli.NewCommand("list", "list all roots that are dependencies for the current root").
+		WithAction(func(args []string, options map[string]string) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -243,9 +172,12 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-		}
-	case "roots::path":
-		{
+
+			return 0
+		})
+
+	var rootsPath = cli.NewCommand("path", "return the path of the roots dir").
+		WithAction(func(args []string, options map[string]string) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -255,9 +187,83 @@ func main() {
 				log.Fatal(err)
 			}
 			fmt.Println(path)
-		}
-	case "stems::list":
-		{
+
+			return 0
+		})
+
+	var roots = cli.NewCommand("roots", "commands to work with dryad roots").
+		WithCommand(rootsList).
+		WithCommand(rootsPath)
+
+	var stemExec = cli.NewCommand("exec", "execute the main for a stem").
+		WithArg(cli.NewArg("path", "path to the stem base dir")).
+		WithArg(cli.NewArg("-- args", "args to pass to the stem").AsOptional()).
+		WithAction(func(args []string, options map[string]string) int {
+			path := args[0]
+			extras := args[1:]
+			err := dryad.StemExec(path, nil, extras...)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			return 0
+		})
+
+	var stemFingerprint = cli.NewCommand("fingerprint", "calculate the fingerprint for a stem dir").
+		// WithArg(cli.NewArg("path", "path to the stem base dir")).
+		WithAction(func(args []string, options map[string]string) int {
+			var path, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+			var fingerprintString, fingerprintErr = dryad.StemFingerprint(path)
+			if fingerprintErr != nil {
+				log.Fatal(fingerprintErr)
+			}
+			fmt.Println(fingerprintString)
+
+			return 0
+		})
+
+	var stemFiles = cli.NewCommand("files", "list the files in a stem").
+		// WithArg(cli.NewArg("path", "path to the stem base dir")).
+		WithAction(func(args []string, options map[string]string) int {
+			var path, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+			err = dryad.StemFiles(path)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			return 0
+		})
+
+	var stemPath = cli.NewCommand("path", "return the base path of the current root").
+		// WithArg(cli.NewArg("path", "path to the stem base dir")).
+		WithAction(func(args []string, options map[string]string) int {
+			var path, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+			path, err = dryad.StemPath(path)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(path)
+
+			return 0
+		})
+
+	var stem = cli.NewCommand("stem", "commands to work with dryad stems").
+		WithCommand(stemExec).
+		WithCommand(stemFingerprint).
+		WithCommand(stemFiles).
+		WithCommand(stemPath)
+
+	var stemsList = cli.NewCommand("list", "list all stems that are dependencies for the current root").
+		WithAction(func(args []string, options map[string]string) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -269,9 +275,12 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-		}
-	case "stems::path":
-		{
+
+			return 0
+		})
+
+	var stemsPath = cli.NewCommand("path", "return the path of the stems dir").
+		WithAction(func(args []string, options map[string]string) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -281,52 +290,25 @@ func main() {
 				log.Fatal(err)
 			}
 			fmt.Println(path)
-		}
-	case "stem::exec":
-		{
-			path := arg3
-			args := os.Args[4:]
-			err := dryad.StemExec(path, nil, args...)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-	case "stem::fingerprint":
-		{
-			var path, err = os.Getwd()
-			if err != nil {
-				log.Fatal(err)
-			}
-			var fingerprintString, fingerprintErr = dryad.StemFingerprint(path)
-			if fingerprintErr != nil {
-				log.Fatal(fingerprintErr)
-			}
-			fmt.Println(fingerprintString)
-		}
-	case "stem::files":
-		{
-			var path, err = os.Getwd()
-			if err != nil {
-				log.Fatal(err)
-			}
-			err = dryad.StemFiles(path)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-	case "stem::path":
-		{
-			var path, err = os.Getwd()
-			if err != nil {
-				log.Fatal(err)
-			}
-			path, err = dryad.StemPath(path)
-			if err != nil {
-				log.Fatal(err)
-			}
-			fmt.Println(path)
-		}
-	default:
-		log.Fatal("unrecognized command " + command)
-	}
+
+			return 0
+		})
+
+	var stems = cli.NewCommand("stems", "commands to work with dryad stems").
+		WithCommand(stemsList).
+		WithCommand(stemsPath)
+
+	var app = cli.New("dryad package manager").
+		WithCommand(garden).
+		WithCommand(root).
+		WithCommand(roots).
+		WithCommand(stem).
+		WithCommand(stems)
+
+	return app
+}
+
+func main() {
+	app := _buildCLI()
+	os.Exit(app.Run(os.Args, os.Stdout))
 }

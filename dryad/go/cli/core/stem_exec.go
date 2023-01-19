@@ -35,16 +35,12 @@ func StemExec(stemPath string, env map[string]string, args ...string) error {
 		args...,
 	)
 
+	cmd.Env = os.Environ()
+
 	if len(env) > 0 {
-		var envList []string
-
 		for key, val := range env {
-			envList = append(envList, key+"="+val)
+			cmd.Env = append(cmd.Env, key+"="+val)
 		}
-
-		cmd.Env = envList
-	} else {
-		cmd.Env = []string{}
 	}
 
 	// pipe the exec logs to us

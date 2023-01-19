@@ -10,11 +10,22 @@ var STEM_DIRS_MATCH, _ = regexp.Compile(`^((\.)|(dyd)|(dyd/path)|(dyd/assets)|(d
 
 var STEM_FILES_MATCH, _ = regexp.Compile(`^((dyd/path/.*)|(dyd/assets/.*)|(dyd/fingerprint)|(dyd/main)|(dyd/env)|(dyd/stems/.*/dyd/fingerprint)|(dyd/stems/.*/dyd/traits/.*)|(dyd/traits/.*))$`)
 
-func StemWalk(path string, walkFn filepath.WalkFunc) error {
+type StemWalkArgs struct {
+	BasePath   string
+	CrawlAllow *regexp.Regexp
+	CrawlDeny  *regexp.Regexp
+	MatchAllow *regexp.Regexp
+	MatchDeny  *regexp.Regexp
+	OnMatch    filepath.WalkFunc
+}
+
+func StemWalk(args StemWalkArgs) error {
 	return filesystem.ReWalk(filesystem.ReWalkArgs{
-		BasePath:    path,
-		CrawlFilter: STEM_DIRS_MATCH,
-		MatchFilter: STEM_FILES_MATCH,
-		OnMatch:     walkFn,
+		BasePath:   args.BasePath,
+		CrawlAllow: args.CrawlAllow,
+		CrawlDeny:  args.CrawlDeny,
+		MatchAllow: args.MatchAllow,
+		MatchDeny:  args.MatchDeny,
+		OnMatch:    args.OnMatch,
 	})
 }

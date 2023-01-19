@@ -37,30 +37,34 @@ func hash_file_md5(filePath string) (string, error) {
 func StemFingerprint(path string) (string, error) {
 	var checksumMap = make(map[string]string)
 
-	err := StemWalk(
-		path,
-		func(walk string, info fs.FileInfo, err error) error {
-			var rel, relErr = filepath.Rel(path, walk)
+	var onMatch = func(walk string, info fs.FileInfo, err error) error {
+		var rel, relErr = filepath.Rel(path, walk)
 
-			if relErr != nil {
-				return relErr
-			}
+		if relErr != nil {
+			return relErr
+		}
 
-			if info.IsDir() {
-				return nil
-			}
-
-			var hash, hashErr = hash_file_md5(walk)
-
-			if hashErr != nil {
-				return hashErr
-			}
-
-			checksumMap[rel] = hash
-
-			// fmt.Println("StemFingerprint ", path, " ", rel, " ", hash)
-
+		if info.IsDir() {
 			return nil
+		}
+
+		var hash, hashErr = hash_file_md5(walk)
+
+		if hashErr != nil {
+			return hashErr
+		}
+
+		checksumMap[rel] = hash
+
+		// fmt.Println("StemFingerprint ", path, " ", rel, " ", hash)
+
+		return nil
+	}
+
+	err := StemWalk(
+		StemWalkArgs{
+			BasePath: path,
+			OnMatch:  onMatch,
 		},
 	)
 	if err != nil {
