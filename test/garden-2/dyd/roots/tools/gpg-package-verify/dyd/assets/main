@@ -4,32 +4,29 @@ set -eu
 
 echo "[info] verifying package signature..."
 
-PARTIAL_FINGERPRINT=$(cd $PACKAGE_DIR && dryad stem fingerprint --exclude="^((dyd/traits/signature-fingerprint)|(dyd/traits/signature)|(dyd/traits/source))$")
-PARTIAL_FINGERPRINT2="$(cat $PACKAGE_DIR/dyd/traits/signature-fingerprint)"
+CONTENT_FINGERPRINT=$(cd $PACKAGE_DIR && dryad stem fingerprint --exclude="^((dyd/traits/signature/.*)|(dyd/traits/source))$")
+CONTENT_FINGERPRINT2="$(cat $PACKAGE_DIR/dyd/traits/signature/content-fingerprint)"
 
-echo "[info] partial package fingerprint $PARTIAL_FINGERPRINT"
+echo "[info] package content fingerprint $CONTENT_FINGERPRINT"
 
-echo "[info] step 1 - checking partial package fingerprint matches dyd/traits/signature-fingerprint"
-if [ "$PARTIAL_FINGERPRINT" != "$PARTIAL_FINGERPRINT2" ]
+echo "[info] step 1 - checking partial package fingerprint matches dyd/traits/signature/content-fingerprint"
+if [ "$CONTENT_FINGERPRINT" != "$CONTENT_FINGERPRINT2" ]
 then
 	echo "[error] signature fingerprint verification failed!"
 	exit 1
 fi
 echo "[info] done"
 
-echo "[info] step 2 - verifying dyd/traits/signature is valid"
-echo "$GPG_KEY_PUB" | gpg --import
+echo "[info] step 2 - verifying dyd/traits/signature/signature is valid and matches content fingerprint"
+echo "$GPG_KEY_PUB" | gpg --import --quiet
 
-gpg --verify $PACKAGE_DIR/dyd/traits/signature
-echo "[info] done"
-
-echo "[info] step 3 - extracting fingerprint from signature and matching against partial package fingerprint"
-PARTIAL_FINGERPRINT3="$(gpg --verify --output - $PACKAGE_DIR/dyd/traits/signature)"
-if [ "$PARTIAL_FINGERPRINT" != "$PARTIAL_FINGERPRINT3" ]
+CONTENT_FINGERPRINT3="$(gpg --verify --quiet --output - $PACKAGE_DIR/dyd/traits/signature/signature)"
+if [ "$CONTENT_FINGERPRINT" != "$CONTENT_FINGERPRINT3" ]
 then
 	echo "[error] signature fingerprint verification failed!"
 	exit 1
 fi
 echo "[info] done"
+
 
 echo "[info] all checks pass, package signature verified!"

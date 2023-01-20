@@ -4,23 +4,28 @@ set -eu
 
 echo "signing package $(cat $PACKAGE_DIR/dyd/fingerprint)"
 
-PARTIAL_FINGERPRINT=$(cd $PACKAGE_DIR && dryad stem fingerprint --exclude="^((dyd/traits/signature-fingerprint)|(dyd/traits/signature)|(dyd/traits/source))$")
+CONTENT_FINGERPRINT=$(cd $PACKAGE_DIR && dryad stem fingerprint --exclude="^((dyd/traits/signature/.*)|(dyd/traits/source))$")
 
-echo "partial package fingerprint $PARTIAL_FINGERPRINT"
+echo "package content fingerprint $CONTENT_FINGERPRINT"
 
-echo "$PARTIAL_FINGERPRINT" > $PACKAGE_DIR/dyd/traits/signature-fingerprint
+mkdir -p $PACKAGE_DIR/dyd/traits/signature
 
-echo "$GPG_KEY_PUB" | gpg --import
-echo "$GPG_KEY_PRIV" | gpg --import --allow-secret-key-import
+echo -n "gpg" > $PACKAGE_DIR/dyd/traits/signature/type
+echo -n "$GPG_KEY_ID" > $PACKAGE_DIR/dyd/traits/signature/author
+echo -n "$CONTENT_FINGERPRINT" > $PACKAGE_DIR/dyd/traits/signature/content-fingerprint
+
+echo "$GPG_KEY_PUB" | gpg --import --quiet
+echo "$GPG_KEY_PRIV" | gpg --import --allow-secret-key-import --quiet
 echo "$GPG_KEY_PASS" | gpg --sign \
+	--quiet \
 	--pinentry-mode loopback \
 	--yes \
 	--passphrase-fd 0 \
 	-u $GPG_KEY_ID \
 	--armor \
-	--output $PACKAGE_DIR/dyd/traits/signature \
+	--output $PACKAGE_DIR/dyd/traits/signature/signature \
 	--faked-system-time $GPG_KEY_FAKE_TIME \
-	$PACKAGE_DIR/dyd/traits/signature-fingerprint
+	$PACKAGE_DIR/dyd/traits/signature/content-fingerprint
 
 echo "done"
 
