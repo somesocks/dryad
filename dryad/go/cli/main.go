@@ -10,7 +10,7 @@ import (
 
 	dryad "dryad/core"
 
-	cli "dryad/cli-1.0.1"
+	cli "dryad/cli"
 )
 
 func _buildCLI() cli.App {
