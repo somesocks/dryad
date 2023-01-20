@@ -122,7 +122,7 @@ func rootBuild_stage2(workspacePath string) error {
 		basename := filepath.Base(dependencyPath)
 
 		baseTemplate := fmt.Sprintf(
-			"#!/usr/bin/env sh\ndryad stem exec ./dyd/stems/%s -- $@",
+			"#!/usr/bin/env sh\nexec dryad stem exec ./dyd/stems/%s -- $@",
 			basename,
 		)
 
@@ -392,9 +392,55 @@ func rootBuild_stage6(rootStemPath string, stemBuildPath string, rootFingerprint
 	return stemBuildFingerprint, err
 }
 
-// stage 7 - pack the dervied stem into the heap and garden
-func rootBuild_stage7(gardenPath string, sourcePath string, stemFingerprint string) (string, error) {
-	// 	fmt.Println("rootBuild_stage7", gardenPath, " ", sourcePath, " ", stemFingerprint)
+// stage 7 - generate the artificial links to all executable stems for the path
+func rootBuild_stage7(workspacePath string) error {
+	// 	fmt.Println("rootBuild_stage7 ", workspacePath)
+
+	pathPath := filepath.Join(workspacePath, "dyd", "path")
+
+	err := os.RemoveAll(pathPath)
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(pathPath, fs.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	// walk through the dependencies, build them, and add the fingerprint as a dependency
+	dependenciesPath := filepath.Join(workspacePath, "dyd", "stems")
+
+	dependencies, err := filepath.Glob(filepath.Join(dependenciesPath, "*"))
+	if err != nil {
+		return err
+	}
+
+	for _, dependencyPath := range dependencies {
+		basename := filepath.Base(dependencyPath)
+
+		baseTemplate := fmt.Sprintf(
+			"#!/usr/bin/env sh\nexec dryad stem exec ./dyd/stems/%s -- $@",
+			basename,
+		)
+
+		err = os.WriteFile(
+			filepath.Join(pathPath, basename),
+			[]byte(baseTemplate),
+			fs.ModePerm,
+		)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	return nil
+}
+
+// stage 8 - pack the dervied stem into the heap and garden
+func rootBuild_stage8(gardenPath string, sourcePath string, stemFingerprint string) (string, error) {
+	// 	fmt.Println("rootBuild_stage8", gardenPath, " ", sourcePath, " ", stemFingerprint)
 
 	gardenFilesPath := filepath.Join(gardenPath, "dyd", "heap", "files")
 	gardenStemsPath := filepath.Join(gardenPath, "dyd", "heap", "stems")
@@ -594,7 +640,12 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 			return "", err
 		}
 
-		finalStemPath, err = rootBuild_stage7(gardenPath, stemBuildPath, stemBuildFingerprint)
+		err = rootBuild_stage7(stemBuildPath)
+		if err != nil {
+			return "", err
+		}
+
+		finalStemPath, err = rootBuild_stage8(gardenPath, stemBuildPath, stemBuildFingerprint)
 		if err != nil {
 			return "", err
 		}
