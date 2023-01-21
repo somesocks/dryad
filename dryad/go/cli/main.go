@@ -218,11 +218,17 @@ func _buildCLI() cli.App {
 
 	var stemExec = cli.NewCommand("exec", "execute the main for a stem").
 		WithArg(cli.NewArg("path", "path to the stem base dir")).
+		WithOption(cli.NewOption("execPath", "path to the executable running `dryad stem exec`.")).
 		WithArg(cli.NewArg("-- args", "args to pass to the stem").AsOptional()).
 		WithAction(func(args []string, options map[string]string) int {
 			path := args[0]
 			extras := args[1:]
-			err := dryad.StemExec(path, nil, extras...)
+			err := dryad.StemExec(dryad.StemExecRequest{
+				ExecPath: options["execPath"],
+				StemPath: path,
+				Env:      nil,
+				Args:     extras,
+			})
 			if err != nil {
 				log.Fatal(err)
 			}

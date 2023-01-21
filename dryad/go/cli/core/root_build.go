@@ -122,7 +122,7 @@ func rootBuild_stage2(workspacePath string) error {
 		basename := filepath.Base(dependencyPath)
 
 		baseTemplate := fmt.Sprintf(
-			"#!/usr/bin/env sh\nexec dryad stem exec ./dyd/stems/%s -- $@",
+			"#!/usr/bin/env sh\nexec dryad stem exec ../stems/%s --execPath=\"$0\" -- $@",
 			basename,
 		)
 
@@ -337,7 +337,11 @@ func rootBuild_stage6(rootStemPath string, stemBuildPath string, rootFingerprint
 		return "", err
 	}
 
-	err = StemExec(rootStemPath, rootEnv, stemBuildPath)
+	err = StemExec(StemExecRequest{
+		StemPath: rootStemPath,
+		Env:      rootEnv,
+		Args:     []string{stemBuildPath},
+	})
 	if err != nil {
 		return "", err
 	}
@@ -420,7 +424,7 @@ func rootBuild_stage7(workspacePath string) error {
 		basename := filepath.Base(dependencyPath)
 
 		baseTemplate := fmt.Sprintf(
-			"#!/usr/bin/env sh\nexec dryad stem exec ./dyd/stems/%s -- $@",
+			"#!/usr/bin/env sh\nexec dryad stem exec ../stems/%s --execPath=\"$0\" -- $@",
 			basename,
 		)
 

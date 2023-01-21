@@ -7,14 +7,29 @@ import (
 	"path/filepath"
 )
 
-func StemExec(stemPath string, env map[string]string, args ...string) error {
+type StemExecRequest struct {
+	StemPath string
+	ExecPath string
+	Env      map[string]string
+	Args     []string
+}
+
+func StemExec(request StemExecRequest) error {
+	var execPath = request.ExecPath
+	var stemPath = request.StemPath
+	var env = request.Env
+	var args = request.Args
 
 	if !filepath.IsAbs(stemPath) {
-		wd, err := os.Getwd()
-		if err != nil {
-			return err
+		if execPath != "" {
+			stemPath = filepath.Join(filepath.Dir(execPath), stemPath)
+		} else {
+			wd, err := os.Getwd()
+			if err != nil {
+				return err
+			}
+			stemPath = filepath.Join(wd, stemPath)
 		}
-		stemPath = filepath.Join(wd, stemPath)
 	}
 
 	// prepare by getting the executable path
