@@ -43,9 +43,10 @@ gpg \
 	--verify \
 	--quiet \
 	--status-fd 1 \
+	--logger-fd 1 \
+	--with-colons \
 	"$PACKAGE_DIR/dyd/traits/signature/signature" \
 	"$PACKAGE_DIR/dyd/traits/signature/content-fingerprint"
-	2>/dev/null
 
 echo "[info] done"
 

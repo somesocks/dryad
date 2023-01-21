@@ -55,6 +55,8 @@ echo "$GPG_KEY_PASS" | gpg --sign \
 	-u $GPG_KEY_ID \
 	--armor \
 	--detach-sig \
+	--status-fd 1 \
+	--logger-fd 1 \
 	--output $PACKAGE_DIR/dyd/traits/signature/signature \
 	--faked-system-time $GPG_KEY_FAKE_TIME \
 	$PACKAGE_DIR/dyd/traits/signature/content-fingerprint

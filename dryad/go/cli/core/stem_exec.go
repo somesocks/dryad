@@ -8,10 +8,11 @@ import (
 )
 
 type StemExecRequest struct {
-	StemPath string
-	ExecPath string
-	Env      map[string]string
-	Args     []string
+	StemPath   string
+	ExecPath   string
+	Env        map[string]string
+	Args       []string
+	JoinStdout bool
 }
 
 func StemExec(request StemExecRequest) error {
@@ -58,15 +59,19 @@ func StemExec(request StemExecRequest) error {
 		}
 	}
 
-	// pipe the exec logs to us
 	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
+
+	// optionally pipe the exec logs to us
+	if request.JoinStdout {
+		cmd.Stdout = os.Stdout
+	}
+
 	cmd.Stderr = os.Stderr
 
 	envPath := fmt.Sprintf(
 		"PATH=%s:%s:%s",
-		dryadPath,
 		stemPath+"/dyd/path",
+		dryadPath,
 		"/usr/bin/",
 	)
 

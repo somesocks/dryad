@@ -338,9 +338,10 @@ func rootBuild_stage6(rootStemPath string, stemBuildPath string, rootFingerprint
 	}
 
 	err = StemExec(StemExecRequest{
-		StemPath: rootStemPath,
-		Env:      rootEnv,
-		Args:     []string{stemBuildPath},
+		StemPath:   rootStemPath,
+		Env:        rootEnv,
+		Args:       []string{stemBuildPath},
+		JoinStdout: false,
 	})
 	if err != nil {
 		return "", err
@@ -547,7 +548,6 @@ func rootBuild_stage8(gardenPath string, sourcePath string, stemFingerprint stri
 }
 
 func RootBuild(context BuildContext, rootPath string) (string, error) {
-
 	// sanitize the root path
 	rootPath, err := RootPath(rootPath)
 	if err != nil {
@@ -559,17 +559,27 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		return "", err
 	}
 
+	// check to see if the stem already exists in the garden
+	gardenPath, err := GardenPath(rootPath)
+	if err != nil {
+		return "", err
+	}
+
+	relRootPath, err := filepath.Rel(
+		filepath.Join(gardenPath, "dyd", "roots"),
+		absRootPath,
+	)
+	if err != nil {
+		return "", err
+	}
+
 	// check if the root is already present in the context
 	rootFingerprint, contextHasRootFingerprint := context.RootFingerprints[absRootPath]
 	if contextHasRootFingerprint {
 		return rootFingerprint, nil
 	}
 
-	// check to see if the stem already exists in the garden
-	gardenPath, err := GardenPath(rootPath)
-	if err != nil {
-		return "", err
-	}
+	fmt.Println("[info] dryad checking root " + relRootPath)
 
 	// prepare a workspace
 	workspacePath, err := os.MkdirTemp("", "dryad-build-*")
@@ -632,6 +642,8 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		context.RootFingerprints[absRootPath] = derivationsFingerprint
 
 	} else {
+		fmt.Println("[info] dryad building root " + relRootPath)
+
 		// otherwise run the root in a build env
 		stemBuildPath, err := os.MkdirTemp("", "dryad-build-*")
 		if err != nil {
@@ -674,14 +686,6 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 			return "", err
 		}
 
-	}
-
-	relRootPath, err := filepath.Rel(
-		filepath.Join(gardenPath, "dyd", "roots"),
-		absRootPath,
-	)
-	if err != nil {
-		return "", err
 	}
 
 	sproutPath := filepath.Join(gardenPath, "dyd", "sprouts", relRootPath)

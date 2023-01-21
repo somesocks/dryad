@@ -224,10 +224,11 @@ func _buildCLI() cli.App {
 			path := args[0]
 			extras := args[1:]
 			err := dryad.StemExec(dryad.StemExecRequest{
-				ExecPath: options["execPath"],
-				StemPath: path,
-				Env:      nil,
-				Args:     extras,
+				ExecPath:   options["execPath"],
+				StemPath:   path,
+				Env:        nil,
+				Args:       extras,
+				JoinStdout: true,
 			})
 			if err != nil {
 				log.Fatal(err)
