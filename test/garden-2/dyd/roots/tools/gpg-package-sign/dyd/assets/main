@@ -2,18 +2,24 @@
 
 set -eu
 
-echo "signing package $(cat $PACKAGE_DIR/dyd/fingerprint)"
+echo "[info] signing package $(cat $PACKAGE_DIR/dyd/fingerprint)"
 
-CONTENT_FINGERPRINT=$(cd $PACKAGE_DIR && dryad stem fingerprint --exclude="^((dyd/traits/signature/.*)|(dyd/traits/source))$")
+echo "[info] preparing signature traits"
 
-echo "package content fingerprint $CONTENT_FINGERPRINT"
-
+rm -rf $PACKAGE_DIR/dyd/traits/signature
 mkdir -p $PACKAGE_DIR/dyd/traits/signature
 
 echo -n "gpg" > $PACKAGE_DIR/dyd/traits/signature/type
 echo -n "$GPG_KEY_ID" > $PACKAGE_DIR/dyd/traits/signature/author
+echo -n "$GPG_KEY_PUB" > $PACKAGE_DIR/dyd/traits/signature/key
+
+echo "[info] generating content fingerprint"
+
+CONTENT_FINGERPRINT=$(cd $PACKAGE_DIR && dryad stem fingerprint --exclude="^((dyd/traits/signature/signature)|(dyd/traits/signature/content-fingerprint)|(dyd/traits/source))$")
+echo "[info] content fingerprint $CONTENT_FINGERPRINT"
 echo -n "$CONTENT_FINGERPRINT" > $PACKAGE_DIR/dyd/traits/signature/content-fingerprint
 
+echo "[info] signing content fingerprint"
 echo "$GPG_KEY_PUB" | gpg --import --quiet
 echo "$GPG_KEY_PRIV" | gpg --import --allow-secret-key-import --quiet
 echo "$GPG_KEY_PASS" | gpg --sign \
@@ -23,9 +29,10 @@ echo "$GPG_KEY_PASS" | gpg --sign \
 	--passphrase-fd 0 \
 	-u $GPG_KEY_ID \
 	--armor \
+	--detach-sig \
 	--output $PACKAGE_DIR/dyd/traits/signature/signature \
 	--faked-system-time $GPG_KEY_FAKE_TIME \
 	$PACKAGE_DIR/dyd/traits/signature/content-fingerprint
 
-echo "done"
+echo "[info] done"
 

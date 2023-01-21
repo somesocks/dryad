@@ -2,31 +2,55 @@
 
 set -eu
 
+
+
 echo "[info] verifying package signature..."
 
-CONTENT_FINGERPRINT=$(cd $PACKAGE_DIR && dryad stem fingerprint --exclude="^((dyd/traits/signature/.*)|(dyd/traits/source))$")
+CONTENT_FINGERPRINT=$(cd $PACKAGE_DIR && dryad stem fingerprint --exclude="^((dyd/traits/signature/signature)|(dyd/traits/signature/content-fingerprint)|(dyd/traits/source))$")
 CONTENT_FINGERPRINT2="$(cat $PACKAGE_DIR/dyd/traits/signature/content-fingerprint)"
 
 echo "[info] package content fingerprint $CONTENT_FINGERPRINT"
 
-echo "[info] step 1 - checking partial package fingerprint matches dyd/traits/signature/content-fingerprint"
+echo "[info] step 1 - checking content fingerprint matches dyd/traits/signature/content-fingerprint"
 if [ "$CONTENT_FINGERPRINT" != "$CONTENT_FINGERPRINT2" ]
 then
-	echo "[error] signature fingerprint verification failed!"
+	echo "[error] content fingerprint verification failed!"
 	exit 1
 fi
 echo "[info] done"
+
 
 echo "[info] step 2 - verifying dyd/traits/signature/signature is valid and matches content fingerprint"
-echo "$GPG_KEY_PUB" | gpg --import --quiet
 
-CONTENT_FINGERPRINT3="$(gpg --verify --quiet --output - $PACKAGE_DIR/dyd/traits/signature/signature)"
-if [ "$CONTENT_FINGERPRINT" != "$CONTENT_FINGERPRINT3" ]
-then
-	echo "[error] signature fingerprint verification failed!"
-	exit 1
-fi
+KEYFILE=$(mktemp --suffix=.gpg)
+cleanup () {
+	echo "[info] cleaning up"
+	rm "$KEYFILE"
+	echo "[info] done"
+}
+trap cleanup EXIT
+
+gpg --yes --output "$KEYFILE" --dearmor "$PACKAGE_DIR/dyd/traits/signature/key"
+
+gpg \
+	--no-default-keyring \
+	--keyring "$KEYFILE" \
+	--trust-model always \
+	--verify \
+	--quiet \
+	--status-fd 1 \
+	"$PACKAGE_DIR/dyd/traits/signature/signature" \
+	"$PACKAGE_DIR/dyd/traits/signature/content-fingerprint"
+	2>/dev/null
+
 echo "[info] done"
 
-
 echo "[info] all checks pass, package signature verified!"
+
+# CONTENT_FINGERPRINT3="$(gpg --verify --quiet --output - $PACKAGE_DIR/dyd/traits/signature/signature)"
+# if [ "$CONTENT_FINGERPRINT" != "$CONTENT_FINGERPRINT3" ]
+# then
+# 	echo "[error] signature fingerprint verification failed!"
+# 	exit 1
+# fi
+
