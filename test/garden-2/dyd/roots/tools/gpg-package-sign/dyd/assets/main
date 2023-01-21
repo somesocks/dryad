@@ -22,9 +22,32 @@ echo -n "$CONTENT_FINGERPRINT" > $PACKAGE_DIR/dyd/traits/signature/content-finge
 echo "[info] done"
 
 echo "[info] signing content fingerprint"
-echo "$GPG_KEY_PUB" | gpg --import --quiet
-echo "$GPG_KEY_PRIV" | gpg --import --allow-secret-key-import --quiet
+
+KEYRING=$(mktemp)
+cleanup () {
+	echo "[info] cleaning up"
+	rm "$KEYRING"
+	echo "[info] done"
+}
+trap cleanup EXIT
+
+echo "$GPG_KEY_PUB" | gpg \
+	--no-default-keyring \
+	--keyring "$KEYRING" \
+	--import \
+	--quiet
+
+echo "$GPG_KEY_PRIV" | gpg \
+	--no-default-keyring \
+	--keyring "$KEYRING" \
+	--import \
+	--allow-secret-key-import \
+	--quiet
+
 echo "$GPG_KEY_PASS" | gpg --sign \
+	--no-default-keyring \
+	--keyring "$KEYRING" \
+	--trust-model always \
 	--quiet \
 	--pinentry-mode loopback \
 	--yes \

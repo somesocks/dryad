@@ -22,19 +22,23 @@ echo "[info] done"
 
 echo "[info] step 2 - verifying dyd/traits/signature/signature is valid and matches content fingerprint"
 
-KEYFILE=$(mktemp --suffix=.gpg)
+KEYRING=$(mktemp --suffix=.gpg)
 cleanup () {
 	echo "[info] cleaning up"
-	rm "$KEYFILE"
+	rm "$KEYRING"
 	echo "[info] done"
 }
 trap cleanup EXIT
 
-gpg --yes --output "$KEYFILE" --dearmor "$PACKAGE_DIR/dyd/traits/signature/key"
+cat "$PACKAGE_DIR/dyd/traits/signature/key" | gpg \
+	--no-default-keyring \
+	--keyring "$KEYRING" \
+	--import \
+	--quiet
 
 gpg \
 	--no-default-keyring \
-	--keyring "$KEYFILE" \
+	--keyring "$KEYRING" \
 	--trust-model always \
 	--verify \
 	--quiet \
