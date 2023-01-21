@@ -12,12 +12,14 @@ mkdir -p $PACKAGE_DIR/dyd/traits/signature
 echo -n "gpg" > $PACKAGE_DIR/dyd/traits/signature/type
 echo -n "$GPG_KEY_ID" > $PACKAGE_DIR/dyd/traits/signature/author
 echo -n "$GPG_KEY_PUB" > $PACKAGE_DIR/dyd/traits/signature/key
+echo "[info] done"
 
 echo "[info] generating content fingerprint"
 
 CONTENT_FINGERPRINT=$(cd $PACKAGE_DIR && dryad stem fingerprint --exclude="^((dyd/traits/signature/signature)|(dyd/traits/signature/content-fingerprint)|(dyd/traits/source))$")
 echo "[info] content fingerprint $CONTENT_FINGERPRINT"
 echo -n "$CONTENT_FINGERPRINT" > $PACKAGE_DIR/dyd/traits/signature/content-fingerprint
+echo "[info] done"
 
 echo "[info] signing content fingerprint"
 echo "$GPG_KEY_PUB" | gpg --import --quiet
