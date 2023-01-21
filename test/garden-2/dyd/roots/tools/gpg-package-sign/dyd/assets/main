@@ -16,7 +16,7 @@ echo "[info] done"
 
 echo "[info] generating content fingerprint"
 
-CONTENT_FINGERPRINT=$(cd $PACKAGE_DIR && dryad stem fingerprint --exclude="^((dyd/traits/signature/signature)|(dyd/traits/signature/content-fingerprint)|(dyd/traits/source))$")
+CONTENT_FINGERPRINT=$(cd $PACKAGE_DIR && dryad stem fingerprint --exclude="^((dyd/traits/signature/signature)|(dyd/traits/signature/content-fingerprint)|(dyd/traits/root-fingerprint))$")
 echo "[info] content fingerprint $CONTENT_FINGERPRINT"
 echo -n "$CONTENT_FINGERPRINT" > $PACKAGE_DIR/dyd/traits/signature/content-fingerprint
 echo "[info] done"

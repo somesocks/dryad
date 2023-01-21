@@ -347,7 +347,7 @@ func rootBuild_stage6(rootStemPath string, stemBuildPath string, rootFingerprint
 	}
 
 	// write out the source file
-	sourceFile := filepath.Join(stemBuildPath, "dyd", "traits", "source")
+	sourceFile := filepath.Join(stemBuildPath, "dyd", "traits", "root-fingerprint")
 	sourceFileExists, err := fileExists(sourceFile)
 	if err != nil {
 		return "", err

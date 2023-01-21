@@ -6,7 +6,7 @@ set -eu
 
 echo "[info] verifying package signature..."
 
-CONTENT_FINGERPRINT=$(cd $PACKAGE_DIR && dryad stem fingerprint --exclude="^((dyd/traits/signature/signature)|(dyd/traits/signature/content-fingerprint)|(dyd/traits/source))$")
+CONTENT_FINGERPRINT=$(cd $PACKAGE_DIR && dryad stem fingerprint --exclude="^((dyd/traits/signature/signature)|(dyd/traits/signature/content-fingerprint)|(dyd/traits/root-fingerprint))$")
 CONTENT_FINGERPRINT2="$(cat $PACKAGE_DIR/dyd/traits/signature/content-fingerprint)"
 
 echo "[info] package content fingerprint $CONTENT_FINGERPRINT"
