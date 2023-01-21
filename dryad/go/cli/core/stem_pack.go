@@ -1,7 +1,9 @@
 package core
 
 import (
-	"fmt"
+	"archive/tar"
+	"compress/gzip"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -10,21 +12,43 @@ import (
 func StemPack(stemPath string, targetPath string) (string, error) {
 	var err error
 
+	// convert relative stem path to absolute
+	if !filepath.IsAbs(stemPath) {
+		wd, err := os.Getwd()
+		if err != nil {
+			return "", err
+		}
+		stemPath = filepath.Join(wd, stemPath)
+	}
+
 	// resolve the dir to the root of the stem
 	stemPath, err = StemPath(stemPath)
 	if err != nil {
 		return "", err
 	}
 
-	if targetPath == "" {
-		targetPath, err = os.MkdirTemp("", "*")
+	// convert relative target to absolute
+	if !filepath.IsAbs(targetPath) {
+		wd, err := os.Getwd()
+		if err != nil {
+			return "", err
+		}
+		targetPath = filepath.Join(wd, targetPath)
 	}
+
+	file, err := os.Create(targetPath)
 	if err != nil {
 		return "", err
 	}
+	defer file.Close()
+
+	var gzw = gzip.NewWriter(file)
+	defer gzw.Close()
+
+	var tw = tar.NewWriter(gzw)
+	defer tw.Close()
 
 	var onMatch = func(walkPath string, info fs.FileInfo, pathErr error) error {
-		// fmt.Println("StemPack walk callback ", walkPath)
 		if pathErr != nil {
 			return pathErr
 		}
@@ -37,49 +61,44 @@ func StemPack(stemPath string, targetPath string) (string, error) {
 			return err
 		}
 
-		var destPath = filepath.Join(targetPath, relativePath)
+		// if we have a symlink, we need to read the real file to guarantee
+		// we get the real size and other info needed to build the tar header
+		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+			realPath, err := filepath.EvalSymlinks(walkPath)
+			if err != nil {
+				return err
+			}
+			info, err = os.Stat(realPath)
+			if err != nil {
+				return err
+			}
+		}
+
+		// create a new dir/file header
+		header, err := tar.FileInfoHeader(info, relativePath)
+		if err != nil {
+			return err
+		}
+		header.Name = relativePath
+
+		err = tw.WriteHeader(header)
+		if err != nil {
+			return err
+		}
 
 		if info.IsDir() {
-			err = os.Mkdir(destPath, info.Mode().Perm())
-			if err != nil {
-				return err
-			}
-		} else {
-			err = os.MkdirAll(filepath.Dir(destPath), os.ModePerm)
-			if err != nil {
-				return err
-			}
+			return nil
+		}
 
-			var srcFile *os.File
-			srcFile, err = os.Open(walkPath)
-			if err != nil {
-				return err
-			}
-			defer srcFile.Close()
+		file, err := os.Open(walkPath)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
 
-			var destFile *os.File
-			destFile, err = os.Create(destPath)
-			if err != nil {
-				return err
-			}
-			defer destFile.Close()
-
-			fmt.Println("StemPack ", walkPath, " -> ", destPath)
-			_, err = destFile.ReadFrom(srcFile)
-			if err != nil {
-				return err
-			}
-
-			err = destFile.Sync()
-			if err != nil {
-				return err
-			}
-
-			err = os.Chmod(destPath, info.Mode().Perm())
-			if err != nil {
-				return err
-			}
-
+		_, err = io.Copy(tw, file)
+		if err != nil {
+			return err
 		}
 
 		return nil
@@ -93,31 +112,6 @@ func StemPack(stemPath string, targetPath string) (string, error) {
 	)
 	if err != nil {
 		return "", err
-	}
-
-	var fingerprintPath = filepath.Join(targetPath, "dyd", "fingerprint")
-	var fingerprintExists bool
-
-	fingerprintExists, err = fileExists(fingerprintPath)
-	if err != nil {
-		return "", err
-	}
-
-	if !fingerprintExists {
-		var stemFingerprint string
-		stemFingerprint, err = StemFingerprint(
-			StemFingerprintArgs{
-				BasePath: targetPath,
-			},
-		)
-		if err != nil {
-			return "", err
-		}
-
-		err = os.WriteFile(fingerprintPath, []byte(stemFingerprint), fs.ModePerm)
-		if err != nil {
-			return "", err
-		}
 	}
 
 	return targetPath, err

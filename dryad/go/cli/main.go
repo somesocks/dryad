@@ -302,6 +302,25 @@ func _buildCLI() cli.App {
 			return 0
 		})
 
+	var stemPack = cli.NewCommand("pack", "pack the stem at the target path into a tar archive").
+		WithArg(cli.NewArg("stemPath", "the path to the stem to pack")).
+		WithArg(cli.NewArg("targetPath", "the path (including name) to output the archive to").AsOptional()).
+		WithAction(func(args []string, options map[string]string) int {
+			var stemPath = args[0]
+			var targetPath = ""
+			if len(args) > 1 {
+				targetPath = args[1]
+			}
+
+			targetPath, err := dryad.StemPack(stemPath, targetPath)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			fmt.Println(targetPath)
+			return 0
+		})
+
 	var stemPath = cli.NewCommand("path", "return the base path of the current root").
 		// WithArg(cli.NewArg("path", "path to the stem base dir")).
 		WithAction(func(args []string, options map[string]string) int {
@@ -322,6 +341,7 @@ func _buildCLI() cli.App {
 		WithCommand(stemExec).
 		WithCommand(stemFingerprint).
 		WithCommand(stemFiles).
+		WithCommand(stemPack).
 		WithCommand(stemPath)
 
 	var stemsList = cli.NewCommand("list", "list all stems that are dependencies for the current root").
