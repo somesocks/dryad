@@ -3,13 +3,14 @@ package core
 import (
 	"archive/tar"
 	"compress/gzip"
+	"errors"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 )
 
-func StemPack(stemPath string, targetPath string) (string, error) {
+func StemExport(stemPath string, targetPath string) (string, error) {
 	var err error
 
 	// convert relative stem path to absolute
@@ -34,6 +35,14 @@ func StemPack(stemPath string, targetPath string) (string, error) {
 			return "", err
 		}
 		targetPath = filepath.Join(wd, targetPath)
+	}
+
+	targetInfo, err := os.Stat(targetPath)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return "", err
+	} else if targetInfo.IsDir() {
+		baseName := filepath.Base(stemPath + ".tar.gz")
+		targetPath = filepath.Join(targetPath, baseName)
 	}
 
 	file, err := os.Create(targetPath)
