@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	dryad "dryad/core"
 
@@ -218,17 +219,34 @@ func _buildCLI() cli.App {
 
 	var stemExec = cli.NewCommand("exec", "execute the main for a stem").
 		WithArg(cli.NewArg("path", "path to the stem base dir")).
-		WithOption(cli.NewOption("execPath", "path to the executable running `dryad stem exec`.")).
+		WithOption(cli.NewOption("execPath", "path to the executable running `dryad stem exec`. used for path setting")).
+		WithOption(cli.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
+		WithOption(cli.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(cli.TypeBool)).
 		WithArg(cli.NewArg("-- args", "args to pass to the stem").AsOptional()).
 		WithAction(func(args []string, options map[string]string) int {
+			var env = map[string]string{}
+
+			// pull
+			if options["inherit"] == "true" {
+				for _, e := range os.Environ() {
+					if i := strings.Index(e, "="); i >= 0 {
+						env[e[:i]] = e[i+1:]
+					}
+				}
+			} else {
+				// copy a few variables over from parent env for convenience
+				env["TERM"] = os.Getenv("TERM")
+			}
+
 			path := args[0]
 			extras := args[1:]
 			err := dryad.StemExec(dryad.StemExecRequest{
 				ExecPath:   options["execPath"],
 				StemPath:   path,
-				Env:        nil,
+				Env:        env,
 				Args:       extras,
 				JoinStdout: true,
+				Context:    options["context"],
 			})
 			if err != nil {
 				log.Fatal(err)

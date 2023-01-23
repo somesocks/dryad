@@ -10,9 +10,30 @@ import (
 type StemExecRequest struct {
 	StemPath   string
 	ExecPath   string
+	Context    string
 	Env        map[string]string
 	Args       []string
 	JoinStdout bool
+}
+
+func stemExec_prepContext(request StemExecRequest) (string, error) {
+	context := request.Context
+	if context == "" {
+		context = "default"
+	}
+
+	gardenPath, err := GardenPath(request.StemPath)
+	if err != nil {
+		return "", err
+	}
+
+	contextPath := filepath.Join(gardenPath, "dyd", "heap", "contexts", context)
+	err = os.MkdirAll(contextPath, os.ModePerm)
+	if err != nil {
+		return "", err
+	}
+
+	return contextPath, nil
 }
 
 func StemExec(request StemExecRequest) error {
@@ -33,6 +54,16 @@ func StemExec(request StemExecRequest) error {
 		}
 	}
 
+	gardenPath, err := GardenPath(request.StemPath)
+	if err != nil {
+		return err
+	}
+
+	contextPath, err := stemExec_prepContext(request)
+	if err != nil {
+		return err
+	}
+
 	// prepare by getting the executable path
 	dryadPath, err := os.Executable()
 	if err != nil {
@@ -51,12 +82,10 @@ func StemExec(request StemExecRequest) error {
 		args...,
 	)
 
-	cmd.Env = os.Environ()
-
-	if len(env) > 0 {
-		for key, val := range env {
-			cmd.Env = append(cmd.Env, key+"="+val)
-		}
+	// prepare env
+	cmd.Env = []string{}
+	for key, val := range env {
+		cmd.Env = append(cmd.Env, key+"="+val)
 	}
 
 	cmd.Stdin = os.Stdin
@@ -75,9 +104,18 @@ func StemExec(request StemExecRequest) error {
 		"/usr/bin/",
 	)
 
-	cmd.Env = append(cmd.Env, envPath)
-
+	// set the working directory to be the base path to the stem
 	cmd.Dir = stemPath
+
+	cmd.Env = append(
+		cmd.Env,
+		envPath,
+		"PWD="+stemPath,
+		"HOME="+contextPath,
+		"DYD_CONTEXT="+contextPath,
+		"DYD_STEM="+stemPath,
+		"DYD_GARDEN="+gardenPath,
+	)
 
 	err = cmd.Run()
 	if err != nil {

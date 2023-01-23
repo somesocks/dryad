@@ -122,7 +122,7 @@ func rootBuild_stage2(workspacePath string) error {
 		basename := filepath.Base(dependencyPath)
 
 		baseTemplate := fmt.Sprintf(
-			"#!/usr/bin/env sh\nexec dryad stem exec ../stems/%s --execPath=\"$0\" -- $@",
+			"#!/usr/bin/env sh\nexec dryad stem exec ../stems/%s --execPath=\"$0\" --inherit -- $@",
 			basename,
 		)
 
@@ -425,7 +425,7 @@ func rootBuild_stage7(workspacePath string) error {
 		basename := filepath.Base(dependencyPath)
 
 		baseTemplate := fmt.Sprintf(
-			"#!/usr/bin/env sh\nexec dryad stem exec ../stems/%s --execPath=\"$0\" -- $@",
+			"#!/usr/bin/env sh\nexec dryad stem exec ../stems/%s --execPath=\"$0\" --inherit -- $@",
 			basename,
 		)
 
