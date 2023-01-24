@@ -64,6 +64,22 @@ func _buildCLI() cli.App {
 			return 0
 		})
 
+	var gardenPrune = cli.NewCommand("prune", "clear all build artifacts out of the garden not actively linked to a sprout or a root").
+		WithAction(func(args []string, options map[string]string) int {
+			var path, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+			err = dryad.GardenPrune(
+				path,
+			)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			return 0
+		})
+
 	var gardenWipe = cli.NewCommand("wipe", "clear all build artifacts out of the garden").
 		WithAction(func(args []string, options map[string]string) int {
 			var path, err = os.Getwd()
@@ -84,6 +100,7 @@ func _buildCLI() cli.App {
 		WithCommand(gardenBuild).
 		WithCommand(gardenInit).
 		WithCommand(gardenPath).
+		WithCommand(gardenPrune).
 		WithCommand(gardenWipe)
 
 	var rootAdd = cli.NewCommand("add", "add a root as a dependency of the current root").
