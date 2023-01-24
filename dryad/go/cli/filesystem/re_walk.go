@@ -50,6 +50,54 @@ type ReWalkArgs struct {
 	OnMatch    filepath.WalkFunc
 }
 
+// func ReWalk(args ReWalkArgs) error {
+// 	if args.CrawlAllow == nil {
+// 		args.CrawlAllow = DEFAULT_CRAWL_ALLOW
+// 	}
+// 	if args.CrawlDeny == nil {
+// 		args.CrawlDeny = DEFAULT_CRAWL_DENY
+// 	}
+// 	if args.MatchAllow == nil {
+// 		args.MatchAllow = DEFAULT_MATCH_ALLOW
+// 	}
+// 	if args.MatchDeny == nil {
+// 		args.MatchDeny = DEFAULT_MATCH_DENY
+// 	}
+
+// 	err := _reWalk(args.BasePath, args.BasePath, func(path string, info fs.FileInfo, err error) error {
+// 		if err != nil {
+// 			return err
+// 		}
+
+// 		var relPath, relErr = filepath.Rel(args.BasePath, path)
+// 		if relErr != nil {
+// 			return relErr
+// 		}
+
+// 		var matchAllow = args.MatchAllow.MatchString(relPath)
+// 		var matchDeny = args.MatchDeny.MatchString(relPath)
+// 		if matchAllow && !matchDeny {
+// 			var result = args.OnMatch(path, info, err)
+// 			if result != nil {
+// 				return result
+// 			}
+// 		}
+
+// 		if info.IsDir() {
+// 			var crawlAllow = args.CrawlAllow.MatchString(relPath)
+// 			var crawlDeny = args.CrawlDeny.MatchString(relPath)
+// 			if crawlAllow && !crawlDeny {
+// 				return nil
+// 			} else {
+// 				return filepath.SkipDir
+// 			}
+// 		}
+
+// 		return nil
+// 	})
+// 	return err
+// }
+
 func ReWalk(args ReWalkArgs) error {
 	if args.CrawlAllow == nil {
 		args.CrawlAllow = DEFAULT_CRAWL_ALLOW
@@ -64,36 +112,40 @@ func ReWalk(args ReWalkArgs) error {
 		args.MatchDeny = DEFAULT_MATCH_DENY
 	}
 
-	err := _reWalk(args.BasePath, args.BasePath, func(path string, info fs.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		var relPath, relErr = filepath.Rel(args.BasePath, path)
-		if relErr != nil {
-			return relErr
-		}
-
-		var matchAllow = args.MatchAllow.MatchString(relPath)
-		var matchDeny = args.MatchDeny.MatchString(relPath)
-		if matchAllow && !matchDeny {
-			var result = args.OnMatch(path, info, err)
-			if result != nil {
-				return result
+	var walkRequest = WalkRequest{
+		BasePath: args.BasePath,
+		CrawlInclude: func(path string, info fs.FileInfo) (bool, error) {
+			var relPath, relErr = filepath.Rel(args.BasePath, path)
+			if relErr != nil {
+				return false, relErr
 			}
-		}
-
-		if info.IsDir() {
-			var crawlAllow = args.CrawlAllow.MatchString(relPath)
-			var crawlDeny = args.CrawlDeny.MatchString(relPath)
-			if crawlAllow && !crawlDeny {
-				return nil
-			} else {
-				return filepath.SkipDir
+			return args.CrawlAllow.Match([]byte(relPath)), nil
+		},
+		CrawlExclude: func(path string, info fs.FileInfo) (bool, error) {
+			var relPath, relErr = filepath.Rel(args.BasePath, path)
+			if relErr != nil {
+				return false, relErr
 			}
-		}
+			return args.CrawlDeny.Match([]byte(relPath)), nil
+		},
+		MatchInclude: func(path string, info fs.FileInfo) (bool, error) {
+			var relPath, relErr = filepath.Rel(args.BasePath, path)
+			if relErr != nil {
+				return false, relErr
+			}
+			return args.MatchAllow.Match([]byte(relPath)), nil
+		},
+		MatchExclude: func(path string, info fs.FileInfo) (bool, error) {
+			var relPath, relErr = filepath.Rel(args.BasePath, path)
+			if relErr != nil {
+				return false, relErr
+			}
+			return args.MatchDeny.Match([]byte(relPath)), nil
+		},
+		OnMatch: func(path string, info fs.FileInfo) error {
+			return args.OnMatch(path, info, nil)
+		},
+	}
 
-		return nil
-	})
-	return err
+	return Walk(walkRequest)
 }
