@@ -327,8 +327,8 @@ func rootBuild_stage5(gardenPath string, workspacePath string, rootFingerprint s
 }
 
 // stage 6 - execute the root to build its stem,
-func rootBuild_stage6(rootStemPath string, stemBuildPath string, rootFingerprint string, rootEnv map[string]string) (string, error) {
-	// 	fmt.Println("rootBuild_stage6 ", rootStemPath)
+func rootBuild_stage7(rootStemPath string, stemBuildPath string, rootFingerprint string, rootEnv map[string]string) (string, error) {
+	// 	fmt.Println("rootBuild_stage7 ", rootStemPath)
 
 	var err error
 
@@ -397,9 +397,9 @@ func rootBuild_stage6(rootStemPath string, stemBuildPath string, rootFingerprint
 	return stemBuildFingerprint, err
 }
 
-// stage 7 - generate the artificial links to all executable stems for the path
-func rootBuild_stage7(workspacePath string) error {
-	// 	fmt.Println("rootBuild_stage7 ", workspacePath)
+// stage 6 - generate the artificial links to all executable stems for the path
+func rootBuild_stage6(workspacePath string) error {
+	// 	fmt.Println("rootBuild_stage6 ", workspacePath)
 
 	pathPath := filepath.Join(workspacePath, "dyd", "path")
 
@@ -544,6 +544,13 @@ func rootBuild_stage8(gardenPath string, sourcePath string, stemFingerprint stri
 			}
 		}
 	}
+
+	// sanity check to verify that the built stem is correct
+	_, err = StemValidate(finalStemPath)
+	if err != nil {
+		return "", err
+	}
+
 	return finalStemPath, nil
 }
 
@@ -582,7 +589,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	fmt.Println("[info] dryad checking root " + relRootPath)
 
 	// prepare a workspace
-	workspacePath, err := os.MkdirTemp("", "dryad-build-*")
+	workspacePath, err := os.MkdirTemp("", "dryad-*")
 	if err != nil {
 		return "", err
 	}
@@ -645,18 +652,18 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		fmt.Println("[info] dryad building root " + relRootPath)
 
 		// otherwise run the root in a build env
-		stemBuildPath, err := os.MkdirTemp("", "dryad-build-*")
+		stemBuildPath, err := os.MkdirTemp("", "dryad-*")
 		if err != nil {
 			return "", err
 		}
 		defer os.RemoveAll(stemBuildPath)
 
-		stemBuildFingerprint, err = rootBuild_stage6(finalStemPath, stemBuildPath, rootFingerprint, rootEnv)
+		err = rootBuild_stage6(stemBuildPath)
 		if err != nil {
 			return "", err
 		}
 
-		err = rootBuild_stage7(stemBuildPath)
+		stemBuildFingerprint, err = rootBuild_stage7(finalStemPath, stemBuildPath, rootFingerprint, rootEnv)
 		if err != nil {
 			return "", err
 		}
