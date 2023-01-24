@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 )
 
-func StemExport(stemPath string, targetPath string) (string, error) {
+func StemPack(stemPath string, targetPath string) (string, error) {
 	var err error
 
 	// convert relative stem path to absolute

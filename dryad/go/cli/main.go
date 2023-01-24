@@ -81,8 +81,8 @@ func _buildCLI() cli.App {
 		})
 
 	var garden = cli.NewCommand("garden", "commands to work with a dryad garden").
-		WithCommand(gardenInit).
 		WithCommand(gardenBuild).
+		WithCommand(gardenInit).
 		WithCommand(gardenPath).
 		WithCommand(gardenWipe)
 
@@ -320,7 +320,7 @@ func _buildCLI() cli.App {
 			return 0
 		})
 
-	var stemExport = cli.NewCommand("export", "pack the stem at the target path into a tar archive").
+	var stemPack = cli.NewCommand("pack", "pack the stem at the target path into a tar archive").
 		WithArg(cli.NewArg("stemPath", "the path to the stem to pack")).
 		WithArg(cli.NewArg("targetPath", "the path (including name) to output the archive to").AsOptional()).
 		WithAction(func(args []string, options map[string]string) int {
@@ -330,7 +330,7 @@ func _buildCLI() cli.App {
 				targetPath = args[1]
 			}
 
-			targetPath, err := dryad.StemExport(stemPath, targetPath)
+			targetPath, err := dryad.StemPack(stemPath, targetPath)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -357,9 +357,9 @@ func _buildCLI() cli.App {
 
 	var stem = cli.NewCommand("stem", "commands to work with dryad stems").
 		WithCommand(stemExec).
-		WithCommand(stemExport).
 		WithCommand(stemFingerprint).
 		WithCommand(stemFiles).
+		WithCommand(stemPack).
 		WithCommand(stemPath)
 
 	var stemsList = cli.NewCommand("list", "list all stems that are dependencies for the current root").
