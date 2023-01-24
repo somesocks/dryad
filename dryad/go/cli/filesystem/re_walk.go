@@ -1,4 +1,4 @@
-package filesystem
+package fs2
 
 import (
 	"io/fs"

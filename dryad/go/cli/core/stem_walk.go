@@ -1,7 +1,7 @@
 package core
 
 import (
-	"dryad/filesystem"
+	fs2 "dryad/filesystem"
 	"path/filepath"
 	"regexp"
 )
@@ -40,7 +40,7 @@ func StemWalk(args StemWalkArgs) error {
 		args.MatchDeny = STEM_MATCH_DENY
 	}
 
-	return filesystem.ReWalk(filesystem.ReWalkArgs{
+	return fs2.ReWalk(fs2.ReWalkArgs{
 		BasePath:   args.BasePath,
 		CrawlAllow: args.CrawlAllow,
 		CrawlDeny:  args.CrawlDeny,

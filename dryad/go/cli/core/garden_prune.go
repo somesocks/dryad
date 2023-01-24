@@ -1,7 +1,7 @@
 package core
 
 import (
-	"dryad/filesystem"
+	fs2 "dryad/filesystem"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -14,6 +14,9 @@ var GARDEN_PRUNE_STEMS_MATCH_ALLOW, _ = regexp.Compile(`^(stems/.*)$`)
 
 var GARDEN_PRUNE_FILES_CRAWL_ALLOW, _ = regexp.Compile(`^((\.)|(files))$`)
 var GARDEN_PRUNE_FIlES_MATCH_ALLOW, _ = regexp.Compile(`^(files/.*)$`)
+
+var GARDEN_PRUNE_DERIVATIONS_CRAWL_ALLOW, _ = regexp.Compile(`^((\.)|(derivations))$`)
+var GARDEN_PRUNE_DERIVATIONS_MATCH_ALLOW, _ = regexp.Compile(`^(derivations/.*)$`)
 
 func GardenPrune(gardenPath string) error {
 
@@ -53,7 +56,7 @@ func GardenPrune(gardenPath string) error {
 		return nil
 	}
 
-	err = filesystem.ReWalk(filesystem.ReWalkArgs{
+	err = fs2.ReWalk(fs2.ReWalkArgs{
 		BasePath: sproutsPath,
 		OnMatch:  markFile,
 	})
@@ -78,7 +81,7 @@ func GardenPrune(gardenPath string) error {
 		return nil
 	}
 
-	err = filesystem.ReWalk(filesystem.ReWalkArgs{
+	err = fs2.ReWalk(fs2.ReWalkArgs{
 		BasePath:   heapPath,
 		CrawlAllow: GARDEN_PRUNE_STEMS_CRAWL_ALLOW,
 		MatchAllow: GARDEN_PRUNE_STEMS_MATCH_ALLOW,
@@ -88,7 +91,7 @@ func GardenPrune(gardenPath string) error {
 		return err
 	}
 
-	err = filesystem.ReWalk(filesystem.ReWalkArgs{
+	err = fs2.ReWalk(fs2.ReWalkArgs{
 		BasePath:   heapPath,
 		CrawlAllow: GARDEN_PRUNE_FILES_CRAWL_ALLOW,
 		MatchAllow: GARDEN_PRUNE_FIlES_MATCH_ALLOW,
@@ -97,6 +100,33 @@ func GardenPrune(gardenPath string) error {
 	if err != nil {
 		return err
 	}
+
+	// // prune newly broken derivations
+	// sweepDerivation := func(path string, info fs.FileInfo, err error) error {
+	// 	fmt.Println("sweepDerivation", path)
+	// 	if err != nil {
+	// 		fmt.Println("sweepDerivation error 1", err)
+	// 		return err
+	// 	}
+
+	// 	realPath, err := filepath.EvalSymlinks(path)
+	// 	fmt.Println("sweepDerivation", path, realPath)
+	// 	if err != nil {
+	// 		fmt.Println("sweepDerivation error 2", err)
+	// 	}
+
+	// 	return nil
+	// }
+	// err = fs2.ReWalk(fs2.ReWalkArgs{
+	// 	BasePath:   heapPath,
+	// 	CrawlAllow: GARDEN_PRUNE_DERIVATIONS_CRAWL_ALLOW,
+	// 	MatchAllow: GARDEN_PRUNE_DERIVATIONS_MATCH_ALLOW,
+	// 	OnMatch:    sweepDerivation,
+	// })
+	// if err != nil {
+	// 	fmt.Println("sweepderivations err ", err)
+	// 	return err
+	// }
 
 	return nil
 }
