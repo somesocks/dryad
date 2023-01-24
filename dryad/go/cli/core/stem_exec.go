@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 )
 
 type StemExecRequest struct {
@@ -115,6 +116,8 @@ func StemExec(request StemExecRequest) error {
 		"DYD_CONTEXT="+contextPath,
 		"DYD_STEM="+stemPath,
 		"DYD_GARDEN="+gardenPath,
+		"DYD_OS="+runtime.GOOS,
+		"DYD_ARCH="+runtime.GOARCH,
 	)
 
 	err = cmd.Run()
