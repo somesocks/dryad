@@ -40,8 +40,6 @@ func StemFingerprint(args StemFingerprintArgs) (string, error) {
 
 		checksumMap[rel] = hash
 
-		// fmt.Println("StemFingerprint ", path, " ", rel, " ", hash)
-
 		return nil
 	}
 
@@ -86,6 +84,5 @@ func StemFingerprint(args StemFingerprintArgs) (string, error) {
 	var fingerprintHashBytes = hash.Sum([]byte{})
 	var fingerprintHash = hex.EncodeToString(fingerprintHashBytes[:])
 	var fingerprint = "blake2b-" + fingerprintHash
-	// fmt.Printf("Key: %d, Value: %s\n", key, checksumMap[key])
 	return fingerprint, nil
 }
