@@ -256,7 +256,7 @@ func _buildCLI() cli.App {
 		})
 
 	var stemFingerprint = cli.NewCommand("fingerprint", "calculate the fingerprint for a stem dir").
-		// WithArg(cli.NewArg("path", "path to the stem base dir")).
+		WithArg(cli.NewArg("path", "path to the stem base dir").AsOptional()).
 		WithOption(cli.NewOption("exclude", "a regular expression to exclude files from the fingerprint calculation. the regexp matches against the file path relative to the stem base directory")).
 		WithAction(func(args []string, options map[string]string) int {
 			var err error
@@ -270,10 +270,16 @@ func _buildCLI() cli.App {
 			}
 
 			var path string
-			path, err = os.Getwd()
-			if err != nil {
-				log.Fatal(err)
+			if len(args) > 0 {
+				path = args[0]
 			}
+			if path == "" {
+				path, err = os.Getwd()
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+
 			var fingerprintString, fingerprintErr = dryad.StemFingerprint(
 				dryad.StemFingerprintArgs{
 					BasePath:  path,
@@ -355,12 +361,32 @@ func _buildCLI() cli.App {
 			return 0
 		})
 
+	var stemUnpack = cli.NewCommand("unpack", "unpack a stem archive at the target path and import it into the current garden").
+		WithArg(cli.NewArg("archive", "the path to the archive to unpack")).
+		WithAction(func(args []string, options map[string]string) int {
+			var stemPath = args[0]
+
+			gardenPath, err := os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			targetPath, err := dryad.StemUnpack(gardenPath, stemPath)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			fmt.Println(targetPath)
+			return 0
+		})
+
 	var stem = cli.NewCommand("stem", "commands to work with dryad stems").
 		WithCommand(stemExec).
 		WithCommand(stemFingerprint).
 		WithCommand(stemFiles).
 		WithCommand(stemPack).
-		WithCommand(stemPath)
+		WithCommand(stemPath).
+		WithCommand(stemUnpack)
 
 	var stemsList = cli.NewCommand("list", "list all stems that are dependencies for the current root").
 		WithAction(func(args []string, options map[string]string) int {
