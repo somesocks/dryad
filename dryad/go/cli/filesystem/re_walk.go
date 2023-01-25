@@ -48,6 +48,7 @@ type ReWalkArgs struct {
 	MatchAllow *regexp.Regexp
 	MatchDeny  *regexp.Regexp
 	OnMatch    filepath.WalkFunc
+	OnError    func(err error, path string, info fs.FileInfo) error
 }
 
 // func ReWalk(args ReWalkArgs) error {
@@ -145,6 +146,7 @@ func ReWalk(args ReWalkArgs) error {
 		OnMatch: func(path string, info fs.FileInfo) error {
 			return args.OnMatch(path, info, nil)
 		},
+		OnError: args.OnError,
 	}
 
 	return Walk(walkRequest)
