@@ -14,9 +14,9 @@ type StemFilesArgs struct {
 func StemFiles(args StemFilesArgs) error {
 	StemWalk(
 		StemWalkArgs{
-			BasePath:  args.BasePath,
-			MatchDeny: args.MatchDeny,
-			OnMatch: func(walk string, info fs.FileInfo, err error) error {
+			BasePath:     args.BasePath,
+			MatchExclude: args.MatchDeny,
+			OnMatch: func(walk string, info fs.FileInfo) error {
 				if !info.IsDir() {
 					fmt.Println(walk)
 				}

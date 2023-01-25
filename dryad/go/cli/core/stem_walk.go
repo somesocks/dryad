@@ -2,50 +2,50 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
-	"path/filepath"
+	"io/fs"
 	"regexp"
 )
 
-var STEM_CRAWL_ALLOW, _ = regexp.Compile(`^((\.)|(dyd)|(dyd/path)|(dyd/assets)|(dyd/assets/.*)|(dyd/traits)|(dyd/traits/.*)|(dyd/stems)|(dyd/stems/[^/]*)|(dyd/stems/.*/dyd)|(dyd/stems/.*/dyd/traits(/.*)?))$`)
+var STEM_WALK_CRAWL_INCLUDE, _ = regexp.Compile(`^((\.)|(dyd)|(dyd/path)|(dyd/assets)|(dyd/assets/.*)|(dyd/traits)|(dyd/traits/.*)|(dyd/stems)|(dyd/stems/[^/]*)|(dyd/stems/.*/dyd)|(dyd/stems/.*/dyd/traits(/.*)?))$`)
 
-var STEM_CRAWL_DENY, _ = regexp.Compile(`^$`)
+var STEM_WALK_CRAWL_EXCLUDE, _ = regexp.Compile(`^$`)
 
-var STEM_MATCH_ALLOW, _ = regexp.Compile(`^((dyd/path/.*)|(dyd/assets/.*)|(dyd/fingerprint)|(dyd/main)|(dyd/env)|(dyd/stems/.*/dyd/fingerprint)|(dyd/stems/.*/dyd/traits/.*)|(dyd/traits/.*))$`)
+var STEM_WALK_MATCH_INCLUDE, _ = regexp.Compile(`^((dyd/path/.*)|(dyd/assets/.*)|(dyd/fingerprint)|(dyd/main)|(dyd/env)|(dyd/stems/.*/dyd/fingerprint)|(dyd/stems/.*/dyd/traits/.*)|(dyd/traits/.*))$`)
 
-var STEM_MATCH_DENY, _ = regexp.Compile(`^$`)
+var STEM_WALK_MATCH_EXCLUDE, _ = regexp.Compile(`^$`)
 
 type StemWalkArgs struct {
-	BasePath   string
-	CrawlAllow *regexp.Regexp
-	CrawlDeny  *regexp.Regexp
-	MatchAllow *regexp.Regexp
-	MatchDeny  *regexp.Regexp
-	OnMatch    filepath.WalkFunc
+	BasePath     string
+	CrawlInclude *regexp.Regexp
+	CrawlExclude *regexp.Regexp
+	MatchInclude *regexp.Regexp
+	MatchExclude *regexp.Regexp
+	OnMatch      func(path string, info fs.FileInfo) error
 }
 
 func StemWalk(args StemWalkArgs) error {
-	if args.CrawlAllow == nil {
-		args.CrawlAllow = STEM_CRAWL_ALLOW
+	if args.CrawlInclude == nil {
+		args.CrawlInclude = STEM_WALK_CRAWL_INCLUDE
 	}
 
-	if args.CrawlDeny == nil {
-		args.CrawlDeny = STEM_CRAWL_DENY
+	if args.CrawlExclude == nil {
+		args.CrawlExclude = STEM_WALK_CRAWL_EXCLUDE
 	}
 
-	if args.MatchAllow == nil {
-		args.MatchAllow = STEM_MATCH_ALLOW
+	if args.MatchInclude == nil {
+		args.MatchInclude = STEM_WALK_MATCH_INCLUDE
 	}
 
-	if args.MatchDeny == nil {
-		args.MatchDeny = STEM_MATCH_DENY
+	if args.MatchExclude == nil {
+		args.MatchExclude = STEM_WALK_MATCH_EXCLUDE
 	}
 
 	return fs2.ReWalk(fs2.ReWalkArgs{
 		BasePath:     args.BasePath,
-		CrawlInclude: args.CrawlAllow,
-		CrawlExclude: args.CrawlDeny,
-		MatchInclude: args.MatchAllow,
-		MatchExclude: args.MatchDeny,
+		CrawlInclude: args.CrawlInclude,
+		CrawlExclude: args.CrawlExclude,
+		MatchInclude: args.MatchInclude,
+		MatchExclude: args.MatchExclude,
 		OnMatch:      args.OnMatch,
 	})
 }

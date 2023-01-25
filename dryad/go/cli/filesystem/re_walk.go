@@ -18,7 +18,7 @@ type ReWalkArgs struct {
 	CrawlExclude *regexp.Regexp
 	MatchInclude *regexp.Regexp
 	MatchExclude *regexp.Regexp
-	OnMatch      filepath.WalkFunc
+	OnMatch      func(path string, info fs.FileInfo) error
 	OnError      func(err error, path string, info fs.FileInfo) error
 }
 
@@ -67,7 +67,7 @@ func ReWalk(args ReWalkArgs) error {
 			return args.MatchExclude.Match([]byte(relPath)), nil
 		},
 		OnMatch: func(path string, info fs.FileInfo) error {
-			return args.OnMatch(path, info, nil)
+			return args.OnMatch(path, info)
 		},
 		OnError: args.OnError,
 	}

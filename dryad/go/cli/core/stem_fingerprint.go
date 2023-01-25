@@ -21,7 +21,7 @@ type StemFingerprintArgs struct {
 func StemFingerprint(args StemFingerprintArgs) (string, error) {
 	var checksumMap = make(map[string]string)
 
-	var onMatch = func(walk string, info fs.FileInfo, err error) error {
+	var onMatch = func(walk string, info fs.FileInfo) error {
 		var rel, relErr = filepath.Rel(args.BasePath, walk)
 
 		if relErr != nil {
@@ -45,10 +45,10 @@ func StemFingerprint(args StemFingerprintArgs) (string, error) {
 
 	err := StemWalk(
 		StemWalkArgs{
-			BasePath:   args.BasePath,
-			MatchAllow: STEM_FINGERPRINT_MATCH_ALLOW,
-			MatchDeny:  args.MatchDeny,
-			OnMatch:    onMatch,
+			BasePath:     args.BasePath,
+			MatchInclude: STEM_FINGERPRINT_MATCH_ALLOW,
+			MatchExclude: args.MatchDeny,
+			OnMatch:      onMatch,
 		},
 	)
 	if err != nil {

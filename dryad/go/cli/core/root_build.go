@@ -246,10 +246,8 @@ func rootBuild_stage5(gardenPath string, workspacePath string, rootFingerprint s
 		err = StemWalk(
 			StemWalkArgs{
 				BasePath: workspacePath,
-				OnMatch: func(srcPath string, info fs.FileInfo, err error) error {
-					if err != nil {
-						return err
-					}
+				OnMatch: func(srcPath string, info fs.FileInfo) error {
+					var err error
 
 					if info.IsDir() {
 						return nil
@@ -467,10 +465,8 @@ func rootBuild_stage8(gardenPath string, sourcePath string, stemFingerprint stri
 		err = StemWalk(
 			StemWalkArgs{
 				BasePath: sourcePath,
-				OnMatch: func(srcPath string, info fs.FileInfo, err error) error {
-					if err != nil {
-						return err
-					}
+				OnMatch: func(srcPath string, info fs.FileInfo) error {
+					var err error
 
 					if info.IsDir() {
 						return nil

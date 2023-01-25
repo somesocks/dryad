@@ -37,10 +37,8 @@ func GardenPrune(gardenPath string) error {
 	sproutsPath := filepath.Join(gardenPath, "dyd", "sprouts")
 
 	// we mark both the symlink and the referenced file
-	markFile := func(path string, info fs.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
+	markFile := func(path string, info fs.FileInfo) error {
+		var err error
 
 		realPath, err := filepath.EvalSymlinks(path)
 		if err != nil {
@@ -70,11 +68,8 @@ func GardenPrune(gardenPath string) error {
 
 	heapPath := filepath.Join(gardenPath, "dyd", "heap")
 
-	sweepFile := func(path string, info fs.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
+	sweepFile := func(path string, info fs.FileInfo) error {
+		var err error
 		if info.ModTime().Before(currentTime) {
 			err = os.RemoveAll(path)
 			if err != nil {
@@ -106,11 +101,7 @@ func GardenPrune(gardenPath string) error {
 	}
 
 	// prune newly broken derivations
-	sweepDerivation := func(path string, info fs.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
+	sweepDerivation := func(path string, info fs.FileInfo) error {
 		return nil
 	}
 	handleSweepDerivationError := func(err error, path string, info fs.FileInfo) error {
