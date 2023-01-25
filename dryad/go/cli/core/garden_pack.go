@@ -3,7 +3,10 @@ package core
 import (
 	"archive/tar"
 	"compress/gzip"
+	fs2 "dryad/filesystem"
 	"errors"
+	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -56,6 +59,144 @@ func GardenPack(gardenPath string, targetPath string) (string, error) {
 
 	var tw = tar.NewWriter(gzw)
 	defer tw.Close()
+
+	var packMap = make(map[string]bool)
+
+	var packFile = func(path string, info fs.FileInfo) error {
+		fmt.Println("packFile", path)
+		var relativePath string
+		var err error
+
+		relativePath, err = filepath.Rel(gardenPath, path)
+		if err != nil {
+			return err
+		}
+
+		// don't pack a file that's already been packed
+		if _, ok := packMap[relativePath]; ok {
+			return nil
+		}
+
+		// if it's a symlink, run again on the real file
+		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+			linkPath, err := os.Readlink(path)
+			if err != nil {
+				return err
+			}
+
+			// create a new dir/file header
+			header, err := tar.FileInfoHeader(info, relativePath)
+			if err != nil {
+				return err
+			}
+			header.Name = relativePath
+			header.Typeflag = tar.TypeSymlink
+			header.Linkname = linkPath
+
+			err = tw.WriteHeader(header)
+			if err != nil {
+				return err
+			}
+
+			// add path to the packMap
+			packMap[relativePath] = true
+
+		} else if info.IsDir() {
+			// create a new dir/file header
+			header, err := tar.FileInfoHeader(info, relativePath)
+			if err != nil {
+				return err
+			}
+			header.Name = relativePath
+			header.Typeflag = tar.TypeDir
+
+			err = tw.WriteHeader(header)
+			if err != nil {
+				return err
+			}
+
+			// add path to the packMap
+			packMap[relativePath] = true
+		} else if info.Mode().IsRegular() {
+			// create a new dir/file header
+			header, err := tar.FileInfoHeader(info, relativePath)
+			if err != nil {
+				return err
+			}
+			header.Name = relativePath
+			header.Typeflag = tar.TypeReg
+
+			err = tw.WriteHeader(header)
+			if err != nil {
+				return err
+			}
+
+			// add path to the packMap
+			packMap[relativePath] = true
+
+			file, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+
+			_, err = io.Copy(tw, file)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	err = fs2.Walk2(
+		fs2.Walk2Request{
+			BasePath: filepath.Join(gardenPath),
+			CrawlInclude: func(path string, info fs.FileInfo) (bool, error) {
+				relPath, err := filepath.Rel(gardenPath, path)
+				if err != nil {
+					return false, err
+				}
+
+				return relPath == "." || relPath == "dyd", nil
+			},
+			MatchExclude: func(path string, info fs.FileInfo) (bool, error) {
+				relPath, err := filepath.Rel(gardenPath, path)
+				if err != nil {
+					return false, err
+				}
+
+				if !info.IsDir() {
+					return true, nil
+				} else {
+					return relPath == ".", nil
+				}
+
+			},
+			OnMatch: packFile,
+		},
+	)
+	if err != nil {
+		return "", err
+	}
+
+	err = fs2.Walk2(
+		fs2.Walk2Request{
+			BasePath: filepath.Join(gardenPath, "dyd", "sprouts"),
+			MatchExclude: func(path string, info fs.FileInfo) (bool, error) {
+				relPath, err := filepath.Rel(gardenPath, path)
+				if err != nil {
+					return false, err
+				}
+
+				return relPath == "dyd/sprouts", nil
+			},
+			OnMatch: packFile,
+		},
+	)
+	if err != nil {
+		return "", err
+	}
 
 	// var onMatch = func(walkPath string, info fs.FileInfo, pathErr error) error {
 	// 	if pathErr != nil {
