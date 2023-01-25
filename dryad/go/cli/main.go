@@ -80,6 +80,31 @@ func _buildCLI() cli.App {
 			return 0
 		})
 
+	var gardenPack = cli.NewCommand("pack", "pack the current garden into an archive ").
+		WithArg(cli.NewArg("gardenPath", "the path to the garden to pack").AsOptional()).
+		WithArg(cli.NewArg("targetPath", "the path (including name) to output the archive to").AsOptional()).
+		WithAction(func(args []string, options map[string]string) int {
+			var gardenPath = ""
+			var targetPath = ""
+			switch len(args) {
+			case 0:
+				break
+			case 1:
+				gardenPath = args[0]
+			default:
+				gardenPath = args[0]
+				targetPath = args[1]
+			}
+
+			targetPath, err := dryad.GardenPack(gardenPath, targetPath)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			fmt.Println(targetPath)
+			return 0
+		})
+
 	var gardenWipe = cli.NewCommand("wipe", "clear all build artifacts out of the garden").
 		WithAction(func(args []string, options map[string]string) int {
 			var path, err = os.Getwd()
@@ -99,6 +124,7 @@ func _buildCLI() cli.App {
 	var garden = cli.NewCommand("garden", "commands to work with a dryad garden").
 		WithCommand(gardenBuild).
 		WithCommand(gardenInit).
+		WithCommand(gardenPack).
 		WithCommand(gardenPath).
 		WithCommand(gardenPrune).
 		WithCommand(gardenWipe)

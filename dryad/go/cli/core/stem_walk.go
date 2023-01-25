@@ -41,11 +41,11 @@ func StemWalk(args StemWalkArgs) error {
 	}
 
 	return fs2.ReWalk(fs2.ReWalkArgs{
-		BasePath:   args.BasePath,
-		CrawlAllow: args.CrawlAllow,
-		CrawlDeny:  args.CrawlDeny,
-		MatchAllow: args.MatchAllow,
-		MatchDeny:  args.MatchDeny,
-		OnMatch:    args.OnMatch,
+		BasePath:     args.BasePath,
+		CrawlInclude: args.CrawlAllow,
+		CrawlExclude: args.CrawlDeny,
+		MatchInclude: args.MatchAllow,
+		MatchExclude: args.MatchDeny,
+		OnMatch:      args.OnMatch,
 	})
 }

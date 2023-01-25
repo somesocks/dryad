@@ -86,20 +86,20 @@ func GardenPrune(gardenPath string) error {
 	}
 
 	err = fs2.ReWalk(fs2.ReWalkArgs{
-		BasePath:   heapPath,
-		CrawlAllow: GARDEN_PRUNE_STEMS_CRAWL_ALLOW,
-		MatchAllow: GARDEN_PRUNE_STEMS_MATCH_ALLOW,
-		OnMatch:    sweepFile,
+		BasePath:     heapPath,
+		CrawlInclude: GARDEN_PRUNE_STEMS_CRAWL_ALLOW,
+		MatchInclude: GARDEN_PRUNE_STEMS_MATCH_ALLOW,
+		OnMatch:      sweepFile,
 	})
 	if err != nil {
 		return err
 	}
 
 	err = fs2.ReWalk(fs2.ReWalkArgs{
-		BasePath:   heapPath,
-		CrawlAllow: GARDEN_PRUNE_FILES_CRAWL_ALLOW,
-		MatchAllow: GARDEN_PRUNE_FIlES_MATCH_ALLOW,
-		OnMatch:    sweepFile,
+		BasePath:     heapPath,
+		CrawlInclude: GARDEN_PRUNE_FILES_CRAWL_ALLOW,
+		MatchInclude: GARDEN_PRUNE_FIlES_MATCH_ALLOW,
+		OnMatch:      sweepFile,
 	})
 	if err != nil {
 		return err
@@ -123,11 +123,11 @@ func GardenPrune(gardenPath string) error {
 		return err
 	}
 	err = fs2.ReWalk(fs2.ReWalkArgs{
-		BasePath:   heapPath,
-		CrawlAllow: GARDEN_PRUNE_DERIVATIONS_CRAWL_ALLOW,
-		MatchAllow: GARDEN_PRUNE_DERIVATIONS_MATCH_ALLOW,
-		OnMatch:    sweepDerivation,
-		OnError:    handleSweepDerivationError,
+		BasePath:     heapPath,
+		CrawlInclude: GARDEN_PRUNE_DERIVATIONS_CRAWL_ALLOW,
+		MatchInclude: GARDEN_PRUNE_DERIVATIONS_MATCH_ALLOW,
+		OnMatch:      sweepDerivation,
+		OnError:      handleSweepDerivationError,
 	})
 	if err != nil {
 		fmt.Println("sweepderivations err ", err)
