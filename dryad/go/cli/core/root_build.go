@@ -325,8 +325,8 @@ func rootBuild_stage5(gardenPath string, workspacePath string, rootFingerprint s
 }
 
 // stage 6 - execute the root to build its stem,
-func rootBuild_stage7(rootStemPath string, stemBuildPath string, rootFingerprint string, rootEnv map[string]string) (string, error) {
-	// 	fmt.Println("rootBuild_stage7 ", rootStemPath)
+func rootBuild_stage6(rootStemPath string, stemBuildPath string, rootFingerprint string, rootEnv map[string]string) (string, error) {
+	// 	fmt.Println("rootBuild_stage6 ", rootStemPath)
 
 	var err error
 
@@ -366,6 +366,46 @@ func rootBuild_stage7(rootStemPath string, stemBuildPath string, rootFingerprint
 		return "", err
 	}
 
+	// write out the path files
+	pathPath := filepath.Join(stemBuildPath, "dyd", "path")
+
+	err = os.RemoveAll(pathPath)
+	if err != nil {
+		return "", err
+	}
+
+	err = os.MkdirAll(pathPath, fs.ModePerm)
+	if err != nil {
+		return "", err
+	}
+
+	// walk through the dependencies, build them, and add the fingerprint as a dependency
+	dependenciesPath := filepath.Join(stemBuildPath, "dyd", "stems", "*")
+
+	dependencies, err := filepath.Glob(dependenciesPath)
+	if err != nil {
+		return "", err
+	}
+
+	for _, dependencyPath := range dependencies {
+		basename := filepath.Base(dependencyPath)
+
+		baseTemplate := fmt.Sprintf(
+			"#!/usr/bin/env sh\nexec dryad stem exec ../stems/%s --execPath=\"$0\" --inherit -- $@",
+			basename,
+		)
+
+		err = os.WriteFile(
+			filepath.Join(pathPath, basename),
+			[]byte(baseTemplate),
+			fs.ModePerm,
+		)
+		if err != nil {
+			return "", err
+		}
+
+	}
+
 	stemBuildFingerprint, err := StemFingerprint(
 		StemFingerprintArgs{
 			BasePath: stemBuildPath,
@@ -395,55 +435,9 @@ func rootBuild_stage7(rootStemPath string, stemBuildPath string, rootFingerprint
 	return stemBuildFingerprint, err
 }
 
-// stage 6 - generate the artificial links to all executable stems for the path
-func rootBuild_stage6(workspacePath string) error {
-	// 	fmt.Println("rootBuild_stage6 ", workspacePath)
-
-	pathPath := filepath.Join(workspacePath, "dyd", "path")
-
-	err := os.RemoveAll(pathPath)
-	if err != nil {
-		return err
-	}
-
-	err = os.MkdirAll(pathPath, fs.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	// walk through the dependencies, build them, and add the fingerprint as a dependency
-	dependenciesPath := filepath.Join(workspacePath, "dyd", "stems")
-
-	dependencies, err := filepath.Glob(filepath.Join(dependenciesPath, "*"))
-	if err != nil {
-		return err
-	}
-
-	for _, dependencyPath := range dependencies {
-		basename := filepath.Base(dependencyPath)
-
-		baseTemplate := fmt.Sprintf(
-			"#!/usr/bin/env sh\nexec dryad stem exec ../stems/%s --execPath=\"$0\" --inherit -- $@",
-			basename,
-		)
-
-		err = os.WriteFile(
-			filepath.Join(pathPath, basename),
-			[]byte(baseTemplate),
-			fs.ModePerm,
-		)
-		if err != nil {
-			return err
-		}
-
-	}
-
-	return nil
-}
-
 // stage 8 - pack the dervied stem into the heap and garden
-func rootBuild_stage8(gardenPath string, sourcePath string, stemFingerprint string) (string, error) {
-	// 	fmt.Println("rootBuild_stage8", gardenPath, " ", sourcePath, " ", stemFingerprint)
+func rootBuild_stage7(gardenPath string, sourcePath string, stemFingerprint string) (string, error) {
+	// 	fmt.Println("rootBuild_stage7", gardenPath, " ", sourcePath, " ", stemFingerprint)
 
 	gardenFilesPath := filepath.Join(gardenPath, "dyd", "heap", "files")
 	gardenStemsPath := filepath.Join(gardenPath, "dyd", "heap", "stems")
@@ -652,19 +646,14 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		defer os.RemoveAll(stemBuildPath)
+		// defer os.RemoveAll(stemBuildPath)
 
-		err = rootBuild_stage6(stemBuildPath)
+		stemBuildFingerprint, err = rootBuild_stage6(finalStemPath, stemBuildPath, rootFingerprint, rootEnv)
 		if err != nil {
 			return "", err
 		}
 
-		stemBuildFingerprint, err = rootBuild_stage7(finalStemPath, stemBuildPath, rootFingerprint, rootEnv)
-		if err != nil {
-			return "", err
-		}
-
-		finalStemPath, err = rootBuild_stage8(gardenPath, stemBuildPath, stemBuildFingerprint)
+		finalStemPath, err = rootBuild_stage7(gardenPath, stemBuildPath, stemBuildFingerprint)
 		if err != nil {
 			return "", err
 		}
