@@ -8,3 +8,5 @@
 # ignore the built bin
 dryad/go/cli/dryad-go
 dryad/go/cli/dryad
+
+/bootstrap/
