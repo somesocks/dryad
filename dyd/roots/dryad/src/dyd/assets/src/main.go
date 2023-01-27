@@ -35,11 +35,15 @@ func _buildCLI() cli.App {
 		})
 
 	var gardenPath = cli.NewCommand("path", "return the base path for a garden").
+		WithArg(cli.NewArg("path", "the target path at which to start for the base garden path").AsOptional()).
 		WithAction(func(args []string, options map[string]string) int {
-			var path, err = os.Getwd()
-			if err != nil {
-				log.Fatal(err)
+			var path string
+			var err error
+
+			if len(args) > 0 {
+				path = args[0]
 			}
+
 			path, err = dryad.GardenPath(path)
 			if err != nil {
 				log.Fatal(err)
@@ -494,5 +498,11 @@ func _buildCLI() cli.App {
 
 func main() {
 	app := _buildCLI()
-	os.Exit(app.Run(os.Args, os.Stdout))
+
+	// lie to cli about the name of the tool,
+	// so that the help always shows the name of the command as
+	// `dryad`
+	args := os.Args
+	args[0] = "dryad"
+	os.Exit(app.Run(args, os.Stdout))
 }

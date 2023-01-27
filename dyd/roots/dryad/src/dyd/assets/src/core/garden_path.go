@@ -2,17 +2,18 @@ package core
 
 import (
 	"errors"
-	"log"
 	"os"
 	"path/filepath"
 )
 
 func GardenPath(path string) (string, error) {
-	var working_path, err = filepath.Abs(path)
+	var err error
+	path, err = filepath.Abs(path)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
+	var working_path = path
 	var heap_path = filepath.Join(working_path, "dyd", "heap")
 	var fileInfo, fileInfoErr = os.Stat(heap_path)
 

@@ -6,14 +6,10 @@ import (
 )
 
 func GardenInit(path string) error {
-	if !filepath.IsAbs(path) {
-		var wd string
-		var err error
-		wd, err = os.Getwd()
-		if err != nil {
-			return err
-		}
-		path = filepath.Join(wd, path)
+	var err error
+	path, err = filepath.Abs(path)
+	if err != nil {
+		return err
 	}
 
 	gardenPath := filepath.Join(path, "dyd")
