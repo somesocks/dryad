@@ -1,0 +1,6 @@
+
+# dryad/src
+
+This root is a container for the dryad cli source code.
+
+The build _only_ copies the source code to the stem. Other roots are responsible for taking the source code, and building dryad for different operating systems/architectures.

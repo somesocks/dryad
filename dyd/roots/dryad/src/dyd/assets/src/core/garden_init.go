@@ -6,6 +6,16 @@ import (
 )
 
 func GardenInit(path string) error {
+	if !filepath.IsAbs(path) {
+		var wd string
+		var err error
+		wd, err = os.Getwd()
+		if err != nil {
+			return err
+		}
+		path = filepath.Join(wd, path)
+	}
+
 	gardenPath := filepath.Join(path, "dyd")
 	if err := os.MkdirAll(gardenPath, os.ModePerm); err != nil {
 		return err

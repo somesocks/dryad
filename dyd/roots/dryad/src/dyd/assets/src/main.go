@@ -17,11 +17,15 @@ import (
 func _buildCLI() cli.App {
 
 	var gardenInit = cli.NewCommand("init", "initialize a garden").
+		WithArg(cli.NewArg("path", "the target path at which to initialize the garden").AsOptional()).
 		WithAction(func(args []string, options map[string]string) int {
-			path, err := os.Getwd()
-			if err != nil {
-				log.Fatal(err)
+			var path string
+			var err error
+
+			if len(args) > 0 {
+				path = args[0]
 			}
+
 			err = dryad.GardenInit(path)
 			if err != nil {
 				log.Fatal(err)
