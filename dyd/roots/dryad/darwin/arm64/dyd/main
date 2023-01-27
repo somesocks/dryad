@@ -1,0 +1,24 @@
+#!/usr/bin/env sh
+
+set -e
+# set -x
+
+SRC_DIR=$(pwd)
+
+# echo "dryad"
+
+DEST_DIR=$1
+DEST_MAIN=$DEST_DIR/dyd/main
+
+OS="$(cat $SRC_DIR/dyd/traits/os)"
+ARCH="$(cat $SRC_DIR/dyd/traits/arch)"
+
+# copy assets to build
+echo -n "$OS" > $DEST_DIR/dyd/traits/os
+echo -n "$ARCH" > $DEST_DIR/dyd/traits/arch
+
+# run go build for specified arch
+cd $SRC_DIR/dyd/stems/src/dyd/assets/ && \
+GOARCH="$ARCH" \
+GOOS="$OS" \
+go build -ldflags '-s -w' -o $DEST_MAIN

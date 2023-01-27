@@ -1,0 +1,30 @@
+#!/usr/bin/env sh
+
+set -e
+# set -x
+
+SRC_DIR=$(pwd)
+
+# echo "dev-shell"
+
+DEST_DIR=$1
+DEST_MAIN=$DEST_DIR/dyd/main
+
+# copy assets to build
+cp --symbolic-link $SRC_DIR/dyd/assets/main $DEST_MAIN
+cp --symbolic-link -R $SRC_DIR/dyd/assets/traits/* $DEST_DIR/dyd/traits/
+
+# copy version from root to build
+# cp --symbolic-link -R $SRC_DIR/dyd/traits/version $DEST_DIR/dyd/traits/
+
+# add dependencies
+
+# link the version of dryad that's needed for the current os/arch
+DRYAD_VERSION="dryad-$DYD_OS-$DYD_ARCH"
+DRYAD_DEP_PATH="$SRC_DIR/dyd/stems/$DRYAD_VERSION"
+ln -s $DRYAD_DEP_PATH $DEST_DIR/dyd/stems/dryad
+
+
+
+
+

@@ -16,9 +16,9 @@ help:
 ##
 .PHONY: bootstrap-build
 bootstrap-build:
-	@(cd $(BASE)/dyd/roots/core/dryad/dyd/assets/src && go build -ldflags '-s -w' -o $(BASE)/bootstrap/dryad)
+	@(cd $(BASE)/dyd/roots/dryad/src/dyd/assets/src && go build -ldflags '-s -w' -o $(BASE)/bootstrap/dryad)
 # @(cd ./dryad/go/cli && go build)
 
 .PHONY: dev
 dev:
-	@ dryad root build ./dyd/roots/core/dev-shell && dryad stem exec ./dyd/sprouts/core/dev-shell
+	@ dryad root build ./dyd/roots/dev-shell && dryad stem exec ./dyd/sprouts/dev-shell

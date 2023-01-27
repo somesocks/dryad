@@ -1,0 +1,30 @@
+#!/usr/bin/env sh
+
+set -e
+# set -x
+
+SRC_DIR=$(pwd)
+
+# echo "dryad"
+
+DEST_DIR=$1
+DEST_MAIN=$DEST_DIR/dyd/main
+
+# copy assets to build
+
+# copy traits to stem
+cp --symbolic-link -R $SRC_DIR/dyd/assets/traits/* $DEST_DIR/dyd/traits/
+
+# copy source code to stem assets
+cp --symbolic-link -R $SRC_DIR/dyd/assets/src/* $DEST_DIR/dyd/assets/
+
+# copy version from root to build
+# cp --symbolic-link -R $SRC_DIR/dyd/traits/version $DEST_DIR/dyd/traits/
+
+# add tools as dependencies
+# ln -s $SRC_DIR/dyd/stems/gpg-package-sign $DEST_DIR/dyd/stems/gpg-package-sign
+# ln -s $SRC_DIR/dyd/stems/gpg-package-verify $DEST_DIR/dyd/stems/gpg-package-verify
+
+# ls -al $DEST_DIR/dyd/traits
+
+# cd $SRC_DIR/dyd/assets/src && go build -ldflags '-s -w' -o $DEST_MAIN

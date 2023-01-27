@@ -1,0 +1,61 @@
+#!/usr/bin/env sh
+
+set -eu
+
+
+
+echo "[info] verifying package signature..."
+
+CONTENT_FINGERPRINT=$(cd $PACKAGE_DIR && dryad stem fingerprint --exclude="^((dyd/traits/signature/signature)|(dyd/traits/signature/content-fingerprint)|(dyd/traits/root-fingerprint))$")
+CONTENT_FINGERPRINT2="$(cat $PACKAGE_DIR/dyd/traits/signature/content-fingerprint)"
+
+echo "[info] package content fingerprint $CONTENT_FINGERPRINT"
+
+echo "[info] step 1 - checking content fingerprint matches dyd/traits/signature/content-fingerprint"
+if [ "$CONTENT_FINGERPRINT" != "$CONTENT_FINGERPRINT2" ]
+then
+	echo "[error] content fingerprint verification failed!"
+	exit 1
+fi
+echo "[info] done"
+
+
+echo "[info] step 2 - verifying dyd/traits/signature/signature is valid and matches content fingerprint"
+
+KEYRING=$(mktemp --suffix=.gpg)
+cleanup () {
+	echo "[info] cleaning up"
+	rm "$KEYRING"
+	echo "[info] done"
+}
+trap cleanup EXIT
+
+cat "$PACKAGE_DIR/dyd/traits/signature/key" | gpg \
+	--no-default-keyring \
+	--keyring "$KEYRING" \
+	--import \
+	--quiet
+
+gpg \
+	--no-default-keyring \
+	--keyring "$KEYRING" \
+	--trust-model always \
+	--verify \
+	--quiet \
+	--status-fd 1 \
+	--logger-fd 1 \
+	--with-colons \
+	"$PACKAGE_DIR/dyd/traits/signature/signature" \
+	"$PACKAGE_DIR/dyd/traits/signature/content-fingerprint"
+
+echo "[info] done"
+
+echo "[info] all checks pass, package signature verified!"
+
+# CONTENT_FINGERPRINT3="$(gpg --verify --quiet --output - $PACKAGE_DIR/dyd/traits/signature/signature)"
+# if [ "$CONTENT_FINGERPRINT" != "$CONTENT_FINGERPRINT3" ]
+# then
+# 	echo "[error] signature fingerprint verification failed!"
+# 	exit 1
+# fi
+
