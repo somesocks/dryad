@@ -54,11 +54,15 @@ func _buildCLI() cli.App {
 		})
 
 	var gardenBuild = cli.NewCommand("build", "build all roots in the garden").
+		WithArg(cli.NewArg("path", "the target path for the garden to build").AsOptional()).
 		WithAction(func(args []string, options map[string]string) int {
-			var path, err = os.Getwd()
-			if err != nil {
-				log.Fatal(err)
+			var path string
+			var err error
+
+			if len(args) > 0 {
+				path = args[0]
 			}
+
 			err = dryad.GardenBuild(
 				dryad.BuildContext{
 					RootFingerprints: map[string]string{},
