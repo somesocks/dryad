@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+
+set -e
+# set -x
+
+SRC_DIR=$(pwd)
+
+DEST_DIR=$1
+
+if [ "$FOO" != "foo" ]; then
+	echo "FOO secret not set" >&2
+	exit 1
+else
+	echo "FOO correctly set to $FOO" >> $DEST_DIR/dyd/assets/log
+fi
