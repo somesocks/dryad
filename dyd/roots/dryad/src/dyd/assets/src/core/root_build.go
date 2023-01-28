@@ -7,10 +7,10 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
-
-	"path/filepath"
 )
 
 func rootBuild_pathStub(depname string) string {
@@ -148,61 +148,70 @@ func rootBuild_stage2(workspacePath string) error {
 	return nil
 }
 
-// stage 3 - read the root env and generate the env fingerprint
+var _RE_SANITIZE_ENV, _ = regexp.Compile(`[^a-zA-Z0-9_]+`)
+
+func rootBuild_sanitizeEnvName(env string) string {
+	return strings.ToUpper(
+		_RE_SANITIZE_ENV.ReplaceAllString(env, "_"),
+	)
+}
+
+// stage 3 - read the root secrets and generate the fingerprint
 func rootbuild_stage3(rootPath string, workspacePath string) (map[string]string, error) {
 	// fmt.Println("rootBuild_stage3 ", rootPath, " ", workspacePath)
 
-	env := make(map[string]string)
+	secrets := make(map[string]string)
 
-	// walk through the env files and read them into a map
-	envPath := filepath.Join(rootPath, "dyd", "env")
+	// walk through the secrets files and read them into a map
+	secretsPath := filepath.Join(rootPath, "dyd", "secrets")
 
-	envFiles, err := filepath.Glob(filepath.Join(envPath, "*"))
+	secretFiles, err := filepath.Glob(filepath.Join(secretsPath, "*"))
 	if err != nil {
-		return env, err
+		return secrets, err
 	}
 
-	for _, envFile := range envFiles {
-		envKey := filepath.Base(envFile)
+	for _, secretFile := range secretFiles {
+		secretKey := filepath.Base(secretFile)
+		secretKey = rootBuild_sanitizeEnvName(secretKey)
 
-		envBytes, err := ioutil.ReadFile(envFile)
+		secretBytes, err := ioutil.ReadFile(secretFile)
 		if err != nil {
-			return env, err
+			return secrets, err
 		}
-		envValue := string(envBytes)
-		env[envKey] = envValue
+		secretValue := string(secretBytes)
+		secrets[secretKey] = secretValue
 	}
 
-	// if an env exists, build the fingerprint and write it out
-	if len(env) > 0 {
-		// build the env fingerprint
+	// if there are any secrets, build the fingerprint and write it out
+	if len(secrets) > 0 {
+		// build the secrets fingerprint
 		var keys []string
-		for key, _ := range env {
+		for key, _ := range secrets {
 			keys = append(keys, key)
 		}
 
 		sort.Strings(keys)
 
-		var envTable []string
+		var secretTable []string
 
 		for _, key := range keys {
-			envTable = append(envTable, env[key]+"="+key)
+			secretTable = append(secretTable, secrets[key]+"="+key)
 		}
 
-		var envString = strings.Join(envTable, "\n")
+		var secretString = strings.Join(secretTable, "\n")
 
-		var envFingerprintHashBytes = md5.Sum([]byte(envString))
-		var envFingerprintHash = hex.EncodeToString(envFingerprintHashBytes[:])
-		var envFingerprint = "md5sum-" + envFingerprintHash
+		var secretFingerprintHashBytes = md5.Sum([]byte(secretString))
+		var secretFingerprintHash = hex.EncodeToString(secretFingerprintHashBytes[:])
+		var secretFingerprint = "md5sum-" + secretFingerprintHash
 
-		// write out the env file
-		err = os.WriteFile(filepath.Join(workspacePath, "dyd", "env"), []byte(envFingerprint), fs.ModePerm)
+		// write out the secrets fingerprint
+		err = os.WriteFile(filepath.Join(workspacePath, "dyd", "traits", "secrets-fingerprint"), []byte(secretFingerprint), fs.ModePerm)
 		if err != nil {
-			return env, err
+			return secrets, err
 		}
 	}
 
-	return env, nil
+	return secrets, nil
 }
 
 // stage 4 - generate the fingerprint for the newly-constructed root,

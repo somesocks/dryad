@@ -10,7 +10,7 @@ var STEM_WALK_CRAWL_INCLUDE, _ = regexp.Compile(`^((\.)|(dyd)|(dyd/path)|(dyd/as
 
 var STEM_WALK_CRAWL_EXCLUDE, _ = regexp.Compile(`^$`)
 
-var STEM_WALK_MATCH_INCLUDE, _ = regexp.Compile(`^((dyd/path/.*)|(dyd/assets/.*)|(dyd/readme)|(dyd/README)|(dyd/fingerprint)|(dyd/main)|(dyd/env)|(dyd/stems/.*/dyd/fingerprint)|(dyd/stems/.*/dyd/traits/.*)|(dyd/traits/.*))$`)
+var STEM_WALK_MATCH_INCLUDE, _ = regexp.Compile(`^((dyd/path/.*)|(dyd/assets/.*)|(dyd/readme)|(dyd/README)|(dyd/fingerprint)|(dyd/main)|(dyd/stems/.*/dyd/fingerprint)|(dyd/stems/.*/dyd/traits/.*)|(dyd/traits/.*))$`)
 
 var STEM_WALK_MATCH_EXCLUDE, _ = regexp.Compile(`^$`)
 

@@ -11,7 +11,7 @@ import (
 	"golang.org/x/crypto/blake2b"
 )
 
-var STEM_FINGERPRINT_MATCH_ALLOW, _ = regexp.Compile(`^((dyd/path/.*)|(dyd/assets/.*)|(dyd/main)|(dyd/env)|(dyd/stems/.*/dyd/fingerprint)|(dyd/stems/.*/dyd/traits/.*)|(dyd/traits/.*))$`)
+var STEM_FINGERPRINT_MATCH_ALLOW, _ = regexp.Compile(`^((dyd/path/.*)|(dyd/assets/.*)|(dyd/main)|(dyd/stems/.*/dyd/fingerprint)|(dyd/stems/.*/dyd/traits/.*)|(dyd/traits/.*))$`)
 
 type StemFingerprintArgs struct {
 	BasePath  string
