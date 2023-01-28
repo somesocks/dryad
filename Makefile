@@ -12,13 +12,21 @@ BASE=$(shell pwd)
 help:
 	@grep -h "^##.*" ./Makefile
 
-##	make build - build the cli versions of dryad
+##	bootstrap-build - build a bootstrap version of dryad for the current os/arch to use to build the dev shell
 ##
 .PHONY: bootstrap-build
 bootstrap-build:
 	@(cd $(BASE)/dyd/roots/dryad/src/dyd/assets/src && go build -ldflags '-s -w' -o $(BASE)/bootstrap/dryad)
 # @(cd ./dryad/go/cli && go build)
 
-.PHONY: dev
-dev:
-	@ dryad root build ./dyd/roots/dev-shell && dryad stem exec ./dyd/sprouts/dev-shell
+##	bootstrap-install - install the bootstrap dryad as /usr/bin/dryad
+##
+.PHONY: bootstrap-install
+bootstrap-install:
+	@ sudo cp $(BASE)/bootstrap/dryad /usr/bin/dryad
+
+##	dev-shell - use the bootstrap dryad to build and start the dev shell
+##
+.PHONY: dev-shell
+dev-shell:
+	@ dryad root build $(BASE)/dyd/roots/dev-shell && dryad stem exec $(BASE)/dyd/sprouts/dev-shell
