@@ -1,6 +1,0 @@
-#!/usr/bin/env sh
-
-set -eu
-# set -x
-
-cd $DYD_GARDEN && exec bash -i
