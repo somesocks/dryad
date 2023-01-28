@@ -13,3 +13,17 @@ if [ "$FOO" != "foo" ]; then
 else
 	echo "FOO correctly set to $FOO" >> $DEST_DIR/dyd/assets/log
 fi
+
+if [ "$FOO_TXT" != "foo.txt" ]; then
+	echo "FOO_TXT secret not set" >&2
+	exit 1
+else
+	echo "FOO_TXT correctly set to $FOO_TXT" >> $DEST_DIR/dyd/assets/log
+fi
+
+if [ "$FOO_SPACE" != "foo space" ]; then
+	echo "FOO_SPACE secret not set" >&2
+	exit 1
+else
+	echo "FOO_SPACE correctly set to $FOO_SPACE" >> $DEST_DIR/dyd/assets/log
+fi
