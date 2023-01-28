@@ -125,7 +125,7 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 			}
 		}
 
-		secretsFingerprintPath := filepath.Join(finalStemPath, "dyd", "traits", "secrets-fingerprint")
+		secretsFingerprintPath := filepath.Join(finalStemPath, "dyd", "secrets-fingerprint")
 
 		hasSecrets, err := fileExists(secretsFingerprintPath)
 		if err != nil {

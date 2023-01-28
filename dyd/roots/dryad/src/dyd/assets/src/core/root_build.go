@@ -170,7 +170,7 @@ func rootBuild_stage3(rootPath string, workspacePath string) (string, error) {
 
 	// write out the secrets fingerprint
 	err = os.WriteFile(
-		filepath.Join(workspacePath, "dyd", "traits", "secrets-fingerprint"),
+		filepath.Join(workspacePath, "dyd", "secrets-fingerprint"),
 		[]byte(secretsFingerprint),
 		fs.ModePerm,
 	)
