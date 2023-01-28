@@ -43,6 +43,10 @@ func StemExec(request StemExecRequest) error {
 	var env = request.Env
 	var args = request.Args
 
+	if env == nil {
+		env = make(map[string]string)
+	}
+
 	if !filepath.IsAbs(stemPath) {
 		if execPath != "" {
 			stemPath = filepath.Join(filepath.Dir(execPath), stemPath)

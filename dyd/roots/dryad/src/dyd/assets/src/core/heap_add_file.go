@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 )
 
-func HeapAdd(heapPath string, filePath string) (string, error) {
+func HeapAddFile(heapPath string, filePath string) (string, error) {
 	heapPath, err := HeapPath(heapPath)
 	if err != nil {
 		return "", err
@@ -58,7 +58,7 @@ func HeapAdd(heapPath string, filePath string) (string, error) {
 	return fingerprint, nil
 }
 
-// func HeapAdd(heapPath string, stemPath string) (string, error) {
+// func HeapAddFile(heapPath string, stemPath string) (string, error) {
 // 	var err error
 // 	heapPath, err = HeapPath(heapPath)
 // 	if err != nil {

@@ -20,6 +20,14 @@ type SecretsWalkArgs struct {
 }
 
 func SecretsWalk(args SecretsWalkArgs) error {
+	exists, err := fileExists(args.BasePath)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return nil
+	}
+
 	return fs2.ReWalk(fs2.ReWalkArgs{
 		BasePath:     args.BasePath,
 		CrawlInclude: _SECRETS_WALK_CRAWL_INCLUDE,

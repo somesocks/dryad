@@ -1,15 +1,12 @@
 package core
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 )
 
@@ -156,62 +153,32 @@ func rootBuild_sanitizeEnvName(env string) string {
 	)
 }
 
-// stage 3 - read the root secrets and generate the fingerprint
-func rootbuild_stage3(rootPath string, workspacePath string) (map[string]string, error) {
+// stage 3 - read the root secrets,
+// generate the fingerprint,
+// and add the secrets to the heap
+func rootBuild_stage3(rootPath string, workspacePath string) (string, error) {
 	// fmt.Println("rootBuild_stage3 ", rootPath, " ", workspacePath)
-
-	secrets := make(map[string]string)
-
-	// walk through the secrets files and read them into a map
-	secretsPath := filepath.Join(rootPath, "dyd", "secrets")
-
-	secretFiles, err := filepath.Glob(filepath.Join(secretsPath, "*"))
+	secretsFingerprint, err := HeapAddSecrets(rootPath, rootPath)
 	if err != nil {
-		return secrets, err
+		return secretsFingerprint, err
 	}
 
-	for _, secretFile := range secretFiles {
-		secretKey := filepath.Base(secretFile)
-		secretKey = rootBuild_sanitizeEnvName(secretKey)
-
-		secretBytes, err := ioutil.ReadFile(secretFile)
-		if err != nil {
-			return secrets, err
-		}
-		secretValue := string(secretBytes)
-		secrets[secretKey] = secretValue
+	// don't create a fingerprint if there are no secrets
+	if secretsFingerprint == "" {
+		return secretsFingerprint, nil
 	}
 
-	// if there are any secrets, build the fingerprint and write it out
-	if len(secrets) > 0 {
-		// build the secrets fingerprint
-		var keys []string
-		for key, _ := range secrets {
-			keys = append(keys, key)
-		}
-
-		sort.Strings(keys)
-
-		var secretTable []string
-
-		for _, key := range keys {
-			secretTable = append(secretTable, secrets[key]+"="+key)
-		}
-
-		var secretString = strings.Join(secretTable, "\n")
-
-		var secretFingerprintHashBytes = md5.Sum([]byte(secretString))
-		var secretFingerprintHash = hex.EncodeToString(secretFingerprintHashBytes[:])
-		var secretFingerprint = "md5sum-" + secretFingerprintHash
-
-		// write out the secrets fingerprint
-		err = os.WriteFile(filepath.Join(workspacePath, "dyd", "traits", "secrets-fingerprint"), []byte(secretFingerprint), fs.ModePerm)
-		if err != nil {
-			return secrets, err
-		}
+	// write out the secrets fingerprint
+	err = os.WriteFile(
+		filepath.Join(workspacePath, "dyd", "traits", "secrets-fingerprint"),
+		[]byte(secretsFingerprint),
+		fs.ModePerm,
+	)
+	if err != nil {
+		return secretsFingerprint, err
 	}
 
-	return secrets, nil
+	return secretsFingerprint, nil
 }
 
 // stage 4 - generate the fingerprint for the newly-constructed root,
@@ -281,7 +248,7 @@ func rootBuild_stage5(gardenPath string, workspacePath string, rootFingerprint s
 						return err
 					}
 
-					fileFingerprint, err := HeapAdd(gardenFilesPath, srcPath)
+					fileFingerprint, err := HeapAddFile(gardenFilesPath, srcPath)
 					if err != nil {
 						return err
 					}
@@ -342,7 +309,7 @@ func rootBuild_stage5(gardenPath string, workspacePath string, rootFingerprint s
 }
 
 // stage 6 - execute the root to build its stem,
-func rootBuild_stage6(rootStemPath string, stemBuildPath string, rootFingerprint string, rootEnv map[string]string) (string, error) {
+func rootBuild_stage6(rootStemPath string, stemBuildPath string, rootFingerprint string) (string, error) {
 	// fmt.Println("rootBuild_stage6 ", rootStemPath)
 
 	var err error
@@ -353,7 +320,7 @@ func rootBuild_stage6(rootStemPath string, stemBuildPath string, rootFingerprint
 	}
 	err = StemExec(StemExecRequest{
 		StemPath:   rootStemPath,
-		Env:        rootEnv,
+		Env:        nil,
 		Args:       []string{stemBuildPath},
 		JoinStdout: false,
 	})
@@ -491,7 +458,7 @@ func rootBuild_stage7(gardenPath string, sourcePath string, stemFingerprint stri
 						return err
 					}
 
-					fileFingerprint, err := HeapAdd(gardenFilesPath, srcPath)
+					fileFingerprint, err := HeapAddFile(gardenFilesPath, srcPath)
 					if err != nil {
 						return err
 					}
@@ -614,7 +581,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		return "", err
 	}
 
-	rootEnv, err := rootbuild_stage3(rootPath, workspacePath)
+	_, err = rootBuild_stage3(rootPath, workspacePath)
 	if err != nil {
 		return "", err
 	}
@@ -662,7 +629,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		}
 		// defer os.RemoveAll(stemBuildPath)
 
-		stemBuildFingerprint, err = rootBuild_stage6(finalStemPath, stemBuildPath, rootFingerprint, rootEnv)
+		stemBuildFingerprint, err = rootBuild_stage6(finalStemPath, stemBuildPath, rootFingerprint)
 		if err != nil {
 			return "", err
 		}

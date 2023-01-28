@@ -16,7 +16,7 @@ func StemAdd(rootPath string, fingerprint string, alias string) error {
 	}
 
 	var depPath string
-	depPath, err = HeapHas(rootPath, fingerprint)
+	depPath, err = HeapHasStem(rootPath, fingerprint)
 	if err != nil {
 		return err
 	}

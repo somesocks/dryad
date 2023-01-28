@@ -1,14 +1,13 @@
 package core
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 )
 
-func HeapHas(path string, fingerprint string) (string, error) {
+func HeapHasStem(path string, fingerprint string) (string, error) {
 	var heapPath, heapErr = HeapPath(path)
-	fmt.Println("HeapHas heapPath ", heapPath)
+	// fmt.Println("HeapHasStem heapPath ", heapPath)
 	if heapErr != nil {
 		return "", heapErr
 	}
