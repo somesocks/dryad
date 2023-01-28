@@ -283,6 +283,128 @@ func _buildCLI() cli.App {
 		WithCommand(rootsList).
 		WithCommand(rootsPath)
 
+	var secretsFingerprint = cli.NewCommand("fingerprint", "calculate the fingerprint for the secrets in a stem/root").
+		WithArg(cli.NewArg("path", "path to the stem base dir")).
+		WithAction(func(args []string, options map[string]string) int {
+			var err error
+			var path string
+
+			if len(args) > 0 {
+				path = args[0]
+				path, err = filepath.Abs(path)
+				if err != nil {
+					log.Fatal(err)
+				}
+			} else {
+				path, err = os.Getwd()
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+
+			// normalize the path to point to the closest secrets
+			path, err = dryad.SecretsPath(path)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			fingerprint, err := dryad.SecretsFingerprint(
+				dryad.SecretsFingerprintArgs{
+					BasePath: path,
+				},
+			)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(fingerprint)
+
+			return 0
+		})
+
+	var secretsList = cli.NewCommand("list", "list the secret files in a stem/root").
+		WithArg(cli.NewArg("path", "path to the stem base dir")).
+		WithAction(func(args []string, options map[string]string) int {
+			var err error
+			var path string
+
+			if len(args) > 0 {
+				path = args[0]
+				path, err = filepath.Abs(path)
+				if err != nil {
+					log.Fatal(err)
+				}
+			} else {
+				path, err = os.Getwd()
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+
+			// normalize the path to point to the closest secrets
+			path, err = dryad.SecretsPath(path)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			err = dryad.SecretsWalk(
+				dryad.SecretsWalkArgs{
+					BasePath: path,
+					OnMatch: func(path string, info fs.FileInfo) error {
+						fmt.Println(path)
+						return nil
+					},
+				},
+			)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			return 0
+		})
+
+	var secretsPath = cli.NewCommand("path", "print the path to the secrets for the current package, if it exists").
+		WithArg(cli.NewArg("path", "path to the stem base dir")).
+		WithAction(func(args []string, options map[string]string) int {
+			var err error
+			var path string
+
+			if len(args) > 0 {
+				path = args[0]
+				path, err = filepath.Abs(path)
+				if err != nil {
+					log.Fatal(err)
+				}
+			} else {
+				path, err = os.Getwd()
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+
+			// normalize the path to point to the closest secrets
+			path, err = dryad.SecretsPath(path)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			// check if the secrets folder exists
+			exists, err := dryad.SecretsExist(path)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			if exists {
+				fmt.Println(path)
+			}
+
+			return 0
+		})
+
+	var secrets = cli.NewCommand("secrets", "commands to work with dryad secrets").
+		WithCommand(secretsFingerprint).
+		WithCommand(secretsList).
+		WithCommand(secretsPath)
+
 	var stemExec = cli.NewCommand("exec", "execute the main for a stem").
 		WithArg(cli.NewArg("path", "path to the stem base dir")).
 		WithOption(cli.NewOption("execPath", "path to the executable running `dryad stem exec`. used for path setting")).
@@ -494,6 +616,7 @@ func _buildCLI() cli.App {
 		WithCommand(garden).
 		WithCommand(root).
 		WithCommand(roots).
+		WithCommand(secrets).
 		WithCommand(stem).
 		WithCommand(stems)
 
