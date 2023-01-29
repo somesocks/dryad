@@ -394,14 +394,24 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		return "", err
 	}
 
-	var stemBuildFingerprint string
-
-	// if the derivation link already exists,
-	// then return it directly
-	derivationsPath := filepath.Join(gardenPath, "dyd", "heap", "derivations", rootFingerprint)
-	derivationFileExists, err := fileExists(derivationsPath)
+	isUnstableRoot, err := fileExists(filepath.Join(finalStemPath, "dyd", "traits", "unstable"))
 	if err != nil {
 		return "", err
+	}
+
+	var stemBuildFingerprint string
+
+	var derivationsPath string = ""
+	var derivationFileExists bool = false
+
+	if !isUnstableRoot {
+		// if the derivation link already exists,
+		// then return it directly
+		derivationsPath = filepath.Join(gardenPath, "dyd", "heap", "derivations", rootFingerprint)
+		derivationFileExists, err = fileExists(derivationsPath)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	if derivationFileExists {
@@ -440,21 +450,23 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		// add the built fingerprint to the context
 		context.RootFingerprints[absRootPath] = stemBuildFingerprint
 
-		// add the derivation link
-		derivationsLinkPath, err := filepath.Rel(
-			filepath.Dir(derivationsPath),
-			finalStemPath,
-		)
-		if err != nil {
-			return "", err
-		}
-		err = os.RemoveAll(derivationsPath)
-		if err != nil {
-			return "", err
-		}
-		err = os.Symlink(derivationsLinkPath, derivationsPath)
-		if err != nil {
-			return "", err
+		if !isUnstableRoot {
+			// add the derivation link
+			derivationsLinkPath, err := filepath.Rel(
+				filepath.Dir(derivationsPath),
+				finalStemPath,
+			)
+			if err != nil {
+				return "", err
+			}
+			err = os.RemoveAll(derivationsPath)
+			if err != nil {
+				return "", err
+			}
+			err = os.Symlink(derivationsLinkPath, derivationsPath)
+			if err != nil {
+				return "", err
+			}
 		}
 
 		fmt.Println("[info] dryad done building root " + relRootPath)
