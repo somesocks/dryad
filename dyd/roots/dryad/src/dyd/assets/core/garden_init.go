@@ -42,6 +42,11 @@ func GardenInit(path string) error {
 		return err
 	}
 
+	heapSecretsPath := filepath.Join(heapPath, "secrets")
+	if err := os.MkdirAll(heapSecretsPath, os.ModePerm); err != nil {
+		return err
+	}
+
 	var rootsPath string = filepath.Join(gardenPath, "roots")
 	if err := os.MkdirAll(rootsPath, os.ModePerm); err != nil {
 		return err
