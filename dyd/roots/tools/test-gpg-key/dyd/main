@@ -1,1 +1,11 @@
 #!/usr/bin/env sh
+
+set -e
+
+echo "adding secret"
+
+SRC_DIR=$(pwd)
+DEST_DIR=$1
+
+# copying the secrets fingerprint so the stem has access
+cat $SRC_DIR/dyd/secrets-fingerprint > $DEST_DIR/dyd/secrets-fingerprint

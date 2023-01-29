@@ -21,7 +21,7 @@ cp --symbolic-link -R $SRC_DIR/dyd/assets/traits/* $DEST_DIR/dyd/traits/
 
 # link the version of dryad that's needed for the current os/arch
 DRYAD_VERSION="dryad-$DYD_OS-$DYD_ARCH"
-DRYAD_DEP_PATH="$SRC_DIR/dyd/stems/$DRYAD_VERSION"
+DRYAD_DEP_PATH="$SRC_DIR/dyd/stems/native"
 ln -s $DRYAD_DEP_PATH $DEST_DIR/dyd/stems/dryad
 
 
