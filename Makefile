@@ -16,7 +16,7 @@ help:
 ##
 .PHONY: bootstrap-build
 bootstrap-build:
-	@(cd $(BASE)/dyd/roots/dryad/src/dyd/assets/src && GO111MODULE=on go build -ldflags '-s -w' -o $(BASE)/bootstrap/dryad)
+	@(cd $(BASE)/dyd/roots/dryad/src/dyd/assets && GO111MODULE=on go build -ldflags '-s -w' -o $(BASE)/bootstrap/dryad)
 # @(cd ./dryad/go/cli && go build)
 
 ##	bootstrap-install - install the bootstrap dryad as /usr/bin/dryad
