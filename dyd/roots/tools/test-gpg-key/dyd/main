@@ -7,5 +7,6 @@ echo "adding secret"
 SRC_DIR=$(pwd)
 DEST_DIR=$1
 
-# copying the secrets fingerprint so the stem has access
-cat $SRC_DIR/dyd/secrets-fingerprint > $DEST_DIR/dyd/secrets-fingerprint
+# copying the secrets to the build stem
+mkdir -p $DEST_DIR/dyd/secrets
+cp --symbolic-link -R $SRC_DIR/dyd/secrets/* $DEST_DIR/dyd/secrets/

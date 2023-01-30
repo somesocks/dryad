@@ -15,8 +15,10 @@ func _readFile(filePath string) (string, error) {
 	return string(bytes), nil
 }
 
+// HeapAddStem takes a stem in a directory, and adds it to the heap.
+// the heap path is normalized before adding
 func HeapAddStem(heapPath string, stemPath string) (string, error) {
-	// fmt.Println("rootBuild_stage5 ", workspacePath)
+	// fmt.Println("HeapAddStem", heapPath, stemPath)
 
 	// normalize the heap path
 	heapPath, err := HeapPath(heapPath)
@@ -133,7 +135,7 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 		}
 
 		if hasSecrets {
-			secretsFingerprint, err := _readFile(secretsFingerprintPath)
+			secretsFingerprint, err := HeapAddSecrets(heapPath, stemPath)
 			if err != nil {
 				return "", err
 			}

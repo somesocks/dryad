@@ -7,29 +7,5 @@ SRC_DIR=$(pwd)
 
 DEST_DIR=$1
 
-# echo "SECRETS FINGERPRINT $(cat $SRC_DIR/dyd/traits/secrets-fingerprint)" >&2
-# exit 1
-
-# copy the secrets fingerprint to the built stem so it has access
-cat $SRC_DIR/dyd/secrets-fingerprint >>  $DEST_DIR/dyd/secrets-fingerprint
-
-# if [ "$FOO" != "foo" ]; then
-# 	echo "FOO secret not set" >&2
-# 	exit 1
-# else
-# 	echo "FOO correctly set to $FOO" >> $DEST_DIR/dyd/assets/log
-# fi
-
-# if [ "$FOO_TXT" != "foo.txt" ]; then
-# 	echo "FOO_TXT secret not set" >&2
-# 	exit 1
-# else
-# 	echo "FOO_TXT correctly set to $FOO_TXT" >> $DEST_DIR/dyd/assets/log
-# fi
-
-# if [ "$FOO_SPACE" != "foo space" ]; then
-# 	echo "FOO_SPACE secret not set" >&2
-# 	exit 1
-# else
-# 	echo "FOO_SPACE correctly set to $FOO_SPACE" >> $DEST_DIR/dyd/assets/log
-# fi
+# copy the secrets to the built stem so it has access
+cp --symbolic-link -R $SRC_DIR/dyd/secrets/* $DEST_DIR/dyd/secrets/

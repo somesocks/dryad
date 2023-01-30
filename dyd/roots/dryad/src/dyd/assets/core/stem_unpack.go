@@ -84,7 +84,7 @@ func StemUnpack(gardenPath string, packPath string) (string, error) {
 		return "", err
 	}
 
-	_, err = rootBuild_stage7(gardenPath, workspacePath, stemFingerprint)
+	_, err = HeapAddStem(gardenPath, workspacePath)
 	if err != nil {
 		return stemFingerprint, err
 	}
