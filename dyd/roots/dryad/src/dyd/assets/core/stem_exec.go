@@ -109,13 +109,9 @@ func StemExec(request StemExecRequest) error {
 		"/usr/bin/",
 	)
 
-	// set the working directory to be the base path to the stem
-	cmd.Dir = stemPath
-
 	cmd.Env = append(
 		cmd.Env,
 		envPath,
-		"PWD="+stemPath,
 		"HOME="+contextPath,
 		"DYD_CONTEXT="+contextPath,
 		"DYD_STEM="+stemPath,

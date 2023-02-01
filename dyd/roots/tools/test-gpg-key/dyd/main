@@ -4,7 +4,7 @@ set -e
 
 echo "adding secret"
 
-SRC_DIR=$(pwd)
+SRC_DIR=$DYD_STEM
 DEST_DIR=$1
 
 # copying the secrets to the build stem

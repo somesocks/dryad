@@ -3,7 +3,7 @@
 set -e
 # set -x
 
-SRC_DIR=$(pwd)
+SRC_DIR=$DYD_STEM
 
 # echo "dryad"
 

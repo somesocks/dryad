@@ -4,7 +4,7 @@ set -e
 
 echo "signing test package"
 
-SRC_DIR=$(pwd)
+SRC_DIR=$DYD_STEM
 
 # ls -al $SRC_DIR/dyd/stems
 

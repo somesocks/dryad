@@ -2,7 +2,7 @@
 
 echo "package sys/cp build"
 
-SRC_DIR=$(pwd)
+SRC_DIR=$DYD_STEM
 
 DEST_DIR=$1
 

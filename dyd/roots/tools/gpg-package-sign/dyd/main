@@ -5,7 +5,7 @@ set -eu
 
 echo "building sign-package"
 
-SRC_DIR=$(pwd)
+SRC_DIR=$DYD_STEM
 DEST_DIR=$1
 
 echo "1"
