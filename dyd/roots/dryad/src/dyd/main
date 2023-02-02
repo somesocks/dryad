@@ -27,4 +27,4 @@ cp --symbolic-link -R $SRC_DIR/dyd/assets/* $DEST_DIR/dyd/assets/
 
 # ls -al $DEST_DIR/dyd/traits
 
-# cd $SRC_DIR/dyd/assets/src && go build -ldflags '-s -w' -o $DEST_MAIN
+# cd $SRC_DIR/dyd/assets/src && go build -o $DEST_MAIN

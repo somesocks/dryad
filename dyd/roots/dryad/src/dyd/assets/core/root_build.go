@@ -43,28 +43,42 @@ func rootBuild_stage0(rootPath string, workspacePath string) error {
 	if err != nil {
 		return err
 	}
-
-	err = os.Symlink(
-		filepath.Join(rootPath, "dyd", "assets"),
-		filepath.Join(workspacePath, "dyd", "assets"),
-	)
+	
+	var exists bool
+	
+	exists, err = fileExists(filepath.Join(rootPath, "dyd", "assets"))
 	if err != nil {
 		return err
 	}
+	if exists {
+		err = os.Symlink(
+			filepath.Join(rootPath, "dyd", "assets"),
+			filepath.Join(workspacePath, "dyd", "assets"),
+		)
+		if err != nil {
+			return err
+		}	
+	}
 
-	err = os.Symlink(
-		filepath.Join(rootPath, "dyd", "traits"),
-		filepath.Join(workspacePath, "dyd", "traits"),
-	)
+	exists, err = fileExists(filepath.Join(rootPath, "dyd", "traits"))
 	if err != nil {
 		return err
 	}
+	if exists {
+		err = os.Symlink(
+			filepath.Join(rootPath, "dyd", "traits"),
+			filepath.Join(workspacePath, "dyd", "traits"),
+		)
+		if err != nil {
+			return err
+		}
+	}
 
-	secretsExists, err := fileExists(filepath.Join(rootPath, "dyd", "secrets"))
+	exists, err = fileExists(filepath.Join(rootPath, "dyd", "secrets"))
 	if err != nil {
 		return err
 	}
-	if secretsExists {
+	if exists {
 		err = os.Symlink(
 			filepath.Join(rootPath, "dyd", "secrets"),
 			filepath.Join(workspacePath, "dyd", "secrets"),

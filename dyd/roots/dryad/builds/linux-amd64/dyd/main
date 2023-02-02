@@ -10,14 +10,17 @@ SRC_DIR=$DYD_STEM
 DEST_DIR=$1
 DEST_MAIN=$DEST_DIR/dyd/main
 
+OS="$(cat $SRC_DIR/dyd/traits/os)"
+ARCH="$(cat $SRC_DIR/dyd/traits/arch)"
+
 # copy assets to build
-echo -n "$DYD_OS" > $DEST_DIR/dyd/traits/os
-echo -n "$DYD_ARCH" > $DEST_DIR/dyd/traits/arch
+echo -n "$OS" > $DEST_DIR/dyd/traits/os
+echo -n "$ARCH" > $DEST_DIR/dyd/traits/arch
 
 # run go build for specified arch
 # diable workspace mode to avoid "missing module" errors
 cd $SRC_DIR/dyd/stems/src/dyd/assets/ && \
-GOARCH="$DYD_ARCH" \
-GOOS="$DYD_OS" \
+GOARCH="$ARCH" \
+GOOS="$OS" \
 GOWORK=off \
 go build -o $DEST_MAIN

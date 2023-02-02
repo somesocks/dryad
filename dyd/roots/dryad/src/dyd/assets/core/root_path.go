@@ -13,19 +13,19 @@ func RootPath(path string) (string, error) {
 		log.Fatal(err)
 	}
 
-	var traits_path = filepath.Join(working_path, "dyd", "traits")
-	var fileInfo, fileInfoErr = os.Stat(traits_path)
+	var main_path = filepath.Join(working_path, "dyd", "main")
+	var _, fileInfoErr = os.Stat(main_path)
 
 	for working_path != "/" {
 
-		if fileInfoErr == nil && fileInfo.IsDir() {
+		if fileInfoErr == nil {
 			return working_path, nil
 		}
 
 		working_path = filepath.Dir(working_path)
-		traits_path = filepath.Join(working_path, "dyd", "traits")
-		fileInfo, fileInfoErr = os.Stat(traits_path)
+		main_path = filepath.Join(working_path, "dyd", "main")
+		_, fileInfoErr = os.Stat(main_path)
 	}
 
-	return "", errors.New("dyd root path not found")
+	return "", errors.New("dyd root path not found for " + path)
 }
