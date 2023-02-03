@@ -253,7 +253,7 @@ func _buildCLI() cli.App {
 			if err != nil {
 				log.Fatal(err)
 			}
-			err = dryad.RootsWalk(path, func(path string, info fs.FileInfo, err error) error {
+			err = dryad.RootsWalk(path, func(path string, info fs.FileInfo) error {
 				fmt.Println(path)
 				return nil
 			})
