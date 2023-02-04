@@ -171,23 +171,7 @@ func _buildCLI() cli.App {
 
 			if len(args) > 0 {
 				path = args[0]
-			}
-
-			if path == "" {
-				var cwd, err = os.Getwd()
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				path = cwd
-			} else if !filepath.IsAbs(path) {
-				var cwd, err = os.Getwd()
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				path = filepath.Join(cwd, path)
-			}
+			}			
 
 			err := dryad.RootInit(path)
 

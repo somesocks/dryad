@@ -6,6 +6,11 @@ import (
 )
 
 func RootInit(path string) error {
+	path, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+
 	var basePath string = filepath.Join(path, "dyd")
 	if err := os.MkdirAll(basePath, os.ModePerm); err != nil {
 		return err
