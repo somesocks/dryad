@@ -314,7 +314,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// defer os.RemoveAll(workspacePath)
+	defer os.RemoveAll(workspacePath)
 
 	err = rootBuild_stage0(rootPath, workspacePath)
 	if err != nil {
@@ -382,7 +382,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		// defer os.RemoveAll(stemBuildPath)
+		defer os.RemoveAll(stemBuildPath)
 
 		stemBuildFingerprint, err = rootBuild_stage5(finalStemPath, stemBuildPath, rootFingerprint)
 		if err != nil {

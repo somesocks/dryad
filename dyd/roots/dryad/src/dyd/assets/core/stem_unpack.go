@@ -31,7 +31,7 @@ func StemUnpack(gardenPath string, packPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// defer os.RemoveAll(workspacePath)
+	defer os.RemoveAll(workspacePath)
 	fmt.Println("workspacePath", workspacePath)
 
 	fr, err := os.Open(packPath)

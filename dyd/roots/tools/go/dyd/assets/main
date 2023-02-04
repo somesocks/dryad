@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 set -eu
-set -x
+# set -x
 
 PATH=$PATH:$DYD_STEM/dyd/assets/go/bin
 

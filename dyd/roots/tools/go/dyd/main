@@ -2,7 +2,7 @@
 
 #
 # turn this on to debug script
-set -x
+# set -x
 
 #
 # abort on error
