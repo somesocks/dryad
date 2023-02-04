@@ -201,7 +201,7 @@ func _buildCLI() cli.App {
 		})
 
 	var rootBuild = cli.NewCommand("build", "build a specified root").
-		WithArg(cli.NewArg("path", "path to the root to build")).
+		WithArg(cli.NewArg("path", "path to the root to build").AsOptional()).
 		WithAction(func(args []string, options map[string]string) int {
 			var path string
 
@@ -238,12 +238,16 @@ func _buildCLI() cli.App {
 		WithCommand(rootInit).
 		WithCommand(rootPath)
 
-	var rootsList = cli.NewCommand("list", "list all roots that are dependencies for the current root").
+	var rootsList = cli.NewCommand("list", "list all roots that are dependencies for the current root (or roots of the current garden, if the path is not a root)").
+		WithArg(cli.NewArg("path", "path to the base root (or garden) to list roots in").AsOptional()).
 		WithAction(func(args []string, options map[string]string) int {
-			var path, err = os.Getwd()
-			if err != nil {
-				log.Fatal(err)
+			var path string = ""
+			var err error
+
+			if len(args) > 0 {
+				path = args[0]
 			}
+
 			err = dryad.RootsWalk(path, func(path string, info fs.FileInfo) error {
 				fmt.Println(path)
 				return nil
