@@ -3,10 +3,4 @@
 /**/dyd/heap/
 /**/dyd/sprouts/
 
-/**/dyd/path/
-
-# ignore the built bin
-dryad/go/cli/dryad-go
-dryad/go/cli/dryad
-
 /bootstrap/
