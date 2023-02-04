@@ -38,6 +38,7 @@ func GardenPrune(gardenPath string) error {
 
 	// we mark both the symlink and the referenced file
 	markFile := func(path string, info fs.FileInfo) error {
+		// fmt.Println("markFile ", path)
 		var err error
 
 		realPath, err := filepath.EvalSymlinks(path)
@@ -69,6 +70,8 @@ func GardenPrune(gardenPath string) error {
 	heapPath := filepath.Join(gardenPath, "dyd", "heap")
 
 	sweepFile := func(path string, info fs.FileInfo) error {
+		// fmt.Println("sweepFile ", path)
+
 		var err error
 		if info.ModTime().Before(currentTime) {
 			err = os.RemoveAll(path)
