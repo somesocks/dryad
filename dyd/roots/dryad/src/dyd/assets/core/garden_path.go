@@ -13,20 +13,20 @@ func GardenPath(path string) (string, error) {
 		return "", err
 	}
 
-	var working_path = path
-	var heap_path = filepath.Join(working_path, "dyd", "heap")
-	var fileInfo, fileInfoErr = os.Stat(heap_path)
+	var workingPath = path
+	var flagPath = filepath.Join(workingPath, "dyd", "garden")
+	var _, fileInfoErr = os.Stat(flagPath)
 
-	for working_path != "/" {
+	for workingPath != "/" {
 
-		if fileInfoErr == nil && fileInfo.IsDir() {
-			return working_path, nil
+		if fileInfoErr == nil {
+			return workingPath, nil
 		}
 
-		working_path = filepath.Dir(working_path)
-		heap_path = filepath.Join(working_path, "dyd", "heap")
-		fileInfo, fileInfoErr = os.Stat(heap_path)
+		workingPath = filepath.Dir(workingPath)
+		flagPath = filepath.Join(workingPath, "dyd", "garden")
+		_, fileInfoErr = os.Stat(flagPath)
 	}
 
-	return "", errors.New("dyd garden path not found")
+	return "", errors.New("dyd garden path not found starting from " + path)
 }
