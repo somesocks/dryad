@@ -1,47 +1,55 @@
 package core
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 )
 
-func RootInit(path string) {
-	var root_path string = filepath.Join(path, "dyd")
-	if err := os.MkdirAll(root_path, os.ModePerm); err != nil {
-		log.Fatal(err)
+func RootInit(path string) error {
+	var basePath string = filepath.Join(path, "dyd")
+	if err := os.MkdirAll(basePath, os.ModePerm); err != nil {
+		return err
 	}
 
-	var assets_path string = filepath.Join(root_path, "assets")
-	if err := os.MkdirAll(assets_path, os.ModePerm); err != nil {
-		log.Fatal(err)
+	var flagPath string = filepath.Join(basePath, "root")
+	if _, err := os.Create(flagPath); err != nil {
+		return err
 	}
 
-	var roots_path string = filepath.Join(root_path, "roots")
-	if err := os.MkdirAll(roots_path, os.ModePerm); err != nil {
-		log.Fatal(err)
+
+	var assetsPath string = filepath.Join(basePath, "assets")
+	if err := os.MkdirAll(assetsPath, os.ModePerm); err != nil {
+		return err
 	}
 
-	var stems_path string = filepath.Join(root_path, "stems")
-	if err := os.MkdirAll(stems_path, os.ModePerm); err != nil {
-		log.Fatal(err)
+	var rootsPath string = filepath.Join(basePath, "roots")
+	if err := os.MkdirAll(rootsPath, os.ModePerm); err != nil {
+		return err
 	}
 
-	var traits_path string = filepath.Join(root_path, "traits")
-	if err := os.MkdirAll(traits_path, os.ModePerm); err != nil {
-		log.Fatal(err)
+	var stemsPath string = filepath.Join(basePath, "stems")
+	if err := os.MkdirAll(stemsPath, os.ModePerm); err != nil {
+		return err
 	}
 
-	var secrets_path string = filepath.Join(root_path, "secrets")
-	if err := os.MkdirAll(secrets_path, os.ModePerm); err != nil {
-		log.Fatal(err)
+	var traitsPath string = filepath.Join(basePath, "traits")
+	if err := os.MkdirAll(traitsPath, os.ModePerm); err != nil {
+		return err
 	}
 
-	var main_path string = filepath.Join(root_path, "main")
-	var _, main_err = os.Create(main_path)
-	if main_err != nil {
-		log.Fatal(main_err)
+	var secretsPath string = filepath.Join(basePath, "secrets")
+	if err := os.MkdirAll(secretsPath, os.ModePerm); err != nil {
+		return err
 	}
-	os.Chmod(main_path, 0775)
 
+	var mainPath string = filepath.Join(basePath, "main")
+	if _, err := os.Create(mainPath); err != nil {
+		return err
+	}
+
+	if err := os.Chmod(mainPath, 0775); err != nil {
+		return err
+	}
+
+	return nil
 }

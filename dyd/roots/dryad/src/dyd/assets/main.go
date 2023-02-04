@@ -189,18 +189,25 @@ func _buildCLI() cli.App {
 				path = filepath.Join(cwd, path)
 			}
 
-			dryad.RootInit(path)
+			err := dryad.RootInit(path)
+
+			if err != nil {
+				log.Fatal(err)
+			}
 
 			return 0
 		})
 
 	var rootPath = cli.NewCommand("path", "return the base path of the current root").
+		WithArg(cli.NewArg("path", "the path to start searching for a root at. defaults to current directory").AsOptional()).
 		WithAction(func(args []string, options map[string]string) int {
-			var path, err = os.Getwd()
-			if err != nil {
-				log.Fatal(err)
+			var path string = ""
+
+			if len(args) > 0 {
+				path = args[0]
 			}
-			path, err = dryad.RootPath(path)
+
+			path, err := dryad.RootPath(path)
 			if err != nil {
 				log.Fatal(err)
 			}

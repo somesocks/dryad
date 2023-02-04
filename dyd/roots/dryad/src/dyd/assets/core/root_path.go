@@ -8,23 +8,23 @@ import (
 )
 
 func RootPath(path string) (string, error) {
-	var working_path, err = filepath.Abs(path)
+	var workingPath, err = filepath.Abs(path)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	var main_path = filepath.Join(working_path, "dyd", "main")
-	var _, fileInfoErr = os.Stat(main_path)
+	var mainPath = filepath.Join(workingPath, "dyd", "root")
+	var _, fileInfoErr = os.Stat(mainPath)
 
-	for working_path != "/" {
+	for workingPath != "/" {
 
 		if fileInfoErr == nil {
-			return working_path, nil
+			return workingPath, nil
 		}
 
-		working_path = filepath.Dir(working_path)
-		main_path = filepath.Join(working_path, "dyd", "main")
-		_, fileInfoErr = os.Stat(main_path)
+		workingPath = filepath.Dir(workingPath)
+		mainPath = filepath.Join(workingPath, "dyd", "root")
+		_, fileInfoErr = os.Stat(mainPath)
 	}
 
 	return "", errors.New("dyd root path not found for " + path)

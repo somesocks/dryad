@@ -9,9 +9,9 @@ import (
 
 var _isRoot = func(path string, info fs.FileInfo) (bool, error) {
 
-	var dydPath = filepath.Join(path, "dyd")
-	var dydInfo, dydInfoErr = os.Stat(dydPath)
-	var isRoot = dydInfoErr == nil && dydInfo.IsDir()
+	var dydPath = filepath.Join(path, "dyd", "root")
+	var _, dydInfoErr = os.Stat(dydPath)
+	var isRoot = dydInfoErr == nil
 
 	return isRoot, nil
 }
