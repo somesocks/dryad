@@ -57,7 +57,9 @@ func ReWalk(args ReWalkArgs) error {
 			if relErr != nil {
 				return false, relErr
 			}
-			return args.MatchInclude.Match([]byte(relPath)), nil
+			res := args.MatchInclude.Match([]byte(relPath))
+			// fmt.Println("rewalk MatchInclude", path, res)
+			return res, nil
 		},
 		MatchExclude: func(path string, info fs.FileInfo) (bool, error) {
 			var relPath, relErr = filepath.Rel(args.BasePath, path)
@@ -73,4 +75,5 @@ func ReWalk(args ReWalkArgs) error {
 	}
 
 	return Walk(walkRequest)
+
 }

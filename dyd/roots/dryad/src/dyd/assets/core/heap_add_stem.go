@@ -53,6 +53,8 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 			StemWalkArgs{
 				BasePath: stemPath,
 				OnMatch: func(srcPath string, info fs.FileInfo) error {
+					// fmt.Println("HeapAddStem stemwalk", srcPath)
+
 					var err error
 
 					if info.IsDir() {

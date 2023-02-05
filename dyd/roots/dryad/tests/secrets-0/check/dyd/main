@@ -1,0 +1,47 @@
+#!/usr/bin/env sh
+
+set -e
+# set -x
+
+SRC_DIR=$DYD_STEM
+
+TEST_DIR=$DYD_STEM/dyd/stems/build
+
+
+# check that secrets file exists, and that contents are correct
+if [ ! -e "$TEST_DIR/dyd/secrets/foo" ]
+then
+    echo "[error] test build missing secret" >&2
+		exit 1
+fi
+if [ "$(cat "$TEST_DIR/dyd/secrets/foo")" != "foo" ]
+then
+    echo "[error] test build secret bad content" >&2
+		exit 1
+fi
+
+
+# check that secrets file exists, and that contents are correct
+if [ ! -e "$TEST_DIR/dyd/secrets/foo space" ]
+then
+    echo "[error] test build missing secret" >&2
+		exit 1
+fi
+if [ "$(cat "$TEST_DIR/dyd/secrets/foo space")" != "foo space" ]
+then
+    echo "[error] test build secret bad content" >&2
+		exit 1
+fi
+
+
+# check that secrets file exists, and that contents are correct
+if [ ! -e "$TEST_DIR/dyd/secrets/foo.txt" ]
+then
+    echo "[error] test build missing secret" >&2
+		exit 1
+fi
+if [ "$(cat "$TEST_DIR/dyd/secrets/foo.txt")" != "foo.txt" ]
+then
+    echo "[error] test build secret bad content" >&2
+		exit 1
+fi

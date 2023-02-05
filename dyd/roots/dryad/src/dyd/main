@@ -5,8 +5,6 @@ set -e
 
 SRC_DIR=$DYD_STEM
 
-# echo "dryad"
-
 DEST_DIR=$1
 DEST_MAIN=$DEST_DIR/dyd/main
 
@@ -18,13 +16,5 @@ cp --symbolic-link -R $SRC_DIR/dyd/traits/* $DEST_DIR/dyd/traits/
 # copy source code to stem assets
 cp --symbolic-link -R $SRC_DIR/dyd/assets/* $DEST_DIR/dyd/assets/
 
-# copy version from root to build
-# cp --symbolic-link -R $SRC_DIR/dyd/traits/version $DEST_DIR/dyd/traits/
-
-# add tools as dependencies
-# ln -s $SRC_DIR/dyd/stems/gpg-package-sign $DEST_DIR/dyd/stems/gpg-package-sign
-# ln -s $SRC_DIR/dyd/stems/gpg-package-verify $DEST_DIR/dyd/stems/gpg-package-verify
-
-# ls -al $DEST_DIR/dyd/traits
-
-# cd $SRC_DIR/dyd/assets/src && go build -o $DEST_MAIN
+# copy readme
+cp --symbolic-link $SRC_DIR/dyd/readme $DEST_DIR/dyd/readme
