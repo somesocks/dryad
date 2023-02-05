@@ -14,7 +14,7 @@ set -eu
 STEM_PATH="$(dirname $0)/../stems/$(basename $0)"
 PATH="$STEM_PATH/dyd/path:$PATH" \
 DYD_STEM="$STEM_PATH" \
-"$STEM_PATH"/dyd/main $@
+"$STEM_PATH"/dyd/main "$@"
 `
 }
 

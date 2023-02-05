@@ -7,12 +7,16 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 
 	dryad "dryad/core"
 
 	cli "dryad/cli"
 )
+
+var Version string
+var Fingerprint string
 
 func _buildCLI() cli.App {
 
@@ -171,7 +175,7 @@ func _buildCLI() cli.App {
 
 			if len(args) > 0 {
 				path = args[0]
-			}			
+			}
 
 			err := dryad.RootInit(path)
 
@@ -607,13 +611,23 @@ func _buildCLI() cli.App {
 		WithCommand(stemsList).
 		WithCommand(stemsPath)
 
-	var app = cli.New("dryad package manager").
+	var version = cli.NewCommand("version", "print out detailed version info").
+		WithAction(func(args []string, options map[string]string) int {
+			fmt.Println("version=" + Version)
+			fmt.Println("source_fingerprint=" + Fingerprint)
+			fmt.Println("arch=" + runtime.GOARCH)
+			fmt.Println("os=" + runtime.GOOS)
+			return 0
+		})
+
+	var app = cli.New("dryad package manager " + Version).
 		WithCommand(garden).
 		WithCommand(root).
 		WithCommand(roots).
 		WithCommand(secrets).
 		WithCommand(stem).
-		WithCommand(stems)
+		WithCommand(stems).
+		WithCommand(version)
 
 	return app
 }

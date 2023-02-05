@@ -14,10 +14,15 @@ DEST_MAIN=$DEST_DIR/dyd/main
 echo -n "$DYD_OS" > $DEST_DIR/dyd/traits/os
 echo -n "$DYD_ARCH" > $DEST_DIR/dyd/traits/arch
 
+BUILD_VERSION="$(cat $SRC_DIR/dyd/stems/src/dyd/traits/version)"
+BUILD_FINGERPRINT="$(cat $SRC_DIR/dyd/stems/src/dyd/fingerprint)"
+
 # run go build for specified arch
 # diable workspace mode to avoid "missing module" errors
 cd $SRC_DIR/dyd/stems/src/dyd/assets/ && \
 GOARCH="$DYD_ARCH" \
 GOOS="$DYD_OS" \
 GOWORK=off \
-go build -o $DEST_MAIN
+go build \
+	-ldflags "-X=main.Version=$BUILD_VERSION -X=main.Fingerprint=$BUILD_FINGERPRINT -s -w" \
+	-o $DEST_MAIN

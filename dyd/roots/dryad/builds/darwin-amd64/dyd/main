@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 set -e
-# set -x
+set -x
 
 SRC_DIR=$DYD_STEM
 
@@ -17,10 +17,15 @@ ARCH="$(cat $SRC_DIR/dyd/traits/arch)"
 echo -n "$OS" > $DEST_DIR/dyd/traits/os
 echo -n "$ARCH" > $DEST_DIR/dyd/traits/arch
 
+BUILD_VERSION="$(cat $SRC_DIR/dyd/stems/src/dyd/traits/version)"
+BUILD_FINGERPRINT="$(cat $SRC_DIR/dyd/stems/src/dyd/fingerprint)"
+
 # run go build for specified arch
 # diable workspace mode to avoid "missing module" errors
 cd $SRC_DIR/dyd/stems/src/dyd/assets/ && \
 GOARCH="$ARCH" \
 GOOS="$OS" \
 GOWORK=off \
-go build  -o $DEST_MAIN
+go build \
+	-o $DEST_MAIN \
+	-ldflags "-X=main.Version=$BUILD_VERSION,-X=main.Fingerprint=$BUILD_FINGERPRINT,-s,-w"

@@ -16,7 +16,10 @@ help:
 ##
 .PHONY: bootstrap-build
 bootstrap-build:
-	@(cd $(BASE)/dyd/roots/dryad/src/dyd/assets && GO111MODULE=on go build -o $(BASE)/bootstrap/dryad)
+	@(cd $(BASE)/dyd/roots/dryad/src/dyd/assets && GO111MODULE=on go build \
+	-ldflags "-X=main.Version=0.0.0 -X=main.Fingerprint=0000 -s -w" \
+	-o $(BASE)/bootstrap/dryad)
+
 # @(cd ./dryad/go/cli && go build)
 
 ##	bootstrap-install - install the bootstrap dryad as /usr/bin/dryad
