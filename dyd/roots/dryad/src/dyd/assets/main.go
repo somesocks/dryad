@@ -22,7 +22,7 @@ func _buildCLI() cli.App {
 
 	var gardenInit = cli.NewCommand("init", "initialize a garden").
 		WithArg(cli.NewArg("path", "the target path at which to initialize the garden").AsOptional()).
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var path string
 			var err error
 
@@ -40,7 +40,7 @@ func _buildCLI() cli.App {
 
 	var gardenPath = cli.NewCommand("path", "return the base path for a garden").
 		WithArg(cli.NewArg("path", "the target path at which to start for the base garden path").AsOptional()).
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var path string
 			var err error
 
@@ -59,7 +59,10 @@ func _buildCLI() cli.App {
 
 	var gardenBuild = cli.NewCommand("build", "build all roots in the garden").
 		WithArg(cli.NewArg("path", "the target path for the garden to build").AsOptional()).
-		WithAction(func(args []string, options map[string]string) int {
+		WithOption(cli.NewOption("include", "choose which roots are included in the build").WithType(cli.TypeMultiString)).
+		WithAction(func(args []string, options map[string]interface{}) int {
+			fmt.Println("option include", options["include"])
+
 			var path string
 			var err error
 
@@ -81,7 +84,7 @@ func _buildCLI() cli.App {
 		})
 
 	var gardenPrune = cli.NewCommand("prune", "clear all build artifacts out of the garden not actively linked to a sprout or a root").
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -99,7 +102,7 @@ func _buildCLI() cli.App {
 	var gardenPack = cli.NewCommand("pack", "pack the current garden into an archive ").
 		WithArg(cli.NewArg("gardenPath", "the path to the garden to pack").AsOptional()).
 		WithArg(cli.NewArg("targetPath", "the path (including name) to output the archive to").AsOptional()).
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var gardenPath = ""
 			var targetPath = ""
 			switch len(args) {
@@ -122,7 +125,7 @@ func _buildCLI() cli.App {
 		})
 
 	var gardenWipe = cli.NewCommand("wipe", "clear all build artifacts out of the garden").
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -148,7 +151,7 @@ func _buildCLI() cli.App {
 	var rootAdd = cli.NewCommand("add", "add a root as a dependency of the current root").
 		WithArg(cli.NewArg("path", "path to the root you want to add as a dependency")).
 		WithArg(cli.NewArg("alias", "the alias to add the root under. if not specified, this defaults to the basename of the added root").AsOptional()).
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var rootPath, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -170,7 +173,7 @@ func _buildCLI() cli.App {
 
 	var rootInit = cli.NewCommand("init", "create a new root directory structure in the current dir").
 		WithArg(cli.NewArg("path", "the path to init the root at. defaults to current directory").AsOptional()).
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var path string = ""
 
 			if len(args) > 0 {
@@ -188,7 +191,7 @@ func _buildCLI() cli.App {
 
 	var rootPath = cli.NewCommand("path", "return the base path of the current root").
 		WithArg(cli.NewArg("path", "the path to start searching for a root at. defaults to current directory").AsOptional()).
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var path string = ""
 
 			if len(args) > 0 {
@@ -206,7 +209,7 @@ func _buildCLI() cli.App {
 
 	var rootBuild = cli.NewCommand("build", "build a specified root").
 		WithArg(cli.NewArg("path", "path to the root to build").AsOptional()).
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var path string
 
 			if len(args) > 0 {
@@ -244,7 +247,7 @@ func _buildCLI() cli.App {
 
 	var rootsList = cli.NewCommand("list", "list all roots that are dependencies for the current root (or roots of the current garden, if the path is not a root)").
 		WithArg(cli.NewArg("path", "path to the base root (or garden) to list roots in").AsOptional()).
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var path string = ""
 			var err error
 
@@ -264,7 +267,7 @@ func _buildCLI() cli.App {
 		})
 
 	var rootsPath = cli.NewCommand("path", "return the path of the roots dir").
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -284,7 +287,7 @@ func _buildCLI() cli.App {
 
 	var secretsFingerprint = cli.NewCommand("fingerprint", "calculate the fingerprint for the secrets in a stem/root").
 		WithArg(cli.NewArg("path", "path to the stem base dir")).
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var err error
 			var path string
 
@@ -322,7 +325,7 @@ func _buildCLI() cli.App {
 
 	var secretsList = cli.NewCommand("list", "list the secret files in a stem/root").
 		WithArg(cli.NewArg("path", "path to the stem base dir")).
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var err error
 			var path string
 
@@ -363,7 +366,7 @@ func _buildCLI() cli.App {
 
 	var secretsPath = cli.NewCommand("path", "print the path to the secrets for the current package, if it exists").
 		WithArg(cli.NewArg("path", "path to the stem base dir")).
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var err error
 			var path string
 
@@ -410,7 +413,7 @@ func _buildCLI() cli.App {
 		WithOption(cli.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
 		WithOption(cli.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(cli.TypeBool)).
 		WithArg(cli.NewArg("-- args", "args to pass to the stem").AsOptional()).
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var env = map[string]string{}
 
 			// pull
@@ -428,12 +431,12 @@ func _buildCLI() cli.App {
 			path := args[0]
 			extras := args[1:]
 			err := dryad.StemExec(dryad.StemExecRequest{
-				ExecPath:   options["execPath"],
+				ExecPath:   options["execPath"].(string),
 				StemPath:   path,
 				Env:        env,
 				Args:       extras,
 				JoinStdout: true,
-				Context:    options["context"],
+				Context:    options["context"].(string),
 			})
 			if err != nil {
 				log.Fatal(err)
@@ -445,12 +448,12 @@ func _buildCLI() cli.App {
 	var stemFingerprint = cli.NewCommand("fingerprint", "calculate the fingerprint for a stem dir").
 		WithArg(cli.NewArg("path", "path to the stem base dir").AsOptional()).
 		WithOption(cli.NewOption("exclude", "a regular expression to exclude files from the fingerprint calculation. the regexp matches against the file path relative to the stem base directory")).
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var err error
 			var matchExclude *regexp.Regexp
 
 			if options["exclude"] != "" {
-				matchExclude, err = regexp.Compile(options["exclude"])
+				matchExclude, err = regexp.Compile(options["exclude"].(string))
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -484,12 +487,12 @@ func _buildCLI() cli.App {
 	var stemFiles = cli.NewCommand("files", "list the files in a stem").
 		// WithArg(cli.NewArg("path", "path to the stem base dir")).
 		WithOption(cli.NewOption("exclude", "a regular expression to exclude files from the list. the regexp matches against the file path relative to the stem base directory")).
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var err error
 			var matchExclude *regexp.Regexp
 
 			if options["exclude"] != "" {
-				matchExclude, err = regexp.Compile(options["exclude"])
+				matchExclude, err = regexp.Compile(options["exclude"].(string))
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -516,7 +519,7 @@ func _buildCLI() cli.App {
 	var stemPack = cli.NewCommand("pack", "pack the stem at the target path into a tar archive").
 		WithArg(cli.NewArg("stemPath", "the path to the stem to pack")).
 		WithArg(cli.NewArg("targetPath", "the path (including name) to output the archive to").AsOptional()).
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var stemPath = args[0]
 			var targetPath = ""
 			if len(args) > 1 {
@@ -534,7 +537,7 @@ func _buildCLI() cli.App {
 
 	var stemPath = cli.NewCommand("path", "return the base path of the current root").
 		// WithArg(cli.NewArg("path", "path to the stem base dir")).
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -550,7 +553,7 @@ func _buildCLI() cli.App {
 
 	var stemUnpack = cli.NewCommand("unpack", "unpack a stem archive at the target path and import it into the current garden").
 		WithArg(cli.NewArg("archive", "the path to the archive to unpack")).
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var stemPath = args[0]
 
 			gardenPath, err := os.Getwd()
@@ -576,7 +579,7 @@ func _buildCLI() cli.App {
 		WithCommand(stemUnpack)
 
 	var stemsList = cli.NewCommand("list", "list all stems that are dependencies for the current root").
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -593,7 +596,7 @@ func _buildCLI() cli.App {
 		})
 
 	var stemsPath = cli.NewCommand("path", "return the path of the stems dir").
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -612,7 +615,7 @@ func _buildCLI() cli.App {
 		WithCommand(stemsPath)
 
 	var version = cli.NewCommand("version", "print out detailed version info").
-		WithAction(func(args []string, options map[string]string) int {
+		WithAction(func(args []string, options map[string]interface{}) int {
 			fmt.Println("version=" + Version)
 			fmt.Println("source_fingerprint=" + Fingerprint)
 			fmt.Println("arch=" + runtime.GOARCH)

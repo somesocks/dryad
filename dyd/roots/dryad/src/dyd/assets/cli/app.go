@@ -16,7 +16,7 @@ import (
 // command. It takes a slice of validated positional arguments and a map
 // of validated options (with all value types encoded as strings) and
 // returns a Unix exit code (success: 0).
-type Action func(args []string, options map[string]string) int
+type Action func(args []string, options map[string]interface{}) int
 
 // App defines a CLI application parameterizable with sub-commands, arguments and options.
 type App interface {
@@ -50,7 +50,7 @@ type App interface {
 	// An error is returned if a command is not found or arguments or options are invalid. In case of an error,
 	// the invocation path is normally also computed and returned (the content of arguments and options is not
 	// guaranteed).
-	Parse(appargs []string) (invocation []string, args []string, opts map[string]string, err error)
+	Parse(appargs []string) (invocation []string, args []string, opts map[string]interface{}, err error)
 	// Run parses the argument list and runs the command specified with the corresponding options and arguments.
 	Run(appargs []string, w io.Writer) int
 	// Usage prints out the full usage help.
@@ -71,6 +71,10 @@ const (
 	TypeBool
 	TypeInt
 	TypeNumber
+	TypeMultiString
+	TypeMultiBool
+	TypeMultiInt
+	TypeMultiNumber
 )
 
 // Arg defines a positional argument. Arguments are validated for their
@@ -150,7 +154,7 @@ func (a *app) WithAction(action Action) App {
 	return a
 }
 
-func (a *app) Parse(appargs []string) (invocation []string, args []string, opts map[string]string, err error) {
+func (a *app) Parse(appargs []string) (invocation []string, args []string, opts map[string]interface{}, err error) {
 	return Parse(a, appargs)
 }
 

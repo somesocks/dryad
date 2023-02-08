@@ -1,14 +1,7 @@
 package core
 
-import (
-	"io/fs"
-	"os"
-	"path/filepath"
-	"regexp"
-)
-
-func ScopeResolve(basePath string, command string) string, error {
-	gardenPath, err := GardenPath(basePath)
+func ScopeResolve(basePath string, command string) (string, error) {
+	_, err := GardenPath(basePath)
 
 	return "", err
 }
