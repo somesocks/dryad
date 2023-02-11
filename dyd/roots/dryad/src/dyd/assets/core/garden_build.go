@@ -5,8 +5,16 @@ import (
 	"path/filepath"
 )
 
-func GardenBuild(context BuildContext, gardenPath string) error {
+type GardenBuildRequest struct {
+	BasePath     string
+	IncludeRoots func(string) bool
+	ExcludeRoots func(string) bool
+}
+
+func GardenBuild(context BuildContext, request GardenBuildRequest) error {
 	var err error
+
+	gardenPath := request.BasePath
 
 	// handle relative garden paths
 	gardenPath, err = filepath.Abs(gardenPath)
@@ -30,8 +38,20 @@ func GardenBuild(context BuildContext, gardenPath string) error {
 				return err
 			}
 
-			_, err = RootBuild(context, path)
-			return err
+			// calculate the relative path to the root from the base of the garden
+			relPath, err := filepath.Rel(gardenPath, path)
+			if err != nil {
+				return err
+			}
+
+			// if the root isn't being excluded by a selector, build it
+			if request.IncludeRoots(relPath) && !request.ExcludeRoots(relPath) {
+				_, err = RootBuild(context, path)
+				return err
+			} else {
+				return nil
+			}
+
 		},
 	)
 

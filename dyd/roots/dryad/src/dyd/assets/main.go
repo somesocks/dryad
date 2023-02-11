@@ -60,10 +60,18 @@ func _buildCLI() cli.App {
 	var gardenBuild = cli.NewCommand("build", "build all roots in the garden").
 		WithArg(cli.NewArg("path", "the target path for the garden to build").AsOptional()).
 		WithOption(cli.NewOption("include", "choose which roots are included in the build").WithType(cli.TypeMultiString)).
-		WithOption(cli.NewOption("exclude", "choose which roots are excluded from the build").WithType(cli.TypeMultiInt)).
+		WithOption(cli.NewOption("exclude", "choose which roots are excluded from the build").WithType(cli.TypeMultiString)).
 		WithAction(func(args []string, options map[string]interface{}) int {
-			fmt.Println("option include", options["include"])
-			fmt.Println("option exclude", options["exclude"])
+			var includeOpts []string
+			var excludeOpts []string
+
+			if options["exclude"] != nil {
+				excludeOpts = options["exclude"].([]string)
+			}
+
+			if options["include"] != nil {
+				includeOpts = options["include"].([]string)
+			}
 
 			var path string
 			var err error
@@ -72,11 +80,18 @@ func _buildCLI() cli.App {
 				path = args[0]
 			}
 
+			includeRoots := dryad.RootIncludeMatcher(includeOpts)
+			excludeRoots := dryad.RootExcludeMatcher(excludeOpts)
+
 			err = dryad.GardenBuild(
 				dryad.BuildContext{
 					RootFingerprints: map[string]string{},
 				},
-				path,
+				dryad.GardenBuildRequest{
+					BasePath:     path,
+					IncludeRoots: includeRoots,
+					ExcludeRoots: excludeRoots,
+				},
 			)
 			if err != nil {
 				log.Fatal(err)
