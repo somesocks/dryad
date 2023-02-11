@@ -431,10 +431,26 @@ func _buildCLI() cli.App {
 		WithOption(cli.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(cli.TypeBool)).
 		WithArg(cli.NewArg("-- args", "args to pass to the stem").AsOptional()).
 		WithAction(func(args []string, options map[string]interface{}) int {
+			var execPath string
+			var context string
+			var inherit bool
+
+			if options["execPath"] != nil {
+				execPath = options["execPath"].(string)
+			}
+
+			if options["context"] != nil {
+				context = options["context"].(string)
+			}
+
+			if options["inherit"] != nil {
+				inherit = options["inherit"].(bool)
+			}
+
 			var env = map[string]string{}
 
 			// pull
-			if options["inherit"] == "true" {
+			if inherit {
 				for _, e := range os.Environ() {
 					if i := strings.Index(e, "="); i >= 0 {
 						env[e[:i]] = e[i+1:]
@@ -448,12 +464,12 @@ func _buildCLI() cli.App {
 			path := args[0]
 			extras := args[1:]
 			err := dryad.StemExec(dryad.StemExecRequest{
-				ExecPath:   options["execPath"].(string),
+				ExecPath:   execPath,
 				StemPath:   path,
 				Env:        env,
 				Args:       extras,
 				JoinStdout: true,
-				Context:    options["context"].(string),
+				Context:    context,
 			})
 			if err != nil {
 				log.Fatal(err)

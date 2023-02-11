@@ -32,4 +32,4 @@ bootstrap-install:
 ##
 .PHONY: dev-shell
 dev-shell:
-	@ dryad root build $(BASE)/dyd/roots/dev-shell && dryad stem exec $(BASE)/dyd/sprouts/dev-shell
+	@ dryad garden build --include=dev-shell && dryad stem exec $(BASE)/dyd/sprouts/dev-shell
