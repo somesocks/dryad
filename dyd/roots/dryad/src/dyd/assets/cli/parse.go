@@ -6,8 +6,8 @@ package cli
 import (
 	"fmt"
 	"path"
+	"regexp"
 	"strconv"
-	"strings"
 )
 
 const (
@@ -87,7 +87,7 @@ func setOpt(opts map[string]interface{}, opt Option, raw string) (map[string]int
 		if opts[opt.Key()] != nil {
 			buffer = opts[opt.Key()].([]int64)
 		} else {
-			buffer = make([]int64, 1)
+			buffer = make([]int64, 0)
 		}
 		buffer = append(buffer, value)
 		opts[opt.Key()] = buffer
@@ -111,7 +111,7 @@ func setOpt(opts map[string]interface{}, opt Option, raw string) (map[string]int
 		if opts[opt.Key()] != nil {
 			buffer = opts[opt.Key()].([]float64)
 		} else {
-			buffer = make([]float64, 1)
+			buffer = make([]float64, 0)
 		}
 		buffer = append(buffer, value)
 		opts[opt.Key()] = buffer
@@ -135,7 +135,7 @@ func setOpt(opts map[string]interface{}, opt Option, raw string) (map[string]int
 		if opts[opt.Key()] != nil {
 			buffer = opts[opt.Key()].([]bool)
 		} else {
-			buffer = make([]bool, 1)
+			buffer = make([]bool, 0)
 		}
 		buffer = append(buffer, value)
 		opts[opt.Key()] = buffer
@@ -153,7 +153,7 @@ func setOpt(opts map[string]interface{}, opt Option, raw string) (map[string]int
 		if opts[opt.Key()] != nil {
 			buffer = opts[opt.Key()].([]string)
 		} else {
-			buffer = make([]string, 1)
+			buffer = make([]string, 0)
 		}
 		buffer = append(buffer, value)
 		opts[opt.Key()] = buffer
@@ -164,96 +164,133 @@ func setOpt(opts map[string]interface{}, opt Option, raw string) (map[string]int
 	}
 }
 
+var PARSE_OPT, _ = regexp.Compile(`^(?:--?([^=]+?))(?:=(.+))?$`)
+
 func splitArgsAndOpts(appargs []string, accptOpts []Option) (args []string, opts map[string]interface{}, err error) {
 	opts = make(map[string]interface{})
 
 	passthrough := false
-	danglingOpt := ""
 	for _, arg := range appargs {
 		if arg == "--" {
 			passthrough = true
 			continue
 		}
 
-		if danglingOpt != "" {
-			opts[danglingOpt] = arg
-			danglingOpt = ""
-			continue
-		}
+		if !passthrough {
+			matches := PARSE_OPT.FindStringSubmatch(arg)
+			matched := matches != nil
+			if matched {
+				var key string
+				var value string
+				switch len(matches) {
+				case 2:
+					key = matches[1]
+				case 3:
+					key = matches[1]
+					value = matches[2]
+				}
 
-		if !passthrough && strings.HasPrefix(arg, "--") {
-			arg = arg[2:]
-			if arg == helpKey {
-				return nil, map[string]interface{}{helpKey: trueStr}, nil
-			}
-			parts := strings.Split(arg, "=")
-			key := parts[0]
-			matched := false
-			for _, accptOpt := range accptOpts {
-				if accptOpt.Key() == key {
-					if accptOpt.Type() == TypeBool {
-						if len(parts) == 1 {
-							opts, err = setOpt(opts, accptOpt, trueStr)
-							if err != nil {
-								return args, opts, err
-							}
-						} else {
-							return args, opts, fmt.Errorf("boolean options have true assigned implicitly, found value for --%s", key)
-						}
-					} else if len(parts) >= 2 {
-						opts, err = setOpt(opts, accptOpt, strings.Join(parts[1:], "=")) // permit = in values
-						if err != nil {
-							return args, opts, err
-						}
+				if key == helpKey {
+					return nil, map[string]interface{}{helpKey: trueStr}, nil
+				}
+
+				var opt Option
+				for _, accptOpt := range accptOpts {
+					if accptOpt.Key() == key {
+						opt = accptOpt
+					}
+				}
+
+				if opt == nil {
+					return args, opts, fmt.Errorf("unknown option --%s", key)
+				}
+
+				if value == "" {
+					if opt.Type() == TypeBool || opt.Type() == TypeMultiBool {
+						value = trueStr
 					} else {
 						return args, opts, fmt.Errorf("missing value for option --%s", key)
 					}
-					matched = true
-					break
+				}
+
+				opts, err = setOpt(opts, opt, value)
+				if err != nil {
+					return args, opts, err
 				}
 			}
-			if !matched {
-				return args, opts, fmt.Errorf("unknown option --%s", key)
-			}
-			continue
 		}
 
-		if !passthrough && strings.HasPrefix(arg, "-") {
-			arg = arg[1:]
+		// if !passthrough && strings.HasPrefix(arg, "--") {
+		// 	arg = arg[2:]
+		// 	if arg == helpKey {
+		// 		return nil, map[string]interface{}{helpKey: trueStr}, nil
+		// 	}
+		// 	parts := strings.Split(arg, "=")
+		// 	key := parts[0]
+		// 	matched := false
+		// 	for _, accptOpt := range accptOpts {
+		// 		if accptOpt.Key() == key {
+		// 			if accptOpt.Type() == TypeBool {
+		// 				if len(parts) == 1 {
+		// 					opts, err = setOpt(opts, accptOpt, trueStr)
+		// 					if err != nil {
+		// 						return args, opts, err
+		// 					}
+		// 				} else {
+		// 					return args, opts, fmt.Errorf("boolean options have true assigned implicitly, found value for --%s", key)
+		// 				}
+		// 			} else if len(parts) >= 2 {
+		// 				opts, err = setOpt(opts, accptOpt, strings.Join(parts[1:], "=")) // permit = in values
+		// 				if err != nil {
+		// 					return args, opts, err
+		// 				}
+		// 			} else {
+		// 				return args, opts, fmt.Errorf("missing value for option --%s", key)
+		// 			}
+		// 			matched = true
+		// 			break
+		// 		}
+		// 	}
+		// 	if !matched {
+		// 		return args, opts, fmt.Errorf("unknown option --%s", key)
+		// 	}
+		// 	continue
+		// }
 
-			for i, char := range arg {
-				if char == helpChar {
-					return nil, map[string]interface{}{helpKey: trueStr}, nil
-				}
-				matched := false
-				for _, accptOpt := range accptOpts {
-					if accptOpt.CharKey() == char {
-						if accptOpt.Type() == TypeBool {
-							opts, err = setOpt(opts, accptOpt, trueStr)
-							if err != nil {
-								return args, opts, err
-							}
-						} else if i == len(arg)-1 {
-							danglingOpt = accptOpt.Key()
-						} else {
-							return args, opts, fmt.Errorf("non-boolean flag -%v in non-terminal position", string(char))
-						}
-						matched = true
-						break
-					}
-				}
-				if !matched {
-					return args, opts, fmt.Errorf("unknown flag -%v", string(char))
-				}
-			}
-			continue
-		}
+		// if !passthrough && strings.HasPrefix(arg, "-") {
+		// 	arg = arg[1:]
+
+		// 	for i, char := range arg {
+		// 		if char == helpChar {
+		// 			return nil, map[string]interface{}{helpKey: trueStr}, nil
+		// 		}
+		// 		matched := false
+		// 		for _, accptOpt := range accptOpts {
+		// 			if accptOpt.CharKey() == char {
+		// 				if accptOpt.Type() == TypeBool {
+		// 					opts, err = setOpt(opts, accptOpt, trueStr)
+		// 					if err != nil {
+		// 						return args, opts, err
+		// 					}
+		// 				} else if i == len(arg)-1 {
+		// 					danglingOpt = accptOpt.Key()
+		// 				} else {
+		// 					return args, opts, fmt.Errorf("non-boolean flag -%v in non-terminal position", string(char))
+		// 				}
+		// 				matched = true
+		// 				break
+		// 			}
+		// 		}
+		// 		if !matched {
+		// 			return args, opts, fmt.Errorf("unknown flag -%v", string(char))
+		// 		}
+		// 	}
+		// 	continue
+		// }
 
 		args = append(args, arg)
 	}
-	if danglingOpt != "" {
-		return args, opts, fmt.Errorf("dangling option --%s", danglingOpt)
-	}
+
 	return args, opts, nil
 }
 
