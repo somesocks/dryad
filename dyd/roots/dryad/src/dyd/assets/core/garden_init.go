@@ -62,16 +62,6 @@ func GardenInit(path string) error {
 		return err
 	}
 
-	defaultScopePath := filepath.Join(scopesPath, "default")
-	if f, err := os.OpenFile(defaultScopePath, os.O_CREATE|os.O_RDONLY, 0644); err != nil {
-		return err
-	} else {
-		err = f.Close()
-		if err != nil {
-			return err
-		}
-	}
-
 	rootsPath := filepath.Join(gardenPath, "roots")
 	if err := os.MkdirAll(rootsPath, os.ModePerm); err != nil {
 		return err

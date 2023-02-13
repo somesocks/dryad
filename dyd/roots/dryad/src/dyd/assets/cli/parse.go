@@ -39,6 +39,51 @@ func Parse(a App, appargs []string) (invocation []string, args []string, opts ma
 	return invocation, args, opts, err
 }
 
+func Unparse(invocation []string, args []string, opts map[string]interface{}) []string {
+	var res = make([]string, 0)
+
+	res = append(res, invocation...)
+	res = append(res, UnparseOpts(opts)...)
+	res = append(res, args...)
+
+	return res
+}
+
+func UnparseOpts(opts map[string]interface{}) []string {
+	var args = make([]string, 0)
+
+	for key, val := range opts {
+		switch val := val.(type) {
+		case string:
+			args = append(args, fmt.Sprintf("--%s=%s", key, val))
+		case bool:
+			args = append(args, fmt.Sprintf("--%s=%t", key, val))
+		case int64:
+			args = append(args, fmt.Sprintf("--%s=%d", key, val))
+		case float64:
+			args = append(args, fmt.Sprintf("--%s=%f", key, val))
+		case []string:
+			for _, v := range val {
+				args = append(args, fmt.Sprintf("--%s=%s", key, v))
+			}
+		case []bool:
+			for _, v := range val {
+				args = append(args, fmt.Sprintf("--%s=%t", key, v))
+			}
+		case []int64:
+			for _, v := range val {
+				args = append(args, fmt.Sprintf("--%s=%d", key, v))
+			}
+		case []float64:
+			for _, v := range val {
+				args = append(args, fmt.Sprintf("--%s=%f", key, v))
+			}
+		}
+	}
+
+	return args
+}
+
 func evalCommand(a App, appargs []string) (invocation []string, argsAndOpts []string, expArgs []Arg, accptOpts []Option) {
 	invocation = []string{}
 	argsAndOpts = appargs
@@ -217,7 +262,11 @@ func splitArgsAndOpts(appargs []string, accptOpts []Option) (args []string, opts
 				if err != nil {
 					return args, opts, err
 				}
+			} else {
+				args = append(args, arg)
 			}
+		} else {
+			args = append(args, arg)
 		}
 
 		// if !passthrough && strings.HasPrefix(arg, "--") {
@@ -288,7 +337,6 @@ func splitArgsAndOpts(appargs []string, accptOpts []Option) (args []string, opts
 		// 	continue
 		// }
 
-		args = append(args, arg)
 	}
 
 	return args, opts, nil

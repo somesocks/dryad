@@ -18,11 +18,59 @@ import (
 var Version string
 var Fingerprint string
 
+func _ActionWrapperScope(
+	action func(req cli.ActionRequest) int,
+) func(req cli.ActionRequest) int {
+	wrapper := func(req cli.ActionRequest) int {
+		invocation := req.Invocation
+		options := req.Opts
+
+		var scope string
+		if options["scope"] != nil {
+			scope = options["scope"].(string)
+		} else {
+			var err error
+			scope, err = dryad.ScopeGetDefault(scope)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		// if the scope is unset, bypass expansion and run the action directly
+		if scope == "" || scope == "__none" {
+			return action(req)
+		}
+
+		// overwrite the scope so it's bypassed in the next invocation
+		req.Opts["scope"] = "__none"
+
+		settingName := strings.Join(invocation, "-")
+
+		path, err := os.Getwd()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		setting, err := dryad.ScopeSettingGet(path, scope, settingName)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		argsRewrite := make([]string)
+
+		return 0
+	}
+
+	return wrapper
+}
+
 func _buildCLI() cli.App {
 
 	var gardenInit = cli.NewCommand("init", "initialize a garden").
 		WithArg(cli.NewArg("path", "the target path at which to initialize the garden").AsOptional()).
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
 			var path string
 			var err error
 
@@ -40,7 +88,9 @@ func _buildCLI() cli.App {
 
 	var gardenPath = cli.NewCommand("path", "return the base path for a garden").
 		WithArg(cli.NewArg("path", "the target path at which to start for the base garden path").AsOptional()).
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
 			var path string
 			var err error
 
@@ -61,7 +111,18 @@ func _buildCLI() cli.App {
 		WithArg(cli.NewArg("path", "the target path for the garden to build").AsOptional()).
 		WithOption(cli.NewOption("include", "choose which roots are included in the build").WithType(cli.TypeMultiString)).
 		WithOption(cli.NewOption("exclude", "choose which roots are excluded from the build").WithType(cli.TypeMultiString)).
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithOption(cli.NewOption("scope", "set the scope for the command")).
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+			var options = req.Opts
+
+			var path string
+			var err error
+
+			if len(args) > 0 {
+				path = args[0]
+			}
+
 			var includeOpts []string
 			var excludeOpts []string
 
@@ -72,9 +133,6 @@ func _buildCLI() cli.App {
 			if options["include"] != nil {
 				includeOpts = options["include"].([]string)
 			}
-
-			var path string
-			var err error
 
 			if len(args) > 0 {
 				path = args[0]
@@ -101,7 +159,7 @@ func _buildCLI() cli.App {
 		})
 
 	var gardenPrune = cli.NewCommand("prune", "clear all build artifacts out of the garden not actively linked to a sprout or a root").
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -119,7 +177,9 @@ func _buildCLI() cli.App {
 	var gardenPack = cli.NewCommand("pack", "pack the current garden into an archive ").
 		WithArg(cli.NewArg("gardenPath", "the path to the garden to pack").AsOptional()).
 		WithArg(cli.NewArg("targetPath", "the path (including name) to output the archive to").AsOptional()).
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
 			var gardenPath = ""
 			var targetPath = ""
 			switch len(args) {
@@ -142,7 +202,7 @@ func _buildCLI() cli.App {
 		})
 
 	var gardenWipe = cli.NewCommand("wipe", "clear all build artifacts out of the garden").
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -168,7 +228,9 @@ func _buildCLI() cli.App {
 	var rootAdd = cli.NewCommand("add", "add a root as a dependency of the current root").
 		WithArg(cli.NewArg("path", "path to the root you want to add as a dependency")).
 		WithArg(cli.NewArg("alias", "the alias to add the root under. if not specified, this defaults to the basename of the added root").AsOptional()).
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
 			var rootPath, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -190,7 +252,9 @@ func _buildCLI() cli.App {
 
 	var rootInit = cli.NewCommand("init", "create a new root directory structure in the current dir").
 		WithArg(cli.NewArg("path", "the path to init the root at. defaults to current directory").AsOptional()).
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
 			var path string = ""
 
 			if len(args) > 0 {
@@ -208,7 +272,9 @@ func _buildCLI() cli.App {
 
 	var rootPath = cli.NewCommand("path", "return the base path of the current root").
 		WithArg(cli.NewArg("path", "the path to start searching for a root at. defaults to current directory").AsOptional()).
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
 			var path string = ""
 
 			if len(args) > 0 {
@@ -226,7 +292,9 @@ func _buildCLI() cli.App {
 
 	var rootBuild = cli.NewCommand("build", "build a specified root").
 		WithArg(cli.NewArg("path", "path to the root to build").AsOptional()).
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
 			var path string
 
 			if len(args) > 0 {
@@ -264,7 +332,9 @@ func _buildCLI() cli.App {
 
 	var rootsList = cli.NewCommand("list", "list all roots that are dependencies for the current root (or roots of the current garden, if the path is not a root)").
 		WithArg(cli.NewArg("path", "path to the base root (or garden) to list roots in").AsOptional()).
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
 			var path string = ""
 			var err error
 
@@ -284,7 +354,7 @@ func _buildCLI() cli.App {
 		})
 
 	var rootsPath = cli.NewCommand("path", "return the path of the roots dir").
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -302,9 +372,236 @@ func _buildCLI() cli.App {
 		WithCommand(rootsList).
 		WithCommand(rootsPath)
 
+	var scopeCreate = cli.NewCommand("create", "create a new scope directory for the garden").
+		WithArg(cli.NewArg("name", "the name of the new scope")).
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
+			var name string = args[0]
+
+			var path, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			scopePath, err := dryad.ScopeCreate(path, name)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			fmt.Println(scopePath)
+
+			return 0
+		})
+
+	var scopeDelete = cli.NewCommand("delete", "remove an existing scope directory from the garden").
+		WithArg(cli.NewArg("name", "the name of the scope to delete")).
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
+			var name string = args[0]
+
+			var path, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			err = dryad.ScopeDelete(path, name)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			return 0
+		})
+
+	var scopeSettingGet = cli.NewCommand("get", "print the value of a setting in a scope, if it exists").
+		WithArg(cli.NewArg("scope", "the name of the scope")).
+		WithArg(cli.NewArg("setting", "the name of the setting")).
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
+			var scope string = args[0]
+			var setting string = args[1]
+
+			var path, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			value, err := dryad.ScopeSettingGet(path, scope, setting)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			if value != "" {
+				fmt.Println(value)
+			}
+
+			return 0
+		})
+
+	var scopeSettingSet = cli.NewCommand("set", "set the value of a setting in a scope").
+		WithArg(cli.NewArg("scope", "the name of the scope")).
+		WithArg(cli.NewArg("setting", "the name of the setting")).
+		WithArg(cli.NewArg("value", "the new value for the setting")).
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
+			var scope string = args[0]
+			var setting string = args[1]
+			var value string = args[2]
+
+			var path, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			err = dryad.ScopeSettingSet(path, scope, setting, value)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			return 0
+		})
+
+	var scopeSettingUnset = cli.NewCommand("unset", "remove a setting from a scope").
+		WithArg(cli.NewArg("scope", "the name of the scope")).
+		WithArg(cli.NewArg("setting", "the name of the setting")).
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
+			var scope string = args[0]
+			var setting string = args[1]
+
+			var path, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			err = dryad.ScopeSettingUnset(path, scope, setting)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			return 0
+		})
+
+	var scopeSetting = cli.NewCommand("setting", "commands to work with scope settings").
+		WithCommand(scopeSettingGet).
+		WithCommand(scopeSettingSet).
+		WithCommand(scopeSettingUnset)
+
+	var scope = cli.NewCommand("scope", "commands to work with a single scope").
+		WithCommand(scopeCreate).
+		WithCommand(scopeDelete).
+		WithCommand(scopeSetting)
+
+	var scopesDefaultGet = cli.NewCommand("get", "return the name of the default scope, if set").
+		WithAction(func(req cli.ActionRequest) int {
+
+			var path, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			scopeName, err := dryad.ScopeGetDefault(path)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			if scopeName != "" {
+				fmt.Println(scopeName)
+			}
+
+			return 0
+		})
+
+	var scopesDefaultSet = cli.NewCommand("set", "set a scope to be the default").
+		WithArg(cli.NewArg("name", "the name of the scope to set as default")).
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
+			var name string = args[0]
+
+			var path, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			err = dryad.ScopeSetDefault(path, name)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			return 0
+		})
+
+	var scopesDefaultUnset = cli.NewCommand("unset", "remove the default scope setting").
+		WithAction(func(req cli.ActionRequest) int {
+			var path, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			err = dryad.ScopeUnsetDefault(path)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			return 0
+		})
+	var scopesDefault = cli.NewCommand("default", "work with the default scope").
+		WithCommand(scopesDefaultGet).
+		WithCommand(scopesDefaultSet).
+		WithCommand(scopesDefaultUnset)
+
+	var scopesList = cli.NewCommand("list", "list all scopes in the current garden").
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
+			var path string = ""
+			var err error
+
+			if len(args) > 0 {
+				path = args[0]
+			}
+
+			err = dryad.ScopesWalk(path, func(path string, info fs.FileInfo) error {
+				fmt.Println(filepath.Base(path))
+				return nil
+			})
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			return 0
+		})
+
+	var scopesPath = cli.NewCommand("path", "return the path of the scopes dir").
+		WithAction(func(req cli.ActionRequest) int {
+			var path, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+			path, err = dryad.ScopesPath(path)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(path)
+
+			return 0
+		})
+
+	var scopes = cli.NewCommand("scopes", "commands to work with scopes").
+		WithCommand(scopesDefault).
+		WithCommand(scopesList).
+		WithCommand(scopesPath)
+
 	var secretsFingerprint = cli.NewCommand("fingerprint", "calculate the fingerprint for the secrets in a stem/root").
 		WithArg(cli.NewArg("path", "path to the stem base dir")).
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
 			var err error
 			var path string
 
@@ -342,7 +639,9 @@ func _buildCLI() cli.App {
 
 	var secretsList = cli.NewCommand("list", "list the secret files in a stem/root").
 		WithArg(cli.NewArg("path", "path to the stem base dir")).
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
 			var err error
 			var path string
 
@@ -383,7 +682,9 @@ func _buildCLI() cli.App {
 
 	var secretsPath = cli.NewCommand("path", "print the path to the secrets for the current package, if it exists").
 		WithArg(cli.NewArg("path", "path to the stem base dir")).
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
 			var err error
 			var path string
 
@@ -430,7 +731,10 @@ func _buildCLI() cli.App {
 		WithOption(cli.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
 		WithOption(cli.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(cli.TypeBool)).
 		WithArg(cli.NewArg("-- args", "args to pass to the stem").AsOptional()).
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+			var options = req.Opts
+
 			var execPath string
 			var context string
 			var inherit bool
@@ -481,7 +785,10 @@ func _buildCLI() cli.App {
 	var stemFingerprint = cli.NewCommand("fingerprint", "calculate the fingerprint for a stem dir").
 		WithArg(cli.NewArg("path", "path to the stem base dir").AsOptional()).
 		WithOption(cli.NewOption("exclude", "a regular expression to exclude files from the fingerprint calculation. the regexp matches against the file path relative to the stem base directory")).
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+			var options = req.Opts
+
 			var err error
 			var matchExclude *regexp.Regexp
 
@@ -520,7 +827,9 @@ func _buildCLI() cli.App {
 	var stemFiles = cli.NewCommand("files", "list the files in a stem").
 		// WithArg(cli.NewArg("path", "path to the stem base dir")).
 		WithOption(cli.NewOption("exclude", "a regular expression to exclude files from the list. the regexp matches against the file path relative to the stem base directory")).
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
+			var options = req.Opts
+
 			var err error
 			var matchExclude *regexp.Regexp
 
@@ -552,7 +861,9 @@ func _buildCLI() cli.App {
 	var stemPack = cli.NewCommand("pack", "pack the stem at the target path into a tar archive").
 		WithArg(cli.NewArg("stemPath", "the path to the stem to pack")).
 		WithArg(cli.NewArg("targetPath", "the path (including name) to output the archive to").AsOptional()).
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
 			var stemPath = args[0]
 			var targetPath = ""
 			if len(args) > 1 {
@@ -570,7 +881,7 @@ func _buildCLI() cli.App {
 
 	var stemPath = cli.NewCommand("path", "return the base path of the current root").
 		// WithArg(cli.NewArg("path", "path to the stem base dir")).
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -586,7 +897,9 @@ func _buildCLI() cli.App {
 
 	var stemUnpack = cli.NewCommand("unpack", "unpack a stem archive at the target path and import it into the current garden").
 		WithArg(cli.NewArg("archive", "the path to the archive to unpack")).
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
 			var stemPath = args[0]
 
 			gardenPath, err := os.Getwd()
@@ -612,7 +925,7 @@ func _buildCLI() cli.App {
 		WithCommand(stemUnpack)
 
 	var stemsList = cli.NewCommand("list", "list all stems that are dependencies for the current root").
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -629,7 +942,7 @@ func _buildCLI() cli.App {
 		})
 
 	var stemsPath = cli.NewCommand("path", "return the path of the stems dir").
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
 			var path, err = os.Getwd()
 			if err != nil {
 				log.Fatal(err)
@@ -648,7 +961,7 @@ func _buildCLI() cli.App {
 		WithCommand(stemsPath)
 
 	var version = cli.NewCommand("version", "print out detailed version info").
-		WithAction(func(args []string, options map[string]interface{}) int {
+		WithAction(func(req cli.ActionRequest) int {
 			fmt.Println("version=" + Version)
 			fmt.Println("source_fingerprint=" + Fingerprint)
 			fmt.Println("arch=" + runtime.GOARCH)
@@ -660,6 +973,8 @@ func _buildCLI() cli.App {
 		WithCommand(garden).
 		WithCommand(root).
 		WithCommand(roots).
+		WithCommand(scope).
+		WithCommand(scopes).
 		WithCommand(secrets).
 		WithCommand(stem).
 		WithCommand(stems).

@@ -12,11 +12,18 @@ import (
 	"io"
 )
 
+type ActionRequest struct {
+	App        App
+	Invocation []string
+	Args       []string
+	Opts       map[string]any
+}
+
 // Action defines a function type to be executed for an application or a
 // command. It takes a slice of validated positional arguments and a map
 // of validated options (with all value types encoded as strings) and
 // returns a Unix exit code (success: 0).
-type Action func(args []string, options map[string]interface{}) int
+type Action func(request ActionRequest) int
 
 // App defines a CLI application parameterizable with sub-commands, arguments and options.
 type App interface {
@@ -194,7 +201,12 @@ func (a *app) Run(appargs []string, w io.Writer) int {
 			}
 		}
 		if action != nil {
-			code = action(args, opts)
+			code = action(ActionRequest{
+				App:        a,
+				Invocation: invocation,
+				Args:       args,
+				Opts:       opts,
+			})
 		} else {
 			a.Usage(invocation, w)
 			code = 1
