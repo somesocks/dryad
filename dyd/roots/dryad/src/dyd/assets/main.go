@@ -18,53 +18,92 @@ import (
 var Version string
 var Fingerprint string
 
-func _ActionWrapperScope(
-	action func(req cli.ActionRequest) int,
-) func(req cli.ActionRequest) int {
-	wrapper := func(req cli.ActionRequest) int {
-		invocation := req.Invocation
-		options := req.Opts
+func _buildCLI() cli.App {
 
-		var scope string
-		if options["scope"] != nil {
-			scope = options["scope"].(string)
-		} else {
-			var err error
-			scope, err = dryad.ScopeGetDefault(scope)
+	var app = cli.New("dryad package manager " + Version)
+
+	var _scopeHandler = func(
+		action func(req cli.ActionRequest) int,
+	) func(req cli.ActionRequest) int {
+		wrapper := func(req cli.ActionRequest) int {
+			invocation := req.Invocation
+			options := req.Opts
+
+			var scope string
+			if options["scope"] != nil {
+				scope = options["scope"].(string)
+			} else {
+				var err error
+				scope, err = dryad.ScopeGetDefault(scope)
+				fmt.Println("[info] loading default scope:", scope)
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+
+			// if the scope is unset, bypass expansion and run the action directly
+			if scope == "" || scope == "none" {
+				return action(req)
+			} else {
+				fmt.Println("[info] using scope:", scope)
+			}
+
+			settingName := strings.Join(invocation[1:], "-")
+
+			path, err := os.Getwd()
 			if err != nil {
 				log.Fatal(err)
 			}
+
+			setting, err := dryad.ScopeSettingGet(path, scope, settingName)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			settings, err := dryad.ScopeSettingParseShell(setting)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			// if the scope setting is unset,
+			// there`s no need to modify the request
+			if len(settings) == 0 {
+				return action(req)
+			}
+
+			argsRewrite := make([]string, 0)
+			index := 0
+
+			// copy all of the arguments before the scope arg
+			for index < len(os.Args) {
+				var element = os.Args[index]
+				index++ // do this here so it increments before the break
+				if strings.HasPrefix(element, "--scope=") {
+					break
+				} else {
+					argsRewrite = append(argsRewrite, element)
+				}
+			}
+
+			// insert a null scope arg, to stop a loop
+			argsRewrite = append(argsRewrite, "--scope=none")
+
+			// insert the new args from the settings in place of the scope
+			argsRewrite = append(argsRewrite, settings...)
+
+			// copy all of the arguments after the scope arg
+			for index < len(os.Args) {
+				var element = os.Args[index]
+				argsRewrite = append(argsRewrite, element)
+				index++
+			}
+
+			fmt.Println("[info] rewriting args to:", argsRewrite)
+			return app.Run(argsRewrite, os.Stdout)
 		}
 
-		// if the scope is unset, bypass expansion and run the action directly
-		if scope == "" || scope == "__none" {
-			return action(req)
-		}
-
-		// overwrite the scope so it's bypassed in the next invocation
-		req.Opts["scope"] = "__none"
-
-		settingName := strings.Join(invocation, "-")
-
-		path, err := os.Getwd()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		setting, err := dryad.ScopeSettingGet(path, scope, settingName)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		argsRewrite := make([]string)
-
-		return 0
+		return wrapper
 	}
-
-	return wrapper
-}
-
-func _buildCLI() cli.App {
 
 	var gardenInit = cli.NewCommand("init", "initialize a garden").
 		WithArg(cli.NewArg("path", "the target path at which to initialize the garden").AsOptional()).
@@ -112,51 +151,53 @@ func _buildCLI() cli.App {
 		WithOption(cli.NewOption("include", "choose which roots are included in the build").WithType(cli.TypeMultiString)).
 		WithOption(cli.NewOption("exclude", "choose which roots are excluded from the build").WithType(cli.TypeMultiString)).
 		WithOption(cli.NewOption("scope", "set the scope for the command")).
-		WithAction(func(req cli.ActionRequest) int {
-			var args = req.Args
-			var options = req.Opts
+		WithAction(_scopeHandler(
+			func(req cli.ActionRequest) int {
+				var args = req.Args
+				var options = req.Opts
 
-			var path string
-			var err error
+				var path string
+				var err error
 
-			if len(args) > 0 {
-				path = args[0]
-			}
+				if len(args) > 0 {
+					path = args[0]
+				}
 
-			var includeOpts []string
-			var excludeOpts []string
+				var includeOpts []string
+				var excludeOpts []string
 
-			if options["exclude"] != nil {
-				excludeOpts = options["exclude"].([]string)
-			}
+				if options["exclude"] != nil {
+					excludeOpts = options["exclude"].([]string)
+				}
 
-			if options["include"] != nil {
-				includeOpts = options["include"].([]string)
-			}
+				if options["include"] != nil {
+					includeOpts = options["include"].([]string)
+				}
 
-			if len(args) > 0 {
-				path = args[0]
-			}
+				if len(args) > 0 {
+					path = args[0]
+				}
 
-			includeRoots := dryad.RootIncludeMatcher(includeOpts)
-			excludeRoots := dryad.RootExcludeMatcher(excludeOpts)
+				includeRoots := dryad.RootIncludeMatcher(includeOpts)
+				excludeRoots := dryad.RootExcludeMatcher(excludeOpts)
 
-			err = dryad.GardenBuild(
-				dryad.BuildContext{
-					RootFingerprints: map[string]string{},
-				},
-				dryad.GardenBuildRequest{
-					BasePath:     path,
-					IncludeRoots: includeRoots,
-					ExcludeRoots: excludeRoots,
-				},
-			)
-			if err != nil {
-				log.Fatal(err)
-			}
+				err = dryad.GardenBuild(
+					dryad.BuildContext{
+						RootFingerprints: map[string]string{},
+					},
+					dryad.GardenBuildRequest{
+						BasePath:     path,
+						IncludeRoots: includeRoots,
+						ExcludeRoots: excludeRoots,
+					},
+				)
+				if err != nil {
+					log.Fatal(err)
+				}
 
-			return 0
-		})
+				return 0
+			},
+		))
 
 	var gardenPrune = cli.NewCommand("prune", "clear all build artifacts out of the garden not actively linked to a sprout or a root").
 		WithAction(func(req cli.ActionRequest) int {
@@ -332,26 +373,62 @@ func _buildCLI() cli.App {
 
 	var rootsList = cli.NewCommand("list", "list all roots that are dependencies for the current root (or roots of the current garden, if the path is not a root)").
 		WithArg(cli.NewArg("path", "path to the base root (or garden) to list roots in").AsOptional()).
-		WithAction(func(req cli.ActionRequest) int {
-			var args = req.Args
+		WithOption(cli.NewOption("include", "choose which roots are included in the list").WithType(cli.TypeMultiString)).
+		WithOption(cli.NewOption("exclude", "choose which roots are excluded from the list").WithType(cli.TypeMultiString)).
+		WithOption(cli.NewOption("scope", "set the scope for the command")).
+		WithAction(_scopeHandler(
+			func(req cli.ActionRequest) int {
+				var args = req.Args
+				var options = req.Opts
 
-			var path string = ""
-			var err error
+				var path string = ""
+				var err error
 
-			if len(args) > 0 {
-				path = args[0]
-			}
+				if len(args) > 0 {
+					path = args[0]
+				}
 
-			err = dryad.RootsWalk(path, func(path string, info fs.FileInfo) error {
-				fmt.Println(path)
-				return nil
-			})
-			if err != nil {
-				log.Fatal(err)
-			}
+				var gardenPath string
+				gardenPath, err = dryad.GardenPath(path)
+				if err != nil {
+					log.Fatal(err)
+				}
 
-			return 0
-		})
+				var includeOpts []string
+				var excludeOpts []string
+
+				if options["exclude"] != nil {
+					excludeOpts = options["exclude"].([]string)
+				}
+
+				if options["include"] != nil {
+					includeOpts = options["include"].([]string)
+				}
+
+				includeRoots := dryad.RootIncludeMatcher(includeOpts)
+				excludeRoots := dryad.RootExcludeMatcher(excludeOpts)
+
+				err = dryad.RootsWalk(path, func(path string, info fs.FileInfo) error {
+
+					// calculate the relative path to the root from the base of the garden
+					relPath, err := filepath.Rel(gardenPath, path)
+					if err != nil {
+						return err
+					}
+
+					if includeRoots(relPath) && !excludeRoots(relPath) {
+						fmt.Println(path)
+					}
+
+					return nil
+				})
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				return 0
+			},
+		))
 
 	var rootsPath = cli.NewCommand("path", "return the path of the roots dir").
 		WithAction(func(req cli.ActionRequest) int {
@@ -969,7 +1046,7 @@ func _buildCLI() cli.App {
 			return 0
 		})
 
-	var app = cli.New("dryad package manager " + Version).
+	app = app.
 		WithCommand(garden).
 		WithCommand(root).
 		WithCommand(roots).
