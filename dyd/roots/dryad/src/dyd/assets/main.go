@@ -802,6 +802,83 @@ func _buildCLI() cli.App {
 		WithCommand(secretsList).
 		WithCommand(secretsPath)
 
+	var sproutsList = cli.NewCommand("list", "list all sprouts of the current garden").
+		WithOption(cli.NewOption("include", "choose which sprouts are included in the list").WithType(cli.TypeMultiString)).
+		WithOption(cli.NewOption("exclude", "choose which sprouts are excluded from the list").WithType(cli.TypeMultiString)).
+		WithOption(cli.NewOption("scope", "set the scope for the command")).
+		WithAction(_scopeHandler(
+			func(req cli.ActionRequest) int {
+				var args = req.Args
+				var options = req.Opts
+
+				var path string = ""
+				var err error
+
+				if len(args) > 0 {
+					path = args[0]
+				}
+
+				var gardenPath string
+				gardenPath, err = dryad.GardenPath(path)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				var includeOpts []string
+				var excludeOpts []string
+
+				if options["exclude"] != nil {
+					excludeOpts = options["exclude"].([]string)
+				}
+
+				if options["include"] != nil {
+					includeOpts = options["include"].([]string)
+				}
+
+				includeSprouts := dryad.RootIncludeMatcher(includeOpts)
+				excludeSprouts := dryad.RootExcludeMatcher(excludeOpts)
+
+				err = dryad.SproutsWalk(path, func(path string, info fs.FileInfo) error {
+
+					// calculate the relative path to the root from the base of the garden
+					relPath, err := filepath.Rel(gardenPath, path)
+					if err != nil {
+						return err
+					}
+
+					if includeSprouts(relPath) && !excludeSprouts(relPath) {
+						fmt.Println(path)
+					}
+
+					return nil
+				})
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				return 0
+			},
+		))
+
+	var sproutsPath = cli.NewCommand("path", "return the path of the sprouts dir").
+		WithAction(func(req cli.ActionRequest) int {
+			var path, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+			path, err = dryad.SproutsPath(path)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(path)
+
+			return 0
+		})
+
+	var sprouts = cli.NewCommand("sprouts", "commands to work with dryad sprouts").
+		WithCommand(sproutsList).
+		WithCommand(sproutsPath)
+
 	var stemExec = cli.NewCommand("exec", "execute the main for a stem").
 		WithArg(cli.NewArg("path", "path to the stem base dir")).
 		WithOption(cli.NewOption("execPath", "path to the executable running `dryad stem exec`. used for path setting")).
@@ -1053,6 +1130,7 @@ func _buildCLI() cli.App {
 		WithCommand(scope).
 		WithCommand(scopes).
 		WithCommand(secrets).
+		WithCommand(sprouts).
 		WithCommand(stem).
 		WithCommand(stems).
 		WithCommand(version)
