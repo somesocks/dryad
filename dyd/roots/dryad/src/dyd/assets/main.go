@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io/fs"
 	"log"
@@ -807,6 +808,7 @@ func _buildCLI() cli.App {
 		WithOption(cli.NewOption("exclude", "choose which sprouts are excluded").WithType(cli.TypeMultiString)).
 		WithOption(cli.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
 		WithOption(cli.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(cli.TypeBool)).
+		WithOption(cli.NewOption("confirm", "display the list of sprouts to exec, and ask for confirmation").WithType(cli.TypeBool)).
 		WithOption(cli.NewOption("ignore-errors", "continue running even if a sprout returns an error").WithType(cli.TypeBool)).
 		WithOption(cli.NewOption("scope", "set the scope for the command")).
 		WithArg(cli.NewArg("-- args", "args to pass to each sprout on execution").AsOptional()).
@@ -845,6 +847,7 @@ func _buildCLI() cli.App {
 				var context string
 				var inherit bool
 				var ignoreErrors bool
+				var confirm bool
 
 				if options["context"] != nil {
 					context = options["context"].(string)
@@ -858,9 +861,55 @@ func _buildCLI() cli.App {
 					ignoreErrors = options["ignore-errors"].(bool)
 				}
 
+				if options["confirm"] != nil {
+					confirm = options["confirm"].(bool)
+				}
+
+				// if confirm is set, we want to print the list
+				// of sprouts to run
+				if confirm {
+					fmt.Println("[warn] dryad sprouts exec will execute these sprouts:")
+
+					err = dryad.SproutsWalk(path, func(path string, info fs.FileInfo) error {
+
+						// calculate the relative path to the root from the base of the garden
+						relPath, err := filepath.Rel(gardenPath, path)
+						if err != nil {
+							return err
+						}
+
+						if includeSprouts(relPath) && !excludeSprouts(relPath) {
+							fmt.Println("[warn] - " + path)
+						}
+
+						return nil
+					})
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					fmt.Println("[warn] are you sure? y/n")
+
+					reader := bufio.NewReader(os.Stdin)
+
+					input, err := reader.ReadString('\n')
+					if err != nil {
+						fmt.Println("[error] error reading input", err)
+						return -1
+					}
+
+					input = strings.TrimSuffix(input, "\n")
+
+					if input != "y" {
+						fmt.Println("[warn] confirmation denied, aborting")
+						return 0
+					}
+
+				}
+
 				var env = map[string]string{}
 
-				// pull
+				// pull environment variables from parent process
 				if inherit {
 					for _, e := range os.Environ() {
 						if i := strings.Index(e, "="); i >= 0 {
