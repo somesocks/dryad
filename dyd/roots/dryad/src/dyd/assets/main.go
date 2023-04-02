@@ -802,6 +802,116 @@ func _buildCLI() cli.App {
 		WithCommand(secretsList).
 		WithCommand(secretsPath)
 
+	var sproutsExec = cli.NewCommand("exec", "execute each sprout in the current garden").
+		WithOption(cli.NewOption("include", "choose which sprouts are included").WithType(cli.TypeMultiString)).
+		WithOption(cli.NewOption("exclude", "choose which sprouts are excluded").WithType(cli.TypeMultiString)).
+		WithOption(cli.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
+		WithOption(cli.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(cli.TypeBool)).
+		WithOption(cli.NewOption("ignore-errors", "continue running even if a sprout returns an error").WithType(cli.TypeBool)).
+		WithOption(cli.NewOption("scope", "set the scope for the command")).
+		WithArg(cli.NewArg("-- args", "args to pass to each sprout on execution").AsOptional()).
+		WithAction(_scopeHandler(
+			func(req cli.ActionRequest) int {
+				var args = req.Args
+				var options = req.Opts
+
+				var path string = ""
+				var err error
+
+				if len(args) > 0 {
+					path = args[0]
+				}
+
+				var gardenPath string
+				gardenPath, err = dryad.GardenPath(path)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				var includeOpts []string
+				var excludeOpts []string
+
+				if options["exclude"] != nil {
+					excludeOpts = options["exclude"].([]string)
+				}
+
+				if options["include"] != nil {
+					includeOpts = options["include"].([]string)
+				}
+
+				includeSprouts := dryad.RootIncludeMatcher(includeOpts)
+				excludeSprouts := dryad.RootExcludeMatcher(excludeOpts)
+
+				var context string
+				var inherit bool
+				var ignoreErrors bool
+
+				if options["context"] != nil {
+					context = options["context"].(string)
+				}
+
+				if options["inherit"] != nil {
+					inherit = options["inherit"].(bool)
+				}
+
+				if options["ignore-errors"] != nil {
+					ignoreErrors = options["ignore-errors"].(bool)
+				}
+
+				var env = map[string]string{}
+
+				// pull
+				if inherit {
+					for _, e := range os.Environ() {
+						if i := strings.Index(e, "="); i >= 0 {
+							env[e[:i]] = e[i+1:]
+						}
+					}
+				} else {
+					// copy a few variables over from parent env for convenience
+					env["TERM"] = os.Getenv("TERM")
+				}
+
+				extras := args[0:]
+
+				err = dryad.SproutsWalk(path, func(path string, info fs.FileInfo) error {
+
+					// calculate the relative path to the root from the base of the garden
+					relPath, err := filepath.Rel(gardenPath, path)
+					if err != nil {
+						return err
+					}
+
+					if includeSprouts(relPath) && !excludeSprouts(relPath) {
+						fmt.Println("[info] executing sprout at", path)
+
+						err := dryad.StemExec(dryad.StemExecRequest{
+							StemPath:   path,
+							Env:        env,
+							Args:       extras,
+							JoinStdout: true,
+							Context:    context,
+						})
+						if err != nil {
+							if ignoreErrors {
+								fmt.Println("[warn] sprout at", path, "threw error", err)
+							} else {
+								return err
+							}
+						}
+
+					}
+
+					return nil
+				})
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				return 0
+			},
+		))
+
 	var sproutsList = cli.NewCommand("list", "list all sprouts of the current garden").
 		WithOption(cli.NewOption("include", "choose which sprouts are included in the list").WithType(cli.TypeMultiString)).
 		WithOption(cli.NewOption("exclude", "choose which sprouts are excluded from the list").WithType(cli.TypeMultiString)).
@@ -876,6 +986,7 @@ func _buildCLI() cli.App {
 		})
 
 	var sprouts = cli.NewCommand("sprouts", "commands to work with dryad sprouts").
+		WithCommand(sproutsExec).
 		WithCommand(sproutsList).
 		WithCommand(sproutsPath)
 
