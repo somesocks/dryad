@@ -106,6 +106,49 @@ func _buildCLI() cli.App {
 		return wrapper
 	}
 
+	var exec = cli.NewCommand("exec", "execute an aliased command").
+		WithArg(cli.NewArg("command", "alias command").WithType(cli.TypeString)).
+		WithOption(cli.NewOption("scope", "set the scope for the command")).
+		WithArg(cli.NewArg("-- args", "args to pass to the command").AsOptional()).
+		WithAction(
+			func(req cli.ActionRequest) int {
+				var command = req.Args[0]
+				var args = req.Args[1:]
+				var options = req.Opts
+
+				basePath, err := os.Getwd()
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				var scope string
+				if options["scope"] != nil {
+					scope = options["scope"].(string)
+				} else {
+					var err error
+					scope, err = dryad.ScopeGetDefault(scope)
+					fmt.Println("[info] loading default scope:", scope)
+					if err != nil {
+						log.Fatal(err)
+					}
+				}
+
+				// if the scope is unset, bypass expansion and run the action directly
+				if scope == "" || scope == "none" {
+					log.Fatal("no scope set, can't find command")
+				} else {
+					fmt.Println("[info] using scope:", scope)
+				}
+
+				err = dryad.Exec(basePath, scope, "exec-"+command, args)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				return 0
+			},
+		)
+
 	var gardenInit = cli.NewCommand("init", "initialize a garden").
 		WithArg(cli.NewArg("path", "the target path at which to initialize the garden").AsOptional()).
 		WithAction(func(req cli.ActionRequest) int {
@@ -1284,6 +1327,7 @@ func _buildCLI() cli.App {
 		})
 
 	app = app.
+		WithCommand(exec).
 		WithCommand(garden).
 		WithCommand(root).
 		WithCommand(roots).
