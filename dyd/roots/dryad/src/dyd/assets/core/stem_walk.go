@@ -6,11 +6,37 @@ import (
 	"regexp"
 )
 
-var STEM_WALK_CRAWL_INCLUDE, _ = regexp.Compile(`^((\.)|(dyd)|(dyd/path)|(dyd/assets)|(dyd/assets/.*)|(dyd/traits)|(dyd/traits/.*)|(dyd/stems)|(dyd/stems/[^/]*)|(dyd/stems/.*/dyd)|(dyd/stems/.*/dyd/traits(/.*)?))$`)
+var STEM_WALK_CRAWL_INCLUDE, _ = regexp.Compile(
+	"^(" +
+		"(\\.)" +
+		"|(dyd)" +
+		"|(dyd/path)" +
+		"|(dyd/assets)" +
+		"|(dyd/assets/.*)" +
+		"|(dyd/traits)" +
+		"|(dyd/traits/.*)" +
+		"|(dyd/stems)" +
+		"|(dyd/stems/[^/]*)" +
+		"|(dyd/stems/.*/dyd)" +
+		"|(dyd/stems/.*/dyd/traits(/.*)?)" +
+		")$",
+)
 
 var STEM_WALK_CRAWL_EXCLUDE, _ = regexp.Compile(`^$`)
 
-var STEM_WALK_MATCH_INCLUDE, _ = regexp.Compile(`^((dyd/path/.*)|(dyd/assets/.*)|(dyd/readme)|(dyd/fingerprint)|(dyd/secrets-fingerprint)|(dyd/main)|(dyd/stems/.*/dyd/fingerprint)|(dyd/stems/.*/dyd/traits/.*)|(dyd/traits/.*))$`)
+var STEM_WALK_MATCH_INCLUDE, _ = regexp.Compile(
+	"^(" +
+		"(dyd/path/.*)" +
+		"|(dyd/assets/.*)" +
+		"|(dyd/readme)" +
+		"|(dyd/fingerprint)" +
+		"|(dyd/secrets-fingerprint)" +
+		"|(dyd/main)" +
+		"|(dyd/stems/.*/dyd/fingerprint)" +
+		"|(dyd/stems/.*/dyd/traits/.*)" +
+		"|(dyd/traits/.*)" +
+		")$",
+)
 
 var STEM_WALK_MATCH_EXCLUDE, _ = regexp.Compile(`^$`)
 
