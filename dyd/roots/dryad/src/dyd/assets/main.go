@@ -109,6 +109,7 @@ func _buildCLI() cli.App {
 	var exec = cli.NewCommand("exec", "execute an aliased command").
 		WithArg(cli.NewArg("command", "alias command").WithType(cli.TypeString)).
 		WithOption(cli.NewOption("scope", "set the scope for the command")).
+		WithOption(cli.NewOption("inherit (default true)", "pass all environment variables from the parent environment to the alias to exec").WithType(cli.TypeBool)).
 		WithArg(cli.NewArg("-- args", "args to pass to the command").AsOptional()).
 		WithAction(
 			func(req cli.ActionRequest) int {
@@ -140,7 +141,34 @@ func _buildCLI() cli.App {
 					fmt.Println("[info] using scope:", scope)
 				}
 
-				err = dryad.Exec(basePath, scope, "exec-"+command, args)
+				var inherit bool
+				var env = map[string]string{}
+
+				if options["inherit"] != nil {
+					inherit = options["inherit"].(bool)
+				} else {
+					inherit = true
+				}
+
+				// pull environment variables from parent process
+				if inherit {
+					for _, e := range os.Environ() {
+						if i := strings.Index(e, "="); i >= 0 {
+							env[e[:i]] = e[i+1:]
+						}
+					}
+				} else {
+					// copy a few variables over from parent env for convenience
+					env["TERM"] = os.Getenv("TERM")
+				}
+
+				err = dryad.Exec(dryad.ExecRequest{
+					BasePath: basePath,
+					Scope:    scope,
+					Setting:  "exec-" + command,
+					Args:     args,
+					Env:      env,
+				})
 				if err != nil {
 					log.Fatal(err)
 				}
