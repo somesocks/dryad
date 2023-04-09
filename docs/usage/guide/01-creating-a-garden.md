@@ -17,10 +17,10 @@ This should create a file structure that looks something like:
 ./
   dyd/
     heap/
-		roots/
-		shed/
-		sprouts/
-		garden
+    roots/
+    shed/
+    sprouts/
+    garden
 ```
 
 In order to take advantage of the filesystem, dryad enforces a strict structure for workspaces and packages:
