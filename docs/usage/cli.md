@@ -1,7 +1,7 @@
 ---
-title: Usage
+title: CLI
 layout: default
-nav_order: 5
+nav_order: 1
 ---
 
 # Usage
