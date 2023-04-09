@@ -1,3 +1,7 @@
+---
+title: Design Goals
+---
+
 # Design Goals
 
 Dryad was built with several design goals in mind:
