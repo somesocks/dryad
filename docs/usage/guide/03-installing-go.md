@@ -33,10 +33,10 @@ DEST_DIR="$1"
 SYSTEM="$DYD_OS-$DYD_ARCH"
 
 declare -A BUILDS=(
-	['darwin-amd64']='https://go.dev/dl/go1.20.darwin-amd64.tar.gz'
-	['darwin-arm64']='https://go.dev/dl/go1.20.darwin-arm64.tar.gz'
-	['linux-amd64']='https://go.dev/dl/go1.20.linux-amd64.tar.gz'
-	['linux-arm64']='https://go.dev/dl/go1.20.linux-arm64.tar.gz'
+  ['darwin-amd64']='https://go.dev/dl/go1.20.darwin-amd64.tar.gz'
+  ['darwin-arm64']='https://go.dev/dl/go1.20.darwin-arm64.tar.gz'
+  ['linux-amd64']='https://go.dev/dl/go1.20.linux-amd64.tar.gz'
+  ['linux-arm64']='https://go.dev/dl/go1.20.linux-arm64.tar.gz'
 )
 
 BUILD="${BUILDS[$SYSTEM]}"
@@ -75,26 +75,26 @@ PATH=$PATH:$DYD_STEM/dyd/assets/go/bin
 # https://github.com/bazelbuild/rules_go/issues/3110
 # https://github.com/bazelbuild/rules_go/issues/3178
 _prepare () {
-	OUR_FINGERPRINT=$(cat $DYD_STEM/dyd/fingerprint)
+  OUR_FINGERPRINT=$(cat $DYD_STEM/dyd/fingerprint)
 
-	# use the heap context as a place to safely store the unpacked stem
-	CACHE_DIR="$HOME/.cache/dyd-go/$OUR_FINGERPRINT"
+  # use the heap context as a place to safely store the unpacked stem
+  CACHE_DIR="$HOME/.cache/dyd-go/$OUR_FINGERPRINT"
 
-	# copy the go toolchain into the cache dir
-	if [ ! -d "$CACHE_DIR" ]; then
-		mkdir -p "$CACHE_DIR"
-		cp -rL $DYD_STEM/dyd/assets/* $CACHE_DIR/
-	fi
+  # copy the go toolchain into the cache dir
+  if [ ! -d "$CACHE_DIR" ]; then
+    mkdir -p "$CACHE_DIR"
+    cp -rL $DYD_STEM/dyd/assets/* $CACHE_DIR/
+  fi
 }
 
 _run () {
-	GOROOT=$CACHE_DIR/go \
-	$CACHE_DIR/go/bin/go "$@"
+  GOROOT=$CACHE_DIR/go \
+  $CACHE_DIR/go/bin/go "$@"
 }
 
 _exit () {
-	# rm -rf $CACHE_DIR || true
-	echo -n ""
+  # rm -rf $CACHE_DIR || true
+  echo -n ""
 }
 
 trap _exit INT HUP TERM

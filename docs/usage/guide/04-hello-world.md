@@ -16,18 +16,18 @@ In `dyd/roots/server/dyd/assets/main.go`, we can add a simple webserver:
 package main
 
 import (
-	"fmt"
-	"net/http"
+  "fmt"
+  "net/http"
 )
 
 func hello(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("request received")
-	fmt.Fprintf(w, "Hello, World!")
+  fmt.Println("request received")
+  fmt.Fprintf(w, "Hello, World!")
 }
 
 func main() {
-	http.HandleFunc("/", hello)
-	http.ListenAndServe(":8080", nil)
+  http.HandleFunc("/", hello)
+  http.ListenAndServe(":8080", nil)
 }
 
 ```
@@ -74,8 +74,8 @@ GOARCH="$DYD_ARCH" \
 GOOS="$DYD_OS" \
 GOWORK=off \
 go build \
-	-ldflags "-X=main.Version=$BUILD_VERSION -X=main.Fingerprint=$BUILD_FINGERPRINT" \
-	-o $DEST_MAIN
+  -ldflags "-X=main.Version=$BUILD_VERSION -X=main.Fingerprint=$BUILD_FINGERPRINT" \
+  -o $DEST_MAIN
 
 ```
 
