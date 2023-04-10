@@ -16,14 +16,11 @@ func HeapPath(path string) (string, error) {
 	}
 
 	heapPath := filepath.Join(gardenPath, "dyd", "heap")
-	fileInfo, err := os.Stat(heapPath)
+	_, err = os.Stat(heapPath)
 	if err != nil {
-		return "", err
-	}
-
-	if !fileInfo.IsDir() {
 		err = GardenInit(gardenPath)
 	}
+
 	if err != nil {
 		return "", err
 	}
