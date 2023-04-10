@@ -1,14 +1,13 @@
 package core
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 )
 
 func HeapPath(path string) (string, error) {
-	fmt.Println("[trace] HeapPath " + path)
+	// fmt.Println("[trace] HeapPath " + path)
 
 	gardenPath, err := GardenPath(path)
 

@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
