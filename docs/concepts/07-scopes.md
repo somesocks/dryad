@@ -1,5 +1,5 @@
 ---
-title: Scopes
+title: 07 - Scopes
 layout: default
 parent: Concepts
 ---

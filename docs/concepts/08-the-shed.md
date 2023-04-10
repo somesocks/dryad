@@ -1,5 +1,5 @@
 ---
-title: The shed
+title: 08 - The shed
 layout: default
 parent: Concepts
 ---

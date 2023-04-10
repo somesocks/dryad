@@ -1,5 +1,5 @@
 ---
-title: Secrets
+title: 06 - Secrets
 layout: default
 parent: Concepts
 ---

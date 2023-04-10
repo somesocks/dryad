@@ -1,5 +1,5 @@
 ---
-title: The heap
+title: 02 - The heap
 layout: default
 parent: Concepts
 ---
