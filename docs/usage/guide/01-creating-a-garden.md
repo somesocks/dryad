@@ -31,7 +31,7 @@ In order to take advantage of the filesystem, dryad enforces a strict structure 
 - gardens have a `sprouts` directory, where built packages are linked
 - gardens have an empty `/dyd/garden` file at the base (to flag the directory as a garden)
 
-You can read more about the heap, roots, the shed, and sprouts in the [Concepts]({{ site.baseurl }}{% link concepts.md %}).  But, the heap and the sprouts are build artifacts (or links to build artifacts).  So, if this project is going to be stored in a version control system, you should likely ignore them.
+You can read more about the heap, roots, the shed, and sprouts in the [Concepts]({{ site.baseurl }}{% link concepts/index.md %}).  But, the heap and the sprouts are build artifacts (or links to build artifacts).  So, if this project is going to be stored in a version control system, you should likely ignore them.
 
 Here is an example gitignore for ignoring the heap and sprouts in a git project:
 
