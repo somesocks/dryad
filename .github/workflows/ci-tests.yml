@@ -29,4 +29,4 @@ jobs:
 
       - name: Build garden
         working-directory: ${{ github.workspace }}
-        run: ./scripts/nix-shell/run.sh "./scripts/tasks/dryad-garden-build.sh
+        run: ./scripts/nix-shell/run.sh ./scripts/tasks/dryad-garden-build.sh
