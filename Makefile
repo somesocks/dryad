@@ -1,6 +1,4 @@
 
-BASE=$(shell pwd)
-
 ##
 ##	PROJECT DRYAD
 ##	-------------
@@ -16,9 +14,7 @@ help:
 ##
 .PHONY: bootstrap-build
 bootstrap-build:
-	@(cd $(BASE)/dyd/roots/dryad/src/dyd/assets && GO111MODULE=on go build \
-	-ldflags "-X=main.Version=0.0.0 -X=main.Fingerprint=0000 -s -w" \
-	-o $(BASE)/bootstrap/dryad)
+	./scripts/nix-shell/run.sh ./scripts/tasks/bootstrap-build.sh
 
 # @(cd ./dryad/go/cli && go build)
 
@@ -26,10 +22,10 @@ bootstrap-build:
 ##
 .PHONY: bootstrap-install
 bootstrap-install:
-	@ sudo cp $(BASE)/bootstrap/dryad /usr/bin/dryad
+	./scripts/nix-shell/run.sh ./scripts/tasks/bootstrap-install.sh
 
 ##	dev-shell - use the bootstrap dryad to build and start the dev shell
 ##
 .PHONY: dev-shell
 dev-shell:
-	@ dryad garden build --include=dev-shell && dryad stem exec $(BASE)/dyd/sprouts/dev-shell
+	./scripts/nix-shell/run.sh ./scripts/tasks/dryad-shell.sh
