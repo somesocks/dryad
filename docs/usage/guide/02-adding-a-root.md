@@ -47,7 +47,7 @@ Also note that the build created a new sprout, at `./dyd/sprouts/server`.  This 
 
 dryad copies no content from roots to stems by default, which means all assets or traits we want in a stem should come from us.  We can update `./dyd/roots/server/dyd/main` to add a little more content during the build, like adding name and version traits to the stem.
 
-```
+```sh
 #!/usr/bin/env sh
 
 SRC_DIR=$DYD_STEM

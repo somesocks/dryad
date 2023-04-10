@@ -12,7 +12,7 @@ Now that we have a working go compiler and a source package, we can implement ou
 
 In `dyd/roots/server/dyd/assets/main.go`, we can add a simple webserver:
 
-```
+```go
 package main
 
 import (
@@ -48,7 +48,7 @@ Now that those are in place, we want to add our go root as a dependency for the 
 
 Finally, we want to update our build script for the root to actually build our server.  In `dyd/roots/server/dyd/main`:
 
-```
+```sh
 #!/usr/bin/env sh
 
 SRC_DIR=$DYD_STEM

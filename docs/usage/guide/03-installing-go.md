@@ -16,7 +16,7 @@ We can start by adding a new root for the go package, by running `dryad root ini
 
 In order to create a go package, we need to download a go release for the system os and architecture.  dryad passes the env vars DYD_OS and DYD_ARCH to stems on execution, which we can use to choose the go release we want to download.  In `./dyd/roots/tools/go/dyd/main`, we can write a script to download the go binaries and extract them into the stem we're building.
 
-```
+```sh
 #!/usr/bin/env bash
 
 #
@@ -58,7 +58,7 @@ cat $SRC_DIR/dyd/assets/main > $DEST_DIR/dyd/main
 
 Notice at the end of the build script, we copy a main script to our new package to run.  This is a wrapper script to set up the call to the go binary correctly.  In `./dyd/roots/tools/go/dyd/assets/main`, add:
 
-```
+```sh
 #!/usr/bin/env sh
 
 set -eu
