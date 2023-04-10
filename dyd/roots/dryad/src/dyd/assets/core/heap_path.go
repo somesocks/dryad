@@ -27,5 +27,5 @@ func HeapPath(path string) (string, error) {
 		fileInfo, fileInfoErr = os.Stat(heap_path)
 	}
 
-	return "", errors.New("dyd heap path not found")
+	return "", errors.New("dyd heap path not found from " + path)
 }
