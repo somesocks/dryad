@@ -6,7 +6,7 @@ nav_order: 2
 
 # Design Goals
 
-Dryad was built with several design goals in mind:
+dryad was built with several design goals in mind:
 
 ## Hermetic builds
 
@@ -14,7 +14,7 @@ Hermetic builds are foundational to achieving fast builds and reproducible insta
 
 ## Language agnostic
 
-There should be _no favored language_ for dryad packages, to maximize compatibility with different tools and environments.  Dryad packages have no special build language or configuation formats.  All package properties / assets should be organized in a standardized filesystem structure, to maximize compatibility with different tools and programming languages.
+There should be _no favored language_ for dryad packages, to maximize compatibility with different tools and environments.  dryad packages have no special build language or configuation formats.  All package properties / assets should be organized in a standardized filesystem structure, to maximize compatibility with different tools and programming languages.
 
 ## Registry agnostic
 
