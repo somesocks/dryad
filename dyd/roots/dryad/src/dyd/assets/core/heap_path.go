@@ -2,12 +2,14 @@ package core
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 )
 
 func HeapPath(path string) (string, error) {
+	fmt.Println("[trace] HeapPath " + path)
 	var working_path, err = filepath.Abs(path)
 	if err != nil {
 		log.Fatal(err)
