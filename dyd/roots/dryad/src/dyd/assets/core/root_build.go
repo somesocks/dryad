@@ -298,22 +298,27 @@ func rootBuild_stage6(gardenPath string, sourcePath string, stemFingerprint stri
 }
 
 func RootBuild(context BuildContext, rootPath string) (string, error) {
+	fmt.Println("[trace] RootBuild", context, rootPath)
+
 	// sanitize the root path
 	rootPath, err := RootPath(rootPath)
 	if err != nil {
 		return "", err
 	}
+	fmt.Println("[trace] RootBuild rootPath", rootPath)
 
 	absRootPath, err := filepath.EvalSymlinks(rootPath)
 	if err != nil {
 		return "", err
 	}
+	fmt.Println("[trace] RootBuild absRootPath", absRootPath)
 
 	// check to see if the stem already exists in the garden
 	gardenPath, err := GardenPath(rootPath)
 	if err != nil {
 		return "", err
 	}
+	fmt.Println("[trace] RootBuild gardenPath", gardenPath)
 
 	relRootPath, err := filepath.Rel(
 		filepath.Join(gardenPath, "dyd", "roots"),
