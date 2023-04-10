@@ -1,26 +1,30 @@
+---
 name: CI Tests
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
   pull_request:
-    branches: ["main"]
+    branches:
+      - main
 
 jobs:
+
   build:
     runs-on: ubuntu-latest
-  
-  steps:
-    - name: Checkout
-      uses: actions/checkout@v3
 
-    - name: Install nix
-      uses: cachix/install-nix-action@v20
-      with:
-        nix_path: nixpkgs=channel:nixos-unstable
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Build bootstrap
-      run: ./scripts/nix-shell/run.sh ./scripts/tasks/build-bootstrap.sh
-    
-    - name: Build garden
-      run: ./scripts/nix-shell/run.sh ./scripts/tasks/dryad-garden-build.sh
+      - name: Install nix
+        uses: cachix/install-nix-action@v20
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Build bootstrap
+        run: ./scripts/nix-shell/run.sh ./scripts/tasks/build-bootstrap.sh
+
+      - name: Build garden
+        run: ./scripts/nix-shell/run.sh ./scripts/tasks/dryad-garden-build.sh
