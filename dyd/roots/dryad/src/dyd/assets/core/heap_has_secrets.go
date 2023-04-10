@@ -1,11 +1,14 @@
 package core
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 )
 
 func HeapHasSecrets(path string, fingerprint string) (string, error) {
+	fmt.Println("[trace] HeapHasSecrets ", path, fingerprint)
+
 	var heapPath, heapErr = HeapPath(path)
 	if heapErr != nil {
 		return "", heapErr

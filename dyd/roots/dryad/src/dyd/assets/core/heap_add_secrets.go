@@ -1,12 +1,14 @@
 package core
 
 import (
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 )
 
 func HeapAddSecrets(heapPath string, secretsPath string) (string, error) {
+	fmt.Println("[trace] HeapAddSecrets ", heapPath, secretsPath)
 
 	// normalize the heap path
 	heapPath, err := HeapPath(heapPath)
