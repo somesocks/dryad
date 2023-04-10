@@ -5,7 +5,10 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad secrets list
+
 ```
+$ dryad secrets list --help
 dryad secrets list <path>
 
 Description:

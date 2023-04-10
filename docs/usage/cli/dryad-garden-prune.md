@@ -5,6 +5,8 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad garden prune
+
 ```
 $ dryad garden prune --help
 dryad garden prune

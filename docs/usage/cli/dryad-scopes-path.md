@@ -5,7 +5,10 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad scopes path
+
 ```
+$ dryad scopes path --help
 dryad scopes path
 
 Description:

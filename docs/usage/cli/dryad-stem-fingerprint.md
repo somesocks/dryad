@@ -5,7 +5,10 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad stem fingerprint
+
 ```
+$ dryad stem fingerprint --help
 dryad stem fingerprint [--exclude=string] [path]
 
 Description:

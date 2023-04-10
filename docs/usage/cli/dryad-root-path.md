@@ -5,6 +5,8 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad root path
+
 ```
 $ dryad root path --help
 dryad root path [path]

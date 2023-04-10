@@ -5,7 +5,10 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad sprouts list
+
 ```
+$ dryad sprouts list --help
 dryad sprouts list [--include] [--exclude] [--scope=string]
 
 Description:

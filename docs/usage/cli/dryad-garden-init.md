@@ -5,6 +5,8 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad garden init
+
 ```
 $ dryad garden init --help
 dryad garden init [path]

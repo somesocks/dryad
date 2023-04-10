@@ -5,7 +5,10 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad stem exec
+
 ```
+$ dryad stem exec --help
 dryad stem exec [--execPath=string] [--context=string] [--inherit] <path> [-- args]
 
 Description:

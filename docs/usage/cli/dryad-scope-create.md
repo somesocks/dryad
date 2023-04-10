@@ -5,7 +5,10 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad scope create
+
 ```
+$ dryad scope create --help
 dryad scope create <name>
 
 Description:

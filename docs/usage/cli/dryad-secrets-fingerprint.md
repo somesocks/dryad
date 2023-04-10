@@ -5,7 +5,10 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad secrets fingerprint
+
 ```
+$ dryad secrets fingerprint --help
 dryad secrets fingerprint <path>
 
 Description:

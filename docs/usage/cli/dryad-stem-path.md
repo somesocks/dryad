@@ -5,7 +5,10 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad stem path
+
 ```
+$ dryad stem path --help
 dryad stem path
 
 Description:

@@ -5,7 +5,10 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad scope setting get
+
 ```
+$ dryad scope setting get --help
 dryad scope setting get <scope> <setting>
 
 Description:

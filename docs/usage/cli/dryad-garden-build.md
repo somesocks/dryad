@@ -5,6 +5,8 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad garden build
+
 ```
 $ dryad garden build --help
 dryad garden build [--include] [--exclude] [--scope=string] [path]

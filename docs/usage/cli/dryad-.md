@@ -5,6 +5,8 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad
+
 ```
 $ dryad --help
 dryad

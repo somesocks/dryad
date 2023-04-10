@@ -5,7 +5,10 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad version
+
 ```
+$ dryad version --help
 dryad version
 
 Description:

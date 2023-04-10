@@ -5,7 +5,10 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad scope delete
+
 ```
+$ dryad scope delete --help
 dryad scope delete <name>
 
 Description:

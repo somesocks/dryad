@@ -5,7 +5,10 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad scope setting unset
+
 ```
+$ dryad scope setting unset --help
 dryad scope setting unset <scope> <setting>
 
 Description:

@@ -5,7 +5,10 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad scopes
+
 ```
+$ dryad scopes --help
 dryad scopes
 
 Description:

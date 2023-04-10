@@ -5,7 +5,10 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad stem files
+
 ```
+$ dryad stem files --help
 dryad stem files [--exclude=string]
 
 Description:

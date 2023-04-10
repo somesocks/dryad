@@ -5,7 +5,10 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad sprouts
+
 ```
+$ dryad sprouts --help
 dryad sprouts
 
 Description:

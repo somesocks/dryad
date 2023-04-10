@@ -5,7 +5,10 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad sprouts exec
+
 ```
+$ dryad sprouts exec --help
 dryad sprouts exec [--include] [--exclude] [--context=string] [--inherit] [--confirm] [--ignore-errors] [--scope=string] [-- args]
 
 Description:

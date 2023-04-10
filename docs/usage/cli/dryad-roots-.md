@@ -5,16 +5,11 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad roots
+
 ```
-$ dryad root path --help
-dryad root path [path]
-
-Description:
-    return the base path of the current root
-
-Arguments:
-    path   the path to start searching for a root at. defaults to current directory, optional
-```dryad roots
+$ dryad roots --help
+dryad roots
 
 Description:
     commands to work with dryad roots
@@ -22,3 +17,4 @@ Description:
 Sub-commands:
     dryad roots list   list all roots that are dependencies for the current root (or roots of the current garden, if the path is not a root)
     dryad roots path   return the path of the roots dir
+```

@@ -5,6 +5,8 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad garden pack
+
 ```
 $ dryad garden pack --help
 dryad garden pack [gardenPath] [targetPath]

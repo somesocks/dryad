@@ -5,7 +5,10 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad scopes default
+
 ```
+$ dryad scopes default --help
 dryad scopes default
 
 Description:

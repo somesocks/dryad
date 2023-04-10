@@ -5,7 +5,10 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad stem unpack
+
 ```
+$ dryad stem unpack --help
 dryad stem unpack <archive>
 
 Description:

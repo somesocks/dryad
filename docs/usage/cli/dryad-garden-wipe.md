@@ -5,6 +5,8 @@ parent: CLI
 grand_parent: Usage
 ---
 
+# dryad garden wipe
+
 ```
 $ dryad garden wipe --help
 dryad garden wipe
