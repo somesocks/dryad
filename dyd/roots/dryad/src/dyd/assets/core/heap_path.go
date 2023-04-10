@@ -11,6 +11,9 @@ import (
 func HeapPath(path string) (string, error) {
 	fmt.Println("[trace] HeapPath " + path)
 	var working_path, err = filepath.Abs(path)
+
+	return "", errors.New("dyd heap path not found from " + path)
+
 	if err != nil {
 		log.Fatal(err)
 	}

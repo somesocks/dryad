@@ -200,6 +200,7 @@ func rootBuild_stage3(rootPath string, workspacePath string) (string, error) {
 // stage 4 - check the garden to see if the stem exists,
 // and add it if it doesn't
 func rootBuild_stage4(gardenPath string, workspacePath string, rootFingerprint string) (string, error) {
+	fmt.Println("[trace] rootBuild_stage4", gardenPath, workspacePath, rootFingerprint)
 	return HeapAddStem(gardenPath, workspacePath)
 }
 
@@ -292,6 +293,7 @@ func rootBuild_stage5(rootStemPath string, stemBuildPath string, rootFingerprint
 
 // stage 6 - pack the dervied stem into the heap and garden
 func rootBuild_stage6(gardenPath string, sourcePath string, stemFingerprint string) (string, error) {
+	fmt.Println("[trace] rootBuild_stage6", gardenPath, sourcePath, stemFingerprint)
 	return HeapAddStem(gardenPath, sourcePath)
 }
 
