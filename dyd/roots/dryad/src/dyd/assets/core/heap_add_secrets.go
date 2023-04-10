@@ -8,7 +8,7 @@ import (
 )
 
 func HeapAddSecrets(heapPath string, secretsPath string) (string, error) {
-	fmt.Println("[trace] HeapAddSecrets ", heapPath, secretsPath)
+	// fmt.Println("[trace] HeapAddSecrets ", heapPath, secretsPath)
 
 	// normalize the heap path
 	heapPath, err := HeapPath(heapPath)

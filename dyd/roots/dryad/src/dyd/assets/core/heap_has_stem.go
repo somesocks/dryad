@@ -7,7 +7,7 @@ import (
 )
 
 func HeapHasStem(path string, fingerprint string) (string, error) {
-	fmt.Println("[trace] HeapHasStem ", path, fingerprint)
+	// fmt.Println("[trace] HeapHasStem ", path, fingerprint)
 
 	var heapPath, heapErr = HeapPath(path)
 	// fmt.Println("HeapHasStem heapPath ", heapPath)

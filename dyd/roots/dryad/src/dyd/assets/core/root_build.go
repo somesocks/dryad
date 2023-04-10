@@ -200,7 +200,7 @@ func rootBuild_stage3(rootPath string, workspacePath string) (string, error) {
 // stage 4 - check the garden to see if the stem exists,
 // and add it if it doesn't
 func rootBuild_stage4(gardenPath string, workspacePath string, rootFingerprint string) (string, error) {
-	fmt.Println("[trace] rootBuild_stage4", gardenPath, workspacePath, rootFingerprint)
+	// fmt.Println("[trace] rootBuild_stage4", gardenPath, workspacePath, rootFingerprint)
 	return HeapAddStem(gardenPath, workspacePath)
 }
 
@@ -293,32 +293,32 @@ func rootBuild_stage5(rootStemPath string, stemBuildPath string, rootFingerprint
 
 // stage 6 - pack the dervied stem into the heap and garden
 func rootBuild_stage6(gardenPath string, sourcePath string, stemFingerprint string) (string, error) {
-	fmt.Println("[trace] rootBuild_stage6", gardenPath, sourcePath, stemFingerprint)
+	// fmt.Println("[trace] rootBuild_stage6", gardenPath, sourcePath, stemFingerprint)
 	return HeapAddStem(gardenPath, sourcePath)
 }
 
 func RootBuild(context BuildContext, rootPath string) (string, error) {
-	fmt.Println("[trace] RootBuild", context, rootPath)
+	// fmt.Println("[trace] RootBuild", context, rootPath)
 
 	// sanitize the root path
 	rootPath, err := RootPath(rootPath)
 	if err != nil {
 		return "", err
 	}
-	fmt.Println("[trace] RootBuild rootPath", rootPath)
+	// fmt.Println("[trace] RootBuild rootPath", rootPath)
 
 	absRootPath, err := filepath.EvalSymlinks(rootPath)
 	if err != nil {
 		return "", err
 	}
-	fmt.Println("[trace] RootBuild absRootPath", absRootPath)
+	// fmt.Println("[trace] RootBuild absRootPath", absRootPath)
 
 	// check to see if the stem already exists in the garden
 	gardenPath, err := GardenPath(rootPath)
 	if err != nil {
 		return "", err
 	}
-	fmt.Println("[trace] RootBuild gardenPath", gardenPath)
+	// fmt.Println("[trace] RootBuild gardenPath", gardenPath)
 
 	relRootPath, err := filepath.Rel(
 		filepath.Join(gardenPath, "dyd", "roots"),

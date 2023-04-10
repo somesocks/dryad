@@ -19,7 +19,7 @@ func _readFile(filePath string) (string, error) {
 // HeapAddStem takes a stem in a directory, and adds it to the heap.
 // the heap path is normalized before adding
 func HeapAddStem(heapPath string, stemPath string) (string, error) {
-	fmt.Println("[trace] HeapAddStem", heapPath, stemPath)
+	// fmt.Println("[trace] HeapAddStem", heapPath, stemPath)
 
 	// normalize the heap path
 	heapPath, err := HeapPath(heapPath)

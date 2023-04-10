@@ -13,7 +13,7 @@ type GardenBuildRequest struct {
 }
 
 func GardenBuild(context BuildContext, request GardenBuildRequest) error {
-	fmt.Println("[trace] GardenBuild", request.BasePath)
+	// fmt.Println("[trace] GardenBuild", request.BasePath)
 	var err error
 
 	gardenPath := request.BasePath
@@ -24,7 +24,7 @@ func GardenBuild(context BuildContext, request GardenBuildRequest) error {
 		return err
 	}
 
-	fmt.Println("[trace] GardenBuild gardenPath 1", gardenPath)
+	// fmt.Println("[trace] GardenBuild gardenPath 1", gardenPath)
 
 	// make sure it points to the base of the garden path
 	gardenPath, err = GardenPath(gardenPath)
@@ -32,7 +32,7 @@ func GardenBuild(context BuildContext, request GardenBuildRequest) error {
 		return err
 	}
 
-	fmt.Println("[trace] GardenBuild gardenPath 2", gardenPath)
+	// fmt.Println("[trace] GardenBuild gardenPath 2", gardenPath)
 
 	var rootsPath = filepath.Join(gardenPath, "dyd", "roots")
 

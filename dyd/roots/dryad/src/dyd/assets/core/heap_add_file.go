@@ -7,7 +7,7 @@ import (
 )
 
 func HeapAddFile(heapPath string, filePath string) (string, error) {
-	fmt.Println("[trace] HeapAddFile", heapPath, filePath)
+	// fmt.Println("[trace] HeapAddFile", heapPath, filePath)
 	heapPath, err := HeapPath(heapPath)
 	if err != nil {
 		return "", err
