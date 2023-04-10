@@ -1,9 +1,42 @@
 #!/usr/bin/env sh
 
 set -eu
-set -x
+# set -x
 
 PATH=$PATH:$DYD_STEM/dyd/assets/go/bin
 
-GOROOT=$DYD_STEM/dyd/assets/go \
-exec $DYD_STEM/dyd/assets/go/bin/go "$@"
+# note: the go toolchain does not support being run directly from the dryad heap,
+# due to go:embed not allowing symlinks for embedding.
+# as a workaround, we need to unpack the go toolchain to a temp directory when we want to use it
+# this is an issue with some other build environments as well.
+# see:
+# https://github.com/golang/go/issues/44507
+# https://github.com/bazelbuild/rules_go/issues/3110
+# https://github.com/bazelbuild/rules_go/issues/3178
+_prepare () {
+	OUR_FINGERPRINT=$(cat $DYD_STEM/dyd/fingerprint)
+
+	# use the heap context as a place to safely store the unpacked stem
+	CACHE_DIR="$HOME/.cache/dyd-go/$OUR_FINGERPRINT"
+
+	# copy the go toolchain into the cache dir
+	if [ ! -d "$CACHE_DIR" ]; then
+		mkdir -p "$CACHE_DIR"
+		cp -rL $DYD_STEM/dyd/assets/* $CACHE_DIR/
+	fi
+}
+
+_run () {
+	GOROOT=$CACHE_DIR/go \
+	$CACHE_DIR/go/bin/go "$@"
+}
+
+_exit () {
+	# rm -rf $CACHE_DIR || true
+	echo ""
+}
+
+trap _exit INT HUP TERM
+_prepare
+_run "$@"
+_exit
