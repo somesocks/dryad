@@ -24,7 +24,9 @@ jobs:
           nix_path: nixpkgs=channel:nixos-unstable
 
       - name: Build bootstrap
-        run: cd ${{ github.workspace }} && ./scripts/nix-shell/run.sh ./scripts/tasks/build-bootstrap.sh
+        working-directory: ${{ github.workspace }}
+        run: ./scripts/nix-shell/run.sh ./scripts/tasks/build-bootstrap.sh
 
       - name: Build garden
-        run: cd ${{ github.workspace }} && ./scripts/nix-shell/run.sh ./scripts/tasks/dryad-garden-build.sh
+        working-directory: ${{ github.workspace }}
+        run: ./scripts/nix-shell/run.sh ./scripts/tasks/dryad-garden-build.sh
