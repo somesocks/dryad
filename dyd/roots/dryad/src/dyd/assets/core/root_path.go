@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"errors"
 	"log"
 	"os"
@@ -8,6 +9,7 @@ import (
 )
 
 func RootPath(path string) (string, error) {
+	fmt.Println("[trace] RootPath", path)
 	var workingPath, err = filepath.Abs(path)
 	if err != nil {
 		log.Fatal(err)

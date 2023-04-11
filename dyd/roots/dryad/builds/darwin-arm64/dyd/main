@@ -12,10 +12,14 @@ DEST_MAIN=$DEST_DIR/dyd/main
 
 OS="$(cat $SRC_DIR/dyd/traits/os)"
 ARCH="$(cat $SRC_DIR/dyd/traits/arch)"
+VERSION="$(cat $SRC_DIR/dyd/stems/src/dyd/traits/version)"
+FINGERPRINT="$(cat $SRC_DIR/dyd/stems/src/dyd/fingerprint)"
 
 # copy assets to build
 echo -n "$OS" > $DEST_DIR/dyd/traits/os
 echo -n "$ARCH" > $DEST_DIR/dyd/traits/arch
+echo -n "$VERSION" > $DEST_DIR/dyd/traits/version
+
 
 # run go build for specified arch
 # diable workspace mode to avoid "missing module" errors
@@ -23,4 +27,6 @@ cd $SRC_DIR/dyd/stems/src/dyd/assets/ && \
 GOARCH="$ARCH" \
 GOOS="$OS" \
 GOWORK=off \
-go build  -o $DEST_MAIN
+go build \
+	-o $DEST_MAIN \
+	-ldflags "-X=main.Version=$VERSION,-X=main.Fingerprint=$FINGERPRINT,-s,-w"
