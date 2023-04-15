@@ -6,7 +6,7 @@ import (
 	"runtime"
 )
 
-type ExecRequest struct {
+type ScriptRunRequest struct {
 	BasePath string
 	Scope    string
 	Setting  string
@@ -14,7 +14,7 @@ type ExecRequest struct {
 	Args     []string
 }
 
-func Exec(request ExecRequest) error {
+func ScriptRun(request ScriptRunRequest) error {
 	runPath, err := ScopeSettingPath(request.BasePath, request.Scope, request.Setting)
 	if err != nil {
 		return err
