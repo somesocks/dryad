@@ -797,7 +797,57 @@ func _buildCLI() cli.App {
 		WithOption(cli.NewOption("scope", "set the scope for the command")).
 		WithAction(scriptPathAction)
 
+	var scriptGetAction = func(req cli.ActionRequest) int {
+		var command = req.Args[0]
+		var options = req.Opts
+
+		basePath, err := os.Getwd()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var scope string
+		if options["scope"] != nil {
+			scope = options["scope"].(string)
+		} else {
+			var err error
+			scope, err = dryad.ScopeGetDefault(scope)
+			fmt.Println("[info] loading default scope:", scope)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		// if the scope is unset, bypass expansion and run the action directly
+		if scope == "" || scope == "none" {
+			log.Fatal("no scope set, can't find command")
+		} else {
+			fmt.Println("[info] using scope:", scope)
+		}
+
+		script, err := dryad.ScriptGet(dryad.ScriptGetRequest{
+			BasePath: basePath,
+			Scope:    scope,
+			Setting:  "script-run-" + command,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println(script)
+
+		return 0
+	}
+
+	scriptGetAction = _scopeHandler(scriptGetAction)
+
+	var scriptGet = cli.NewCommand("get", "print the contents of a script").
+		WithArg(cli.NewArg("command", "the script name").WithType(cli.TypeString)).
+		WithOption(cli.NewOption("scope", "set the scope for the command")).
+		WithAction(scriptGetAction)
+
 	var script = cli.NewCommand("script", "commands to work with a scoped script").
+		WithCommand(scriptGet).
 		WithCommand(scriptPath).
 		WithCommand(scriptRun)
 
