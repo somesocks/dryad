@@ -1,10 +1,10 @@
 ---
-title: 02 - The heap
+title: 02 - The Heap
 layout: default
 parent: Concepts
 ---
 
-# The heap
+# The Heap
 
 Every garden has a **heap** - where package assets are stored in a content-addressed filesystem structure.
 

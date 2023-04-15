@@ -18,3 +18,12 @@ The root build process is roughly:
 4. Fingerprint the resulting stem, and add it into the heap.
 
 The build process may be skipped if the root has already been built and the resulting stem already added to the heap.
+
+## Unstable roots
+
+A root is _unstable_ if the package has dependencies that may change between builds.  A common example is using the current time as a property during the build process.
+
+If a root is unstable, you can make it as unstable by adding the trait `dyd/traits/unstable` (the file can be empty; the contents don't matter).  If this file exists, dryad will ignore the build cache, and always rebuild the root.
+
+Keep in mind that any root that has a direct or indirect dependency on an unstable root may also need to be rebuilt.  It's a good practice to add unstable roots at the top of the dependency tree instead of the base.  The later in the build process unstable roots are used, the more dryad can use the build cache to speed up the build process.
+
