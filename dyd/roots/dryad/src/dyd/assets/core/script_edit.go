@@ -1,28 +1,38 @@
 package core
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
 )
 
-type ExecRequest struct {
+type ScriptEditRequest struct {
 	BasePath string
 	Scope    string
 	Setting  string
 	Env      map[string]string
-	Args     []string
 }
 
-func Exec(request ExecRequest) error {
-	runPath, err := ScopeSettingPath(request.BasePath, request.Scope, request.Setting)
+func ScriptEdit(request ScriptEditRequest) error {
+	scriptPath, err := ScopeSettingPath(request.BasePath, request.Scope, request.Setting)
 	if err != nil {
 		return err
 	}
 
+	var editor string
+
+	if request.Env["EDITOR"] != "" {
+		editor = request.Env["EDITOR"]
+	} else if request.Env["VISUAL"] != "" {
+		editor = request.Env["VISUAL"]
+	} else {
+		return fmt.Errorf("no editor found")
+	}
+
 	cmd := exec.Command(
-		runPath,
-		request.Args...,
+		editor,
+		scriptPath,
 	)
 
 	// prepare env

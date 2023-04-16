@@ -106,77 +106,6 @@ func _buildCLI() cli.App {
 		return wrapper
 	}
 
-	var exec = cli.NewCommand("exec", "execute an aliased command").
-		WithArg(cli.NewArg("command", "alias command").WithType(cli.TypeString)).
-		WithOption(cli.NewOption("scope", "set the scope for the command")).
-		WithOption(cli.NewOption("inherit (default true)", "pass all environment variables from the parent environment to the alias to exec").WithType(cli.TypeBool)).
-		WithArg(cli.NewArg("-- args", "args to pass to the command").AsOptional()).
-		WithAction(
-			func(req cli.ActionRequest) int {
-				var command = req.Args[0]
-				var args = req.Args[1:]
-				var options = req.Opts
-
-				basePath, err := os.Getwd()
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				var scope string
-				if options["scope"] != nil {
-					scope = options["scope"].(string)
-				} else {
-					var err error
-					scope, err = dryad.ScopeGetDefault(scope)
-					fmt.Println("[info] loading default scope:", scope)
-					if err != nil {
-						log.Fatal(err)
-					}
-				}
-
-				// if the scope is unset, bypass expansion and run the action directly
-				if scope == "" || scope == "none" {
-					log.Fatal("no scope set, can't find command")
-				} else {
-					fmt.Println("[info] using scope:", scope)
-				}
-
-				var inherit bool
-				var env = map[string]string{}
-
-				if options["inherit"] != nil {
-					inherit = options["inherit"].(bool)
-				} else {
-					inherit = true
-				}
-
-				// pull environment variables from parent process
-				if inherit {
-					for _, e := range os.Environ() {
-						if i := strings.Index(e, "="); i >= 0 {
-							env[e[:i]] = e[i+1:]
-						}
-					}
-				} else {
-					// copy a few variables over from parent env for convenience
-					env["TERM"] = os.Getenv("TERM")
-				}
-
-				err = dryad.Exec(dryad.ExecRequest{
-					BasePath: basePath,
-					Scope:    scope,
-					Setting:  "exec-" + command,
-					Args:     args,
-					Env:      env,
-				})
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				return 0
-			},
-		)
-
 	var gardenInit = cli.NewCommand("init", "initialize a garden").
 		WithArg(cli.NewArg("path", "the target path at which to initialize the garden").AsOptional()).
 		WithAction(func(req cli.ActionRequest) int {
@@ -745,6 +674,303 @@ func _buildCLI() cli.App {
 		WithCommand(scopesDefault).
 		WithCommand(scopesList).
 		WithCommand(scopesPath)
+
+	var scriptRunAction = func(req cli.ActionRequest) int {
+		var command = req.Args[0]
+		var args = req.Args[1:]
+		var options = req.Opts
+
+		basePath, err := os.Getwd()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var scope string
+		if options["scope"] != nil {
+			scope = options["scope"].(string)
+		} else {
+			var err error
+			scope, err = dryad.ScopeGetDefault(scope)
+			fmt.Println("[info] loading default scope:", scope)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		// if the scope is unset, bypass expansion and run the action directly
+		if scope == "" || scope == "none" {
+			log.Fatal("no scope set, can't find command")
+		} else {
+			fmt.Println("[info] using scope:", scope)
+		}
+
+		var inherit bool
+		var env = map[string]string{}
+
+		if options["inherit"] != nil {
+			inherit = options["inherit"].(bool)
+		} else {
+			inherit = true
+		}
+
+		// pull environment variables from parent process
+		if inherit {
+			for _, e := range os.Environ() {
+				if i := strings.Index(e, "="); i >= 0 {
+					env[e[:i]] = e[i+1:]
+				}
+			}
+		} else {
+			// copy a few variables over from parent env for convenience
+			env["TERM"] = os.Getenv("TERM")
+		}
+
+		err = dryad.ScriptRun(dryad.ScriptRunRequest{
+			BasePath: basePath,
+			Scope:    scope,
+			Setting:  "script-run-" + command,
+			Args:     args,
+			Env:      env,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		return 0
+	}
+
+	scriptRunAction = _scopeHandler(scriptRunAction)
+
+	var scriptRun = cli.NewCommand("run", "run a script in the current scope").
+		WithArg(cli.NewArg("command", "the script name").WithType(cli.TypeString)).
+		WithOption(cli.NewOption("scope", "set the scope for the command")).
+		WithOption(cli.NewOption("inherit (default true)", "pass all environment variables from the parent environment to the alias to exec").WithType(cli.TypeBool)).
+		WithArg(cli.NewArg("-- args", "args to pass to the script").AsOptional()).
+		WithAction(scriptRunAction)
+
+	var scriptPathAction = func(req cli.ActionRequest) int {
+		var command = req.Args[0]
+		var options = req.Opts
+
+		basePath, err := os.Getwd()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var scope string
+		if options["scope"] != nil {
+			scope = options["scope"].(string)
+		} else {
+			var err error
+			scope, err = dryad.ScopeGetDefault(scope)
+			fmt.Println("[info] loading default scope:", scope)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		// if the scope is unset, bypass expansion and run the action directly
+		if scope == "" || scope == "none" {
+			log.Fatal("no scope set, can't find command")
+		} else {
+			fmt.Println("[info] using scope:", scope)
+		}
+
+		scriptPath, err := dryad.ScriptPath(dryad.ScriptPathRequest{
+			BasePath: basePath,
+			Scope:    scope,
+			Setting:  "script-run-" + command,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println(scriptPath)
+
+		return 0
+	}
+
+	scriptPathAction = _scopeHandler(scriptPathAction)
+
+	var scriptPath = cli.NewCommand("path", "print the path to a script").
+		WithArg(cli.NewArg("command", "the script name").WithType(cli.TypeString)).
+		WithOption(cli.NewOption("scope", "set the scope for the command")).
+		WithAction(scriptPathAction)
+
+	var scriptGetAction = func(req cli.ActionRequest) int {
+		var command = req.Args[0]
+		var options = req.Opts
+
+		basePath, err := os.Getwd()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var scope string
+		if options["scope"] != nil {
+			scope = options["scope"].(string)
+		} else {
+			var err error
+			scope, err = dryad.ScopeGetDefault(scope)
+			fmt.Println("[info] loading default scope:", scope)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		// if the scope is unset, bypass expansion and run the action directly
+		if scope == "" || scope == "none" {
+			log.Fatal("no scope set, can't find command")
+		} else {
+			fmt.Println("[info] using scope:", scope)
+		}
+
+		script, err := dryad.ScriptGet(dryad.ScriptGetRequest{
+			BasePath: basePath,
+			Scope:    scope,
+			Setting:  "script-run-" + command,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println(script)
+
+		return 0
+	}
+
+	scriptGetAction = _scopeHandler(scriptGetAction)
+
+	var scriptGet = cli.NewCommand("get", "print the contents of a script").
+		WithArg(cli.NewArg("command", "the script name").WithType(cli.TypeString)).
+		WithOption(cli.NewOption("scope", "set the scope for the command")).
+		WithAction(scriptGetAction)
+
+	var scriptEditAction = func(req cli.ActionRequest) int {
+		var command = req.Args[0]
+		var options = req.Opts
+
+		basePath, err := os.Getwd()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var scope string
+		if options["scope"] != nil {
+			scope = options["scope"].(string)
+		} else {
+			var err error
+			scope, err = dryad.ScopeGetDefault(scope)
+			fmt.Println("[info] loading default scope:", scope)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		// if the scope is unset, bypass expansion and run the action directly
+		if scope == "" || scope == "none" {
+			log.Fatal("no scope set, can't find command")
+		} else {
+			fmt.Println("[info] using scope:", scope)
+		}
+
+		var env = map[string]string{}
+
+		for _, e := range os.Environ() {
+			if i := strings.Index(e, "="); i >= 0 {
+				env[e[:i]] = e[i+1:]
+			}
+		}
+
+		if options["editor"] != nil {
+			editor := options["editor"].(string)
+			env["EDITOR"] = editor
+		}
+
+		err = dryad.ScriptEdit(dryad.ScriptEditRequest{
+			BasePath: basePath,
+			Scope:    scope,
+			Setting:  "script-run-" + command,
+			Env:      env,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		return 0
+	}
+
+	scriptEditAction = _scopeHandler(scriptEditAction)
+
+	var scriptEdit = cli.NewCommand("edit", "edit a script").
+		WithArg(cli.NewArg("command", "the script name").WithType(cli.TypeString)).
+		WithOption(cli.NewOption("scope", "set the scope for the command")).
+		WithOption(cli.NewOption("editor", "set the editor to use")).
+		WithAction(scriptEditAction)
+
+	var script = cli.NewCommand("script", "commands to work with a scoped script").
+		WithCommand(scriptEdit).
+		WithCommand(scriptGet).
+		WithCommand(scriptPath).
+		WithCommand(scriptRun)
+
+	var run = cli.NewCommand("run", "alias for `dryad script run`").
+		WithArg(cli.NewArg("command", "alias command").WithType(cli.TypeString)).
+		WithOption(cli.NewOption("scope", "set the scope for the command")).
+		WithOption(cli.NewOption("inherit (default true)", "pass all environment variables from the parent environment to the alias to exec").WithType(cli.TypeBool)).
+		WithArg(cli.NewArg("-- args", "args to pass to the command").AsOptional()).
+		WithAction(scriptRunAction)
+
+	var scriptsListAction = func(req cli.ActionRequest) int {
+		var options = req.Opts
+
+		basePath, err := os.Getwd()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var scope string
+		if options["scope"] != nil {
+			scope = options["scope"].(string)
+		} else {
+			var err error
+			scope, err = dryad.ScopeGetDefault(scope)
+			fmt.Println("[info] loading default scope:", scope)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		// if the scope is unset, bypass expansion and run the action directly
+		if scope == "" || scope == "none" {
+			log.Fatal("no scope set, can't find command")
+		} else {
+			fmt.Println("[info] using scope:", scope)
+		}
+
+		err = dryad.ScriptsWalk(dryad.ScriptsWalkRequest{
+			BasePath: basePath,
+			Scope:    scope,
+			OnMatch: func(path string, info fs.FileInfo) error {
+				fmt.Println(path)
+				return nil
+			},
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		return 0
+	}
+
+	scriptsListAction = _scopeHandler(scriptsListAction)
+
+	var scriptsList = cli.NewCommand("list", "list all script files in the current scope").
+		WithOption(cli.NewOption("scope", "set the scope for the command")).
+		WithAction(scriptsListAction)
+
+	var scripts = cli.NewCommand("scripts", "commands to work with scoped scripts").
+		WithCommand(scriptsList)
 
 	var secretsFingerprint = cli.NewCommand("fingerprint", "calculate the fingerprint for the secrets in a stem/root").
 		WithArg(cli.NewArg("path", "path to the stem base dir")).
@@ -1355,12 +1581,14 @@ func _buildCLI() cli.App {
 		})
 
 	app = app.
-		WithCommand(exec).
 		WithCommand(garden).
 		WithCommand(root).
 		WithCommand(roots).
+		WithCommand(run).
 		WithCommand(scope).
 		WithCommand(scopes).
+		WithCommand(script).
+		WithCommand(scripts).
 		WithCommand(secrets).
 		WithCommand(sprouts).
 		WithCommand(stem).
