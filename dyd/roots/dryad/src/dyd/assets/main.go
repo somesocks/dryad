@@ -921,6 +921,57 @@ func _buildCLI() cli.App {
 		WithArg(cli.NewArg("-- args", "args to pass to the command").AsOptional()).
 		WithAction(scriptRunAction)
 
+	var scriptsListAction = func(req cli.ActionRequest) int {
+		var options = req.Opts
+
+		basePath, err := os.Getwd()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var scope string
+		if options["scope"] != nil {
+			scope = options["scope"].(string)
+		} else {
+			var err error
+			scope, err = dryad.ScopeGetDefault(scope)
+			fmt.Println("[info] loading default scope:", scope)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		// if the scope is unset, bypass expansion and run the action directly
+		if scope == "" || scope == "none" {
+			log.Fatal("no scope set, can't find command")
+		} else {
+			fmt.Println("[info] using scope:", scope)
+		}
+
+		err = dryad.ScriptsWalk(dryad.ScriptsWalkRequest{
+			BasePath: basePath,
+			Scope:    scope,
+			OnMatch: func(path string, info fs.FileInfo) error {
+				fmt.Println(path)
+				return nil
+			},
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		return 0
+	}
+
+	scriptsListAction = _scopeHandler(scriptsListAction)
+
+	var scriptsList = cli.NewCommand("list", "list all script files in the current scope").
+		WithOption(cli.NewOption("scope", "set the scope for the command")).
+		WithAction(scriptsListAction)
+
+	var scripts = cli.NewCommand("scripts", "commands to work with scoped scripts").
+		WithCommand(scriptsList)
+
 	var secretsFingerprint = cli.NewCommand("fingerprint", "calculate the fingerprint for the secrets in a stem/root").
 		WithArg(cli.NewArg("path", "path to the stem base dir")).
 		WithAction(func(req cli.ActionRequest) int {
@@ -1537,6 +1588,7 @@ func _buildCLI() cli.App {
 		WithCommand(scope).
 		WithCommand(scopes).
 		WithCommand(script).
+		WithCommand(scripts).
 		WithCommand(secrets).
 		WithCommand(sprouts).
 		WithCommand(stem).
