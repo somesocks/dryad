@@ -214,7 +214,7 @@ func rootBuild_stage5(rootStemPath string, stemBuildPath string, rootFingerprint
 	if err != nil {
 		return "", err
 	}
-	err = StemExec(StemExecRequest{
+	err = StemRun(StemRunRequest{
 		StemPath:   rootStemPath,
 		Env:        nil,
 		Args:       []string{stemBuildPath},
