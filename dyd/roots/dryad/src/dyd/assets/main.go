@@ -941,6 +941,14 @@ func _buildCLI() cli.App {
 			}
 		}
 
+		var showPath bool
+
+		if options["path"] != nil {
+			showPath = options["path"].(bool)
+		} else {
+			showPath = false
+		}
+
 		// if the scope is unset, bypass expansion and run the action directly
 		if scope == "" || scope == "none" {
 			log.Fatal("no scope set, can't find command")
@@ -952,7 +960,12 @@ func _buildCLI() cli.App {
 			BasePath: basePath,
 			Scope:    scope,
 			OnMatch: func(path string, info fs.FileInfo) error {
-				fmt.Println(path)
+				if showPath {
+					fmt.Println(path)
+				} else {
+					var name string = info.Name()
+					fmt.Println("dryad script run", strings.TrimPrefix(name, "script-run-"))
+				}
 				return nil
 			},
 		})
@@ -965,8 +978,9 @@ func _buildCLI() cli.App {
 
 	scriptsListAction = _scopeHandler(scriptsListAction)
 
-	var scriptsList = cli.NewCommand("list", "list all script files in the current scope").
+	var scriptsList = cli.NewCommand("list", "list all available scripts in the current scope").
 		WithOption(cli.NewOption("scope", "set the scope for the command")).
+		WithOption(cli.NewOption("path", "print the path to the scripts instead of the script run command").WithType(cli.TypeBool)).
 		WithAction(scriptsListAction)
 
 	var scripts = cli.NewCommand("scripts", "commands to work with scoped scripts").
