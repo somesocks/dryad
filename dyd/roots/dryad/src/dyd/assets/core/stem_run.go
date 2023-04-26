@@ -8,7 +8,7 @@ import (
 	"runtime"
 )
 
-type StemExecRequest struct {
+type StemRunRequest struct {
 	StemPath   string
 	ExecPath   string
 	Context    string
@@ -17,7 +17,7 @@ type StemExecRequest struct {
 	JoinStdout bool
 }
 
-func stemExec_prepContext(request StemExecRequest) (string, error) {
+func stemRun_prepContext(request StemRunRequest) (string, error) {
 	context := request.Context
 	if context == "" {
 		context = "default"
@@ -37,7 +37,7 @@ func stemExec_prepContext(request StemExecRequest) (string, error) {
 	return contextPath, nil
 }
 
-func StemExec(request StemExecRequest) error {
+func StemRun(request StemRunRequest) error {
 	var execPath = request.ExecPath
 	var stemPath = request.StemPath
 	var env = request.Env
@@ -64,7 +64,7 @@ func StemExec(request StemExecRequest) error {
 		return err
 	}
 
-	contextPath, err := stemExec_prepContext(request)
+	contextPath, err := stemRun_prepContext(request)
 	if err != nil {
 		return err
 	}

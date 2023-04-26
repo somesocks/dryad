@@ -1245,7 +1245,7 @@ func _buildCLI() cli.App {
 					if includeSprouts(relPath) && !excludeSprouts(relPath) {
 						fmt.Println("[info] executing sprout at", path)
 
-						err := dryad.StemExec(dryad.StemExecRequest{
+						err := dryad.StemRun(dryad.StemRunRequest{
 							StemPath:   path,
 							Env:        env,
 							Args:       extras,
@@ -1350,7 +1350,7 @@ func _buildCLI() cli.App {
 		WithCommand(sproutsList).
 		WithCommand(sproutsPath)
 
-	var stemExec = cli.NewCommand("exec", "execute the main for a stem").
+	var stemRun = cli.NewCommand("run", "execute the main for a stem").
 		WithArg(cli.NewArg("path", "path to the stem base dir")).
 		WithOption(cli.NewOption("execPath", "path to the executable running `dryad stem exec`. used for path setting")).
 		WithOption(cli.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
@@ -1392,7 +1392,7 @@ func _buildCLI() cli.App {
 
 			path := args[0]
 			extras := args[1:]
-			err := dryad.StemExec(dryad.StemExecRequest{
+			err := dryad.StemRun(dryad.StemRunRequest{
 				ExecPath:   execPath,
 				StemPath:   path,
 				Env:        env,
@@ -1542,11 +1542,11 @@ func _buildCLI() cli.App {
 		})
 
 	var stem = cli.NewCommand("stem", "commands to work with dryad stems").
-		WithCommand(stemExec).
 		WithCommand(stemFingerprint).
 		WithCommand(stemFiles).
 		WithCommand(stemPack).
 		WithCommand(stemPath).
+		WithCommand(stemRun).
 		WithCommand(stemUnpack)
 
 	var stemsList = cli.NewCommand("list", "list all stems that are dependencies for the current root").
