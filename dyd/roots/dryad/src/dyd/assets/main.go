@@ -1114,7 +1114,7 @@ func _buildCLI() cli.App {
 		WithCommand(secretsList).
 		WithCommand(secretsPath)
 
-	var sproutsExec = cli.NewCommand("exec", "execute each sprout in the current garden").
+	var sproutsRun = cli.NewCommand("run", "run each sprout in the current garden").
 		WithOption(cli.NewOption("include", "choose which sprouts are included").WithType(cli.TypeMultiString)).
 		WithOption(cli.NewOption("exclude", "choose which sprouts are excluded").WithType(cli.TypeMultiString)).
 		WithOption(cli.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
@@ -1243,7 +1243,7 @@ func _buildCLI() cli.App {
 					}
 
 					if includeSprouts(relPath) && !excludeSprouts(relPath) {
-						fmt.Println("[info] executing sprout at", path)
+						fmt.Println("[info] running sprout at", path)
 
 						err := dryad.StemRun(dryad.StemRunRequest{
 							StemPath:   path,
@@ -1346,13 +1346,13 @@ func _buildCLI() cli.App {
 		})
 
 	var sprouts = cli.NewCommand("sprouts", "commands to work with dryad sprouts").
-		WithCommand(sproutsExec).
 		WithCommand(sproutsList).
-		WithCommand(sproutsPath)
+		WithCommand(sproutsPath).
+		WithCommand(sproutsRun)
 
 	var stemRun = cli.NewCommand("run", "execute the main for a stem").
 		WithArg(cli.NewArg("path", "path to the stem base dir")).
-		WithOption(cli.NewOption("execPath", "path to the executable running `dryad stem exec`. used for path setting")).
+		WithOption(cli.NewOption("execPath", "path to the executable running `dryad stem run`. used for path setting")).
 		WithOption(cli.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
 		WithOption(cli.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(cli.TypeBool)).
 		WithArg(cli.NewArg("-- args", "args to pass to the stem").AsOptional()).
