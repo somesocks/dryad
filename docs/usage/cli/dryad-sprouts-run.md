@@ -1,18 +1,18 @@
 ---
-title: dryad sprouts exec
+title: dryad sprouts run
 layout: default
 parent: CLI
 grand_parent: Usage
 ---
 
-# dryad sprouts exec
+# dryad sprouts run
 
 ```
-$ dryad sprouts exec --help
-dryad sprouts exec [--include] [--exclude] [--context=string] [--inherit] [--confirm] [--ignore-errors] [--scope=string] [-- args]
+$ dryad sprouts run --help
+dryad sprouts run [--include] [--exclude] [--context=string] [--inherit] [--confirm] [--ignore-errors] [--scope=string] [-- args]
 
 Description:
-    execute each sprout in the current garden
+    run each sprout in the current garden
 
 Arguments:
     -- args               args to pass to each sprout on execution, optional
