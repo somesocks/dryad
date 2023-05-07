@@ -22,30 +22,41 @@ func RootReplace(sourcePath string, destPath string) error {
 		return err
 	}
 
-	rootsPath, err := RootsPath(sourcePath)
+	gardenPath, err := GardenPath(sourcePath)
+	if err != nil {
+		return err
+	}
+
+	rootsPath, err := RootsPath(gardenPath)
 	if err != nil {
 		return err
 	}
 
 	// don't crawl symlinks
 	crawlInclude := func(path string, info fs.FileInfo) (bool, error) {
-		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
-			return false, nil
-		} else {
-			return true, nil
-		}
+		crawl := info.Mode()&os.ModeSymlink != os.ModeSymlink
+		// fmt.Println("[debug] root replace crawl include ", path, crawl)
+		return crawl, nil
+	}
+
+	crawlExclude := func(path string, info fs.FileInfo) (bool, error) {
+		return false, nil
 	}
 
 	// only match symlinks
 	matchInclude := func(path string, info fs.FileInfo) (bool, error) {
-		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
-			return true, nil
-		} else {
-			return false, nil
-		}
+		match := info.Mode()&os.ModeSymlink == os.ModeSymlink
+		// fmt.Println("[debug] root replace match include ", path, match)
+		return match, nil
+	}
+
+	matchExclude := func(path string, info fs.FileInfo) (bool, error) {
+		return false, nil
 	}
 
 	onMatch := func(targetSourcePath string, info fs.FileInfo) error {
+
+		// fmt.Println("[debug] root replace match", targetSourcePath)
 
 		// ignore non-symlinks
 		if info.Mode()&os.ModeSymlink != os.ModeSymlink {
@@ -88,7 +99,9 @@ func RootReplace(sourcePath string, destPath string) error {
 	err = fs2.Walk2(fs2.Walk2Request{
 		BasePath:     rootsPath,
 		CrawlInclude: crawlInclude,
+		CrawlExclude: crawlExclude,
 		MatchInclude: matchInclude,
+		MatchExclude: matchExclude,
 		OnMatch:      onMatch,
 	})
 	return err
