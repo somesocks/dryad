@@ -384,12 +384,31 @@ func _buildCLI() cli.App {
 			return 0
 		})
 
+	var rootReplace = cli.NewCommand("replace", "replace all references to one root with references to another").
+		WithArg(cli.NewArg("source", "path to the source root")).
+		WithArg(cli.NewArg("replacement", "path to the replacement root")).
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
+			var source string = args[0]
+			var dest string = args[1]
+
+			err := dryad.RootReplace(source, dest)
+
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			return 0
+		})
+
 	var root = cli.NewCommand("root", "commands to work with a dryad root").
 		WithCommand(rootAdd).
 		WithCommand(rootBuild).
 		WithCommand(rootCopy).
 		WithCommand(rootInit).
-		WithCommand(rootPath)
+		WithCommand(rootPath).
+		WithCommand(rootReplace)
 
 	var rootsList = cli.NewCommand("list", "list all roots that are dependencies for the current root (or roots of the current garden, if the path is not a root)").
 		WithArg(cli.NewArg("path", "path to the base root (or garden) to list roots in").AsOptional()).
