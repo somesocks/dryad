@@ -366,9 +366,28 @@ func _buildCLI() cli.App {
 			return 0
 		})
 
+	var rootCopy = cli.NewCommand("copy", "make a copy of the specified root at a new location").
+		WithArg(cli.NewArg("source", "path to the source root")).
+		WithArg(cli.NewArg("destination", "destination path for the root copy")).
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
+			var source string = args[0]
+			var dest string = args[1]
+
+			err := dryad.RootCopy(source, dest)
+
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			return 0
+		})
+
 	var root = cli.NewCommand("root", "commands to work with a dryad root").
 		WithCommand(rootAdd).
 		WithCommand(rootBuild).
+		WithCommand(rootCopy).
 		WithCommand(rootInit).
 		WithCommand(rootPath)
 
