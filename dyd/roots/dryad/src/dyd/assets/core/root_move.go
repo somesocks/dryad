@@ -12,12 +12,6 @@ func RootMove(sourcePath string, destPath string) error {
 		return err
 	}
 
-	// normalize the replacement path
-	destPath, err = RootPath(destPath)
-	if err != nil {
-		return err
-	}
-
 	// copy the root to the new path
 	err = RootCopy(sourcePath, destPath)
 	if err != nil {
