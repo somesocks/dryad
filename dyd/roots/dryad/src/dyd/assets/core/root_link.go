@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-func RootAdd(rootPath string, depPath string, alias string) error {
+func RootLink(rootPath string, depPath string, alias string) error {
 	var err error
 	if depPath == "" {
 		return errors.New("missing path to dependency root")

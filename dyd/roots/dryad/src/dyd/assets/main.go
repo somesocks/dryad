@@ -267,9 +267,9 @@ func _buildCLI() cli.App {
 		WithCommand(gardenPrune).
 		WithCommand(gardenWipe)
 
-	var rootAdd = cli.NewCommand("add", "add a root as a dependency of the current root").
-		WithArg(cli.NewArg("path", "path to the root you want to add as a dependency")).
-		WithArg(cli.NewArg("alias", "the alias to add the root under. if not specified, this defaults to the basename of the added root").AsOptional()).
+	var rootLink = cli.NewCommand("link", "link a root as a dependency of the current root").
+		WithArg(cli.NewArg("path", "path to the root you want to link as a dependency")).
+		WithArg(cli.NewArg("alias", "the alias to link the root under. if not specified, this defaults to the basename of the linked root").AsOptional()).
 		WithAction(func(req cli.ActionRequest) int {
 			var args = req.Args
 
@@ -284,7 +284,7 @@ func _buildCLI() cli.App {
 				alias = args[1]
 			}
 
-			err = dryad.RootAdd(rootPath, path, alias)
+			err = dryad.RootLink(rootPath, path, alias)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -421,10 +421,10 @@ func _buildCLI() cli.App {
 		})
 
 	var root = cli.NewCommand("root", "commands to work with a dryad root").
-		WithCommand(rootAdd).
 		WithCommand(rootBuild).
 		WithCommand(rootCopy).
 		WithCommand(rootInit).
+		WithCommand(rootLink).
 		WithCommand(rootMove).
 		WithCommand(rootPath).
 		WithCommand(rootReplace)
