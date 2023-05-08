@@ -402,11 +402,30 @@ func _buildCLI() cli.App {
 			return 0
 		})
 
+	var rootMove = cli.NewCommand("move", "move a root to a new location and correct all references").
+		WithArg(cli.NewArg("source", "path to the source root")).
+		WithArg(cli.NewArg("destination", "destination path for the root")).
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
+			var source string = args[0]
+			var dest string = args[1]
+
+			err := dryad.RootMove(source, dest)
+
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			return 0
+		})
+
 	var root = cli.NewCommand("root", "commands to work with a dryad root").
 		WithCommand(rootAdd).
 		WithCommand(rootBuild).
 		WithCommand(rootCopy).
 		WithCommand(rootInit).
+		WithCommand(rootMove).
 		WithCommand(rootPath).
 		WithCommand(rootReplace)
 
