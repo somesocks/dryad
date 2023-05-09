@@ -292,6 +292,26 @@ func _buildCLI() cli.App {
 			return 0
 		})
 
+	var rootUnlink = cli.NewCommand("unlink", "remove a dependency linked to the current root").
+		WithArg(cli.NewArg("path", "path to the dependency to unlink")).
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
+			var rootPath, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			var path = args[0]
+
+			err = dryad.RootUnlink(rootPath, path)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			return 0
+		})
+
 	var rootInit = cli.NewCommand("init", "create a new root directory structure in the current dir").
 		WithArg(cli.NewArg("path", "the path to init the root at. defaults to current directory").AsOptional()).
 		WithAction(func(req cli.ActionRequest) int {
@@ -427,7 +447,8 @@ func _buildCLI() cli.App {
 		WithCommand(rootLink).
 		WithCommand(rootMove).
 		WithCommand(rootPath).
-		WithCommand(rootReplace)
+		WithCommand(rootReplace).
+		WithCommand(rootUnlink)
 
 	var rootsList = cli.NewCommand("list", "list all roots that are dependencies for the current root (or roots of the current garden, if the path is not a root)").
 		WithArg(cli.NewArg("path", "path to the base root (or garden) to list roots in").AsOptional()).
