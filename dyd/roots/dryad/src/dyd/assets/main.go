@@ -267,9 +267,9 @@ func _buildCLI() cli.App {
 		WithCommand(gardenPrune).
 		WithCommand(gardenWipe)
 
-	var rootAdd = cli.NewCommand("add", "add a root as a dependency of the current root").
-		WithArg(cli.NewArg("path", "path to the root you want to add as a dependency")).
-		WithArg(cli.NewArg("alias", "the alias to add the root under. if not specified, this defaults to the basename of the added root").AsOptional()).
+	var rootLink = cli.NewCommand("link", "link a root as a dependency of the current root").
+		WithArg(cli.NewArg("path", "path to the root you want to link as a dependency")).
+		WithArg(cli.NewArg("alias", "the alias to link the root under. if not specified, this defaults to the basename of the linked root").AsOptional()).
 		WithAction(func(req cli.ActionRequest) int {
 			var args = req.Args
 
@@ -284,7 +284,27 @@ func _buildCLI() cli.App {
 				alias = args[1]
 			}
 
-			err = dryad.RootAdd(rootPath, path, alias)
+			err = dryad.RootLink(rootPath, path, alias)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			return 0
+		})
+
+	var rootUnlink = cli.NewCommand("unlink", "remove a dependency linked to the current root").
+		WithArg(cli.NewArg("path", "path to the dependency to unlink")).
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
+			var rootPath, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			var path = args[0]
+
+			err = dryad.RootUnlink(rootPath, path)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -366,11 +386,69 @@ func _buildCLI() cli.App {
 			return 0
 		})
 
+	var rootCopy = cli.NewCommand("copy", "make a copy of the specified root at a new location").
+		WithArg(cli.NewArg("source", "path to the source root")).
+		WithArg(cli.NewArg("destination", "destination path for the root copy")).
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
+			var source string = args[0]
+			var dest string = args[1]
+
+			err := dryad.RootCopy(source, dest)
+
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			return 0
+		})
+
+	var rootReplace = cli.NewCommand("replace", "replace all references to one root with references to another").
+		WithArg(cli.NewArg("source", "path to the source root")).
+		WithArg(cli.NewArg("replacement", "path to the replacement root")).
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
+			var source string = args[0]
+			var dest string = args[1]
+
+			err := dryad.RootReplace(source, dest)
+
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			return 0
+		})
+
+	var rootMove = cli.NewCommand("move", "move a root to a new location and correct all references").
+		WithArg(cli.NewArg("source", "path to the source root")).
+		WithArg(cli.NewArg("destination", "destination path for the root")).
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
+			var source string = args[0]
+			var dest string = args[1]
+
+			err := dryad.RootMove(source, dest)
+
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			return 0
+		})
+
 	var root = cli.NewCommand("root", "commands to work with a dryad root").
-		WithCommand(rootAdd).
 		WithCommand(rootBuild).
+		WithCommand(rootCopy).
 		WithCommand(rootInit).
-		WithCommand(rootPath)
+		WithCommand(rootLink).
+		WithCommand(rootMove).
+		WithCommand(rootPath).
+		WithCommand(rootReplace).
+		WithCommand(rootUnlink)
 
 	var rootsList = cli.NewCommand("list", "list all roots that are dependencies for the current root (or roots of the current garden, if the path is not a root)").
 		WithArg(cli.NewArg("path", "path to the base root (or garden) to list roots in").AsOptional()).
@@ -1114,7 +1192,7 @@ func _buildCLI() cli.App {
 		WithCommand(secretsList).
 		WithCommand(secretsPath)
 
-	var sproutsExec = cli.NewCommand("exec", "execute each sprout in the current garden").
+	var sproutsRun = cli.NewCommand("run", "run each sprout in the current garden").
 		WithOption(cli.NewOption("include", "choose which sprouts are included").WithType(cli.TypeMultiString)).
 		WithOption(cli.NewOption("exclude", "choose which sprouts are excluded").WithType(cli.TypeMultiString)).
 		WithOption(cli.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
@@ -1243,7 +1321,7 @@ func _buildCLI() cli.App {
 					}
 
 					if includeSprouts(relPath) && !excludeSprouts(relPath) {
-						fmt.Println("[info] executing sprout at", path)
+						fmt.Println("[info] running sprout at", path)
 
 						err := dryad.StemRun(dryad.StemRunRequest{
 							StemPath:   path,
@@ -1346,13 +1424,13 @@ func _buildCLI() cli.App {
 		})
 
 	var sprouts = cli.NewCommand("sprouts", "commands to work with dryad sprouts").
-		WithCommand(sproutsExec).
 		WithCommand(sproutsList).
-		WithCommand(sproutsPath)
+		WithCommand(sproutsPath).
+		WithCommand(sproutsRun)
 
 	var stemRun = cli.NewCommand("run", "execute the main for a stem").
 		WithArg(cli.NewArg("path", "path to the stem base dir")).
-		WithOption(cli.NewOption("execPath", "path to the executable running `dryad stem exec`. used for path setting")).
+		WithOption(cli.NewOption("execPath", "path to the executable running `dryad stem run`. used for path setting")).
 		WithOption(cli.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
 		WithOption(cli.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(cli.TypeBool)).
 		WithArg(cli.NewArg("-- args", "args to pass to the stem").AsOptional()).
