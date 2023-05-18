@@ -312,16 +312,12 @@ func _buildCLI() cli.App {
 			return 0
 		})
 
-	var rootInit = cli.NewCommand("init", "create a new root directory structure in the current dir").
-		WithArg(cli.NewArg("path", "the path to init the root at. defaults to current directory").AsOptional()).
+	var rootInit = cli.NewCommand("init", "create a new root at the target path").
+		WithArg(cli.NewArg("path", "the path to init the new root at")).
 		WithAction(func(req cli.ActionRequest) int {
 			var args = req.Args
 
-			var path string = ""
-
-			if len(args) > 0 {
-				path = args[0]
-			}
+			var path string = args[0]
 
 			err := dryad.RootInit(path)
 
