@@ -9,11 +9,11 @@ grand_parent: Usage
 
 ```
 $ dryad root init --help
-dryad root init [path]
+dryad root init <path>
 
 Description:
-    create a new root directory structure in the current dir
+    create a new root at the target path
 
 Arguments:
-    path   the path to init the root at. defaults to current directory, optional
+    path   the path to init the new root at
 ```
