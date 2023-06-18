@@ -68,6 +68,24 @@ func RootCopy(sourcePath string, destPath string) error {
 		return err
 	}
 
+	// temporary workaround until RootsPath is more correct
+	gardenPath, err := GardenPath(sourcePath)
+	if err != nil {
+		return err
+	}
+	rootsPath, err := RootsPath(gardenPath)
+	if err != nil {
+		return err
+	}
+
+	isWithinRoots, err := fileIsDescendant(destPath, rootsPath)
+	if err != nil {
+		return err
+	}
+	if !isWithinRoots {
+		return fmt.Errorf("destination path %s is outside of roots", destPath)
+	}
+
 	// gardenPath, err := GardenPath(sourcePath)
 	// if err != nil {
 	// 	return err
