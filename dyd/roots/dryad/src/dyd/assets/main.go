@@ -1039,21 +1039,30 @@ func _buildCLI() cli.App {
 			fmt.Println("[info] using scope:", scope)
 		}
 
+		var scripts []string
+
 		err = dryad.ScriptsWalk(dryad.ScriptsWalkRequest{
 			BasePath: basePath,
 			Scope:    scope,
 			OnMatch: func(path string, info fs.FileInfo) error {
 				if showPath {
-					fmt.Println(path)
+					scripts = append(scripts, path)
 				} else {
 					var name string = info.Name()
-					fmt.Println("dryad script run", strings.TrimPrefix(name, "script-run-"))
+					var script string = "dryad script run " + strings.TrimPrefix(name, "script-run-")
+					scripts = append(scripts, script)
 				}
 				return nil
 			},
 		})
 		if err != nil {
 			log.Fatal(err)
+		}
+
+		sort.Strings(scripts)
+
+		for _, script := range scripts {
+			fmt.Println(script)
 		}
 
 		return 0
