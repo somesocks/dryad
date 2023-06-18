@@ -3,6 +3,7 @@ package core
 import (
 	fs2 "dryad/filesystem"
 	"io/fs"
+	"path/filepath"
 )
 
 func ScopesWalk(path string, walkFn func(path string, info fs.FileInfo) error) error {
@@ -18,7 +19,7 @@ func ScopesWalk(path string, walkFn func(path string, info fs.FileInfo) error) e
 
 	// directories in the scopes dir are scopes, but not the inital dir
 	var _scopeMatchInclude = func(path string, info fs.FileInfo) (bool, error) {
-		return info.IsDir() && path != scopesPath, nil
+		return info.IsDir() && path != scopesPath && filepath.Base(path) != "default", nil
 	}
 
 	err = fs2.Walk(fs2.WalkRequest{
