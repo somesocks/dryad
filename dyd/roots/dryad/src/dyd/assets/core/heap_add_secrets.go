@@ -1,6 +1,7 @@
 package core
 
 import (
+	fs2 "dryad/filesystem"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -82,7 +83,8 @@ func HeapAddSecrets(heapPath string, secretsPath string) (string, error) {
 				return err
 			}
 
-			err = destFile.Chmod(os.ModePerm)
+			// heap files should be set to R-X--X--X
+			err = destFile.Chmod(0o511)
 			if err != nil {
 				return err
 			}
@@ -100,6 +102,33 @@ func HeapAddSecrets(heapPath string, secretsPath string) (string, error) {
 		BasePath: secretsPath,
 		OnMatch:  onMatch,
 	})
+	if err != nil {
+		return secretsFingerprint, err
+	}
+
+	// now that all files are added, sweep through in a second pass and make directories read-only
+	err = fs2.Walk(fs2.WalkRequest{
+		BasePath: secretsPath,
+		MatchInclude: func(path string, info fs.FileInfo) (bool, error) {
+			return info.IsDir(), nil
+		},
+		OnMatch: func(path string, info fs.FileInfo) error {
+			dir, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer dir.Close()
+
+			// heap files should be set to R-X--X--X
+			err = dir.Chmod(0o511)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		},
+	})
+
 	if err != nil {
 		return secretsFingerprint, err
 	}

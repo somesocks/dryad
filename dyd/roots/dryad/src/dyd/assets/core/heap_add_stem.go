@@ -1,6 +1,7 @@
 package core
 
 import (
+	fs2 "dryad/filesystem"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -161,5 +162,37 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 		}
 
 	}
+
+	// now that all files are added, sweep through in a second pass and make directories read-only
+	err = fs2.Walk2(fs2.Walk2Request{
+		BasePath: finalStemPath,
+		CrawlInclude: func(path string, info fs.FileInfo) (bool, error) {
+			isDir := info.IsDir()
+			return isDir, nil
+		},
+		MatchInclude: func(path string, info fs.FileInfo) (bool, error) {
+			isDir := info.IsDir()
+			return isDir, nil
+		},
+		OnMatch: func(path string, info fs.FileInfo) error {
+			dir, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer dir.Close()
+
+			// heap files should be set to R-X--X--X
+			err = dir.Chmod(0o511)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		},
+	})
+	if err != nil {
+		return finalStemPath, err
+	}
+
 	return finalStemPath, nil
 }
