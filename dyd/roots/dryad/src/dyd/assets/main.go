@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"sort"
 	"strings"
 
 	dryad "dryad/core"
@@ -718,12 +719,20 @@ func _buildCLI() cli.App {
 				path = args[0]
 			}
 
+			var scopes []string
+
 			err = dryad.ScopesWalk(path, func(path string, info fs.FileInfo) error {
-				fmt.Println(filepath.Base(path))
+				scopes = append(scopes, filepath.Base(path))
 				return nil
 			})
 			if err != nil {
 				log.Fatal(err)
+			}
+
+			sort.Strings(scopes)
+
+			for _, scope := range scopes {
+				fmt.Println(scope)
 			}
 
 			return 0
