@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"sort"
 	"strings"
 
 	dryad "dryad/core"
@@ -312,16 +313,12 @@ func _buildCLI() cli.App {
 			return 0
 		})
 
-	var rootInit = cli.NewCommand("init", "create a new root directory structure in the current dir").
-		WithArg(cli.NewArg("path", "the path to init the root at. defaults to current directory").AsOptional()).
+	var rootInit = cli.NewCommand("init", "create a new root at the target path").
+		WithArg(cli.NewArg("path", "the path to init the new root at")).
 		WithAction(func(req cli.ActionRequest) int {
 			var args = req.Args
 
-			var path string = ""
-
-			if len(args) > 0 {
-				path = args[0]
-			}
+			var path string = args[0]
 
 			err := dryad.RootInit(path)
 
@@ -722,12 +719,20 @@ func _buildCLI() cli.App {
 				path = args[0]
 			}
 
+			var scopes []string
+
 			err = dryad.ScopesWalk(path, func(path string, info fs.FileInfo) error {
-				fmt.Println(filepath.Base(path))
+				scopes = append(scopes, filepath.Base(path))
 				return nil
 			})
 			if err != nil {
 				log.Fatal(err)
+			}
+
+			sort.Strings(scopes)
+
+			for _, scope := range scopes {
+				fmt.Println(scope)
 			}
 
 			return 0
@@ -1034,21 +1039,30 @@ func _buildCLI() cli.App {
 			fmt.Println("[info] using scope:", scope)
 		}
 
+		var scripts []string
+
 		err = dryad.ScriptsWalk(dryad.ScriptsWalkRequest{
 			BasePath: basePath,
 			Scope:    scope,
 			OnMatch: func(path string, info fs.FileInfo) error {
 				if showPath {
-					fmt.Println(path)
+					scripts = append(scripts, path)
 				} else {
 					var name string = info.Name()
-					fmt.Println("dryad script run", strings.TrimPrefix(name, "script-run-"))
+					var script string = "dryad script run " + strings.TrimPrefix(name, "script-run-")
+					scripts = append(scripts, script)
 				}
 				return nil
 			},
 		})
 		if err != nil {
 			log.Fatal(err)
+		}
+
+		sort.Strings(scripts)
+
+		for _, script := range scripts {
+			fmt.Println(script)
 		}
 
 		return 0

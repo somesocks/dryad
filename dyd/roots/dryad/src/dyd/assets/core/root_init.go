@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -9,6 +10,13 @@ func RootInit(path string) error {
 	path, err := filepath.Abs(path)
 	if err != nil {
 		return err
+	}
+
+	pathExists, err := fileExists(path)
+	if err != nil {
+		return err
+	} else if pathExists {
+		return fmt.Errorf("error: init destination %s already exists", path)
 	}
 
 	var basePath string = filepath.Join(path, "dyd")
@@ -20,7 +28,6 @@ func RootInit(path string) error {
 	if _, err := os.Create(flagPath); err != nil {
 		return err
 	}
-
 
 	var assetsPath string = filepath.Join(basePath, "assets")
 	if err := os.MkdirAll(assetsPath, os.ModePerm); err != nil {
