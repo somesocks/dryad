@@ -45,7 +45,8 @@ func HeapAddFile(heapPath string, filePath string) (string, error) {
 			return "", err
 		}
 
-		err = destFile.Chmod(os.ModePerm)
+		// heap files should be set to R-X--X--X
+		err = destFile.Chmod(0o511)
 		if err != nil {
 			return "", err
 		}
