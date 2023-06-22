@@ -24,8 +24,22 @@ func RootInit(path string) error {
 		return err
 	}
 
-	var flagPath string = filepath.Join(basePath, "root")
-	if _, err := os.Create(flagPath); err != nil {
+	// write out type file
+	typePath := filepath.Join(basePath, "type")
+
+	typeFile, err := os.Create(typePath)
+	if err != nil {
+		return err
+	}
+	defer typeFile.Close()
+
+	_, err = fmt.Fprint(typeFile, "root")
+	if err != nil {
+		return err
+	}
+
+	err = typeFile.Sync()
+	if err != nil {
 		return err
 	}
 
