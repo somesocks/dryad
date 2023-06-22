@@ -22,6 +22,12 @@ func stemFinalize(stemPath string) (string, error) {
 		return "", err
 	}
 
+	// write the type file
+	err = os.WriteFile(filepath.Join(stemPath, "dyd", "type"), []byte("stem"), os.ModePerm)
+	if err != nil {
+		return "", err
+	}
+
 	// write out the secrets fingerprint
 	secretsFingerprint, err := SecretsFingerprint(
 		SecretsFingerprintArgs{BasePath: secretsPath},

@@ -29,6 +29,7 @@ var STEM_WALK_MATCH_INCLUDE, _ = regexp.Compile(
 		"(dyd/path/.*)" +
 		"|(dyd/assets/.*)" +
 		"|(dyd/readme)" +
+		"|(dyd/type)" +
 		"|(dyd/fingerprint)" +
 		"|(dyd/secrets-fingerprint)" +
 		"|(dyd/main)" +
