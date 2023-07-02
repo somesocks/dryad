@@ -1,7 +1,7 @@
 package core
 
 import (
-	"fmt"
+	fs2 "dryad/filesystem"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -334,7 +334,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		return rootFingerprint, nil
 	}
 
-	fmt.Println("[info] dryad checking root " + relRootPath)
+	// fmt.Println("[info] dryad checking root " + relRootPath)
 
 	// prepare a workspace
 	workspacePath, err := os.MkdirTemp("", "dryad-*")
@@ -389,6 +389,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	}
 
 	if derivationFileExists {
+		// fmt.Println("[info] derivationFileExists " + derivationsPath)
 		derivationsFingerprintFile := filepath.Join(derivationsPath, "dyd", "fingerprint")
 		derivationsFingerprintBytes, err := ioutil.ReadFile(derivationsFingerprintFile)
 		if err != nil {
@@ -402,7 +403,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		context.RootFingerprints[absRootPath] = derivationsFingerprint
 
 	} else {
-		fmt.Println("[info] dryad building root " + relRootPath)
+		// fmt.Println("[info] dryad building root " + relRootPath)
 
 		// otherwise run the root in a build env
 		stemBuildPath, err := os.MkdirTemp("", "dryad-*")
@@ -443,7 +444,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 			}
 		}
 
-		fmt.Println("[info] dryad done building root " + relRootPath)
+		// fmt.Println("[info] dryad done building root " + relRootPath)
 	}
 
 	sproutPath := filepath.Join(gardenPath, "dyd", "sprouts", relRootPath)
@@ -457,17 +458,33 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		return "", err
 	}
 
-	err = os.MkdirAll(sproutParent, fs.ModePerm)
+	// fmt.Println("[info] building sprout parent")
+	err = fs2.MkDir(sproutParent, fs.ModePerm)
 	if err != nil {
 		return "", err
 	}
 
-	err = os.Remove(sproutPath)
-	if err != nil && !os.IsNotExist(err) {
+	// fmt.Println("[info] setting write permission on sprout parent")
+	err = os.Chmod(sproutParent, 0o711)
+	if err != nil {
 		return "", err
 	}
 
-	err = os.Symlink(relSproutLink, sproutPath)
+	tmpSproutPath := sproutPath + ".tmp"
+	// fmt.Println("[info] adding temporary sprout link")
+	err = os.Symlink(relSproutLink, tmpSproutPath)
+	if err != nil {
+		return "", err
+	}
+
+	// fmt.Println("[info] renaming sprout link", sproutPath)
+	err = os.Rename(tmpSproutPath, sproutPath)
+	if err != nil {
+		return "", err
+	}
+
+	// fmt.Println("[info] setting read permissions on sprout parent")
+	err = os.Chmod(sproutParent, 0o511)
 	if err != nil {
 		return "", err
 	}

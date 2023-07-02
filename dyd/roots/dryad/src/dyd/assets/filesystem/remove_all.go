@@ -3,24 +3,44 @@ package fs2
 import (
 	"io/fs"
 	"os"
+	"path/filepath"
 )
 
 func RemoveAll(path string) error {
 
 	// walk through the filesystem and fix any permissions problems,
 	// if you can
-	err := Walk2(Walk2Request{
+	err := DFSWalk(Walk3Request{
 		BasePath: path,
-		CrawlExclude: func(path string, info fs.FileInfo) (bool, error) {
+		ShouldCrawl: func(path string, info fs.FileInfo) (bool, error) {
 			// don't crawl symlinks
 			if info.Mode()&os.ModeSymlink == os.ModeSymlink {
-				return true, nil
+				return false, nil
 			}
 
-			return false, nil
+			return true, nil
 		},
 		OnMatch: func(path string, info fs.FileInfo) error {
-			err := os.Chmod(path, os.ModePerm)
+			parentInfo, err := os.Lstat(filepath.Dir(path))
+			if err != nil {
+				return err
+			}
+
+			if parentInfo.Mode()&0o200 != 0o200 {
+				err := os.Chmod(filepath.Dir(path), parentInfo.Mode()|0o200)
+				if err != nil {
+					return err
+				}
+			}
+
+			// if info.Mode()&0o200 != 0o200 {
+			// 	err := os.Chmod(filepath.Dir(path), info.Mode()|0o200)
+			// 	if err != nil {
+			// 		return err
+			// 	}
+			// }
+
+			err = os.Remove(path)
 			if err != nil {
 				return err
 			}
@@ -28,11 +48,6 @@ func RemoveAll(path string) error {
 			return nil
 		},
 	})
-	if err != nil {
-		return err
-	}
-
-	err = os.RemoveAll(path)
 	if err != nil {
 		return err
 	}

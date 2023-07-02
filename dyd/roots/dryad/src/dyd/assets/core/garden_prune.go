@@ -3,7 +3,6 @@ package core
 import (
 	fs2 "dryad/filesystem"
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -11,16 +10,14 @@ import (
 	"time"
 )
 
-var GARDEN_PRUNE_STEMS_CRAWL_ALLOW, _ = regexp.Compile(`^((\.)|(stems))$`)
-var GARDEN_PRUNE_STEMS_MATCH_ALLOW, _ = regexp.Compile(`^(stems/.*)$`)
+var REGEX_GARDEN_PRUNE_STEMS_CRAWL = regexp.MustCompile(`^((\.)|(stems))$`)
+var REGEX_GARDEN_PRUNE_STEMS_MATCH = regexp.MustCompile(`^(stems/.*)$`)
 
-var GARDEN_PRUNE_FILES_CRAWL_ALLOW, _ = regexp.Compile(`^((\.)|(files))$`)
-var GARDEN_PRUNE_FIlES_MATCH_ALLOW, _ = regexp.Compile(`^(files/.*)$`)
+var REGEX_GARDEN_PRUNE_FILES_CRAWL = regexp.MustCompile(`^((\.)|(files))$`)
+var REGEX_GARDEN_PRUNE_FIlES_MATCH = regexp.MustCompile(`^(files/.*)$`)
 
-var GARDEN_PRUNE_DERIVATIONS_CRAWL_ALLOW, _ = regexp.Compile(`^((\.)|(derivations))$`)
-var GARDEN_PRUNE_DERIVATIONS_MATCH_ALLOW, _ = regexp.Compile(`^(derivations/.*)$`)
-
-var GARDEN_PRUNE_DERIVATIONS_ERROR_MATCH, _ = regexp.Compile(`^(.*/dyd/heap/derivations/.*)$`)
+var REGEX_GARDEN_PRUNE_DERIVATIONS_CRAWL = regexp.MustCompile(`^((\.)|(derivations))$`)
+var REGEX_GARDEN_PRUNE_DERIVATIONS_MATCH = regexp.MustCompile(`^(derivations/.*)$`)
 
 func GardenPrune(gardenPath string) error {
 
@@ -46,7 +43,25 @@ func GardenPrune(gardenPath string) error {
 			return err
 		}
 
+		// set to RWX--X--X temporarily
+		err = os.Chmod(path, 0o711)
+		if err != nil {
+			return err
+		}
+
 		err = os.Chtimes(path, currentTime, currentTime)
+		if err != nil {
+			return err
+		}
+
+		// set back to R-X--X--X
+		err = os.Chmod(path, 0o511)
+		if err != nil {
+			return err
+		}
+
+		// set to RWX--X--X temporarily
+		err = os.Chmod(realPath, 0o711)
 		if err != nil {
 			return err
 		}
@@ -56,10 +71,16 @@ func GardenPrune(gardenPath string) error {
 			return err
 		}
 
+		// set back to R-X--X--X
+		err = os.Chmod(realPath, 0o511)
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}
 
-	err = fs2.ReWalk(fs2.ReWalkArgs{
+	err = fs2.BFSWalk(fs2.Walk3Request{
 		BasePath: sproutsPath,
 		OnMatch:  markFile,
 	})
@@ -69,12 +90,30 @@ func GardenPrune(gardenPath string) error {
 
 	heapPath := filepath.Join(gardenPath, "dyd", "heap")
 
-	sweepFile := func(path string, info fs.FileInfo) error {
-		// fmt.Println("sweepFile ", path)
+	sweepStemShouldCrawl := func(path string, info fs.FileInfo) (bool, error) {
+		var relPath, relErr = filepath.Rel(heapPath, path)
+		if relErr != nil {
+			return false, relErr
+		}
+		matchesPath := REGEX_GARDEN_PRUNE_STEMS_CRAWL.Match([]byte(relPath))
+		isSymlink := info.Mode()&os.ModeSymlink == os.ModeSymlink
+		shouldCrawl := matchesPath && !isSymlink
+		// fmt.Println("sweepStemShouldCrawl", path, relPath, shouldCrawl)
+		return shouldCrawl, nil
+	}
 
-		var err error
+	sweepStemShouldMatch := func(path string, info fs.FileInfo) (bool, error) {
+		var relPath, relErr = filepath.Rel(heapPath, path)
+		if relErr != nil {
+			return false, relErr
+		}
+		shouldMatch := REGEX_GARDEN_PRUNE_STEMS_MATCH.Match([]byte(relPath))
+		return shouldMatch, nil
+	}
+
+	sweepStem := func(path string, info fs.FileInfo) error {
 		if info.ModTime().Before(currentTime) {
-			err = os.RemoveAll(path)
+			err = fs2.RemoveAll(path)
 			if err != nil {
 				return err
 			}
@@ -83,48 +122,109 @@ func GardenPrune(gardenPath string) error {
 		return nil
 	}
 
-	err = fs2.ReWalk(fs2.ReWalkArgs{
-		BasePath:     heapPath,
-		CrawlInclude: GARDEN_PRUNE_STEMS_CRAWL_ALLOW,
-		MatchInclude: GARDEN_PRUNE_STEMS_MATCH_ALLOW,
-		OnMatch:      sweepFile,
+	err = fs2.BFSWalk(fs2.Walk3Request{
+		BasePath:    heapPath,
+		ShouldCrawl: sweepStemShouldCrawl,
+		ShouldMatch: sweepStemShouldMatch,
+		OnMatch:     sweepStem,
 	})
 	if err != nil {
 		return err
 	}
 
-	err = fs2.ReWalk(fs2.ReWalkArgs{
-		BasePath:     heapPath,
-		CrawlInclude: GARDEN_PRUNE_FILES_CRAWL_ALLOW,
-		MatchInclude: GARDEN_PRUNE_FIlES_MATCH_ALLOW,
-		OnMatch:      sweepFile,
-	})
-	if err != nil {
-		return err
+	sweepDerivationsShouldCrawl := func(path string, info fs.FileInfo) (bool, error) {
+		relPath, relErr := filepath.Rel(heapPath, path)
+		if relErr != nil {
+			return false, relErr
+		}
+		matchesPath := REGEX_GARDEN_PRUNE_DERIVATIONS_CRAWL.Match([]byte(relPath))
+		shouldCrawl := matchesPath
+		return shouldCrawl, nil
 	}
 
-	// prune newly broken derivations
+	sweepDerivationsShouldMatch := func(path string, info fs.FileInfo) (bool, error) {
+		var relPath, relErr = filepath.Rel(heapPath, path)
+		if relErr != nil {
+			return false, relErr
+		}
+		matchesPath := REGEX_GARDEN_PRUNE_DERIVATIONS_MATCH.Match([]byte(relPath))
+
+		_, err := os.Stat(path)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return false, err
+		}
+
+		isBroken := err != nil
+
+		shouldMatch := matchesPath && isBroken
+		return shouldMatch, nil
+	}
+
 	sweepDerivation := func(path string, info fs.FileInfo) error {
+		return os.Remove(path)
+	}
+
+	err = fs2.DFSWalk(fs2.Walk3Request{
+		BasePath:    heapPath,
+		ShouldCrawl: sweepDerivationsShouldCrawl,
+		ShouldMatch: sweepDerivationsShouldMatch,
+		OnMatch:     sweepDerivation,
+	})
+	if err != nil {
+		return err
+	}
+
+	sweepFileShouldCrawl := func(path string, info fs.FileInfo) (bool, error) {
+		var relPath, relErr = filepath.Rel(heapPath, path)
+		if relErr != nil {
+			return false, relErr
+		}
+		matchesPath := REGEX_GARDEN_PRUNE_FILES_CRAWL.Match([]byte(relPath))
+		isSymlink := info.Mode()&os.ModeSymlink == os.ModeSymlink
+		shouldCrawl := matchesPath && !isSymlink
+		// fmt.Println("sweepStemShouldCrawl", path, relPath, shouldCrawl)
+		return shouldCrawl, nil
+	}
+
+	sweepFilesShouldMatch := func(path string, info fs.FileInfo) (bool, error) {
+		var relPath, relErr = filepath.Rel(heapPath, path)
+		if relErr != nil {
+			return false, relErr
+		}
+		shouldMatch := REGEX_GARDEN_PRUNE_FIlES_MATCH.Match([]byte(relPath))
+		return shouldMatch, nil
+	}
+
+	sweepFile := func(path string, info fs.FileInfo) error {
+		if info.ModTime().Before(currentTime) {
+			parentInfo, err := os.Lstat(filepath.Dir(path))
+			if err != nil {
+				return err
+			}
+
+			if parentInfo.Mode()&0o200 != 0o200 {
+				err := os.Chmod(filepath.Dir(path), parentInfo.Mode()|0o200)
+				if err != nil {
+					return err
+				}
+			}
+
+			err = os.Remove(path)
+			if err != nil {
+				return err
+			}
+		}
+
 		return nil
 	}
-	handleSweepDerivationError := func(err error, path string, info fs.FileInfo) error {
-		// if the derivation does not exist (broken symlink from pruning),
-		// we should remove the symlink and return
-		if errors.Is(err, os.ErrNotExist) && GARDEN_PRUNE_DERIVATIONS_ERROR_MATCH.Match([]byte(path)) {
-			_ = os.Remove(path)
-			return nil
-		}
-		return err
-	}
-	err = fs2.ReWalk(fs2.ReWalkArgs{
-		BasePath:     heapPath,
-		CrawlInclude: GARDEN_PRUNE_DERIVATIONS_CRAWL_ALLOW,
-		MatchInclude: GARDEN_PRUNE_DERIVATIONS_MATCH_ALLOW,
-		OnMatch:      sweepDerivation,
-		OnError:      handleSweepDerivationError,
+
+	err = fs2.DFSWalk(fs2.Walk3Request{
+		BasePath:    heapPath,
+		ShouldCrawl: sweepFileShouldCrawl,
+		ShouldMatch: sweepFilesShouldMatch,
+		OnMatch:     sweepFile,
 	})
 	if err != nil {
-		fmt.Println("sweepderivations err ", err)
 		return err
 	}
 
