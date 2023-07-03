@@ -1551,8 +1551,6 @@ func _buildCLI() cli.App {
 			var err error
 			var matchExclude *regexp.Regexp
 
-			fmt.Println("stemFiles options", options, options["exclude"])
-
 			if options["exclude"] != nil && options["exclude"] != "" {
 				matchExclude, err = regexp.Compile(options["exclude"].(string))
 				if err != nil {
