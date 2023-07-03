@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -14,11 +15,6 @@ func GardenInit(path string) error {
 
 	gardenPath := filepath.Join(path, "dyd")
 	if err := os.MkdirAll(gardenPath, os.ModePerm); err != nil {
-		return err
-	}
-
-	flagPath := filepath.Join(gardenPath, "garden")
-	if _, err := os.Create(flagPath); err != nil {
 		return err
 	}
 
@@ -69,6 +65,25 @@ func GardenInit(path string) error {
 
 	sproutsPath := filepath.Join(gardenPath, "sprouts")
 	if err := os.MkdirAll(sproutsPath, os.ModePerm); err != nil {
+		return err
+	}
+
+	// write out type file
+	typePath := filepath.Join(gardenPath, "type")
+
+	typeFile, err := os.Create(typePath)
+	if err != nil {
+		return err
+	}
+	defer typeFile.Close()
+
+	_, err = fmt.Fprint(typeFile, "garden")
+	if err != nil {
+		return err
+	}
+
+	err = typeFile.Sync()
+	if err != nil {
 		return err
 	}
 

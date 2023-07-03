@@ -2,31 +2,31 @@ package core
 
 import (
 	"errors"
-	"log"
 	"os"
 	"path/filepath"
 )
 
 func RootPath(path string) (string, error) {
-	// fmt.Println("[trace] RootPath", path)
-	var workingPath, err = filepath.Abs(path)
+	var err error
+	path, err = filepath.Abs(path)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
-	var mainPath = filepath.Join(workingPath, "dyd", "root")
-	var _, fileInfoErr = os.Stat(mainPath)
+	var workingPath = path
+	var flagPath = filepath.Join(workingPath, "dyd", "type")
+	var fileBytes, fileInfoErr = os.ReadFile(flagPath)
 
 	for workingPath != "/" {
 
-		if fileInfoErr == nil {
+		if fileInfoErr == nil && string(fileBytes) == "root" {
 			return workingPath, nil
 		}
 
 		workingPath = filepath.Dir(workingPath)
-		mainPath = filepath.Join(workingPath, "dyd", "root")
-		_, fileInfoErr = os.Stat(mainPath)
+		flagPath = filepath.Join(workingPath, "dyd", "type")
+		fileBytes, fileInfoErr = os.ReadFile(flagPath)
 	}
 
-	return "", errors.New("dyd root path not found for " + path)
+	return "", errors.New("dyd root path not found starting from " + path)
 }

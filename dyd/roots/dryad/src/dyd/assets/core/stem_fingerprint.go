@@ -17,9 +17,8 @@ var STEM_FINGERPRINT_MATCH_ALLOW, _ = regexp.Compile(
 		"|(dyd/assets/.*)" +
 		"|(dyd/assets/.*)" +
 		"|(dyd/readme)" +
-		"|(dyd/readme)" +
+		"|(dyd/type)" +
 		"|(dyd/main)" +
-		"|(dyd/secrets-fingerprint)" +
 		"|(dyd/secrets-fingerprint)" +
 		"|(dyd/stems/.*/dyd/fingerprint)" +
 		"|(dyd/stems/.*/dyd/traits/.*)" +
