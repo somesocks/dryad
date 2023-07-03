@@ -1542,15 +1542,18 @@ func _buildCLI() cli.App {
 		})
 
 	var stemFiles = cli.NewCommand("files", "list the files in a stem").
-		// WithArg(cli.NewArg("path", "path to the stem base dir")).
+		WithArg(cli.NewArg("path", "path to the stem base dir").AsOptional()).
 		WithOption(cli.NewOption("exclude", "a regular expression to exclude files from the list. the regexp matches against the file path relative to the stem base directory")).
 		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
 			var options = req.Opts
 
 			var err error
 			var matchExclude *regexp.Regexp
 
-			if options["exclude"] != "" {
+			fmt.Println("stemFiles options", options, options["exclude"])
+
+			if options["exclude"] != nil && options["exclude"] != "" {
 				matchExclude, err = regexp.Compile(options["exclude"].(string))
 				if err != nil {
 					log.Fatal(err)
@@ -1558,10 +1561,20 @@ func _buildCLI() cli.App {
 			}
 
 			var path string
-			path, err = os.Getwd()
-			if err != nil {
-				log.Fatal(err)
+			if len(args) > 0 {
+				path = args[0]
+				path, err = filepath.Abs(path)
+				if err != nil {
+					log.Fatal(err)
+				}
 			}
+			if path == "" {
+				path, err = os.Getwd()
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+
 			err = dryad.StemFiles(
 				dryad.StemFilesArgs{
 					BasePath:  path,
