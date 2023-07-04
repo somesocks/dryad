@@ -39,6 +39,7 @@ var _ROOT_COPY_MATCH_INCLUDE_REGEXP = regexp.MustCompile(
 		"|(dyd/assets/.*)" +
 		"|(dyd/readme)" +
 		"|(dyd/fingerprint)" +
+		"|(dyd/type)" +
 		"|(dyd/root)" +
 		"|(dyd/secrets-fingerprint)" +
 		"|(dyd/main)" +
