@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+
+dryad garden build --scope=none

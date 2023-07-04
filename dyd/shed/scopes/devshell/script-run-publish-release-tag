@@ -3,7 +3,7 @@
 set -eu
 # set -x
 
-BASE=$(pwd)
+BASE=$(dryad garden path)
 
 TAG="release-$(cat $BASE/dyd/roots/dryad/src/dyd/traits/version)"
 
