@@ -9,12 +9,15 @@ import (
 )
 
 type StemRunRequest struct {
-	StemPath   string
-	ExecPath   string
-	Context    string
-	Env        map[string]string
-	Args       []string
-	JoinStdout bool
+	StemPath     string
+	WorkingPath  string
+	MainOverride string
+	GardenPath   string
+	Context      string
+	Env          map[string]string
+	Args         []string
+	JoinStdout   bool
+	InheritEnv   bool
 }
 
 func stemRun_prepContext(request StemRunRequest) (string, error) {
@@ -23,9 +26,15 @@ func stemRun_prepContext(request StemRunRequest) (string, error) {
 		context = "default"
 	}
 
-	gardenPath, err := GardenPath(request.StemPath)
-	if err != nil {
-		return "", err
+	var gardenPath string
+	var err error
+	if request.GardenPath != "" {
+		gardenPath = request.GardenPath
+	} else {
+		gardenPath, err = GardenPath(request.StemPath)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	contextPath := filepath.Join(gardenPath, "dyd", "heap", "contexts", context)
@@ -38,7 +47,7 @@ func stemRun_prepContext(request StemRunRequest) (string, error) {
 }
 
 func StemRun(request StemRunRequest) error {
-	var execPath = request.ExecPath
+	var workingPath = request.WorkingPath
 	var stemPath = request.StemPath
 	var env = request.Env
 	var args = request.Args
@@ -48,20 +57,22 @@ func StemRun(request StemRunRequest) error {
 	}
 
 	if !filepath.IsAbs(stemPath) {
-		if execPath != "" {
-			stemPath = filepath.Join(filepath.Dir(execPath), stemPath)
-		} else {
-			wd, err := os.Getwd()
-			if err != nil {
-				return err
-			}
-			stemPath = filepath.Join(wd, stemPath)
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
 		}
+		stemPath = filepath.Join(cwd, stemPath)
 	}
 
-	gardenPath, err := GardenPath(request.StemPath)
-	if err != nil {
-		return err
+	var gardenPath string
+	var err error
+	if request.GardenPath != "" {
+		gardenPath = request.GardenPath
+	} else {
+		gardenPath, err = GardenPath(request.StemPath)
+		if err != nil {
+			return err
+		}
 	}
 
 	contextPath, err := stemRun_prepContext(request)
@@ -82,13 +93,28 @@ func StemRun(request StemRunRequest) error {
 
 	// rootMain := filepath.Join(finalStemPath, "dyd", "main")
 
+	var main string
+	if request.MainOverride != "" {
+		main = request.MainOverride
+	} else {
+		main = stemPath + "/dyd/main"
+	}
+
 	cmd := exec.Command(
-		stemPath+"/dyd/main",
+		main,
 		args...,
 	)
 
+	cmd.Dir = workingPath
+
 	// prepare env
 	cmd.Env = []string{}
+
+	if request.InheritEnv {
+		cmd.Env = append(
+			cmd.Env, os.Environ()...)
+	}
+
 	for key, val := range env {
 		cmd.Env = append(cmd.Env, key+"="+val)
 	}

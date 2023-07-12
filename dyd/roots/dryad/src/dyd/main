@@ -5,7 +5,7 @@ set -e
 
 SRC_DIR=$DYD_STEM
 
-DEST_DIR=$1
+DEST_DIR=$DYD_BUILD
 DEST_MAIN=$DEST_DIR/dyd/main
 
 # copy assets to build
