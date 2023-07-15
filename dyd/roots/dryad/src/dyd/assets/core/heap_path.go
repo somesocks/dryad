@@ -18,7 +18,7 @@ func HeapPath(path string) (string, error) {
 	heapPath := filepath.Join(gardenPath, "dyd", "heap")
 	_, err = os.Stat(heapPath)
 	if err != nil {
-		err = GardenInit(gardenPath)
+		err = GardenCreate(gardenPath)
 	}
 
 	if err != nil {
