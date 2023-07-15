@@ -401,6 +401,64 @@ func _buildCLI() cli.App {
 			return 0
 		})
 
+	var rootDevelop = cli.NewCommand("develop", "create a temporary development environment for a root").
+		WithArg(cli.NewArg("path", "path to the root to develop").AsOptional()).
+		WithOption(cli.NewOption("editor", "choose the editor to run in the root development environment").WithType(cli.TypeString)).
+		WithOption(cli.NewOption("arg", "argument to pass to the editor").WithType(cli.TypeMultiString)).
+		WithOption(cli.NewOption("inherit", "inherit env variables from the host environment").WithType(cli.TypeBool)).
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+			var opts = req.Opts
+
+			var path string
+			var editor string
+			var editorArgs []string
+			var inherit bool
+
+			if len(args) > 0 {
+				path = args[0]
+			}
+
+			if opts["editor"] != nil {
+				editor = opts["editor"].(string)
+			} else {
+				editor = "sh"
+			}
+
+			if opts["arg"] != nil {
+				editorArgs = opts["arg"].([]string)
+			}
+
+			if opts["inherit"] != nil {
+				inherit = opts["inherit"].(bool)
+			}
+
+			if !filepath.IsAbs(path) {
+				wd, err := os.Getwd()
+				if err != nil {
+					log.Fatal(err)
+				}
+				path = filepath.Join(wd, path)
+			}
+
+			var rootFingerprint string
+			rootFingerprint, err := dryad.RootDevelop(
+				dryad.BuildContext{
+					RootFingerprints: map[string]string{},
+				},
+				path,
+				editor,
+				editorArgs,
+				inherit,
+			)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(rootFingerprint)
+
+			return 0
+		})
+
 	var rootReplace = cli.NewCommand("replace", "replace all references to one root with references to another").
 		WithArg(cli.NewArg("source", "path to the source root")).
 		WithArg(cli.NewArg("replacement", "path to the replacement root")).
@@ -440,6 +498,7 @@ func _buildCLI() cli.App {
 	var root = cli.NewCommand("root", "commands to work with a dryad root").
 		WithCommand(rootBuild).
 		WithCommand(rootCopy).
+		WithCommand(rootDevelop).
 		WithCommand(rootInit).
 		WithCommand(rootLink).
 		WithCommand(rootMove).
@@ -1444,21 +1503,17 @@ func _buildCLI() cli.App {
 
 	var stemRun = cli.NewCommand("run", "execute the main for a stem").
 		WithArg(cli.NewArg("path", "path to the stem base dir")).
-		WithOption(cli.NewOption("execPath", "path to the executable running `dryad stem run`. used for path setting")).
 		WithOption(cli.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
 		WithOption(cli.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(cli.TypeBool)).
+		WithOption(cli.NewOption("override", "run this executable in the stem run envinronment instead of the main")).
 		WithArg(cli.NewArg("-- args", "args to pass to the stem").AsOptional()).
 		WithAction(func(req cli.ActionRequest) int {
 			var args = req.Args
 			var options = req.Opts
 
-			var execPath string
 			var context string
+			var override string
 			var inherit bool
-
-			if options["execPath"] != nil {
-				execPath = options["execPath"].(string)
-			}
 
 			if options["context"] != nil {
 				context = options["context"].(string)
@@ -1466,6 +1521,10 @@ func _buildCLI() cli.App {
 
 			if options["inherit"] != nil {
 				inherit = options["inherit"].(bool)
+			}
+
+			if options["override"] != nil {
+				override = options["override"].(string)
 			}
 
 			var env = map[string]string{}
@@ -1485,12 +1544,12 @@ func _buildCLI() cli.App {
 			path := args[0]
 			extras := args[1:]
 			err := dryad.StemRun(dryad.StemRunRequest{
-				ExecPath:   execPath,
-				StemPath:   path,
-				Env:        env,
-				Args:       extras,
-				JoinStdout: true,
-				Context:    context,
+				StemPath:     path,
+				MainOverride: override,
+				Env:          env,
+				Args:         extras,
+				JoinStdout:   true,
+				Context:      context,
 			})
 			if err != nil {
 				log.Fatal(err)
