@@ -313,14 +313,14 @@ func _buildCLI() cli.App {
 			return 0
 		})
 
-	var rootInit = cli.NewCommand("init", "create a new root at the target path").
-		WithArg(cli.NewArg("path", "the path to init the new root at")).
+	var rootCreate = cli.NewCommand("create", "create a new root at the target path").
+		WithArg(cli.NewArg("path", "the path to create the new root at")).
 		WithAction(func(req cli.ActionRequest) int {
 			var args = req.Args
 
 			var path string = args[0]
 
-			err := dryad.RootInit(path)
+			err := dryad.RootCreate(path)
 
 			if err != nil {
 				log.Fatal(err)
@@ -498,8 +498,8 @@ func _buildCLI() cli.App {
 	var root = cli.NewCommand("root", "commands to work with a dryad root").
 		WithCommand(rootBuild).
 		WithCommand(rootCopy).
+		WithCommand(rootCreate).
 		WithCommand(rootDevelop).
-		WithCommand(rootInit).
 		WithCommand(rootLink).
 		WithCommand(rootMove).
 		WithCommand(rootPath).
