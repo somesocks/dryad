@@ -107,8 +107,8 @@ func _buildCLI() cli.App {
 		return wrapper
 	}
 
-	var gardenInit = cli.NewCommand("init", "initialize a garden").
-		WithArg(cli.NewArg("path", "the target path at which to initialize the garden").AsOptional()).
+	var gardenCreate = cli.NewCommand("create", "create a garden").
+		WithArg(cli.NewArg("path", "the target path at which to create the garden").AsOptional()).
 		WithAction(func(req cli.ActionRequest) int {
 			var args = req.Args
 
@@ -119,7 +119,7 @@ func _buildCLI() cli.App {
 				path = args[0]
 			}
 
-			err = dryad.GardenInit(path)
+			err = dryad.GardenCreate(path)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -262,7 +262,7 @@ func _buildCLI() cli.App {
 
 	var garden = cli.NewCommand("garden", "commands to work with a dryad garden").
 		WithCommand(gardenBuild).
-		WithCommand(gardenInit).
+		WithCommand(gardenCreate).
 		WithCommand(gardenPack).
 		WithCommand(gardenPath).
 		WithCommand(gardenPrune).

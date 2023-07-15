@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-func GardenInit(path string) error {
+func GardenCreate(path string) error {
 	var err error
 	path, err = filepath.Abs(path)
 	if err != nil {
