@@ -47,10 +47,10 @@ func GardenRootsWalk(rootsPath string, walkFn filepath.WalkFunc) error {
 			}
 
 			if info.IsDir() {
-				dydPath := filepath.Join(path, "dyd")
-				fileInfo, fileInfoErr := os.Stat(dydPath)
+				typePath := filepath.Join(path, "dyd", "type")
+				_, fileInfoErr := os.Stat(typePath)
 
-				if fileInfoErr == nil && fileInfo.IsDir() {
+				if fileInfoErr == nil {
 					err = walkFn(path, info, nil)
 					if err != nil {
 						return err

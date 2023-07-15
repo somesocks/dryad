@@ -216,8 +216,10 @@ func rootBuild_stage5(rootStemPath string, stemBuildPath string, rootFingerprint
 		return "", err
 	}
 	err = StemRun(StemRunRequest{
-		StemPath:   rootStemPath,
-		Env:        nil,
+		StemPath: rootStemPath,
+		Env: map[string]string{
+			"DYD_BUILD": stemBuildPath,
+		},
 		Args:       []string{stemBuildPath},
 		JoinStdout: false,
 	})

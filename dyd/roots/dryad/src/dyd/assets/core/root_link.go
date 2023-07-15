@@ -17,6 +17,11 @@ func RootLink(rootPath string, depPath string, alias string) error {
 		return err
 	}
 
+	depPath, err = RootPath(depPath)
+	if err != nil {
+		return err
+	}
+
 	if alias == "" {
 		alias = filepath.Base(depPath)
 	}
