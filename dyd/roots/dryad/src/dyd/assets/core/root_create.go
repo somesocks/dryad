@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-func RootInit(path string) error {
+func RootCreate(path string) error {
 	path, err := filepath.Abs(path)
 	if err != nil {
 		return err
