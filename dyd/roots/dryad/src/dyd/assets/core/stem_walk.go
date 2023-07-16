@@ -3,10 +3,12 @@ package core
 import (
 	fs2 "dryad/filesystem"
 	"io/fs"
+	"os"
+	"path/filepath"
 	"regexp"
 )
 
-var STEM_WALK_CRAWL_INCLUDE, _ = regexp.Compile(
+var RE_STEM_WALK_SHOULD_CRAWL = regexp.MustCompile(
 	"^(" +
 		"(\\.)" +
 		"|(dyd)" +
@@ -22,9 +24,18 @@ var STEM_WALK_CRAWL_INCLUDE, _ = regexp.Compile(
 		")$",
 )
 
-var STEM_WALK_CRAWL_EXCLUDE, _ = regexp.Compile(`^$`)
+func StemWalkShouldCrawl(path string, info fs.FileInfo, basePath string) (bool, error) {
+	var relPath, relErr = filepath.Rel(basePath, path)
+	if relErr != nil {
+		return false, relErr
+	}
+	matchesPath := RE_STEM_WALK_SHOULD_CRAWL.Match([]byte(relPath))
+	isSymlink := info.Mode()&os.ModeSymlink == os.ModeSymlink
+	shouldCrawl := matchesPath && !isSymlink
+	return shouldCrawl, nil
+}
 
-var STEM_WALK_MATCH_INCLUDE, _ = regexp.Compile(
+var RE_STEM_WALK_SHOULD_MATCH = regexp.MustCompile(
 	"^(" +
 		"(dyd/path/.*)" +
 		"|(dyd/assets/.*)" +
@@ -39,40 +50,27 @@ var STEM_WALK_MATCH_INCLUDE, _ = regexp.Compile(
 		")$",
 )
 
-var STEM_WALK_MATCH_EXCLUDE, _ = regexp.Compile(`^$`)
-
-type StemWalkArgs struct {
-	BasePath     string
-	CrawlInclude *regexp.Regexp
-	CrawlExclude *regexp.Regexp
-	MatchInclude *regexp.Regexp
-	MatchExclude *regexp.Regexp
-	OnMatch      func(path string, info fs.FileInfo) error
+func StemWalkShouldMatch(path string, info fs.FileInfo, basePath string) (bool, error) {
+	var relPath, relErr = filepath.Rel(basePath, path)
+	if relErr != nil {
+		return false, relErr
+	}
+	matchesPath := RE_STEM_WALK_SHOULD_MATCH.Match([]byte(relPath))
+	shouldMatch := matchesPath
+	return shouldMatch, nil
 }
 
-func StemWalk(args StemWalkArgs) error {
-	if args.CrawlInclude == nil {
-		args.CrawlInclude = STEM_WALK_CRAWL_INCLUDE
-	}
+type StemWalkRequest struct {
+	BasePath string
+	OnMatch  func(path string, info fs.FileInfo, basePath string) error
+}
 
-	if args.CrawlExclude == nil {
-		args.CrawlExclude = STEM_WALK_CRAWL_EXCLUDE
-	}
+func StemWalk(args StemWalkRequest) error {
 
-	if args.MatchInclude == nil {
-		args.MatchInclude = STEM_WALK_MATCH_INCLUDE
-	}
-
-	if args.MatchExclude == nil {
-		args.MatchExclude = STEM_WALK_MATCH_EXCLUDE
-	}
-
-	return fs2.ReWalk(fs2.ReWalkArgs{
-		BasePath:     args.BasePath,
-		CrawlInclude: args.CrawlInclude,
-		CrawlExclude: args.CrawlExclude,
-		MatchInclude: args.MatchInclude,
-		MatchExclude: args.MatchExclude,
-		OnMatch:      args.OnMatch,
+	return fs2.BFSWalk(fs2.Walk3Request{
+		BasePath:    args.BasePath,
+		ShouldCrawl: StemWalkShouldCrawl,
+		ShouldMatch: StemWalkShouldMatch,
+		OnMatch:     args.OnMatch,
 	})
 }

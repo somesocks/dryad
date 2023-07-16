@@ -57,11 +57,11 @@ func StemPack(stemPath string, targetPath string) (string, error) {
 	var tw = tar.NewWriter(gzw)
 	defer tw.Close()
 
-	var onMatch = func(walkPath string, info fs.FileInfo) error {
+	var onMatch = func(walkPath string, info fs.FileInfo, basePath string) error {
 		var relativePath string
 		var err error
 
-		relativePath, err = filepath.Rel(stemPath, walkPath)
+		relativePath, err = filepath.Rel(basePath, walkPath)
 		if err != nil {
 			return err
 		}
@@ -110,7 +110,7 @@ func StemPack(stemPath string, targetPath string) (string, error) {
 	}
 
 	err = StemWalk(
-		StemWalkArgs{
+		StemWalkRequest{
 			BasePath: stemPath,
 			OnMatch:  onMatch,
 		},

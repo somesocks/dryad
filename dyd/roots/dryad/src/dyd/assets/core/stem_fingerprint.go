@@ -1,6 +1,8 @@
 package core
 
 import (
+	fs2 "dryad/filesystem"
+
 	"encoding/hex"
 	"io/fs"
 	"path/filepath"
@@ -11,7 +13,7 @@ import (
 	"golang.org/x/crypto/blake2b"
 )
 
-var STEM_FINGERPRINT_MATCH_ALLOW, _ = regexp.Compile(
+var RE_STEM_FINGERPRINT_SHOULD_MATCH = regexp.MustCompile(
 	"^(" +
 		"(dyd/path/.*)" +
 		"|(dyd/assets/.*)" +
@@ -27,6 +29,16 @@ var STEM_FINGERPRINT_MATCH_ALLOW, _ = regexp.Compile(
 		")$",
 )
 
+func StemFingerprintShouldMatch(path string, info fs.FileInfo, basePath string) (bool, error) {
+	var relPath, relErr = filepath.Rel(basePath, path)
+	if relErr != nil {
+		return false, relErr
+	}
+	matchesPath := RE_STEM_FINGERPRINT_SHOULD_MATCH.Match([]byte(relPath))
+	shouldMatch := matchesPath
+	return shouldMatch, nil
+}
+
 type StemFingerprintArgs struct {
 	BasePath  string
 	MatchDeny *regexp.Regexp
@@ -35,8 +47,8 @@ type StemFingerprintArgs struct {
 func StemFingerprint(args StemFingerprintArgs) (string, error) {
 	var checksumMap = make(map[string]string)
 
-	var onMatch = func(walk string, info fs.FileInfo) error {
-		var rel, relErr = filepath.Rel(args.BasePath, walk)
+	var onMatch = func(walk string, info fs.FileInfo, basePath string) error {
+		var rel, relErr = filepath.Rel(basePath, walk)
 
 		if relErr != nil {
 			return relErr
@@ -57,14 +69,13 @@ func StemFingerprint(args StemFingerprintArgs) (string, error) {
 		return nil
 	}
 
-	err := StemWalk(
-		StemWalkArgs{
-			BasePath:     args.BasePath,
-			MatchInclude: STEM_FINGERPRINT_MATCH_ALLOW,
-			MatchExclude: args.MatchDeny,
-			OnMatch:      onMatch,
-		},
-	)
+	err := fs2.BFSWalk(fs2.Walk3Request{
+		BasePath:    args.BasePath,
+		ShouldCrawl: StemWalkShouldCrawl,
+		ShouldMatch: StemFingerprintShouldMatch,
+		OnMatch:     onMatch,
+	})
+
 	if err != nil {
 		return "", err
 	}

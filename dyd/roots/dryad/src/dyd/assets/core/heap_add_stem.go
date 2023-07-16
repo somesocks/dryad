@@ -51,9 +51,9 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 
 		// walk the packed root files and copy them into the garden heap
 		err = StemWalk(
-			StemWalkArgs{
+			StemWalkRequest{
 				BasePath: stemPath,
-				OnMatch: func(srcPath string, info fs.FileInfo) error {
+				OnMatch: func(srcPath string, info fs.FileInfo, basePath string) error {
 					// fmt.Println("HeapAddStem stemwalk", srcPath)
 
 					var err error

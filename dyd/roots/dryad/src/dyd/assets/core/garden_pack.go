@@ -255,7 +255,7 @@ func GardenPack(gardenPath string, targetPath string) (string, error) {
 	// }
 
 	// err = StemWalk(
-	// 	StemWalkArgs{
+	// 	StemWalkRequest{
 	// 		BasePath: stemPath,
 	// 		OnMatch:  onMatch,
 	// 	},
