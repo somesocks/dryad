@@ -19,7 +19,7 @@ func _readFile(filePath string) (string, error) {
 // HeapAddStem takes a stem in a directory, and adds it to the heap.
 // the heap path is normalized before adding
 func HeapAddStem(heapPath string, stemPath string) (string, error) {
-	// fmt.Println("[trace] HeapAddStem", heapPath, stemPath)
+	// // fmt.Println("[trace] HeapAddStem", heapPath, stemPath)
 
 	// normalize the heap path
 	heapPath, err := HeapPath(heapPath)
@@ -53,41 +53,101 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 		err = StemWalk(
 			StemWalkRequest{
 				BasePath: stemPath,
-				OnMatch: func(srcPath string, info fs.FileInfo, basePath string) error {
-					// fmt.Println("HeapAddStem stemwalk", srcPath)
+				OnMatch: func(context fs2.Walk4Context) error {
+					// fmt.Println("HeapAddStem stemwalk", context.Path)
 
-					var err error
-
-					if info.IsDir() {
-						return nil
-					}
-
-					relPath, err := filepath.Rel(stemPath, srcPath)
+					relPath, err := filepath.Rel(context.BasePath, context.VPath)
 					if err != nil {
 						return err
 					}
 
 					destPath := filepath.Join(finalStemPath, relPath)
-					err = os.MkdirAll(filepath.Dir(destPath), os.ModePerm)
+
+					// if the file already exists, we hit it on a previous pass through a symlink
+					destExists, err := fileExists(destPath)
 					if err != nil {
 						return err
 					}
-
-					fileFingerprint, err := HeapAddFile(gardenFilesPath, srcPath)
-					if err != nil {
-						return err
+					if destExists {
+						return nil
 					}
 
-					fileHeapPath := filepath.Join(gardenFilesPath, fileFingerprint)
+					if context.Info.IsDir() {
+					} else if context.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
+						// fmt.Println("HeapAddStem stemwalk symlink")
 
-					relativeFilePath, err := filepath.Rel(filepath.Dir(destPath), fileHeapPath)
-					if err != nil {
-						return err
-					}
+						linkTarget, err := os.Readlink(context.Path)
+						if err != nil {
+							return err
+						}
 
-					err = os.Symlink(relativeFilePath, destPath)
-					if err != nil {
-						return err
+						absLinkTarget := linkTarget
+
+						// clean up relative links
+						if !filepath.IsAbs(absLinkTarget) {
+							absLinkTarget = filepath.Clean(filepath.Join(filepath.Dir(context.Path), absLinkTarget))
+						}
+
+						isInternalLink, err := fileIsDescendant(absLinkTarget, context.BasePath)
+						if err != nil {
+							return err
+						}
+
+						// fmt.Println("HeapAddStem stemwalk symlink isInternalLink", isInternalLink)
+
+						err = os.MkdirAll(filepath.Dir(destPath), os.ModePerm)
+						if err != nil {
+							return err
+						}
+
+						if isInternalLink {
+							err = os.Symlink(linkTarget, destPath)
+							if err != nil {
+								return err
+							}
+						} else {
+							fileFingerprint, err := HeapAddFile(gardenFilesPath, context.Path)
+							if err != nil {
+								return err
+							}
+
+							fileHeapPath := filepath.Join(gardenFilesPath, fileFingerprint)
+
+							relativeFilePath, err := filepath.Rel(filepath.Dir(destPath), fileHeapPath)
+							if err != nil {
+								return err
+							}
+
+							err = os.Symlink(relativeFilePath, destPath)
+							if err != nil {
+								return err
+							}
+						}
+
+					} else {
+						// fmt.Println("HeapAddStem stemwalk file")
+
+						fileFingerprint, err := HeapAddFile(gardenFilesPath, context.Path)
+						if err != nil {
+							return err
+						}
+
+						fileHeapPath := filepath.Join(gardenFilesPath, fileFingerprint)
+
+						relativeFilePath, err := filepath.Rel(filepath.Dir(destPath), fileHeapPath)
+						if err != nil {
+							return err
+						}
+
+						err = os.MkdirAll(filepath.Dir(destPath), os.ModePerm)
+						if err != nil {
+							return err
+						}
+
+						err = os.Symlink(relativeFilePath, destPath)
+						if err != nil {
+							return err
+						}
 					}
 
 					return nil

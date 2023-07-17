@@ -1,8 +1,8 @@
 package core
 
 import (
+	fs2 "dryad/filesystem"
 	"fmt"
-	"io/fs"
 	"regexp"
 )
 
@@ -15,9 +15,9 @@ func StemFiles(args StemFilesArgs) error {
 	StemWalk(
 		StemWalkRequest{
 			BasePath: args.BasePath,
-			OnMatch: func(walk string, info fs.FileInfo, basePath string) error {
-				if !info.IsDir() {
-					fmt.Println(walk)
+			OnMatch: func(context fs2.Walk4Context) error {
+				if !context.Info.IsDir() {
+					fmt.Println(context.VPath)
 				}
 				return nil
 			},
