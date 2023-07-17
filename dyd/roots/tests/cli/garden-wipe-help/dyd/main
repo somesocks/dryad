@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+DEST_DIR=$DYD_BUILD
+
+# # copying the assets to the build stem
+# # ln -s $SRC_DIR/dyd/secrets $DEST_DIR/dyd/secrets
+
+# # copying the secrets to the build stem
+# ln -s $SRC_DIR/dyd/secrets $DEST_DIR/dyd/secrets
+
+# # copying the assets to the build stem
+# cp -rL $SRC_DIR/dyd/assets/. $DEST_DIR/dyd/assets/
+
+# # add main
+# ln -s $SRC_DIR/dyd/assets/main $DEST_DIR/dyd/main
+
+# # link dependencies
+# ln -s $SRC_DIR/dyd/stems/dryad $DEST_DIR/dyd/stems/dryad
+
+_setup() {
+	mkdir $DYD_BUILD/test
+}
+
+_prepare() {
+	echo -n "false" > $DEST_DIR/dyd/traits/passed
+}
+
+_test() {
+	(cd $DYD_BUILD/test && dryad garden wipe --help)
+}
+
+_verify() {
+	echo -n "true" > $DEST_DIR/dyd/traits/passed
+}
+
+_teardown() {
+	rm -rf $DYD_BUILD/test
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
