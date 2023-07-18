@@ -169,21 +169,19 @@ func _dfsWalk2(request Walk4Request) error {
 				defer dir.Close()
 
 				var entries []fs.DirEntry
-
 				entries, err = dir.ReadDir(100)
-				if err != nil && err != io.EOF {
-					err = request.OnError(err, Walk4Context{
-						Path:     request.Path,
-						VPath:    request.VPath,
-						BasePath: request.BasePath,
-						Info:     info,
-					})
+				for err != io.EOF {
 					if err != nil {
-						return err
+						err = request.OnError(err, Walk4Context{
+							Path:     request.Path,
+							VPath:    request.VPath,
+							BasePath: request.BasePath,
+							Info:     info,
+						})
+						if err != nil {
+							return err
+						}
 					}
-				}
-
-				for len(entries) > 0 {
 					for _, entry := range entries {
 						err = _dfsWalk2(Walk4Request{
 							Path:        filepath.Join(request.Path, entry.Name()),
@@ -205,21 +203,8 @@ func _dfsWalk2(request Walk4Request) error {
 								return err
 							}
 						}
-
-						entries, err = dir.ReadDir(100)
-						if err != nil && err != io.EOF {
-							err = request.OnError(err, Walk4Context{
-								Path:     request.Path,
-								VPath:    request.VPath,
-								BasePath: request.BasePath,
-								Info:     info,
-							})
-							if err != nil {
-								return err
-							}
-						}
-
 					}
+					entries, err = dir.ReadDir(100)
 				}
 			}
 		}
@@ -455,21 +440,19 @@ func _bfsWalk2(request Walk4Request) error {
 				defer dir.Close()
 
 				var entries []fs.DirEntry
-
 				entries, err = dir.ReadDir(100)
-				if err != nil && err != io.EOF {
-					err = request.OnError(err, Walk4Context{
-						Path:     request.Path,
-						VPath:    request.VPath,
-						BasePath: request.BasePath,
-						Info:     info,
-					})
+				for err != io.EOF {
 					if err != nil {
-						return err
+						err = request.OnError(err, Walk4Context{
+							Path:     request.Path,
+							VPath:    request.VPath,
+							BasePath: request.BasePath,
+							Info:     info,
+						})
+						if err != nil {
+							return err
+						}
 					}
-				}
-
-				for len(entries) > 0 {
 					for _, entry := range entries {
 						err = _bfsWalk2(Walk4Request{
 							Path:        filepath.Join(request.Path, entry.Name()),
@@ -491,21 +474,8 @@ func _bfsWalk2(request Walk4Request) error {
 								return err
 							}
 						}
-
-						entries, err = dir.ReadDir(100)
-						if err != nil && err != io.EOF {
-							err = request.OnError(err, Walk4Context{
-								Path:     request.Path,
-								VPath:    request.VPath,
-								BasePath: request.BasePath,
-								Info:     info,
-							})
-							if err != nil {
-								return err
-							}
-						}
-
 					}
+					entries, err = dir.ReadDir(100)
 				}
 			}
 		} else {
