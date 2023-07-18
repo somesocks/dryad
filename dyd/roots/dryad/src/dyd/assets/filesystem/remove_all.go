@@ -12,7 +12,7 @@ func RemoveAll(path string) error {
 	// if you can
 	err := DFSWalk(Walk3Request{
 		BasePath: path,
-		ShouldCrawl: func(path string, info fs.FileInfo) (bool, error) {
+		ShouldCrawl: func(path string, info fs.FileInfo, basePath string) (bool, error) {
 			// don't crawl symlinks
 			if info.Mode()&os.ModeSymlink == os.ModeSymlink {
 				return false, nil
@@ -20,7 +20,7 @@ func RemoveAll(path string) error {
 
 			return true, nil
 		},
-		OnMatch: func(path string, info fs.FileInfo) error {
+		OnMatch: func(path string, info fs.FileInfo, basePath string) error {
 			parentInfo, err := os.Lstat(filepath.Dir(path))
 			if err != nil {
 				return err

@@ -84,5 +84,6 @@ func SecretsFingerprint(args SecretsFingerprintArgs) (string, error) {
 	var fingerprintHashBytes = hash.Sum([]byte{})
 	var fingerprintHash = hex.EncodeToString(fingerprintHashBytes[:])
 	var fingerprint = "blake2b-" + fingerprintHash
+
 	return fingerprint, nil
 }
