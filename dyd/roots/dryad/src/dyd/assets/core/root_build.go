@@ -402,7 +402,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	}
 
 	if derivationFileExists {
-		fmt.Println("[info] derivationFileExists " + derivationsPath)
+		// fmt.Println("[trace] derivationFileExists " + derivationsPath)
 		derivationsFingerprintFile := filepath.Join(derivationsPath, "dyd", "fingerprint")
 		derivationsFingerprintBytes, err := ioutil.ReadFile(derivationsFingerprintFile)
 		if err != nil {
@@ -471,32 +471,32 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		return "", err
 	}
 
-	fmt.Println("[info] building sprout parent")
+	// fmt.Println("[debug] building sprout parent")
 	err = fs2.MkDir(sproutParent, fs.ModePerm)
 	if err != nil {
 		return "", err
 	}
 
-	fmt.Println("[info] setting write permission on sprout parent")
+	// fmt.Println("[debug] setting write permission on sprout parent")
 	err = os.Chmod(sproutParent, 0o711)
 	if err != nil {
 		return "", err
 	}
 
 	tmpSproutPath := sproutPath + ".tmp"
-	fmt.Println("[info] adding temporary sprout link")
+	// fmt.Println("[debug] adding temporary sprout link")
 	err = os.Symlink(relSproutLink, tmpSproutPath)
 	if err != nil {
 		return "", err
 	}
 
-	fmt.Println("[info] renaming sprout link", sproutPath)
+	// fmt.Println("[debug] renaming sprout link", sproutPath)
 	err = os.Rename(tmpSproutPath, sproutPath)
 	if err != nil {
 		return "", err
 	}
 
-	fmt.Println("[info] setting read permissions on sprout parent")
+	// fmt.Println("[debug] setting read permissions on sprout parent")
 	err = os.Chmod(sproutParent, 0o511)
 	if err != nil {
 		return "", err

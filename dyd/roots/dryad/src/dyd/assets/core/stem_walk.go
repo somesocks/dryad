@@ -24,7 +24,7 @@ var RE_STEM_WALK_SHOULD_CRAWL = regexp.MustCompile(
 		"|(dyd/stems)" +
 		"|(dyd/stems/[^/]*)" +
 		"|(dyd/stems/.*/dyd)" +
-		"|(dyd/stems/.*/dyd/traits(/.*)?)" +
+		"|(dyd/stems/.*/dyd/fingerprint)" +
 		")$",
 )
 
@@ -38,7 +38,7 @@ var RE_STEM_WALK_SHOULD_CRAWL = regexp.MustCompile(
 // - else if the node is a file then no
 // - else error?
 func StemWalkShouldCrawl(context fs2.Walk4Context) (bool, error) {
-	// fmt.Println("StemWalkShouldCrawl", context.VPath)
+	// fmt.Println("[debug] StemWalkShouldCrawl", context.VPath)
 
 	var relPath, relErr = filepath.Rel(context.BasePath, context.VPath)
 	if relErr != nil {
@@ -47,7 +47,7 @@ func StemWalkShouldCrawl(context fs2.Walk4Context) (bool, error) {
 	matchesPath := RE_STEM_WALK_SHOULD_CRAWL.Match([]byte(relPath))
 
 	if !matchesPath {
-		// fmt.Println("StemWalkShouldCrawl 1", context.VPath, false)
+		// fmt.Println("[debug] StemWalkShouldCrawl 1", context.VPath, false)
 		return false, nil
 	} else if context.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
 		linkTarget, err := os.Readlink(context.Path)
@@ -65,13 +65,13 @@ func StemWalkShouldCrawl(context fs2.Walk4Context) (bool, error) {
 			return false, err
 		}
 
-		// fmt.Println("StemWalkShouldCrawl 2", context.VPath, context.Path, linkTarget, isDescendant)
+		// fmt.Println("[debug] StemWalkShouldCrawl 2", context.VPath, context.Path, linkTarget, isDescendant)
 		return !isDescendant, nil
 	} else if context.Info.IsDir() {
-		// fmt.Println("StemWalkShouldCrawl 3", context.VPath, true)
+		// fmt.Println("[debug] StemWalkShouldCrawl 3", context.VPath, true)
 		return true, nil
 	} else {
-		// fmt.Println("StemWalkShouldCrawl 4", context.VPath, false)
+		// fmt.Println("[debug] StemWalkShouldCrawl 4", context.VPath, false)
 		return false, nil
 	}
 }
@@ -86,7 +86,6 @@ var RE_STEM_WALK_SHOULD_MATCH = regexp.MustCompile(
 		"|(dyd/secrets-fingerprint)" +
 		"|(dyd/main)" +
 		"|(dyd/stems/.*/dyd/fingerprint)" +
-		"|(dyd/stems/.*/dyd/traits/.*)" +
 		"|(dyd/traits/.*)" +
 		")$",
 )
@@ -100,7 +99,7 @@ var RE_STEM_WALK_SHOULD_MATCH = regexp.MustCompile(
 // - else if the node is a file then yes,
 // - else error?
 func StemWalkShouldMatch(context fs2.Walk4Context) (bool, error) {
-	// fmt.Println("StemWalkShouldMatch", context.VPath)
+	// fmt.Println("[debug] StemWalkShouldMatch", context.VPath)
 
 	var relPath, relErr = filepath.Rel(context.BasePath, context.VPath)
 	if relErr != nil {
@@ -109,7 +108,7 @@ func StemWalkShouldMatch(context fs2.Walk4Context) (bool, error) {
 	matchesPath := RE_STEM_WALK_SHOULD_MATCH.Match([]byte(relPath))
 
 	if !matchesPath {
-		// fmt.Println("StemWalkShouldMatch 1", context.VPath, false)
+		// fmt.Println("[debug] StemWalkShouldMatch 1", context.VPath, false)
 		return false, nil
 	} else if context.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
 		linkTarget, err := os.Readlink(context.Path)
@@ -127,13 +126,13 @@ func StemWalkShouldMatch(context fs2.Walk4Context) (bool, error) {
 			return false, err
 		}
 
-		// fmt.Println("StemWalkShouldMatch 2", context.VPath, context.Path, linkTarget, isDescendant)
+		// fmt.Println("[debug] StemWalkShouldMatch 2", context.VPath, context.Path, linkTarget, isDescendant)
 		return isDescendant, nil
 	} else if context.Info.IsDir() {
-		// fmt.Println("StemWalkShouldMatch 3", context.VPath, false)
+		// fmt.Println("[debug] StemWalkShouldMatch 3", context.VPath, false)
 		return false, nil
 	} else {
-		// fmt.Println("StemWalkShouldMatch 4", context.VPath, true)
+		// fmt.Println("[debug] StemWalkShouldMatch 4", context.VPath, true)
 		return true, nil
 	}
 
