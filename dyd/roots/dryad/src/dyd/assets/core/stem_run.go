@@ -132,7 +132,7 @@ func StemRun(request StemRunRequest) error {
 		"PATH=%s:%s:%s",
 		stemPath+"/dyd/path",
 		dryadPath,
-		"/usr/bin/",
+		"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 	)
 
 	cmd.Env = append(
