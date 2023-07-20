@@ -34,7 +34,7 @@ func GardenPrune(gardenPath string) error {
 	sproutsPath := filepath.Join(gardenPath, "dyd", "sprouts")
 
 	// we mark both the symlink and the referenced file
-	markFile := func(path string, info fs.FileInfo) error {
+	markFile := func(path string, info fs.FileInfo, basePath string) error {
 		// fmt.Println("markFile ", path)
 		var err error
 
@@ -90,7 +90,7 @@ func GardenPrune(gardenPath string) error {
 
 	heapPath := filepath.Join(gardenPath, "dyd", "heap")
 
-	sweepStemShouldCrawl := func(path string, info fs.FileInfo) (bool, error) {
+	sweepStemShouldCrawl := func(path string, info fs.FileInfo, basePath string) (bool, error) {
 		var relPath, relErr = filepath.Rel(heapPath, path)
 		if relErr != nil {
 			return false, relErr
@@ -102,7 +102,7 @@ func GardenPrune(gardenPath string) error {
 		return shouldCrawl, nil
 	}
 
-	sweepStemShouldMatch := func(path string, info fs.FileInfo) (bool, error) {
+	sweepStemShouldMatch := func(path string, info fs.FileInfo, basePath string) (bool, error) {
 		var relPath, relErr = filepath.Rel(heapPath, path)
 		if relErr != nil {
 			return false, relErr
@@ -111,7 +111,7 @@ func GardenPrune(gardenPath string) error {
 		return shouldMatch, nil
 	}
 
-	sweepStem := func(path string, info fs.FileInfo) error {
+	sweepStem := func(path string, info fs.FileInfo, basePath string) error {
 		if info.ModTime().Before(currentTime) {
 			err = fs2.RemoveAll(path)
 			if err != nil {
@@ -132,7 +132,7 @@ func GardenPrune(gardenPath string) error {
 		return err
 	}
 
-	sweepDerivationsShouldCrawl := func(path string, info fs.FileInfo) (bool, error) {
+	sweepDerivationsShouldCrawl := func(path string, info fs.FileInfo, basePath string) (bool, error) {
 		relPath, relErr := filepath.Rel(heapPath, path)
 		if relErr != nil {
 			return false, relErr
@@ -142,7 +142,7 @@ func GardenPrune(gardenPath string) error {
 		return shouldCrawl, nil
 	}
 
-	sweepDerivationsShouldMatch := func(path string, info fs.FileInfo) (bool, error) {
+	sweepDerivationsShouldMatch := func(path string, info fs.FileInfo, basePath string) (bool, error) {
 		var relPath, relErr = filepath.Rel(heapPath, path)
 		if relErr != nil {
 			return false, relErr
@@ -160,7 +160,7 @@ func GardenPrune(gardenPath string) error {
 		return shouldMatch, nil
 	}
 
-	sweepDerivation := func(path string, info fs.FileInfo) error {
+	sweepDerivation := func(path string, info fs.FileInfo, basePath string) error {
 		return os.Remove(path)
 	}
 
@@ -174,7 +174,7 @@ func GardenPrune(gardenPath string) error {
 		return err
 	}
 
-	sweepFileShouldCrawl := func(path string, info fs.FileInfo) (bool, error) {
+	sweepFileShouldCrawl := func(path string, info fs.FileInfo, basePath string) (bool, error) {
 		var relPath, relErr = filepath.Rel(heapPath, path)
 		if relErr != nil {
 			return false, relErr
@@ -186,7 +186,7 @@ func GardenPrune(gardenPath string) error {
 		return shouldCrawl, nil
 	}
 
-	sweepFilesShouldMatch := func(path string, info fs.FileInfo) (bool, error) {
+	sweepFilesShouldMatch := func(path string, info fs.FileInfo, basePath string) (bool, error) {
 		var relPath, relErr = filepath.Rel(heapPath, path)
 		if relErr != nil {
 			return false, relErr
@@ -195,7 +195,7 @@ func GardenPrune(gardenPath string) error {
 		return shouldMatch, nil
 	}
 
-	sweepFile := func(path string, info fs.FileInfo) error {
+	sweepFile := func(path string, info fs.FileInfo, basePath string) error {
 		if info.ModTime().Before(currentTime) {
 			parentInfo, err := os.Lstat(filepath.Dir(path))
 			if err != nil {
