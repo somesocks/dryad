@@ -113,12 +113,12 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 
 							fileHeapPath := filepath.Join(gardenFilesPath, fileFingerprint)
 
-							relativeFilePath, err := filepath.Rel(filepath.Dir(destPath), fileHeapPath)
-							if err != nil {
-								return err
-							}
+							// relativeFilePath, err := filepath.Rel(filepath.Dir(destPath), fileHeapPath)
+							// if err != nil {
+							// 	return err
+							// }
 
-							err = os.Symlink(relativeFilePath, destPath)
+							err = os.Link(fileHeapPath, destPath)
 							if err != nil {
 								return err
 							}
@@ -134,17 +134,17 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 
 						fileHeapPath := filepath.Join(gardenFilesPath, fileFingerprint)
 
-						relativeFilePath, err := filepath.Rel(filepath.Dir(destPath), fileHeapPath)
-						if err != nil {
-							return err
-						}
+						// relativeFilePath, err := filepath.Rel(filepath.Dir(destPath), fileHeapPath)
+						// if err != nil {
+						// 	return err
+						// }
 
 						err = os.MkdirAll(filepath.Dir(destPath), os.ModePerm)
 						if err != nil {
 							return err
 						}
 
-						err = os.Symlink(relativeFilePath, destPath)
+						err = os.Link(fileHeapPath, destPath)
 						if err != nil {
 							return err
 						}
