@@ -626,6 +626,51 @@ func _buildCLI() cli.App {
 			return 0
 		})
 
+	var scopeUse = cli.NewCommand("use", "set a scope to be active. alias for `dryad scopes default set`").
+		WithArg(cli.NewArg("name", "the name of the scope to set as active. use 'none' to unset the active scope")).
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args
+
+			var name string = args[0]
+
+			var path, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			if name == "none" {
+				err = dryad.ScopeUnsetDefault(path)
+			} else {
+				err = dryad.ScopeSetDefault(path, name)
+			}
+
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			return 0
+		})
+
+	var scopeActive = cli.NewCommand("active", "return the name of the active scope, if set. alias for `dryad scopes default get`").
+		WithAction(func(req cli.ActionRequest) int {
+
+			var path, err = os.Getwd()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			scopeName, err := dryad.ScopeGetDefault(path)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			if scopeName != "" {
+				fmt.Println(scopeName)
+			}
+
+			return 0
+		})
+
 	var scopeSettingGet = cli.NewCommand("get", "print the value of a setting in a scope, if it exists").
 		WithArg(cli.NewArg("scope", "the name of the scope")).
 		WithArg(cli.NewArg("setting", "the name of the setting")).
@@ -704,8 +749,10 @@ func _buildCLI() cli.App {
 		WithCommand(scopeSettingUnset)
 
 	var scope = cli.NewCommand("scope", "commands to work with a single scope").
+		WithCommand(scopeActive).
 		WithCommand(scopeCreate).
 		WithCommand(scopeDelete).
+		WithCommand(scopeUse).
 		WithCommand(scopeSetting)
 
 	var scopesDefaultGet = cli.NewCommand("get", "return the name of the default scope, if set").
