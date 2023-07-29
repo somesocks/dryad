@@ -99,7 +99,6 @@ func _buildCLI() cli.App {
 				argsRewrite = append(argsRewrite, element)
 				index++
 			}
-
 			fmt.Println("[info] rewriting args to:", argsRewrite)
 			return app.Run(argsRewrite, os.Stdout)
 		}
@@ -1803,6 +1802,18 @@ func _buildCLI() cli.App {
 			return 0
 		})
 
+	var systemAutocomplete = cli.NewCommand("autocomplete", "print out autocomplete options based on a partial command").
+		WithArg(cli.NewArg("-- args", "args to pass to the command").AsOptional()).
+		WithAction(func(req cli.ActionRequest) int {
+			var args = req.Args[0:]
+			var results = app.AutoComplete(args)
+			fmt.Println(strings.Join(results, " "))
+			return 0
+		})
+
+	var system = cli.NewCommand("system", "maintenance and utility commands for dryad").
+		WithCommand(systemAutocomplete)
+
 	app = app.
 		WithCommand(garden).
 		WithCommand(root).
@@ -1816,6 +1827,7 @@ func _buildCLI() cli.App {
 		WithCommand(sprouts).
 		WithCommand(stem).
 		WithCommand(stems).
+		WithCommand(system).
 		WithCommand(version)
 
 	return app

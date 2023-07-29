@@ -19,11 +19,18 @@ type ActionRequest struct {
 	Opts       map[string]any
 }
 
+type AutoCompleteRequest struct {
+	App    App
+	Tokens []string
+}
+
 // Action defines a function type to be executed for an application or a
 // command. It takes a slice of validated positional arguments and a map
 // of validated options (with all value types encoded as strings) and
 // returns a Unix exit code (success: 0).
 type Action func(request ActionRequest) int
+
+type AutoComplete func(request AutoCompleteRequest) []string
 
 // App defines a CLI application parameterizable with sub-commands, arguments and options.
 type App interface {
@@ -62,6 +69,8 @@ type App interface {
 	Run(appargs []string, w io.Writer) int
 	// Usage prints out the full usage help.
 	Usage(invocation []string, w io.Writer) error
+
+	AutoComplete(tokens []string) []string
 }
 
 // New creates a new CLI App.
@@ -115,11 +124,12 @@ func NewArg(key, descr string) Arg {
 }
 
 type app struct {
-	descr  string
-	args   []Arg
-	opts   []Option
-	cmds   []Command
-	action Action
+	descr        string
+	args         []Arg
+	opts         []Option
+	cmds         []Command
+	action       Action
+	autoComplete AutoComplete
 }
 
 func (a *app) Description() string {
@@ -140,6 +150,10 @@ func (a *app) Commands() []Command {
 
 func (a *app) Action() Action {
 	return a.action
+}
+
+func (a *app) AutoComplete(tokens []string) []string {
+	return AppAutoComplete(a, tokens)
 }
 
 func (a *app) WithArg(arg Arg) App {
