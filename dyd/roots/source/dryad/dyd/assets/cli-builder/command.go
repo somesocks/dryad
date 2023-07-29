@@ -1,7 +1,7 @@
 // Copyright (c) 2017. Oleg Sklyar & teris.io. All rights reserved.
 // See the LICENSE file in the project root for licensing information.
 
-package cli
+package cli_builder
 
 // Command defines a named sub-command in a command-tree of an application. A complete path to the terminal
 // command e.g. `git remote add` must be defined ahead of any options or positional arguments. These are parsed

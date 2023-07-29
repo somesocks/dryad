@@ -1,4 +1,4 @@
-package cli
+package cli_builder
 
 // OptionType defines the type of permitted option values.
 type OptionType int

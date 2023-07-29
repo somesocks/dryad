@@ -1,4 +1,4 @@
-package cli
+package cli_builder
 
 // ArgType defines the type of permitted arg values.
 type ArgType int
