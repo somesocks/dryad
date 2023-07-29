@@ -78,21 +78,6 @@ func New(descr string) App {
 	return &app{descr: descr}
 }
 
-// ValueType defines the type of permitted argument and option values.
-type ValueType int
-
-// ValueType constants for string, boolean, int and number options and arguments.
-const (
-	TypeString ValueType = iota
-	TypeBool
-	TypeInt
-	TypeNumber
-	TypeMultiString
-	TypeMultiBool
-	TypeMultiInt
-	TypeMultiNumber
-)
-
 // Arg defines a positional argument. Arguments are validated for their
 // count and their type. If the last defined argument is optional, then
 // an unlimited number of arguments can be passed into the call, otherwise
@@ -106,14 +91,14 @@ type Arg interface {
 	Description() string
 	// Type defines argument type. Default is string, which is not validated,
 	// other types are validated by simple string parsing into boolean, int and float.
-	Type() ValueType
+	Type() ArgType
 	// Optional specifies that an argument may be omitted. No non-optional arguments
 	// should follow an optional one (no validation for this scenario as this is
 	// the definition time exception, rather than incorrect input at runtime).
 	Optional() bool
 
 	// WithType sets the argument type.
-	WithType(at ValueType) Arg
+	WithType(at ArgType) Arg
 	// AsOptional sets the argument as optional.
 	AsOptional() Arg
 }
@@ -236,7 +221,7 @@ func (a *app) Usage(invocation []string, w io.Writer) error {
 type arg struct {
 	key      string
 	descr    string
-	at       ValueType
+	at       ArgType
 	optional bool
 }
 
@@ -248,7 +233,7 @@ func (a arg) Description() string {
 	return a.descr
 }
 
-func (a arg) Type() ValueType {
+func (a arg) Type() ArgType {
 	return a.at
 }
 
@@ -256,7 +241,7 @@ func (a arg) Optional() bool {
 	return a.optional
 }
 
-func (a arg) WithType(at ValueType) Arg {
+func (a arg) WithType(at ArgType) Arg {
 	a.at = at
 	return a
 }

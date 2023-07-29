@@ -149,8 +149,8 @@ func _buildCLI() cli.App {
 
 	var gardenBuild = cli.NewCommand("build", "build all roots in the garden").
 		WithArg(cli.NewArg("path", "the target path for the garden to build").AsOptional()).
-		WithOption(cli.NewOption("include", "choose which roots are included in the build").WithType(cli.TypeMultiString)).
-		WithOption(cli.NewOption("exclude", "choose which roots are excluded from the build").WithType(cli.TypeMultiString)).
+		WithOption(cli.NewOption("include", "choose which roots are included in the build").WithType(cli.OptionTypeMultiString)).
+		WithOption(cli.NewOption("exclude", "choose which roots are excluded from the build").WithType(cli.OptionTypeMultiString)).
 		WithOption(cli.NewOption("scope", "set the scope for the command")).
 		WithAction(_scopeHandler(
 			func(req cli.ActionRequest) int {
@@ -402,9 +402,9 @@ func _buildCLI() cli.App {
 
 	var rootDevelop = cli.NewCommand("develop", "create a temporary development environment for a root").
 		WithArg(cli.NewArg("path", "path to the root to develop").AsOptional()).
-		WithOption(cli.NewOption("editor", "choose the editor to run in the root development environment").WithType(cli.TypeString)).
-		WithOption(cli.NewOption("arg", "argument to pass to the editor").WithType(cli.TypeMultiString)).
-		WithOption(cli.NewOption("inherit", "inherit env variables from the host environment").WithType(cli.TypeBool)).
+		WithOption(cli.NewOption("editor", "choose the editor to run in the root development environment").WithType(cli.OptionTypeString)).
+		WithOption(cli.NewOption("arg", "argument to pass to the editor").WithType(cli.OptionTypeMultiString)).
+		WithOption(cli.NewOption("inherit", "inherit env variables from the host environment").WithType(cli.OptionTypeBool)).
 		WithAction(func(req cli.ActionRequest) int {
 			var args = req.Args
 			var opts = req.Opts
@@ -507,8 +507,8 @@ func _buildCLI() cli.App {
 
 	var rootsList = cli.NewCommand("list", "list all roots that are dependencies for the current root (or roots of the current garden, if the path is not a root)").
 		WithArg(cli.NewArg("path", "path to the base root (or garden) to list roots in").AsOptional()).
-		WithOption(cli.NewOption("include", "choose which roots are included in the list").WithType(cli.TypeMultiString)).
-		WithOption(cli.NewOption("exclude", "choose which roots are excluded from the list").WithType(cli.TypeMultiString)).
+		WithOption(cli.NewOption("include", "choose which roots are included in the list").WithType(cli.OptionTypeMultiString)).
+		WithOption(cli.NewOption("exclude", "choose which roots are excluded from the list").WithType(cli.OptionTypeMultiString)).
 		WithOption(cli.NewOption("scope", "set the scope for the command")).
 		WithAction(_scopeHandler(
 			func(req cli.ActionRequest) int {
@@ -930,9 +930,9 @@ func _buildCLI() cli.App {
 	scriptRunAction = _scopeHandler(scriptRunAction)
 
 	var scriptRun = cli.NewCommand("run", "run a script in the current scope").
-		WithArg(cli.NewArg("command", "the script name").WithType(cli.TypeString)).
+		WithArg(cli.NewArg("command", "the script name").WithType(cli.ArgTypeString)).
 		WithOption(cli.NewOption("scope", "set the scope for the command")).
-		WithOption(cli.NewOption("inherit (default true)", "pass all environment variables from the parent environment to the alias to exec").WithType(cli.TypeBool)).
+		WithOption(cli.NewOption("inherit (default true)", "pass all environment variables from the parent environment to the alias to exec").WithType(cli.OptionTypeBool)).
 		WithArg(cli.NewArg("-- args", "args to pass to the script").AsOptional()).
 		WithAction(scriptRunAction)
 
@@ -981,7 +981,7 @@ func _buildCLI() cli.App {
 	scriptPathAction = _scopeHandler(scriptPathAction)
 
 	var scriptPath = cli.NewCommand("path", "print the path to a script").
-		WithArg(cli.NewArg("command", "the script name").WithType(cli.TypeString)).
+		WithArg(cli.NewArg("command", "the script name").WithType(cli.ArgTypeString)).
 		WithOption(cli.NewOption("scope", "set the scope for the command")).
 		WithAction(scriptPathAction)
 
@@ -1030,7 +1030,7 @@ func _buildCLI() cli.App {
 	scriptGetAction = _scopeHandler(scriptGetAction)
 
 	var scriptGet = cli.NewCommand("get", "print the contents of a script").
-		WithArg(cli.NewArg("command", "the script name").WithType(cli.TypeString)).
+		WithArg(cli.NewArg("command", "the script name").WithType(cli.ArgTypeString)).
 		WithOption(cli.NewOption("scope", "set the scope for the command")).
 		WithAction(scriptGetAction)
 
@@ -1091,7 +1091,7 @@ func _buildCLI() cli.App {
 	scriptEditAction = _scopeHandler(scriptEditAction)
 
 	var scriptEdit = cli.NewCommand("edit", "edit a script").
-		WithArg(cli.NewArg("command", "the script name").WithType(cli.TypeString)).
+		WithArg(cli.NewArg("command", "the script name").WithType(cli.ArgTypeString)).
 		WithOption(cli.NewOption("scope", "set the scope for the command")).
 		WithOption(cli.NewOption("editor", "set the editor to use")).
 		WithAction(scriptEditAction)
@@ -1103,9 +1103,9 @@ func _buildCLI() cli.App {
 		WithCommand(scriptRun)
 
 	var run = cli.NewCommand("run", "alias for `dryad script run`").
-		WithArg(cli.NewArg("command", "alias command").WithType(cli.TypeString)).
+		WithArg(cli.NewArg("command", "alias command").WithType(cli.ArgTypeString)).
 		WithOption(cli.NewOption("scope", "set the scope for the command")).
-		WithOption(cli.NewOption("inherit (default true)", "pass all environment variables from the parent environment to the alias to exec").WithType(cli.TypeBool)).
+		WithOption(cli.NewOption("inherit (default true)", "pass all environment variables from the parent environment to the alias to exec").WithType(cli.OptionTypeBool)).
 		WithArg(cli.NewArg("-- args", "args to pass to the command").AsOptional()).
 		WithAction(scriptRunAction)
 
@@ -1177,7 +1177,7 @@ func _buildCLI() cli.App {
 
 	var scriptsList = cli.NewCommand("list", "list all available scripts in the current scope").
 		WithOption(cli.NewOption("scope", "set the scope for the command")).
-		WithOption(cli.NewOption("path", "print the path to the scripts instead of the script run command").WithType(cli.TypeBool)).
+		WithOption(cli.NewOption("path", "print the path to the scripts instead of the script run command").WithType(cli.OptionTypeBool)).
 		WithAction(scriptsListAction)
 
 	var scripts = cli.NewCommand("scripts", "commands to work with scoped scripts").
@@ -1312,12 +1312,12 @@ func _buildCLI() cli.App {
 		WithCommand(secretsPath)
 
 	var sproutsRun = cli.NewCommand("run", "run each sprout in the current garden").
-		WithOption(cli.NewOption("include", "choose which sprouts are included").WithType(cli.TypeMultiString)).
-		WithOption(cli.NewOption("exclude", "choose which sprouts are excluded").WithType(cli.TypeMultiString)).
+		WithOption(cli.NewOption("include", "choose which sprouts are included").WithType(cli.OptionTypeMultiString)).
+		WithOption(cli.NewOption("exclude", "choose which sprouts are excluded").WithType(cli.OptionTypeMultiString)).
 		WithOption(cli.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
-		WithOption(cli.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(cli.TypeBool)).
-		WithOption(cli.NewOption("confirm", "display the list of sprouts to exec, and ask for confirmation").WithType(cli.TypeBool)).
-		WithOption(cli.NewOption("ignore-errors", "continue running even if a sprout returns an error").WithType(cli.TypeBool)).
+		WithOption(cli.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(cli.OptionTypeBool)).
+		WithOption(cli.NewOption("confirm", "display the list of sprouts to exec, and ask for confirmation").WithType(cli.OptionTypeBool)).
+		WithOption(cli.NewOption("ignore-errors", "continue running even if a sprout returns an error").WithType(cli.OptionTypeBool)).
 		WithOption(cli.NewOption("scope", "set the scope for the command")).
 		WithArg(cli.NewArg("-- args", "args to pass to each sprout on execution").AsOptional()).
 		WithAction(_scopeHandler(
@@ -1470,8 +1470,8 @@ func _buildCLI() cli.App {
 		))
 
 	var sproutsList = cli.NewCommand("list", "list all sprouts of the current garden").
-		WithOption(cli.NewOption("include", "choose which sprouts are included in the list").WithType(cli.TypeMultiString)).
-		WithOption(cli.NewOption("exclude", "choose which sprouts are excluded from the list").WithType(cli.TypeMultiString)).
+		WithOption(cli.NewOption("include", "choose which sprouts are included in the list").WithType(cli.OptionTypeMultiString)).
+		WithOption(cli.NewOption("exclude", "choose which sprouts are excluded from the list").WithType(cli.OptionTypeMultiString)).
 		WithOption(cli.NewOption("scope", "set the scope for the command")).
 		WithAction(_scopeHandler(
 			func(req cli.ActionRequest) int {
@@ -1550,7 +1550,7 @@ func _buildCLI() cli.App {
 	var stemRun = cli.NewCommand("run", "execute the main for a stem").
 		WithArg(cli.NewArg("path", "path to the stem base dir")).
 		WithOption(cli.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
-		WithOption(cli.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(cli.TypeBool)).
+		WithOption(cli.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(cli.OptionTypeBool)).
 		WithOption(cli.NewOption("override", "run this executable in the stem run envinronment instead of the main")).
 		WithArg(cli.NewArg("-- args", "args to pass to the stem").AsOptional()).
 		WithAction(func(req cli.ActionRequest) int {

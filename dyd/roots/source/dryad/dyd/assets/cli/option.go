@@ -32,12 +32,12 @@ type Option interface {
 	Description() string
 	// Type returns the option type (string by default) to be used to decide if a value is required and for
 	// value validation.
-	Type() ValueType
+	Type() OptionType
 
 	// WithChar sets the char key for the option.
 	WithChar(char rune) Option
 	// WithType sets the option value type.
-	WithType(ft ValueType) Option
+	WithType(ft OptionType) Option
 }
 
 // NewOption creates a new option with a given key and description.
@@ -46,14 +46,14 @@ func NewOption(key, descr string) Option {
 	if len(key) == 1 {
 		char = rune(key[0])
 	}
-	return option{key: key, char: char, descr: descr, tp: TypeString}
+	return option{key: key, char: char, descr: descr, tp: OptionTypeString}
 }
 
 type option struct {
 	key   string
 	char  rune
 	descr string
-	tp    ValueType
+	tp    OptionType
 }
 
 func (f option) Key() string {
@@ -64,7 +64,7 @@ func (f option) CharKey() rune {
 	return f.char
 }
 
-func (f option) Type() ValueType {
+func (f option) Type() OptionType {
 	return f.tp
 }
 
@@ -81,7 +81,7 @@ func (f option) WithChar(char rune) Option {
 	return f
 }
 
-func (f option) WithType(tp ValueType) Option {
+func (f option) WithType(tp OptionType) Option {
 	f.tp = tp
 	return f
 }

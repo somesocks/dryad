@@ -131,11 +131,11 @@ func optstring(opts []Option) string {
 	for _, opt := range opts {
 		res += " [--" + opt.Key()
 		switch opt.Type() {
-		case TypeString:
+		case OptionTypeString:
 			res += "=string"
-		case TypeInt:
+		case OptionTypeInt:
 			res += "=int"
-		case TypeNumber:
+		case OptionTypeNumber:
 			res += "=number"
 		}
 		res += "]"

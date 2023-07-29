@@ -114,7 +114,7 @@ func evalCommand(a App, appargs []string) (invocation []string, argsAndOpts []st
 
 func setOpt(opts map[string]interface{}, opt Option, raw string) (map[string]interface{}, error) {
 	switch opt.Type() {
-	case TypeInt:
+	case OptionTypeInt:
 		value, err := strconv.ParseInt(raw, 10, 64)
 		if err != nil {
 			return nil, err
@@ -122,7 +122,7 @@ func setOpt(opts map[string]interface{}, opt Option, raw string) (map[string]int
 
 		opts[opt.Key()] = value
 		return opts, nil
-	case TypeMultiInt:
+	case OptionTypeMultiInt:
 		value, err := strconv.ParseInt(raw, 10, 64)
 		if err != nil {
 			return nil, err
@@ -138,7 +138,7 @@ func setOpt(opts map[string]interface{}, opt Option, raw string) (map[string]int
 		opts[opt.Key()] = buffer
 
 		return opts, nil
-	case TypeNumber:
+	case OptionTypeNumber:
 		value, err := strconv.ParseFloat(raw, 64)
 		if err != nil {
 			return nil, err
@@ -146,7 +146,7 @@ func setOpt(opts map[string]interface{}, opt Option, raw string) (map[string]int
 
 		opts[opt.Key()] = value
 		return opts, nil
-	case TypeMultiNumber:
+	case OptionTypeMultiNumber:
 		value, err := strconv.ParseFloat(raw, 64)
 		if err != nil {
 			return nil, err
@@ -162,7 +162,7 @@ func setOpt(opts map[string]interface{}, opt Option, raw string) (map[string]int
 		opts[opt.Key()] = buffer
 
 		return opts, nil
-	case TypeBool:
+	case OptionTypeBool:
 		value, err := strconv.ParseBool(raw)
 		if err != nil {
 			return nil, err
@@ -170,7 +170,7 @@ func setOpt(opts map[string]interface{}, opt Option, raw string) (map[string]int
 
 		opts[opt.Key()] = value
 		return opts, nil
-	case TypeMultiBool:
+	case OptionTypeMultiBool:
 		value, err := strconv.ParseBool(raw)
 		if err != nil {
 			return nil, err
@@ -186,12 +186,12 @@ func setOpt(opts map[string]interface{}, opt Option, raw string) (map[string]int
 		opts[opt.Key()] = buffer
 
 		return opts, nil
-	case TypeString:
+	case OptionTypeString:
 		value := raw
 
 		opts[opt.Key()] = value
 		return opts, nil
-	case TypeMultiString:
+	case OptionTypeMultiString:
 		value := raw
 
 		var buffer []string
@@ -251,7 +251,7 @@ func splitArgsAndOpts(appargs []string, accptOpts []Option) (args []string, opts
 				}
 
 				if value == "" {
-					if opt.Type() == TypeBool || opt.Type() == TypeMultiBool {
+					if opt.Type() == OptionTypeBool || opt.Type() == OptionTypeMultiBool {
 						value = trueStr
 					} else {
 						return args, opts, fmt.Errorf("missing value for option --%s", key)
@@ -359,15 +359,15 @@ func assertArgs(expected []Arg, actual []string) error {
 		}
 		arg := actual[i]
 		switch e.Type() {
-		case TypeBool:
+		case ArgTypeBool:
 			if _, err := strconv.ParseBool(arg); err != nil {
 				return fmt.Errorf("argument %s must be a boolean value, found %v", e.Key(), arg)
 			}
-		case TypeInt:
+		case ArgTypeInt:
 			if _, err := strconv.ParseInt(arg, 10, 64); err != nil {
 				return fmt.Errorf("argument %s must be an integer value, found %v", e.Key(), arg)
 			}
-		case TypeNumber:
+		case ArgTypeNumber:
 			if _, err := strconv.ParseFloat(arg, 64); err != nil {
 				return fmt.Errorf("argument %s must be a number, found %v", e.Key(), arg)
 			}
@@ -378,35 +378,35 @@ func assertArgs(expected []Arg, actual []string) error {
 
 func assertOpt(option Option, value interface{}) error {
 	switch option.Type() {
-	case TypeInt:
+	case OptionTypeInt:
 		if _, isType := value.(int64); !isType {
 			return fmt.Errorf("option --%s must be an integer", option.Key())
 		}
-	case TypeMultiInt:
+	case OptionTypeMultiInt:
 		if _, isType := value.([]int64); !isType {
 			return fmt.Errorf("option --%s must be an integer array", option.Key())
 		}
-	case TypeNumber:
+	case OptionTypeNumber:
 		if _, isType := value.(float64); !isType {
 			return fmt.Errorf("option --%s must must be a number", option.Key())
 		}
-	case TypeMultiNumber:
+	case OptionTypeMultiNumber:
 		if _, isType := value.([]float64); !isType {
 			return fmt.Errorf("option --%s must must be a number array", option.Key())
 		}
-	case TypeBool:
+	case OptionTypeBool:
 		if _, isType := value.(bool); !isType {
 			return fmt.Errorf("option --%s must must be a boolean", option.Key())
 		}
-	case TypeMultiBool:
+	case OptionTypeMultiBool:
 		if _, isType := value.([]bool); !isType {
 			return fmt.Errorf("option --%s must must be a boolean array", option.Key())
 		}
-	case TypeString:
+	case OptionTypeString:
 		if _, isType := value.(string); !isType {
 			return fmt.Errorf("option --%s must must be a string", option.Key())
 		}
-	case TypeMultiString:
+	case OptionTypeMultiString:
 		if _, isType := value.([]string); !isType {
 			return fmt.Errorf("option --%s must must be a string array", option.Key())
 		}
