@@ -10,7 +10,11 @@ import (
 )
 
 var secretsPathCommand = clib.NewCommand("path", "print the path to the secrets for the current package, if it exists").
-	WithArg(clib.NewArg("path", "path to the stem base dir")).
+	WithArg(
+		clib.
+			NewArg("path", "path to the stem base dir").
+			WithAutoComplete(AutoCompletePath),
+	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args
 

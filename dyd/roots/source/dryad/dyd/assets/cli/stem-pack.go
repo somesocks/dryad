@@ -8,7 +8,11 @@ import (
 )
 
 var stemPackCommand = clib.NewCommand("pack", "pack the stem at the target path into a tar archive").
-	WithArg(clib.NewArg("stemPath", "the path to the stem to pack")).
+	WithArg(
+		clib.
+			NewArg("stemPath", "the path to the stem to pack").
+			WithAutoComplete(AutoCompletePath),
+	).
 	WithArg(clib.NewArg("targetPath", "the path (including name) to output the archive to").AsOptional()).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args

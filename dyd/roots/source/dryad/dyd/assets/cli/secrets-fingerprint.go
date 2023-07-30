@@ -10,7 +10,11 @@ import (
 )
 
 var secretsFingerprintCommand = clib.NewCommand("fingerprint", "calculate the fingerprint for the secrets in a stem/root").
-	WithArg(clib.NewArg("path", "path to the stem base dir")).
+	WithArg(
+		clib.
+			NewArg("path", "path to the stem base dir").
+			WithAutoComplete(AutoCompletePath),
+	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args
 

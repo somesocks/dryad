@@ -7,7 +7,11 @@ import (
 )
 
 var rootCreateCommand = clib.NewCommand("create", "create a new root at the target path").
-	WithArg(clib.NewArg("path", "the path to create the new root at")).
+	WithArg(
+		clib.
+			NewArg("path", "the path to create the new root at").
+			WithAutoComplete(AutoCompletePath),
+	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args
 

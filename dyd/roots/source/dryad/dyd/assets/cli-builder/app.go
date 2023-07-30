@@ -78,36 +78,6 @@ func New(descr string) App {
 	return &app{descr: descr}
 }
 
-// Arg defines a positional argument. Arguments are validated for their
-// count and their type. If the last defined argument is optional, then
-// an unlimited number of arguments can be passed into the call, otherwise
-// an exact count of positional arguments is expected. Obviously, optional
-// arguments can be omitted. No validation is done for the invalid case of
-// specifying an optional positional argument before a required one.
-type Arg interface {
-	// Key defines how the argument will be shown in the usage string.
-	Key() string
-	// Description returns the description of the argument usage
-	Description() string
-	// Type defines argument type. Default is string, which is not validated,
-	// other types are validated by simple string parsing into boolean, int and float.
-	Type() ArgType
-	// Optional specifies that an argument may be omitted. No non-optional arguments
-	// should follow an optional one (no validation for this scenario as this is
-	// the definition time exception, rather than incorrect input at runtime).
-	Optional() bool
-
-	// WithType sets the argument type.
-	WithType(at ArgType) Arg
-	// AsOptional sets the argument as optional.
-	AsOptional() Arg
-}
-
-// NewArg creates a new positional argument.
-func NewArg(key, descr string) Arg {
-	return arg{key: key, descr: descr}
-}
-
 type app struct {
 	descr        string
 	args         []Arg

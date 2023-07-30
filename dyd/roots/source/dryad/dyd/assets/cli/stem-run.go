@@ -9,7 +9,11 @@ import (
 )
 
 var stemRunCommand = clib.NewCommand("run", "execute the main for a stem").
-	WithArg(clib.NewArg("path", "path to the stem base dir")).
+	WithArg(
+		clib.
+			NewArg("path", "path to the stem base dir").
+			WithAutoComplete(AutoCompletePath),
+	).
 	WithOption(clib.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
 	WithOption(clib.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(clib.OptionTypeBool)).
 	WithOption(clib.NewOption("override", "run this executable in the stem run envinronment instead of the main")).

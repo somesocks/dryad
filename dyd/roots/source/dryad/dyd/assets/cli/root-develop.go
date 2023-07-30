@@ -10,7 +10,12 @@ import (
 )
 
 var rootDevelopCommand = clib.NewCommand("develop", "create a temporary development environment for a root").
-	WithArg(clib.NewArg("path", "path to the root to develop").AsOptional()).
+	WithArg(
+		clib.
+			NewArg("path", "path to the root to develop").
+			AsOptional().
+			WithAutoComplete(AutoCompletePath),
+	).
 	WithOption(clib.NewOption("editor", "choose the editor to run in the root development environment").WithType(clib.OptionTypeString)).
 	WithOption(clib.NewOption("arg", "argument to pass to the editor").WithType(clib.OptionTypeMultiString)).
 	WithOption(clib.NewOption("inherit", "inherit env variables from the host environment").WithType(clib.OptionTypeBool)).

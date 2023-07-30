@@ -7,8 +7,16 @@ import (
 )
 
 var rootReplaceCommand = clib.NewCommand("replace", "replace all references to one root with references to another").
-	WithArg(clib.NewArg("source", "path to the source root")).
-	WithArg(clib.NewArg("replacement", "path to the replacement root")).
+	WithArg(
+		clib.
+			NewArg("source", "path to the source root").
+			WithAutoComplete(AutoCompletePath),
+	).
+	WithArg(
+		clib.
+			NewArg("replacement", "path to the replacement root").
+			WithAutoComplete(AutoCompletePath),
+	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args
 

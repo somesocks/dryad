@@ -7,7 +7,12 @@ import (
 )
 
 var gardenBuildCommand = clib.NewCommand("build", "build all roots in the garden").
-	WithArg(clib.NewArg("path", "the target path for the garden to build").AsOptional()).
+	WithArg(
+		clib.
+			NewArg("path", "the target path for the garden to build").
+			AsOptional().
+			WithAutoComplete(AutoCompletePath),
+	).
 	WithOption(clib.NewOption("include", "choose which roots are included in the build").WithType(clib.OptionTypeMultiString)).
 	WithOption(clib.NewOption("exclude", "choose which roots are excluded from the build").WithType(clib.OptionTypeMultiString)).
 	WithOption(clib.NewOption("scope", "set the scope for the command")).

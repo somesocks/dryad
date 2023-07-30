@@ -8,7 +8,12 @@ import (
 )
 
 var rootPathCommand = clib.NewCommand("path", "return the base path of the current root").
-	WithArg(clib.NewArg("path", "the path to start searching for a root at. defaults to current directory").AsOptional()).
+	WithArg(
+		clib.
+			NewArg("path", "the path to start searching for a root at. defaults to current directory").
+			AsOptional().
+			WithAutoComplete(AutoCompletePath),
+	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args
 

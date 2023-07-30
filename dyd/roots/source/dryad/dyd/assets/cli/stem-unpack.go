@@ -9,7 +9,11 @@ import (
 )
 
 var stemUnpackCommand = clib.NewCommand("unpack", "unpack a stem archive at the target path and import it into the current garden").
-	WithArg(clib.NewArg("archive", "the path to the archive to unpack")).
+	WithArg(
+		clib.
+			NewArg("archive", "the path to the archive to unpack").
+			WithAutoComplete(AutoCompletePath),
+	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args
 

@@ -7,8 +7,16 @@ import (
 )
 
 var rootMoveCommand = clib.NewCommand("move", "move a root to a new location and correct all references").
-	WithArg(clib.NewArg("source", "path to the source root")).
-	WithArg(clib.NewArg("destination", "destination path for the root")).
+	WithArg(
+		clib.
+			NewArg("source", "path to the source root").
+			WithAutoComplete(AutoCompletePath),
+	).
+	WithArg(
+		clib.
+			NewArg("destination", "destination path for the root").
+			WithAutoComplete(AutoCompletePath),
+	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args
 

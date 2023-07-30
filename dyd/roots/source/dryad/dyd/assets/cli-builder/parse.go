@@ -216,7 +216,7 @@ func splitArgsAndOpts(appargs []string, accptOpts []Option) (args []string, opts
 
 	passthrough := false
 	for _, arg := range appargs {
-		if arg == "--" {
+		if arg == "--" && !passthrough {
 			passthrough = true
 			continue
 		}

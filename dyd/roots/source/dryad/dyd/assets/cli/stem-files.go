@@ -10,7 +10,12 @@ import (
 )
 
 var stemFilesCommand = clib.NewCommand("files", "list the files in a stem").
-	WithArg(clib.NewArg("path", "path to the stem base dir").AsOptional()).
+	WithArg(
+		clib.
+			NewArg("path", "path to the stem base dir").
+			AsOptional().
+			WithAutoComplete(AutoCompletePath),
+	).
 	WithOption(clib.NewOption("exclude", "a regular expression to exclude files from the list. the regexp matches against the file path relative to the stem base directory")).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args

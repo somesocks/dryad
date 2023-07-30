@@ -11,7 +11,11 @@ import (
 )
 
 var secretsListCommand = clib.NewCommand("list", "list the secret files in a stem/root").
-	WithArg(clib.NewArg("path", "path to the stem base dir")).
+	WithArg(
+		clib.
+			NewArg("path", "path to the stem base dir").
+			WithAutoComplete(AutoCompletePath),
+	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args
 

@@ -10,7 +10,12 @@ import (
 )
 
 var rootsListCommand = clib.NewCommand("list", "list all roots that are dependencies for the current root (or roots of the current garden, if the path is not a root)").
-	WithArg(clib.NewArg("path", "path to the base root (or garden) to list roots in").AsOptional()).
+	WithArg(
+		clib.
+			NewArg("path", "path to the base root (or garden) to list roots in").
+			AsOptional().
+			WithAutoComplete(AutoCompletePath),
+	).
 	WithOption(clib.NewOption("include", "choose which roots are included in the list").WithType(clib.OptionTypeMultiString)).
 	WithOption(clib.NewOption("exclude", "choose which roots are excluded from the list").WithType(clib.OptionTypeMultiString)).
 	WithOption(clib.NewOption("scope", "set the scope for the command")).

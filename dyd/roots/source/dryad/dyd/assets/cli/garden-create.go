@@ -7,7 +7,12 @@ import (
 )
 
 var gardenCreateCommand = clib.NewCommand("create", "create a garden").
-	WithArg(clib.NewArg("path", "the target path at which to create the garden").AsOptional()).
+	WithArg(
+		clib.
+			NewArg("path", "the target path at which to create the garden").
+			AsOptional().
+			WithAutoComplete(AutoCompletePath),
+	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args
 

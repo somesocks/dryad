@@ -7,8 +7,16 @@ import (
 )
 
 var rootCopyCommand = clib.NewCommand("copy", "make a copy of the specified root at a new location").
-	WithArg(clib.NewArg("source", "path to the source root")).
-	WithArg(clib.NewArg("destination", "destination path for the root copy")).
+	WithArg(
+		clib.
+			NewArg("source", "path to the source root").
+			WithAutoComplete(AutoCompletePath),
+	).
+	WithArg(
+		clib.
+			NewArg("destination", "destination path for the root copy").
+			WithAutoComplete(AutoCompletePath),
+	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args
 

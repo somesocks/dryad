@@ -9,8 +9,14 @@ import (
 	"path/filepath"
 )
 
-var rootBuildCommand = clib.NewCommand("build", "build a specified root").
-	WithArg(clib.NewArg("path", "path to the root to build").AsOptional()).
+var rootBuildCommand = clib.
+	NewCommand("build", "build a specified root").
+	WithArg(
+		clib.
+			NewArg("path", "path to the root to build").
+			AsOptional().
+			WithAutoComplete(AutoCompletePath),
+	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args
 
