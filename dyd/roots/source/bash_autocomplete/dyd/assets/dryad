@@ -4,4 +4,4 @@ _dryad_complete(){
 	COMPREPLY=( $(dryad system autocomplete -- "${COMP_WORDS[@]:1}") )
 }
 
-complete -F _dryad_complete dryad
+complete -o nospace -F _dryad_complete dryad

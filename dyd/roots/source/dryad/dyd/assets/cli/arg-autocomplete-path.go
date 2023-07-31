@@ -10,13 +10,16 @@ import (
 )
 
 func ArgAutoCompletePath(token string) []string {
-	if token == "" {
-		return []string{"./"}
-	}
 
 	var results = []string{}
 	var base string
 	var parent string
+
+	if token == "" || token == "." {
+		token = "." + string(filepath.Separator)
+	} else if token == ".." {
+		token = ".." + string(filepath.Separator)
+	}
 
 	if strings.HasSuffix(token, string(filepath.Separator)) {
 		base = ""
@@ -42,11 +45,16 @@ func ArgAutoCompletePath(token string) []string {
 			var name = entry.Name()
 			if strings.HasPrefix(name, base) {
 				var isDir = entry.IsDir()
+				var result string
 				if isDir {
-					results = append(results, name+string(filepath.Separator))
+					result = filepath.Join(parent, name) + string(filepath.Separator)
 				} else {
-					results = append(results, name)
+					result = filepath.Join(parent, name)
 				}
+				if !filepath.IsAbs(result) && !strings.HasPrefix(result, ".") {
+					result = "." + string(filepath.Separator) + result
+				}
+				results = append(results, result)
 			}
 		}
 		entries, err = dir.ReadDir(100)

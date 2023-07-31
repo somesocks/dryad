@@ -14,6 +14,10 @@ func AppAutoComplete(app App, tokens []string) []string {
 		results = append(results, CommandAutoComplete(command, tokens)...)
 	}
 
+	if len(results) == 1 {
+		results[0] = results[0] + " "
+	}
+
 	return results
 }
 
