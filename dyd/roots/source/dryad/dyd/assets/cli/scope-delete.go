@@ -8,7 +8,11 @@ import (
 )
 
 var scopeDeleteCommand = clib.NewCommand("delete", "remove an existing scope directory from the garden").
-	WithArg(clib.NewArg("name", "the name of the scope to delete")).
+	WithArg(
+		clib.
+			NewArg("name", "the name of the scope to delete").
+			WithAutoComplete(ArgAutoCompleteScope),
+	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args
 

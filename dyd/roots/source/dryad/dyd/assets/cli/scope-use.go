@@ -8,7 +8,11 @@ import (
 )
 
 var scopeUseCommand = clib.NewCommand("use", "set a scope to be active. alias for `dryad scopes default set`").
-	WithArg(clib.NewArg("name", "the name of the scope to set as active. use 'none' to unset the active scope")).
+	WithArg(
+		clib.
+			NewArg("name", "the name of the scope to set as active. use 'none' to unset the active scope").
+			WithAutoComplete(ArgAutoCompleteScope),
+	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args
 

@@ -11,7 +11,7 @@ var rootUnlinkCommand = clib.NewCommand("unlink", "remove a dependency linked to
 	WithArg(
 		clib.
 			NewArg("path", "path to the dependency to unlink").
-			WithAutoComplete(AutoCompletePath),
+			WithAutoComplete(ArgAutoCompletePath),
 	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args

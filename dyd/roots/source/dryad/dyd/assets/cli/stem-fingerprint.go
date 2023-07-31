@@ -14,7 +14,7 @@ var stemFingerprintCommand = clib.NewCommand("fingerprint", "calculate the finge
 		clib.
 			NewArg("path", "path to the stem base dir").
 			AsOptional().
-			WithAutoComplete(AutoCompletePath),
+			WithAutoComplete(ArgAutoCompletePath),
 	).
 	WithOption(clib.NewOption("exclude", "a regular expression to exclude files from the fingerprint calculation. the regexp matches against the file path relative to the stem base directory")).
 	WithAction(func(req clib.ActionRequest) int {

@@ -10,12 +10,12 @@ var rootReplaceCommand = clib.NewCommand("replace", "replace all references to o
 	WithArg(
 		clib.
 			NewArg("source", "path to the source root").
-			WithAutoComplete(AutoCompletePath),
+			WithAutoComplete(ArgAutoCompletePath),
 	).
 	WithArg(
 		clib.
 			NewArg("replacement", "path to the replacement root").
-			WithAutoComplete(AutoCompletePath),
+			WithAutoComplete(ArgAutoCompletePath),
 	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args

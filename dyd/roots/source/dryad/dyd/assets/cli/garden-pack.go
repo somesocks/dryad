@@ -12,13 +12,13 @@ var gardenPackCommand = clib.NewCommand("pack", "pack the current garden into an
 		clib.
 			NewArg("gardenPath", "the path to the garden to pack").
 			AsOptional().
-			WithAutoComplete(AutoCompletePath),
+			WithAutoComplete(ArgAutoCompletePath),
 	).
 	WithArg(
 		clib.
 			NewArg("targetPath", "the path (including name) to output the archive to").
 			AsOptional().
-			WithAutoComplete(AutoCompletePath),
+			WithAutoComplete(ArgAutoCompletePath),
 	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args

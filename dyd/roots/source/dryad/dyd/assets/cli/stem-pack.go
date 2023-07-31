@@ -11,7 +11,7 @@ var stemPackCommand = clib.NewCommand("pack", "pack the stem at the target path 
 	WithArg(
 		clib.
 			NewArg("stemPath", "the path to the stem to pack").
-			WithAutoComplete(AutoCompletePath),
+			WithAutoComplete(ArgAutoCompletePath),
 	).
 	WithArg(clib.NewArg("targetPath", "the path (including name) to output the archive to").AsOptional()).
 	WithAction(func(req clib.ActionRequest) int {

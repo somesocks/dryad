@@ -10,12 +10,12 @@ var rootMoveCommand = clib.NewCommand("move", "move a root to a new location and
 	WithArg(
 		clib.
 			NewArg("source", "path to the source root").
-			WithAutoComplete(AutoCompletePath),
+			WithAutoComplete(ArgAutoCompletePath),
 	).
 	WithArg(
 		clib.
 			NewArg("destination", "destination path for the root").
-			WithAutoComplete(AutoCompletePath),
+			WithAutoComplete(ArgAutoCompletePath),
 	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args

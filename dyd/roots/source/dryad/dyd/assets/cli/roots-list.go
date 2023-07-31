@@ -14,7 +14,7 @@ var rootsListCommand = clib.NewCommand("list", "list all roots that are dependen
 		clib.
 			NewArg("path", "path to the base root (or garden) to list roots in").
 			AsOptional().
-			WithAutoComplete(AutoCompletePath),
+			WithAutoComplete(ArgAutoCompletePath),
 	).
 	WithOption(clib.NewOption("include", "choose which roots are included in the list").WithType(clib.OptionTypeMultiString)).
 	WithOption(clib.NewOption("exclude", "choose which roots are excluded from the list").WithType(clib.OptionTypeMultiString)).

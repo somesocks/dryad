@@ -12,7 +12,7 @@ var gardenPathCommand = clib.NewCommand("path", "return the base path for a gard
 		clib.
 			NewArg("path", "the target path at which to start for the base garden path").
 			AsOptional().
-			WithAutoComplete(AutoCompletePath),
+			WithAutoComplete(ArgAutoCompletePath),
 	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args

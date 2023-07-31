@@ -8,7 +8,11 @@ import (
 )
 
 var scopeSettingUnsetCommand = clib.NewCommand("unset", "remove a setting from a scope").
-	WithArg(clib.NewArg("scope", "the name of the scope")).
+	WithArg(
+		clib.
+			NewArg("scope", "the name of the scope").
+			WithAutoComplete(ArgAutoCompleteScope),
+	).
 	WithArg(clib.NewArg("setting", "the name of the setting")).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args

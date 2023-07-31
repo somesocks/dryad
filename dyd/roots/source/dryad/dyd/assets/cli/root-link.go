@@ -11,7 +11,7 @@ var rootLinkCommand = clib.NewCommand("link", "link a root as a dependency of th
 	WithArg(
 		clib.
 			NewArg("path", "path to the root you want to link as a dependency").
-			WithAutoComplete(AutoCompletePath),
+			WithAutoComplete(ArgAutoCompletePath),
 	).
 	WithArg(clib.NewArg("alias", "the alias to link the root under. if not specified, this defaults to the basename of the linked root").AsOptional()).
 	WithAction(func(req clib.ActionRequest) int {

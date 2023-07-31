@@ -12,7 +12,7 @@ var stemUnpackCommand = clib.NewCommand("unpack", "unpack a stem archive at the 
 	WithArg(
 		clib.
 			NewArg("archive", "the path to the archive to unpack").
-			WithAutoComplete(AutoCompletePath),
+			WithAutoComplete(ArgAutoCompletePath),
 	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args

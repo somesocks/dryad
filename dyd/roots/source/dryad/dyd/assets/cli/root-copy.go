@@ -10,12 +10,12 @@ var rootCopyCommand = clib.NewCommand("copy", "make a copy of the specified root
 	WithArg(
 		clib.
 			NewArg("source", "path to the source root").
-			WithAutoComplete(AutoCompletePath),
+			WithAutoComplete(ArgAutoCompletePath),
 	).
 	WithArg(
 		clib.
 			NewArg("destination", "destination path for the root copy").
-			WithAutoComplete(AutoCompletePath),
+			WithAutoComplete(ArgAutoCompletePath),
 	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args

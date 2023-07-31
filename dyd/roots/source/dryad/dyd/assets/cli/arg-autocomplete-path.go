@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func AutoCompletePath(token string) []string {
+func ArgAutoCompletePath(token string) []string {
 	if token == "" {
 		return []string{"./"}
 	}

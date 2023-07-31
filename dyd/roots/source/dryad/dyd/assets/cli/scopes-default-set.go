@@ -8,7 +8,11 @@ import (
 )
 
 var scopesDefaultSetCommand = clib.NewCommand("set", "set a scope to be the default").
-	WithArg(clib.NewArg("name", "the name of the scope to set as default")).
+	WithArg(
+		clib.
+			NewArg("name", "the name of the scope to set as default").
+			WithAutoComplete(ArgAutoCompleteScope),
+	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args
 

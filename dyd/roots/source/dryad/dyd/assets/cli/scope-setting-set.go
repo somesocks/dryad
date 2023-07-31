@@ -8,7 +8,11 @@ import (
 )
 
 var scopeSettingSetCommand = clib.NewCommand("set", "set the value of a setting in a scope").
-	WithArg(clib.NewArg("scope", "the name of the scope")).
+	WithArg(
+		clib.
+			NewArg("scope", "the name of the scope").
+			WithAutoComplete(ArgAutoCompleteScope),
+	).
 	WithArg(clib.NewArg("setting", "the name of the setting")).
 	WithArg(clib.NewArg("value", "the new value for the setting")).
 	WithAction(func(req clib.ActionRequest) int {

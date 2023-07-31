@@ -14,7 +14,7 @@ var rootDevelopCommand = clib.NewCommand("develop", "create a temporary developm
 		clib.
 			NewArg("path", "path to the root to develop").
 			AsOptional().
-			WithAutoComplete(AutoCompletePath),
+			WithAutoComplete(ArgAutoCompletePath),
 	).
 	WithOption(clib.NewOption("editor", "choose the editor to run in the root development environment").WithType(clib.OptionTypeString)).
 	WithOption(clib.NewOption("arg", "argument to pass to the editor").WithType(clib.OptionTypeMultiString)).

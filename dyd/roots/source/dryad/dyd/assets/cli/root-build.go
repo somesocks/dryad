@@ -15,7 +15,7 @@ var rootBuildCommand = clib.
 		clib.
 			NewArg("path", "path to the root to build").
 			AsOptional().
-			WithAutoComplete(AutoCompletePath),
+			WithAutoComplete(ArgAutoCompletePath),
 	).
 	WithAction(func(req clib.ActionRequest) int {
 		var args = req.Args
