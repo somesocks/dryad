@@ -51,6 +51,11 @@ var scriptGetAction = func(req clib.ActionRequest) int {
 }
 
 var scriptGetCommand = clib.NewCommand("get", "print the contents of a script").
-	WithArg(clib.NewArg("command", "the script name").WithType(clib.ArgTypeString)).
+	WithArg(
+		clib.
+			NewArg("command", "the script name").
+			WithType(clib.ArgTypeString).
+			WithAutoComplete(ArgAutoCompleteScript),
+	).
 	WithOption(clib.NewOption("scope", "set the scope for the command")).
 	WithAction(scopeHandler(scriptGetAction))

@@ -51,6 +51,11 @@ var scriptPathAction = func(req clib.ActionRequest) int {
 }
 
 var scriptPathCommand = clib.NewCommand("path", "print the path to a script").
-	WithArg(clib.NewArg("command", "the script name").WithType(clib.ArgTypeString)).
+	WithArg(
+		clib.
+			NewArg("command", "the script name").
+			WithType(clib.ArgTypeString).
+			WithAutoComplete(ArgAutoCompleteScript),
+	).
 	WithOption(clib.NewOption("scope", "set the scope for the command")).
 	WithAction(scopeHandler(scriptPathAction))

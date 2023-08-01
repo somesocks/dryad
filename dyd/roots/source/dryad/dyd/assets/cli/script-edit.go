@@ -64,7 +64,12 @@ var scriptEditAction = func(req clib.ActionRequest) int {
 }
 
 var scriptEditCommand = clib.NewCommand("edit", "edit a script").
-	WithArg(clib.NewArg("command", "the script name").WithType(clib.ArgTypeString)).
+	WithArg(
+		clib.
+			NewArg("command", "the script name").
+			WithType(clib.ArgTypeString).
+			WithAutoComplete(ArgAutoCompleteScript),
+	).
 	WithOption(clib.NewOption("scope", "set the scope for the command")).
 	WithOption(clib.NewOption("editor", "set the editor to use")).
 	WithAction(scopeHandler(scriptEditAction))

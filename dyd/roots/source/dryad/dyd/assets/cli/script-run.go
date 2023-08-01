@@ -74,7 +74,12 @@ var scriptRunAction = func(req clib.ActionRequest) int {
 }
 
 var scriptRunCommand = clib.NewCommand("run", "run a script in the current scope").
-	WithArg(clib.NewArg("command", "the script name").WithType(clib.ArgTypeString)).
+	WithArg(
+		clib.
+			NewArg("command", "the script name").
+			WithType(clib.ArgTypeString).
+			WithAutoComplete(ArgAutoCompleteScript),
+	).
 	WithOption(clib.NewOption("scope", "set the scope for the command")).
 	WithOption(clib.NewOption("inherit (default true)", "pass all environment variables from the parent environment to the alias to exec").WithType(clib.OptionTypeBool)).
 	WithArg(clib.NewArg("-- args", "args to pass to the script").AsOptional()).
