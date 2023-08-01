@@ -25,12 +25,12 @@ func CommandAutoComplete(cmd Command, tokens []string) []string {
 	switch len(tokens) {
 	case 0:
 		{
-			results = append(results, key)
+			results = append(results, key+" ")
 		}
 	case 1:
 		{
 			if strings.HasPrefix(key, tokens[0]) {
-				results = append(results, key)
+				results = append(results, key+" ")
 			}
 		}
 	default:
@@ -72,9 +72,9 @@ func ArgumentsAutoComplete(args []Arg, options []Option, tokens []string) []stri
 			// fmt.Println("case 1", token, strings.HasPrefix(token, "-"))
 			if strings.HasPrefix(token, "-") {
 				for _, option := range options {
-					var optionKey = option.Key()
+					var optionKey = "--" + option.Key()
 					// fmt.Println("case 1 option", optionKey, strings.HasPrefix(optionKey, token))
-					if strings.HasPrefix("--"+optionKey, token) {
+					if strings.HasPrefix(optionKey, token) {
 						results = append(results, optionKey)
 					}
 				}

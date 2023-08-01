@@ -1,7 +1,12 @@
 # bash completion for dryad
 
+# set -x
+
 _dryad_complete(){
-	COMPREPLY=( $(dryad system autocomplete -- "${COMP_WORDS[@]:1}") )
+	OIFS="$IFS"
+	IFS=:
+	COMPREPLY=( $(dryad system autocomplete --separator=: -- "${COMP_WORDS[@]:1}") )
+	IFS="$OIFS"
 }
 
 complete -o nospace -F _dryad_complete dryad
