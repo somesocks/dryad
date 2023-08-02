@@ -89,7 +89,7 @@ func ArgumentsAutoComplete(args []Arg, options []Option, tokens []string) []stri
 			var token = tokens[0]
 			if strings.HasPrefix(token, "-") {
 				results = append(results, ArgumentsAutoComplete(args, options, tokens[1:])...)
-			} else {
+			} else if len(args) > 0 {
 				results = append(results, ArgumentsAutoComplete(args[1:], options, tokens[1:])...)
 			}
 		}
