@@ -9,15 +9,13 @@ grand_parent: Usage
 
 ```
 $ dryad garden build --help
-dryad garden build [--include] [--exclude] [--scope=string] [path]
+dryad garden build [--path=string] [--include] [--exclude] [--scope=string]
 
 Description:
     build all roots in the garden
 
-Arguments:
-    path            the target path for the garden to build, optional
-
 Options:
+        --path      the target path for the garden to build
         --include   choose which roots are included in the build
         --exclude   choose which roots are excluded from the build
         --scope     set the scope for the command

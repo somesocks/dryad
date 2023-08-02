@@ -24,6 +24,19 @@ bootstrap-build:
 bootstrap-install:
 	./scripts/nix-shell/run.sh ./scripts/tasks/bootstrap-install.sh
 
+##	autocomplete-install - install the bash autocomplete script
+##
+.PHONY: autocomplete-install
+autocomplete-install:
+	./scripts/nix-shell/run.sh ./scripts/tasks/autocomplete-install.sh
+
+##	autocomplete-uninstall - uninstall the bash autocomplete script
+##
+.PHONY: autocomplete-uninstall
+autocomplete-uninstall:
+	./scripts/nix-shell/run.sh ./scripts/tasks/autocomplete-uninstall.sh
+
+
 ##	dev-shell - use the bootstrap dryad to build and start the dev shell
 ##
 .PHONY: dev-shell
