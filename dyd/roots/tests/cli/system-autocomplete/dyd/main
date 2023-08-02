@@ -38,7 +38,7 @@ _prepare() {
 _test() {
 	COMMAND="dryad system autocomplete --"
 	OUTPUT=$(eval "$COMMAND")
-	EXPECTED="garden root roots run scope scopes script scripts secrets sprouts stem stems system version"
+	EXPECTED="garden  root  roots  run  scope  scopes  script  scripts  secrets  sprouts  stem  stems  system  version "
 	if [[ $OUTPUT != $EXPECTED ]]; then
 		echo "[error] command ($COMMAND) output was ($OUTPUT), expected ($EXPECTED)" 1>&2;
 		exit 1
@@ -46,7 +46,7 @@ _test() {
 
 	COMMAND="dryad system autocomplete -- r"
 	OUTPUT=$(eval "$COMMAND")
-	EXPECTED="root roots run"
+	EXPECTED="root  roots  run "
 	if [[ $OUTPUT != $EXPECTED ]]; then
 		echo "[error] command ($COMMAND) output was ($OUTPUT), expected ($EXPECTED)" 1>&2;
 		exit 1
@@ -54,7 +54,7 @@ _test() {
 
 	COMMAND="dryad system autocomplete -- ro"
 	OUTPUT=$(eval "$COMMAND")
-	EXPECTED="root roots"
+	EXPECTED="root  roots "
 	if [[ $OUTPUT != $EXPECTED ]]; then
 		echo "[error] command ($COMMAND) output was ($OUTPUT), expected ($EXPECTED)" 1>&2;
 		exit 1
@@ -62,7 +62,7 @@ _test() {
 
 	COMMAND="dryad system autocomplete -- root"
 	OUTPUT=$(eval "$COMMAND")
-	EXPECTED="root roots"
+	EXPECTED="root  roots "
 	if [[ $OUTPUT != $EXPECTED ]]; then
 		echo "[error] command ($COMMAND) output was ($OUTPUT), expected ($EXPECTED)" 1>&2;
 		exit 1
@@ -70,7 +70,7 @@ _test() {
 
 	COMMAND="dryad system autocomplete -- roots"
 	OUTPUT=$(eval "$COMMAND")
-	EXPECTED="roots"
+	EXPECTED="roots "
 	if [[ $OUTPUT != $EXPECTED ]]; then
 		echo "[error] command ($COMMAND) output was ($OUTPUT), expected ($EXPECTED)" 1>&2;
 		exit 1
@@ -78,7 +78,7 @@ _test() {
 
 	COMMAND="dryad system autocomplete -- root ''"
 	OUTPUT=$(eval "$COMMAND")
-	EXPECTED="build copy create develop link move path replace unlink"
+	EXPECTED="build  copy  create  develop  link  move  path  replace  unlink "
 	if [[ $OUTPUT != $EXPECTED ]]; then
 		echo "[error] command ($COMMAND) output was ($OUTPUT), expected ($EXPECTED)" 1>&2;
 		exit 1
