@@ -5,7 +5,7 @@ set -eu
 
 BASE=$(dryad garden path)
 
-TAG="release-$(cat $BASE/dyd/roots/dryad/src/dyd/traits/version)"
+TAG="release-$(cat $BASE/dyd/roots/source/dryad/dyd/traits/version)"
 
 echo "[info] pushing tag $TAG"
 
