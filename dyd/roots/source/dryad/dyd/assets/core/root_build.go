@@ -229,30 +229,6 @@ func rootBuild_stage5(rootStemPath string, stemBuildPath string, rootFingerprint
 
 	// fmt.Println("rootBuild_stage5.1 ", rootStemPath)
 
-	// write out the source file
-	sourceFile := filepath.Join(stemBuildPath, "dyd", "traits", "root-fingerprint")
-	sourceFileExists, err := fileExists(sourceFile)
-	if err != nil {
-		return "", err
-	}
-	if sourceFileExists {
-		err = os.Remove(sourceFile)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	// fmt.Println("rootBuild_stage5.2 ", rootStemPath)
-
-	err = os.WriteFile(
-		sourceFile,
-		[]byte(rootFingerprint),
-		fs.ModePerm,
-	)
-	if err != nil {
-		return "", err
-	}
-
 	// write out the path files
 	pathPath := filepath.Join(stemBuildPath, "dyd", "path")
 
