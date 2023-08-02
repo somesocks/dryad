@@ -25,6 +25,7 @@ In order to create a go package, we need to download a go release for the system
 
 #
 # abort on error
+# https://sipb.mit.edu/doc/safe-shell/
 set -euf -o pipefail
 
 SRC_DIR=$DYD_STEM
@@ -33,10 +34,10 @@ DEST_DIR="$1"
 SYSTEM="$DYD_OS-$DYD_ARCH"
 
 declare -A BUILDS=(
-  ['darwin-amd64']='https://go.dev/dl/go1.20.darwin-amd64.tar.gz'
-  ['darwin-arm64']='https://go.dev/dl/go1.20.darwin-arm64.tar.gz'
-  ['linux-amd64']='https://go.dev/dl/go1.20.linux-amd64.tar.gz'
-  ['linux-arm64']='https://go.dev/dl/go1.20.linux-arm64.tar.gz'
+	['darwin-amd64']='https://go.dev/dl/go1.20.darwin-amd64.tar.gz'
+	['darwin-arm64']='https://go.dev/dl/go1.20.darwin-arm64.tar.gz'
+	['linux-amd64']='https://go.dev/dl/go1.20.linux-amd64.tar.gz'
+	['linux-arm64']='https://go.dev/dl/go1.20.linux-arm64.tar.gz'
 )
 
 BUILD="${BUILDS[$SYSTEM]}"
@@ -54,6 +55,7 @@ tar -xf $TEMP_DIR/go.tar -C $DEST_DIR/dyd/assets
 rm -rf $TEMP_DIR
 
 cat $SRC_DIR/dyd/assets/main > $DEST_DIR/dyd/main
+
 ```
 
 Notice at the end of the build script, we copy a main script to our new package to run.  This is a wrapper script to set up the call to the go binary correctly.  In `./dyd/roots/tools/go/dyd/assets/main`, add:
@@ -64,37 +66,20 @@ Notice at the end of the build script, we copy a main script to our new package 
 set -eu
 # set -x
 
-PATH=$PATH:$DYD_STEM/dyd/assets/go/bin
+PATH=$DYD_STEM/dyd/assets/go/bin:$PATH
 
-# note: the go toolchain does not support being run directly from the dryad heap,
-# due to go:embed not allowing symlinks for embedding.
-# as a workaround, we need to unpack the go toolchain to a temp directory when we want to use it
-# this is an issue with some other build environments as well.
-# see:
-# https://github.com/golang/go/issues/44507
-# https://github.com/bazelbuild/rules_go/issues/3110
-# https://github.com/bazelbuild/rules_go/issues/3178
 _prepare () {
-  OUR_FINGERPRINT=$(cat $DYD_STEM/dyd/fingerprint)
-
-  # use the heap context as a place to safely store the unpacked stem
-  CACHE_DIR="$HOME/.cache/dyd-go/$OUR_FINGERPRINT"
-
-  # copy the go toolchain into the cache dir
-  if [ ! -d "$CACHE_DIR" ]; then
-    mkdir -p "$CACHE_DIR"
-    cp -rL $DYD_STEM/dyd/assets/* $CACHE_DIR/
-  fi
+	echo -n ""
 }
 
 _run () {
-  GOROOT=$CACHE_DIR/go \
-  $CACHE_DIR/go/bin/go "$@"
+	GOROOT=$DYD_STEM/dyd/assets/go \
+	go "$@"
 }
 
 _exit () {
-  # rm -rf $CACHE_DIR || true
-  echo -n ""
+	# rm -rf $CACHE_DIR || true
+	echo -n ""
 }
 
 trap _exit INT HUP TERM
@@ -104,5 +89,5 @@ _exit
 
 ```
 
-With these two scripts in place, `dryad garden build` should correctly download and extract the go toolchain into a stem.  You can verify this by running `dryad sprouts exec --include=go -- version`, which should print out the go version.
+With these two scripts in place, `dryad garden build` should correctly download and extract the go toolchain into a stem.  You can verify this by running `dryad sprouts run --include=go -- version`, which should print out the go version.
 

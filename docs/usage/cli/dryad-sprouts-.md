@@ -15,7 +15,7 @@ Description:
     commands to work with dryad sprouts
 
 Sub-commands:
-    dryad sprouts exec   execute each sprout in the current garden
-    dryad sprouts list   list all sprouts of the current garden
+    dryad sprouts run    execute sprouts in the garden
+    dryad sprouts list   list sprouts in the current garden
     dryad sprouts path   return the path of the sprouts dir
 ```
