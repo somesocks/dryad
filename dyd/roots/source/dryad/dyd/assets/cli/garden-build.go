@@ -7,26 +7,21 @@ import (
 )
 
 var gardenBuildCommand = clib.NewCommand("build", "build all roots in the garden").
-	WithArg(
+	WithOption(
 		clib.
-			NewArg("path", "the target path for the garden to build").
-			AsOptional().
-			WithAutoComplete(ArgAutoCompletePath),
+			NewOption("path", "the target path for the garden to build").
+			WithType(clib.OptionTypeString),
 	).
 	WithOption(clib.NewOption("include", "choose which roots are included in the build").WithType(clib.OptionTypeMultiString)).
 	WithOption(clib.NewOption("exclude", "choose which roots are excluded from the build").WithType(clib.OptionTypeMultiString)).
 	WithOption(clib.NewOption("scope", "set the scope for the command")).
 	WithAction(scopeHandler(
 		func(req clib.ActionRequest) int {
-			var args = req.Args
+			// var args = req.Args
 			var options = req.Opts
 
 			var path string
 			var err error
-
-			if len(args) > 0 {
-				path = args[0]
-			}
 
 			var includeOpts []string
 			var excludeOpts []string
@@ -39,8 +34,8 @@ var gardenBuildCommand = clib.NewCommand("build", "build all roots in the garden
 				includeOpts = options["include"].([]string)
 			}
 
-			if len(args) > 0 {
-				path = args[0]
+			if options["path"] != nil {
+				path = options["path"].(string)
 			}
 
 			includeRoots := dryad.RootIncludeMatcher(includeOpts)
