@@ -44,7 +44,7 @@ require (
 
 ```
 
-Now that those are in place, we want to add our go root as a dependency for the server root.  We can do so by navigating to our server root and using `dryad root add`: `cd ./dyd/roots/server && dryad root add .tools/go`.
+Now that those are in place, we want to add our go root as a dependency for the server root.  We can do so by navigating to our server root and using `dryad root link`: `cd ./dyd/roots/server && dryad root link .tools/go`.
 
 Finally, we want to update our build script for the root to actually build our server.  In `dyd/roots/server/dyd/main`:
 
@@ -79,5 +79,5 @@ go build \
 
 ```
 
-With these in place, `dryad garden build` should build successfully, and `dryad sprouts exec --include=server` should start our server.  We can visit `localhost:8080` in the browser to confirm.
+With these in place, `dryad garden build` should build successfully, and `dryad sprouts run --include=server` should start our server.  We can visit `localhost:8080` in the browser to confirm.
 
