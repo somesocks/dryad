@@ -16,9 +16,9 @@ VERSION="$(cat $SRC_DIR/dyd/stems/src/dyd/traits/version)"
 FINGERPRINT="$(cat $SRC_DIR/dyd/stems/src/dyd/fingerprint)"
 
 # copy assets to build
-echo -n "$OS" > $DEST_DIR/dyd/traits/os
-echo -n "$ARCH" > $DEST_DIR/dyd/traits/arch
-echo -n "$VERSION" > $DEST_DIR/dyd/traits/version
+printf %s "$OS" > $DEST_DIR/dyd/traits/os
+printf %s "$ARCH" > $DEST_DIR/dyd/traits/arch
+printf %s "$VERSION" > $DEST_DIR/dyd/traits/version
 
 
 # run go build for specified arch

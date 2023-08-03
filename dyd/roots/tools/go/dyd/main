@@ -33,8 +33,8 @@ case "$SYSTEM" in
 		::
 esac
 
-echo -n "go" > "$DEST_DIR/dyd/traits/name"
-echo -n "$BUILD" > "$DEST_DIR/dyd/traits/source"
+printf %s "go" > "$DEST_DIR/dyd/traits/name"
+printf %s "$BUILD" > "$DEST_DIR/dyd/traits/source"
 
 # download the binary as the main
 TEMP_DIR=$(mktemp -d)

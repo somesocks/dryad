@@ -39,7 +39,7 @@ rm -rf $TEMP_DIR/dryad
 
 VERSION="$(cat $SRC_DIR/dyd/stems/src/dyd/traits/version)"
 cp -LR $SRC_DIR/dyd/stems/src/dyd/assets $TEMP_DIR/dryad
-chmod -R +755 $TEMP_DIR/dryad
+chmod -R 0755 $TEMP_DIR/dryad
 tar -chzvf $DEST_DIR/dyd/assets/dryad-$VERSION-src.tar.gz -C $TEMP_DIR ./dryad
 
 cp -LR $SRC_DIR/dyd/stems/bash_autocomplete/dyd/assets/dryad $DEST_DIR/dyd/assets/dryad-$VERSION-bash-autocomplete
