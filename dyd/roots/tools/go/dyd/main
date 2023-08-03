@@ -14,17 +14,27 @@ DEST_DIR="$1"
 
 SYSTEM="$DYD_OS-$DYD_ARCH"
 
-declare -A BUILDS=(
-	['darwin-amd64']='https://go.dev/dl/go1.20.darwin-amd64.tar.gz'
-	['darwin-arm64']='https://go.dev/dl/go1.20.darwin-arm64.tar.gz'
-	['linux-amd64']='https://go.dev/dl/go1.20.linux-amd64.tar.gz'
-	['linux-arm64']='https://go.dev/dl/go1.20.linux-arm64.tar.gz'
-)
+case "$SYSTEM" in
+	'darwin-amd64' )
+		BUILD='https://go.dev/dl/go1.20.darwin-amd64.tar.gz'
+		;;
+	'darwin-arm64' )
+		BUILD='https://go.dev/dl/go1.20.darwin-arm64.tar.gz'
+		;;
+	'linux-amd64' )
+		BUILD='https://go.dev/dl/go1.20.linux-amd64.tar.gz'
+		;;
+	'linux-arm64' )
+		BUILD='https://go.dev/dl/go1.20.linux-arm64.tar.gz'
+		;;
+	* )
+		echo "unsupported system $SYSTEM"
+		exit 1
+		::
+esac
 
-BUILD="${BUILDS[$SYSTEM]}"
-
-echo -n "go" > "$DEST_DIR/dyd/traits/name"
-echo -n "$BUILD" > "$DEST_DIR/dyd/traits/source"
+printf %s "go" > "$DEST_DIR/dyd/traits/name"
+printf %s "$BUILD" > "$DEST_DIR/dyd/traits/source"
 
 # download the binary as the main
 TEMP_DIR=$(mktemp -d)

@@ -32,7 +32,7 @@ _setup() {
 }
 
 _prepare() {
-	echo -n "false" > $DEST_DIR/dyd/traits/passed
+	printf %s "false" > $DEST_DIR/dyd/traits/passed
 }
 
 _test() {
@@ -40,7 +40,7 @@ _test() {
 }
 
 _verify() {
-	echo -n "true" > $DEST_DIR/dyd/traits/passed
+	printf %s "true" > $DEST_DIR/dyd/traits/passed
 }
 
 _teardown() {

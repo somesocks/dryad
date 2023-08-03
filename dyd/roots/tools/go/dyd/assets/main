@@ -6,7 +6,7 @@ set -eu
 PATH=$DYD_STEM/dyd/assets/go/bin:$PATH
 
 _prepare () {
-	echo -n ""
+	printf %s ""
 }
 
 _run () {
@@ -16,7 +16,7 @@ _run () {
 
 _exit () {
 	# rm -rf $CACHE_DIR || true
-	echo -n ""
+	printf %s ""
 }
 
 trap _exit INT HUP TERM
