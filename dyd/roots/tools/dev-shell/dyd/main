@@ -11,11 +11,11 @@ DEST_DIR=$1
 DEST_MAIN=$DEST_DIR/dyd/main
 
 # copy assets to build
-cp --symbolic-link $SRC_DIR/dyd/assets/main $DEST_MAIN
-cp --symbolic-link -R $SRC_DIR/dyd/assets/traits/* $DEST_DIR/dyd/traits/
+cp -s $SRC_DIR/dyd/assets/main $DEST_MAIN
+cp -s -R $SRC_DIR/dyd/assets/traits/* $DEST_DIR/dyd/traits/
 
 # copy version from root to build
-# cp --symbolic-link -R $SRC_DIR/dyd/traits/version $DEST_DIR/dyd/traits/
+# cp -s -R $SRC_DIR/dyd/traits/version $DEST_DIR/dyd/traits/
 
 # add dependencies
 
