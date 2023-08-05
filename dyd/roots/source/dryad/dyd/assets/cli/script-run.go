@@ -85,11 +85,11 @@ var scriptRunCommand = func() clib.Command {
 				WithType(clib.ArgTypeString).
 				WithAutoComplete(ArgAutoCompleteScript),
 		).
-		WithOption(clib.NewOption("scope", "set the scope for the command")).
 		WithOption(clib.NewOption("inherit", "pass all environment variables from the parent environment to the alias to exec").WithType(clib.OptionTypeBool)).
 		WithArg(clib.NewArg("-- args", "args to pass to the script").AsOptional()).
-		WithAction(scopeHandler(scriptRunAction))
+		WithAction(scriptRunAction)
 
+	command = ScopedCommand(command)
 	command = LoggingCommand(command)
 	command = HelpCommand(command)
 
