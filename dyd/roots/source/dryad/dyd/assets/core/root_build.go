@@ -2,11 +2,12 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
-	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	log "github.com/rs/zerolog/log"
 )
 
 func rootBuild_pathStub(depname string) string {
@@ -323,7 +324,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		return rootFingerprint, nil
 	}
 
-	fmt.Println("[info] dryad checking root " + relRootPath)
+	log.Info().Msg("dryad checking root " + relRootPath)
 
 	// prepare a workspace
 	workspacePath, err := os.MkdirTemp("", "dryad-*")
@@ -392,7 +393,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		context.RootFingerprints[absRootPath] = derivationsFingerprint
 
 	} else {
-		fmt.Println("[info] dryad building root " + relRootPath)
+		log.Info().Msg("dryad building root " + relRootPath)
 
 		// otherwise run the root in a build env
 		stemBuildPath, err := os.MkdirTemp("", "dryad-*")
@@ -433,7 +434,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 			}
 		}
 
-		fmt.Println("[info] dryad done building root " + relRootPath)
+		log.Info().Msg("dryad done building root " + relRootPath)
 	}
 
 	sproutPath := filepath.Join(gardenPath, "dyd", "sprouts", relRootPath)

@@ -3,10 +3,11 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	"fmt"
 	"log"
 	"os"
 	"strings"
+
+	log2 "github.com/rs/zerolog/log"
 )
 
 var scopeHandler = func(
@@ -22,7 +23,7 @@ var scopeHandler = func(
 		} else {
 			var err error
 			scope, err = dryad.ScopeGetDefault(scope)
-			fmt.Println("[info] loading default scope:", scope)
+			log2.Info().Msg("loading default scope: " + scope)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -32,7 +33,7 @@ var scopeHandler = func(
 		if scope == "" || scope == "none" {
 			return action(req)
 		} else {
-			fmt.Println("[info] using scope:", scope)
+			log2.Info().Msg("using scope: " + scope)
 		}
 
 		settingName := strings.Join(invocation[1:], "-")
@@ -84,7 +85,7 @@ var scopeHandler = func(
 			argsRewrite = append(argsRewrite, element)
 			index++
 		}
-		fmt.Println("[info] rewriting args to:", argsRewrite)
+		log2.Debug().Msg("rewriting args to: " + strings.Join(argsRewrite, " "))
 		return req.App.Run(argsRewrite, os.Stdout)
 	}
 

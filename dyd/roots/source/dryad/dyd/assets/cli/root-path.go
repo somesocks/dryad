@@ -7,27 +7,34 @@ import (
 	"log"
 )
 
-var rootPathCommand = clib.NewCommand("path", "return the base path of the current root").
-	WithArg(
-		clib.
-			NewArg("path", "the path to start searching for a root at. defaults to current directory").
-			AsOptional().
-			WithAutoComplete(ArgAutoCompletePath),
-	).
-	WithAction(func(req clib.ActionRequest) int {
-		var args = req.Args
+var rootPathCommand = func() clib.Command {
+	command := clib.NewCommand("path", "return the base path of the current root").
+		WithArg(
+			clib.
+				NewArg("path", "the path to start searching for a root at. defaults to current directory").
+				AsOptional().
+				WithAutoComplete(ArgAutoCompletePath),
+		).
+		WithAction(func(req clib.ActionRequest) int {
+			var args = req.Args
 
-		var path string = ""
+			var path string = ""
 
-		if len(args) > 0 {
-			path = args[0]
-		}
+			if len(args) > 0 {
+				path = args[0]
+			}
 
-		path, err := dryad.RootPath(path)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println(path)
+			path, err := dryad.RootPath(path)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(path)
 
-		return 0
-	})
+			return 0
+		})
+
+	command = LoggingCommand(command)
+	command = HelpCommand(command)
+
+	return command
+}()

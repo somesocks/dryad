@@ -3,10 +3,10 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	"fmt"
-	"log"
 	"os"
 	"strings"
+
+	log "github.com/rs/zerolog/log"
 )
 
 var scriptEditAction = func(req clib.ActionRequest) int {
@@ -15,7 +15,8 @@ var scriptEditAction = func(req clib.ActionRequest) int {
 
 	basePath, err := os.Getwd()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err)
+		return 1
 	}
 
 	var scope string
@@ -24,17 +25,19 @@ var scriptEditAction = func(req clib.ActionRequest) int {
 	} else {
 		var err error
 		scope, err = dryad.ScopeGetDefault(scope)
-		fmt.Println("[info] loading default scope:", scope)
+		log.Info().Msg("loading default scope: " + scope)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err)
+			return 1
 		}
 	}
 
 	// if the scope is unset, bypass expansion and run the action directly
 	if scope == "" || scope == "none" {
-		log.Fatal("no scope set, can't find command")
+		log.Fatal().Msg("no scope set, can't find command")
+		return 1
 	} else {
-		fmt.Println("[info] using scope:", scope)
+		log.Info().Msg("using scope: " + scope)
 	}
 
 	var env = map[string]string{}
@@ -57,19 +60,27 @@ var scriptEditAction = func(req clib.ActionRequest) int {
 		Env:      env,
 	})
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err)
+		return 1
 	}
 
 	return 0
 }
 
-var scriptEditCommand = clib.NewCommand("edit", "edit a script").
-	WithArg(
-		clib.
-			NewArg("command", "the script name").
-			WithType(clib.ArgTypeString).
-			WithAutoComplete(ArgAutoCompleteScript),
-	).
-	WithOption(clib.NewOption("scope", "set the scope for the command")).
-	WithOption(clib.NewOption("editor", "set the editor to use")).
-	WithAction(scopeHandler(scriptEditAction))
+var scriptEditCommand = func() clib.Command {
+	command := clib.NewCommand("edit", "edit a script").
+		WithArg(
+			clib.
+				NewArg("command", "the script name").
+				WithType(clib.ArgTypeString).
+				WithAutoComplete(ArgAutoCompleteScript),
+		).
+		WithOption(clib.NewOption("scope", "set the scope for the command")).
+		WithOption(clib.NewOption("editor", "set the editor to use")).
+		WithAction(scopeHandler(scriptEditAction))
+
+	command = LoggingCommand(command)
+	command = HelpCommand(command)
+
+	return command
+}()
