@@ -15,7 +15,7 @@ func ScriptPath(request ScriptPathRequest) (string, error) {
 	if err != nil {
 		return "", err
 	} else if runPath == "" {
-		return "", fmt.Errorf("[error] %s not found in scope %s", request.Setting, request.Scope)
+		return "", fmt.Errorf("%s not found in scope %s", request.Setting, request.Scope)
 	} else {
 		return runPath, err
 	}

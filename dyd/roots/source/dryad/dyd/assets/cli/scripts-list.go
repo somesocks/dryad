@@ -5,10 +5,11 @@ import (
 	dryad "dryad/core"
 	"fmt"
 	"io/fs"
-	"log"
 	"os"
 	"sort"
 	"strings"
+
+	log "github.com/rs/zerolog/log"
 )
 
 var scriptsListAction = func(req clib.ActionRequest) int {
@@ -16,7 +17,8 @@ var scriptsListAction = func(req clib.ActionRequest) int {
 
 	basePath, err := os.Getwd()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err)
+		return 1
 	}
 
 	var scope string
@@ -25,9 +27,10 @@ var scriptsListAction = func(req clib.ActionRequest) int {
 	} else {
 		var err error
 		scope, err = dryad.ScopeGetDefault(scope)
-		fmt.Println("[info] loading default scope:", scope)
+		log.Info().Msg("loading default scope: " + scope)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err)
+			return 1
 		}
 	}
 
@@ -41,9 +44,10 @@ var scriptsListAction = func(req clib.ActionRequest) int {
 
 	// if the scope is unset, bypass expansion and run the action directly
 	if scope == "" || scope == "none" {
-		log.Fatal("no scope set, can't find command")
+		log.Fatal().Msg("no scope set, can't find command")
+		return 1
 	} else {
-		fmt.Println("[info] using scope:", scope)
+		log.Info().Msg("using scope: " + scope)
 	}
 
 	var scripts []string
@@ -63,7 +67,8 @@ var scriptsListAction = func(req clib.ActionRequest) int {
 		},
 	})
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err)
+		return 1
 	}
 
 	sort.Strings(scripts)
@@ -75,7 +80,14 @@ var scriptsListAction = func(req clib.ActionRequest) int {
 	return 0
 }
 
-var scriptsListCommand = clib.NewCommand("list", "list all available scripts in the current scope").
-	WithOption(clib.NewOption("scope", "set the scope for the command")).
-	WithOption(clib.NewOption("path", "print the path to the scripts instead of the script run command").WithType(clib.OptionTypeBool)).
-	WithAction(scopeHandler(scriptsListAction))
+var scriptsListCommand = func() clib.Command {
+	command := clib.NewCommand("list", "list all available scripts in the current scope").
+		WithOption(clib.NewOption("scope", "set the scope for the command")).
+		WithOption(clib.NewOption("path", "print the path to the scripts instead of the script run command").WithType(clib.OptionTypeBool)).
+		WithAction(scopeHandler(scriptsListAction))
+
+	command = LoggingCommand(command)
+	command = HelpCommand(command)
+
+	return command
+}()

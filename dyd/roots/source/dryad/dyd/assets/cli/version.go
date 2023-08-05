@@ -10,7 +10,7 @@ var versionCommand = func(
 	Version string,
 	Fingerprint string,
 ) clib.Command {
-	return clib.NewCommand("version", "print out detailed version info").
+	command := clib.NewCommand("version", "print out detailed version info").
 		WithAction(func(req clib.ActionRequest) int {
 			fmt.Println("version=" + Version)
 			fmt.Println("source_fingerprint=" + Fingerprint)
@@ -18,4 +18,8 @@ var versionCommand = func(
 			fmt.Println("os=" + runtime.GOOS)
 			return 0
 		})
+
+	command = HelpCommand(command)
+
+	return command
 }

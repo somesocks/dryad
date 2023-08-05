@@ -9,42 +9,49 @@ import (
 	"path/filepath"
 )
 
-var rootBuildCommand = clib.
-	NewCommand("build", "build a specified root").
-	WithArg(
-		clib.
-			NewArg("path", "path to the root to build").
-			AsOptional().
-			WithAutoComplete(ArgAutoCompletePath),
-	).
-	WithAction(func(req clib.ActionRequest) int {
-		var args = req.Args
+var rootBuildCommand = func() clib.Command {
+	command := clib.
+		NewCommand("build", "build a specified root").
+		WithArg(
+			clib.
+				NewArg("path", "path to the root to build").
+				AsOptional().
+				WithAutoComplete(ArgAutoCompletePath),
+		).
+		WithAction(func(req clib.ActionRequest) int {
+			var args = req.Args
 
-		var path string
+			var path string
 
-		if len(args) > 0 {
-			path = args[0]
-		}
+			if len(args) > 0 {
+				path = args[0]
+			}
 
-		if !filepath.IsAbs(path) {
-			wd, err := os.Getwd()
+			if !filepath.IsAbs(path) {
+				wd, err := os.Getwd()
+				if err != nil {
+					log.Fatal(err)
+				}
+				path = filepath.Join(wd, path)
+			}
+
+			var rootFingerprint string
+			rootFingerprint, err := dryad.RootBuild(
+				dryad.BuildContext{
+					RootFingerprints: map[string]string{},
+				},
+				path,
+			)
 			if err != nil {
 				log.Fatal(err)
 			}
-			path = filepath.Join(wd, path)
-		}
+			fmt.Println(rootFingerprint)
 
-		var rootFingerprint string
-		rootFingerprint, err := dryad.RootBuild(
-			dryad.BuildContext{
-				RootFingerprints: map[string]string{},
-			},
-			path,
-		)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println(rootFingerprint)
+			return 0
+		})
 
-		return 0
-	})
+	command = LoggingCommand(command)
+	command = HelpCommand(command)
+
+	return command
+}()

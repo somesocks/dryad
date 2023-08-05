@@ -9,46 +9,53 @@ import (
 	"path/filepath"
 )
 
-var secretsFingerprintCommand = clib.NewCommand("fingerprint", "calculate the fingerprint for the secrets in a stem/root").
-	WithArg(
-		clib.
-			NewArg("path", "path to the stem base dir").
-			WithAutoComplete(ArgAutoCompletePath),
-	).
-	WithAction(func(req clib.ActionRequest) int {
-		var args = req.Args
+var secretsFingerprintCommand = func() clib.Command {
+	command := clib.NewCommand("fingerprint", "calculate the fingerprint for the secrets in a stem/root").
+		WithArg(
+			clib.
+				NewArg("path", "path to the stem base dir").
+				WithAutoComplete(ArgAutoCompletePath),
+		).
+		WithAction(func(req clib.ActionRequest) int {
+			var args = req.Args
 
-		var err error
-		var path string
+			var err error
+			var path string
 
-		if len(args) > 0 {
-			path = args[0]
-			path, err = filepath.Abs(path)
+			if len(args) > 0 {
+				path = args[0]
+				path, err = filepath.Abs(path)
+				if err != nil {
+					log.Fatal(err)
+				}
+			} else {
+				path, err = os.Getwd()
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+
+			// normalize the path to point to the closest secrets
+			path, err = dryad.SecretsPath(path)
 			if err != nil {
 				log.Fatal(err)
 			}
-		} else {
-			path, err = os.Getwd()
+
+			fingerprint, err := dryad.SecretsFingerprint(
+				dryad.SecretsFingerprintArgs{
+					BasePath: path,
+				},
+			)
 			if err != nil {
 				log.Fatal(err)
 			}
-		}
+			fmt.Println(fingerprint)
 
-		// normalize the path to point to the closest secrets
-		path, err = dryad.SecretsPath(path)
-		if err != nil {
-			log.Fatal(err)
-		}
+			return 0
+		})
 
-		fingerprint, err := dryad.SecretsFingerprint(
-			dryad.SecretsFingerprintArgs{
-				BasePath: path,
-			},
-		)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println(fingerprint)
+	command = LoggingCommand(command)
+	command = HelpCommand(command)
 
-		return 0
-	})
+	return command
+}()
