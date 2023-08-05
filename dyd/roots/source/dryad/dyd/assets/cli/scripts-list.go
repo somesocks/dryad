@@ -82,10 +82,10 @@ var scriptsListAction = func(req clib.ActionRequest) int {
 
 var scriptsListCommand = func() clib.Command {
 	command := clib.NewCommand("list", "list all available scripts in the current scope").
-		WithOption(clib.NewOption("scope", "set the scope for the command")).
 		WithOption(clib.NewOption("path", "print the path to the scripts instead of the script run command").WithType(clib.OptionTypeBool)).
-		WithAction(scopeHandler(scriptsListAction))
+		WithAction(scriptsListAction)
 
+	command = ScopedCommand(command)
 	command = LoggingCommand(command)
 	command = HelpCommand(command)
 

@@ -75,10 +75,10 @@ var scriptEditCommand = func() clib.Command {
 				WithType(clib.ArgTypeString).
 				WithAutoComplete(ArgAutoCompleteScript),
 		).
-		WithOption(clib.NewOption("scope", "set the scope for the command")).
 		WithOption(clib.NewOption("editor", "set the editor to use")).
-		WithAction(scopeHandler(scriptEditAction))
+		WithAction(scriptEditAction)
 
+	command = ScopedCommand(command)
 	command = LoggingCommand(command)
 	command = HelpCommand(command)
 

@@ -19,8 +19,7 @@ var rootsListCommand = func() clib.Command {
 		).
 		WithOption(clib.NewOption("include", "choose which roots are included in the list").WithType(clib.OptionTypeMultiString)).
 		WithOption(clib.NewOption("exclude", "choose which roots are excluded from the list").WithType(clib.OptionTypeMultiString)).
-		WithOption(clib.NewOption("scope", "set the scope for the command")).
-		WithAction(scopeHandler(
+		WithAction(
 			func(req clib.ActionRequest) int {
 				var args = req.Args
 				var options = req.Opts
@@ -72,8 +71,9 @@ var rootsListCommand = func() clib.Command {
 
 				return 0
 			},
-		))
+		)
 
+	command = ScopedCommand(command)
 	command = LoggingCommand(command)
 	command = HelpCommand(command)
 

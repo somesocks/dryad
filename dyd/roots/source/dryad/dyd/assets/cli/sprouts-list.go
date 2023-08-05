@@ -13,8 +13,7 @@ var sproutsListCommand = func() clib.Command {
 	command := clib.NewCommand("list", "list all sprouts of the current garden").
 		WithOption(clib.NewOption("include", "choose which sprouts are included in the list").WithType(clib.OptionTypeMultiString)).
 		WithOption(clib.NewOption("exclude", "choose which sprouts are excluded from the list").WithType(clib.OptionTypeMultiString)).
-		WithOption(clib.NewOption("scope", "set the scope for the command")).
-		WithAction(scopeHandler(
+		WithAction(
 			func(req clib.ActionRequest) int {
 				var args = req.Args
 				var options = req.Opts
@@ -66,8 +65,9 @@ var sproutsListCommand = func() clib.Command {
 
 				return 0
 			},
-		))
+		)
 
+	command = ScopedCommand(command)
 	command = LoggingCommand(command)
 	command = HelpCommand(command)
 

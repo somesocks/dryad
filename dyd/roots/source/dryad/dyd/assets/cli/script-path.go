@@ -63,9 +63,9 @@ var scriptPathCommand = func() clib.Command {
 				WithType(clib.ArgTypeString).
 				WithAutoComplete(ArgAutoCompleteScript),
 		).
-		WithOption(clib.NewOption("scope", "set the scope for the command")).
-		WithAction(scopeHandler(scriptPathAction))
+		WithAction(scriptPathAction)
 
+	command = ScopedCommand(command)
 	command = LoggingCommand(command)
 	command = HelpCommand(command)
 

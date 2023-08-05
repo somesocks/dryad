@@ -21,9 +21,8 @@ var sproutsRunCommand = func() clib.Command {
 		WithOption(clib.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(clib.OptionTypeBool)).
 		WithOption(clib.NewOption("confirm", "display the list of sprouts to exec, and ask for confirmation").WithType(clib.OptionTypeBool)).
 		WithOption(clib.NewOption("ignore-errors", "continue running even if a sprout returns an error").WithType(clib.OptionTypeBool)).
-		WithOption(clib.NewOption("scope", "set the scope for the command")).
 		WithArg(clib.NewArg("-- args", "args to pass to each sprout on execution").AsOptional()).
-		WithAction(scopeHandler(
+		WithAction(
 			func(req clib.ActionRequest) int {
 				var args = req.Args
 				var options = req.Opts
@@ -170,8 +169,9 @@ var sproutsRunCommand = func() clib.Command {
 
 				return 0
 			},
-		))
+		)
 
+	command = ScopedCommand(command)
 	command = LoggingCommand(command)
 	command = HelpCommand(command)
 

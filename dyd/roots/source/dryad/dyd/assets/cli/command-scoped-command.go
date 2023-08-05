@@ -3,16 +3,18 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	"log"
 	"os"
 	"strings"
 
+	log "github.com/rs/zerolog/log"
 	log2 "github.com/rs/zerolog/log"
 )
 
-var scopeHandler = func(
-	action func(req clib.ActionRequest) int,
-) func(req clib.ActionRequest) int {
+var ScopedCommand = func(
+	command clib.Command,
+) clib.Command {
+	action := command.Action()
+
 	wrapper := func(req clib.ActionRequest) int {
 		invocation := req.Invocation
 		options := req.Opts
@@ -23,9 +25,10 @@ var scopeHandler = func(
 		} else {
 			var err error
 			scope, err = dryad.ScopeGetDefault(scope)
-			log2.Info().Msg("loading default scope: " + scope)
+			log.Info().Msg("loading default scope: " + scope)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatal().Err(err)
+				return 1
 			}
 		}
 
@@ -33,24 +36,27 @@ var scopeHandler = func(
 		if scope == "" || scope == "none" {
 			return action(req)
 		} else {
-			log2.Info().Msg("using scope: " + scope)
+			log.Info().Msg("using scope: " + scope)
 		}
 
 		settingName := strings.Join(invocation[1:], "-")
 
 		path, err := os.Getwd()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err)
+			return 1
 		}
 
 		setting, err := dryad.ScopeSettingGet(path, scope, settingName)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err)
+			return 1
 		}
 
 		settings, err := dryad.ScopeSettingParseShell(setting)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err)
+			return 1
 		}
 
 		// if the scope setting is unset,
@@ -89,5 +95,7 @@ var scopeHandler = func(
 		return req.App.Run(argsRewrite, os.Stdout)
 	}
 
-	return wrapper
+	return command.
+		WithOption(clib.NewOption("scope", "set the scope for the command")).
+		WithAction(wrapper)
 }
