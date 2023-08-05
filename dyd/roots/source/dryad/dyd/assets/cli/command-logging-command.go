@@ -15,18 +15,32 @@ var LoggingCommand = func(
 
 	wrapper := func(req clib.ActionRequest) int {
 		var options = req.Opts
-		var loglevel string
+		var logFormat string
+		var logLevel string
 
 		if options["log-level"] != nil {
-			loglevel = options["log-level"].(string)
+			logLevel = options["log-level"].(string)
 		} else {
-			loglevel = "info"
+			logLevel = "info"
 		}
 
+		if options["log-format"] != nil {
+			logFormat = options["log-format"].(string)
+		} else {
+			logFormat = "console"
+		}
 
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "15:04:05"})
+		switch logFormat {
+		case "console":
+			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "15:04:05"})
+		case "json":
+			break
+		default:
+			log.Fatal().Msg("unrecognized log format " + logFormat)
+			return 1
+		}
 
-		switch loglevel {
+		switch logLevel {
 		case "panic":
 			zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		case "fatal":
@@ -42,7 +56,7 @@ var LoggingCommand = func(
 		case "trace":
 			zerolog.SetGlobalLevel(zerolog.TraceLevel)
 		default:
-			log.Fatal().Msg("unrecognized log level " + loglevel)
+			log.Fatal().Msg("unrecognized log level " + logLevel)
 			return 1
 		}
 
@@ -50,6 +64,7 @@ var LoggingCommand = func(
 	}
 
 	return command.
-		WithOption(clib.NewOption("log-level", "set the logging level").WithType(clib.OptionTypeString)).
+		WithOption(clib.NewOption("log-level", "set the logging level. can be one of 'panic', 'fatal', 'error', 'warn', 'info', 'debug', or 'trace'.  defaults to 'info'").WithType(clib.OptionTypeString)).
+		WithOption(clib.NewOption("log-format", "set the logging format. can be one of 'console' or 'json'.  defaults to 'console'").WithType(clib.OptionTypeString)).
 		WithAction(wrapper)
 }
