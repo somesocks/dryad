@@ -5,4 +5,5 @@ import (
 )
 
 var systemCommand = clib.NewCommand("system", "maintenance and utility commands for dryad").
-	WithCommand(systemAutocomplete)
+	WithCommand(systemAutocomplete).
+	WithCommand(systemCommands)
