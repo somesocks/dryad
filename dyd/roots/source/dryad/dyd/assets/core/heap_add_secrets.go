@@ -108,7 +108,7 @@ func HeapAddSecrets(heapPath string, secretsPath string) (string, error) {
 
 	// now that all files are added, sweep through in a second pass and make directories read-only
 	err = fs2.Walk(fs2.WalkRequest{
-		BasePath: secretsPath,
+		BasePath: secretsHeapPath,
 		MatchInclude: func(path string, info fs.FileInfo) (bool, error) {
 			return info.IsDir(), nil
 		},
