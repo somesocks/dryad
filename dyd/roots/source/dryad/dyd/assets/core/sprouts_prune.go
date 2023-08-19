@@ -20,6 +20,19 @@ func SproutsPrune(path string) error {
 		return err
 	}
 
+	// add a safety check to make sure the sprouts path exists
+	// it may not be tracked in a git repo, f.ex.
+	sproutsExists, err := fileExists(sproutsPath)
+	if err != nil {
+		return err
+	}
+	if !sproutsExists {
+		err = os.MkdirAll(sproutsPath, os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
+
 	rootsPath, err := RootsPath(path)
 	log.Trace().
 		Str("rootsPath", rootsPath).
