@@ -31,6 +31,12 @@ func GardenBuild(context BuildContext, request GardenBuildRequest) error {
 		return err
 	}
 
+	// prune sprouts before build
+	err = SproutsPrune(gardenPath)
+	if err != nil {
+		return err
+	}
+
 	// fmt.Println("[trace] GardenBuild gardenPath 2", gardenPath)
 
 	var rootsPath = filepath.Join(gardenPath, "dyd", "roots")
