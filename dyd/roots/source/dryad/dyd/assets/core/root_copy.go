@@ -18,6 +18,8 @@ var _ROOT_COPY_CRAWL_INCLUDE_REGEXP = regexp.MustCompile(
 		"|(dyd/assets/.*)" +
 		"|(dyd/traits)" +
 		"|(dyd/traits/.*)" +
+		"|(dyd/secrets)" +
+		"|(dyd/secrets/.*)" +
 		"|(dyd/roots)" +
 		"|(dyd/roots/.*)" +
 		"|(dyd/stems)" +
@@ -37,6 +39,8 @@ var _ROOT_COPY_MATCH_INCLUDE_REGEXP = regexp.MustCompile(
 		"|(dyd/path/.*)" +
 		"|(dyd/assets)" +
 		"|(dyd/assets/.*)" +
+		"|(dyd/secrets)" +
+		"|(dyd/secrets/.*)" +
 		"|(dyd/readme)" +
 		"|(dyd/fingerprint)" +
 		"|(dyd/type)" +
