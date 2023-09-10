@@ -9,17 +9,20 @@ grand_parent: Usage
 
 ```
 $ dryad stem run --help
-dryad stem run [--execPath=string] [--context=string] [--inherit] <path> [-- args]
+dryad stem run [--context=string] [--inherit] [--override=string] [--log-level=string] [--log-format=string] [--help] <path> [-- args]
 
 Description:
     execute the main for a stem
 
 Arguments:
-    path             path to the stem base dir
-    -- args          args to pass to the stem, optional
+    path               path to the stem base dir
+    -- args            args to pass to the stem, optional
 
 Options:
-        --execPath   path to the executable running `dryad stem run`. used for path setting
-        --context    name of the execution context. the HOME env var is set to the path for this context
-        --inherit    pass all environment variables from the parent environment to the stem
+        --context      name of the execution context. the HOME env var is set to the path for this context
+        --inherit      pass all environment variables from the parent environment to the stem
+        --override     run this executable in the stem run envinronment instead of the main
+        --log-level    set the logging level. can be one of 'panic', 'fatal', 'error', 'warn', 'info', 'debug', or 'trace'.  defaults to 'info'
+        --log-format   set the logging format. can be one of 'console' or 'json'.  defaults to 'console'
+        --help         display help text for this command
 ```
