@@ -5,4 +5,6 @@ set -eu
 
 BASE=$(pwd)
 
-sudo cp $BASE/bootstrap/dryad /usr/bin/dryad
+mkdir -p $HOME/bin
+cp $BASE/bootstrap/dryad $HOME/bin/dryad
+chmod 755 $HOME/bin/dryad
