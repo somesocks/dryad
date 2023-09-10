@@ -36,4 +36,6 @@ tar -chzvf $DEST_DIR/dyd/assets/dryad-$VERSION-src.tar.gz -C $TEMP_DIR ./dryad
 
 cp -LR $SRC_DIR/dyd/stems/bash_autocomplete/dyd/assets/dryad $DEST_DIR/dyd/assets/dryad-$VERSION-bash-autocomplete
 
+cp -LR $SRC_DIR/dyd/stems/install-script/dyd/assets/install.sh $DEST_DIR/dyd/assets/dryad-$VERSION-install.sh
+
 rm -rf $TEMP_DIR
