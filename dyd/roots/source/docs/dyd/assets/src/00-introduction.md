@@ -4,4 +4,6 @@ dryad is an experimental package manager / build tool designed for complex, mult
 
 NOTE: The current version is in early alpha stages, so the design and features are subject to change.
 
-[See the GitHub repo](https://github.com/somesocks/dryad)
+Links:
+- [See the GitHub repo](https://github.com/somesocks/dryad)
+- [Installation instructions](./03-usage/01-installing.md)
