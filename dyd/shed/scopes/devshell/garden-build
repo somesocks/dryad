@@ -1,1 +1,1 @@
---include=dev-shell
+--include=dev-shell --include=docs

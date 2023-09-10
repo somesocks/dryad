@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+
+open ./dyd/sprouts/source/docs/dyd/assets/index.html
