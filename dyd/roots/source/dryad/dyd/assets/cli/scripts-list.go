@@ -34,12 +34,14 @@ var scriptsListAction = func(req clib.ActionRequest) int {
 		}
 	}
 
-	var showPath bool
-
+	var showPath bool = false
 	if options["path"] != nil {
 		showPath = options["path"].(bool)
-	} else {
-		showPath = false
+	}
+
+	var showOneline bool = true
+	if options["oneline"] != nil {
+		showOneline = options["oneline"].(bool)
 	}
 
 	// if the scope is unset, bypass expansion and run the action directly
@@ -59,8 +61,16 @@ var scriptsListAction = func(req clib.ActionRequest) int {
 			if showPath {
 				scripts = append(scripts, path)
 			} else {
-				var name string = info.Name()
-				var script string = "dryad script run " + strings.TrimPrefix(name, "script-run-")
+				name := info.Name()
+				script := "dryad run " + strings.TrimPrefix(name, "script-run-")
+
+				if showOneline {
+					oneline, _ := dryad.ScriptOnelineGet(path)
+					if oneline != "" {
+						script = script + " - " + oneline
+					}
+				}
+
 				scripts = append(scripts, script)
 			}
 			return nil
@@ -83,6 +93,7 @@ var scriptsListAction = func(req clib.ActionRequest) int {
 var scriptsListCommand = func() clib.Command {
 	command := clib.NewCommand("list", "list all available scripts in the current scope").
 		WithOption(clib.NewOption("path", "print the path to the scripts instead of the script run command").WithType(clib.OptionTypeBool)).
+		WithOption(clib.NewOption("oneline", "print the oneline decription of each command").WithType(clib.OptionTypeBool)).
 		WithAction(scriptsListAction)
 
 	command = ScopedCommand(command)

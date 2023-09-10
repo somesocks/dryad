@@ -1,24 +1,24 @@
 ---
-title: dryad root replace
+title: dryad system autocomplete
 layout: default
 parent: CLI
 grand_parent: Usage
 ---
 
-# dryad root replace
+# dryad system autocomplete
 
 ```
-$ dryad root replace --help
-dryad root replace [--log-level=string] [--log-format=string] [--help] <source> <replacement>
+$ dryad system autocomplete --help
+dryad system autocomplete [--separator=string] [--log-level=string] [--log-format=string] [--help] [-- args]
 
 Description:
-    replace all references to one root with references to another
+    print out autocomplete options based on a partial command
 
 Arguments:
-    source             path to the source root
-    replacement        path to the replacement root
+    -- args            args to pass to the command, optional
 
 Options:
+        --separator    separator string to use between tokens.
         --log-level    set the logging level. can be one of 'panic', 'fatal', 'error', 'warn', 'info', 'debug', or 'trace'.  defaults to 'info'
         --log-format   set the logging format. can be one of 'console' or 'json'.  defaults to 'console'
         --help         display help text for this command

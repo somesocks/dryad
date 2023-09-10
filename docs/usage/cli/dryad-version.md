@@ -9,8 +9,11 @@ grand_parent: Usage
 
 ```
 $ dryad version --help
-dryad version
+dryad version [--help]
 
 Description:
     print out detailed version info
+
+Options:
+        --help   display help text for this command
 ```
