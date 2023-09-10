@@ -13,7 +13,7 @@ var _SCRIPTS_WALK_CRAWL_EXCLUDE, _ = regexp.Compile(`^$`)
 
 var _SCRIPTS_WALK_MATCH_INCLUDE, _ = regexp.Compile(`^script-run-.*$`)
 
-var _SCRIPTS_WALK_MATCH_EXCLUDE, _ = regexp.Compile(`^$`)
+var _SCRIPTS_WALK_MATCH_EXCLUDE, _ = regexp.Compile(`^.*\.oneline$`)
 
 type ScriptsWalkRequest struct {
 	BasePath string
