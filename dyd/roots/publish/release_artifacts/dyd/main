@@ -14,28 +14,20 @@ DEST_DIR=$DYD_BUILD
 TEMP_DIR=$(mktemp -d)
 
 VERSION="$(cat $SRC_DIR/dyd/stems/darwin-arm64/dyd/traits/version)"
-cp -L $SRC_DIR/dyd/stems/darwin-arm64/dyd/main $TEMP_DIR/dryad
-chmod 0755 $TEMP_DIR/dryad
-tar -chzvf $DEST_DIR/dyd/assets/dryad-$VERSION-darwin-arm64.tar.gz -C $TEMP_DIR ./dryad
-rm -rf $TEMP_DIR/dryad
+cp -L $SRC_DIR/dyd/stems/darwin-arm64/dyd/main $DEST_DIR/dyd/assets/dryad-$VERSION-darwin-arm64
+chmod 0755 $DEST_DIR/dyd/assets/dryad-$VERSION-darwin-arm64
 
 VERSION="$(cat $SRC_DIR/dyd/stems/darwin-amd64/dyd/traits/version)"
-cp -L $SRC_DIR/dyd/stems/darwin-amd64/dyd/main $TEMP_DIR/dryad
-chmod 0755 $TEMP_DIR/dryad
-tar -chzvf $DEST_DIR/dyd/assets/dryad-$VERSION-darwin-amd64.tar.gz -C $TEMP_DIR ./dryad
-rm -rf $TEMP_DIR/dryad
+cp -L $SRC_DIR/dyd/stems/darwin-amd64/dyd/main $DEST_DIR/dyd/assets/dryad-$VERSION-darwin-amd64
+chmod 0755 $DEST_DIR/dyd/assets/dryad-$VERSION-darwin-amd64
 
 VERSION="$(cat $SRC_DIR/dyd/stems/linux-arm64/dyd/traits/version)"
-cp -L $SRC_DIR/dyd/stems/linux-arm64/dyd/main $TEMP_DIR/dryad
-chmod 0755 $TEMP_DIR/dryad
-tar -chzvf $DEST_DIR/dyd/assets/dryad-$VERSION-linux-arm64.tar.gz -C $TEMP_DIR ./dryad
-rm -rf $TEMP_DIR/dryad
+cp -L $SRC_DIR/dyd/stems/linux-arm64/dyd/main $DEST_DIR/dyd/assets/dryad-$VERSION-linux-arm64
+chmod 0755 $DEST_DIR/dyd/assets/dryad-$VERSION-linux-arm64
 
 VERSION="$(cat $SRC_DIR/dyd/stems/linux-amd64/dyd/traits/version)"
-cp -L $SRC_DIR/dyd/stems/linux-amd64/dyd/main $TEMP_DIR/dryad
-chmod 0755 $TEMP_DIR/dryad
-tar -chzvf $DEST_DIR/dyd/assets/dryad-$VERSION-linux-amd64.tar.gz -C $TEMP_DIR ./dryad
-rm -rf $TEMP_DIR/dryad
+cp -L $SRC_DIR/dyd/stems/linux-amd64/dyd/main $DEST_DIR/dyd/assets/dryad-$VERSION-linux-amd64
+chmod 0755 $DEST_DIR/dyd/assets/dryad-$VERSION-linux-amd64
 
 VERSION="$(cat $SRC_DIR/dyd/stems/src/dyd/traits/version)"
 cp -LR $SRC_DIR/dyd/stems/src/dyd/assets $TEMP_DIR/dryad
@@ -43,6 +35,5 @@ chmod -R 0755 $TEMP_DIR/dryad
 tar -chzvf $DEST_DIR/dyd/assets/dryad-$VERSION-src.tar.gz -C $TEMP_DIR ./dryad
 
 cp -LR $SRC_DIR/dyd/stems/bash_autocomplete/dyd/assets/dryad $DEST_DIR/dyd/assets/dryad-$VERSION-bash-autocomplete
-
 
 rm -rf $TEMP_DIR
