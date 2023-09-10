@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+
+set -e
+# set -x
+
+SRC_PACKAGE=$DYD_STEM
+DEST_PACKAGE=$DYD_BUILD
+
+# copy assets to build
+VERSION="$(cat $SRC_PACKAGE/dyd/stems/dryad/dyd/traits/version)" \
+envsubst '$VERSION' \
+	< $SRC_PACKAGE/dyd/assets/install.sh \
+	> $DEST_PACKAGE/dyd/assets/install.sh
