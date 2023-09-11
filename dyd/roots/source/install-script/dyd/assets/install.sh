@@ -5,16 +5,16 @@ set -e
 SYSTEM="$(uname)-$(uname -m)"
 
 case $SYSTEM in
-	"Linux-aarch64")
+	"Linux-aarch64" | "Linux-arm64")
 		RELEASE="https://github.com/somesocks/dryad/releases/download/release-$VERSION/dryad-$VERSION-linux-arm64"
 		;;
-	"Linux-x86_64")
+	"Linux-x86_64" | "Linux-amd64")
 		RELEASE="https://github.com/somesocks/dryad/releases/download/release-$VERSION/dryad-$VERSION-linux-amd64"
 		;;
-	"Darwin-aarch64")
+	"Darwin-aarch64" | "Darwin-arm64")
 		RELEASE="https://github.com/somesocks/dryad/releases/download/release-$VERSION/dryad-$VERSION-darwin-arm64"
 		;;
-	"Darwin-x86_64")
+	"Darwin-x86_64" | "Darwin-amd64")
 		RELEASE="https://github.com/somesocks/dryad/releases/download/release-$VERSION/dryad-$VERSION-darwin-amd64"
 		;;
 	*)
