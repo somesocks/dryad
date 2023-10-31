@@ -26,7 +26,7 @@ func rootDevelop_stage0(rootPath string, workspacePath string) error {
 	}
 
 	readmePath := filepath.Join(rootPath, "dyd", "readme")
-	exists, err = fileExists(readmePath)
+	exists, err := fileExists(readmePath)
 	if err != nil {
 		return err
 	}
