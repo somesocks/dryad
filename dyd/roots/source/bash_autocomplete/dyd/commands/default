@@ -1,0 +1,20 @@
+#!/usr/bin/env sh
+
+set -e
+# set -x
+
+SRC_DIR=$DYD_STEM
+
+DEST_DIR=$DYD_BUILD
+DEST_MAIN=$DEST_DIR/dyd/commands/default
+
+# copy assets to build
+
+# copy traits to stem
+# cp -s -R $SRC_DIR/dyd/traits/* $DEST_DIR/dyd/traits/
+
+# copy source code to stem assets
+cp -s -R $SRC_DIR/dyd/assets/* $DEST_DIR/dyd/assets/
+
+# # copy readme
+# cp -s $SRC_DIR/dyd/readme $DEST_DIR/dyd/readme

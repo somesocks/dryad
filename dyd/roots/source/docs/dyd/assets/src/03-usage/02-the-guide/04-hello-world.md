@@ -38,14 +38,14 @@ require (
 
 Now that those are in place, we want to add our go root as a dependency for the server root.  We can do so by navigating to our server root and using `dryad root link`: `cd ./dyd/roots/server && dryad root link .tools/go`.
 
-Finally, we want to update our build script for the root to actually build our server.  In `dyd/roots/server/dyd/main`:
+Finally, we want to update our build script for the root to actually build our server.  In `dyd/roots/server/dyd/commands/default`:
 
 ```sh
 #!/usr/bin/env sh
 
 SRC_DIR=$DYD_STEM
 DEST_DIR=$1
-DEST_MAIN=$DEST_DIR/dyd/main
+DEST_MAIN=$DEST_DIR/dyd/commands/default
 
 BUILD_VERSION="0.0.1"
 BUILD_FINGERPRINT="$(cat $SRC_DIR/dyd/fingerprint)"
