@@ -186,7 +186,7 @@ func rootDevelop_stage2(workspacePath string) error {
 	for _, dependencyPath := range dependencies {
 		basename := filepath.Base(dependencyPath)
 
-		baseTemplate := rootBuild_pathStub(basename)
+		baseTemplate := rootBuild_pathStub("default")
 
 		err = os.WriteFile(
 			filepath.Join(pathPath, basename),

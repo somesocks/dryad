@@ -6,18 +6,25 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	log "github.com/rs/zerolog/log"
 )
 
-func rootBuild_pathStub(depname string) string {
-	return `#!/usr/bin/env sh
-set -eu
-STEM_PATH="$(dirname $0)/../stems/$(basename $0)"
-PATH="$STEM_PATH/dyd/path:$PATH" \
-DYD_STEM="$STEM_PATH" \
-"$STEM_PATH"/dyd/commands/default "$@"
-`
+func rootBuild_pathStub(commandName string) string {
+	builder := strings.Builder{}
+
+	builder.WriteString("#!/usr/bin/env sh\n")
+	builder.WriteString("set -eu\n")
+	builder.WriteString("STEM_PATH=\"$(dirname $0)/../stems/$(basename $0)\"\n")
+	builder.WriteString("PATH=\"$STEM_PATH/dyd/path:$PATH\" \\\n")
+	builder.WriteString("DYD_STEM=\"$STEM_PATH\" \\\n")
+	builder.WriteString("DYD_STEM=\"$STEM_PATH\" \\\n")
+	builder.WriteString("\"$STEM_PATH\"/dyd/commands/")
+	builder.WriteString(commandName)
+	builder.WriteString(" \"$@\"\n")
+
+	return builder.String()
 }
 
 // stage 0 - build a shallow partial clone of the root into a working directory,
@@ -176,7 +183,7 @@ func rootBuild_stage2(workspacePath string) error {
 	for _, dependencyPath := range dependencies {
 		basename := filepath.Base(dependencyPath)
 
-		baseTemplate := rootBuild_pathStub(basename)
+		baseTemplate := rootBuild_pathStub("default")
 
 		err = os.WriteFile(
 			filepath.Join(pathPath, basename),
@@ -255,7 +262,7 @@ func rootBuild_stage5(rootStemPath string, stemBuildPath string, rootFingerprint
 	for _, dependencyPath := range dependencies {
 		basename := filepath.Base(dependencyPath)
 
-		baseTemplate := rootBuild_pathStub(basename)
+		baseTemplate := rootBuild_pathStub("default")
 
 		err = os.WriteFile(
 			filepath.Join(pathPath, basename),
