@@ -25,21 +25,6 @@ func rootDevelop_stage0(rootPath string, workspacePath string) error {
 		return err
 	}
 
-	mainPath := filepath.Join(rootPath, "dyd", "main")
-	exists, err := fileExists(mainPath)
-	if err != nil {
-		return err
-	}
-	if exists {
-		err = os.Symlink(
-			mainPath,
-			filepath.Join(workspacePath, "dyd", "main"),
-		)
-		if err != nil {
-			return err
-		}
-	}
-
 	readmePath := filepath.Join(rootPath, "dyd", "readme")
 	exists, err = fileExists(readmePath)
 	if err != nil {
@@ -63,6 +48,20 @@ func rootDevelop_stage0(rootPath string, workspacePath string) error {
 		err = os.Symlink(
 			filepath.Join(rootPath, "dyd", "assets"),
 			filepath.Join(workspacePath, "dyd", "assets"),
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	exists, err = fileExists(filepath.Join(rootPath, "dyd", "commands"))
+	if err != nil {
+		return err
+	}
+	if exists {
+		err = os.Symlink(
+			filepath.Join(rootPath, "dyd", "commands"),
+			filepath.Join(workspacePath, "dyd", "commands"),
 		)
 		if err != nil {
 			return err

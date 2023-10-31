@@ -48,6 +48,11 @@ func RootCreate(path string) error {
 		return err
 	}
 
+	var commandsPath string = filepath.Join(basePath, "commands")
+	if err := os.MkdirAll(commandsPath, os.ModePerm); err != nil {
+		return err
+	}
+
 	var rootsPath string = filepath.Join(basePath, "roots")
 	if err := os.MkdirAll(rootsPath, os.ModePerm); err != nil {
 		return err
@@ -68,12 +73,12 @@ func RootCreate(path string) error {
 		return err
 	}
 
-	var mainPath string = filepath.Join(basePath, "main")
-	if _, err := os.Create(mainPath); err != nil {
+	var defaultCommandPath string = filepath.Join(basePath, "commands", "default")
+	if _, err := os.Create(defaultCommandPath); err != nil {
 		return err
 	}
 
-	if err := os.Chmod(mainPath, 0775); err != nil {
+	if err := os.Chmod(defaultCommandPath, 0775); err != nil {
 		return err
 	}
 

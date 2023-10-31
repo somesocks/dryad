@@ -39,6 +39,8 @@ var _ROOT_COPY_MATCH_INCLUDE_REGEXP = regexp.MustCompile(
 		"|(dyd/path/.*)" +
 		"|(dyd/assets)" +
 		"|(dyd/assets/.*)" +
+		"|(dyd/commands)" +
+		"|(dyd/commands/.*)" +
 		"|(dyd/secrets)" +
 		"|(dyd/secrets/.*)" +
 		"|(dyd/readme)" +
@@ -46,7 +48,6 @@ var _ROOT_COPY_MATCH_INCLUDE_REGEXP = regexp.MustCompile(
 		"|(dyd/type)" +
 		"|(dyd/root)" +
 		"|(dyd/secrets-fingerprint)" +
-		"|(dyd/main)" +
 		"|(dyd/roots)" +
 		"|(dyd/roots/.*)" +
 		"|(dyd/stems)" +

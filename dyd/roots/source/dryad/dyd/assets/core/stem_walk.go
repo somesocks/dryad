@@ -15,10 +15,11 @@ var RE_STEM_WALK_SHOULD_CRAWL = regexp.MustCompile(
 		"|(dyd/type)" +
 		"|(dyd/fingerprint)" +
 		"|(dyd/secrets-fingerprint)" +
-		"|(dyd/main)" +
 		"|(dyd/path)" +
 		"|(dyd/assets)" +
 		"|(dyd/assets/.*)" +
+		"|(dyd/commands)" +
+		"|(dyd/commands/.*)" +
 		"|(dyd/traits)" +
 		"|(dyd/traits/.*)" +
 		"|(dyd/stems)" +
@@ -80,11 +81,11 @@ var RE_STEM_WALK_SHOULD_MATCH = regexp.MustCompile(
 	"^(" +
 		"(dyd/path/.*)" +
 		"|(dyd/assets/.*)" +
+		"|(dyd/commands/.*)" +
 		"|(dyd/readme)" +
 		"|(dyd/type)" +
 		"|(dyd/fingerprint)" +
 		"|(dyd/secrets-fingerprint)" +
-		"|(dyd/main)" +
 		"|(dyd/stems/.*/dyd/fingerprint)" +
 		"|(dyd/traits/.*)" +
 		")$",

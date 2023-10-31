@@ -16,7 +16,7 @@ set -eu
 STEM_PATH="$(dirname $0)/../stems/$(basename $0)"
 PATH="$STEM_PATH/dyd/path:$PATH" \
 DYD_STEM="$STEM_PATH" \
-"$STEM_PATH"/dyd/main "$@"
+"$STEM_PATH"/dyd/commands/default "$@"
 `
 }
 
@@ -36,21 +36,6 @@ func rootBuild_stage0(rootPath string, workspacePath string) error {
 	)
 	if err != nil {
 		return err
-	}
-
-	mainPath := filepath.Join(rootPath, "dyd", "main")
-	exists, err := fileExists(mainPath)
-	if err != nil {
-		return err
-	}
-	if exists {
-		err = os.Symlink(
-			mainPath,
-			filepath.Join(workspacePath, "dyd", "main"),
-		)
-		if err != nil {
-			return err
-		}
 	}
 
 	readmePath := filepath.Join(rootPath, "dyd", "readme")
@@ -76,6 +61,20 @@ func rootBuild_stage0(rootPath string, workspacePath string) error {
 		err = os.Symlink(
 			filepath.Join(rootPath, "dyd", "assets"),
 			filepath.Join(workspacePath, "dyd", "assets"),
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	exists, err = fileExists(filepath.Join(rootPath, "dyd", "commands"))
+	if err != nil {
+		return err
+	}
+	if exists {
+		err = os.Symlink(
+			filepath.Join(rootPath, "dyd", "commands"),
+			filepath.Join(workspacePath, "dyd", "commands"),
 		)
 		if err != nil {
 			return err
