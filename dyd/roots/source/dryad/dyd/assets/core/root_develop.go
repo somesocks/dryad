@@ -1,10 +1,11 @@
 package core
 
 import (
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
+
+	log "github.com/rs/zerolog/log"
 )
 
 // stage 0 - build a shallow partial clone of the root into a working directory,
@@ -184,17 +185,34 @@ func rootDevelop_stage2(workspacePath string) error {
 	}
 
 	for _, dependencyPath := range dependencies {
-		basename := filepath.Base(dependencyPath)
+		baseName := filepath.Base(dependencyPath)
 
-		baseTemplate := rootBuild_pathStub("default")
-
-		err = os.WriteFile(
-			filepath.Join(pathPath, basename),
-			[]byte(baseTemplate),
-			fs.ModePerm,
-		)
+		commandsPath := filepath.Join(dependencyPath, "dyd", "commands")
+		commands, err := filepath.Glob(filepath.Join(commandsPath, "*"))
 		if err != nil {
 			return err
+		}
+
+		for _, commandPath := range commands {
+			commandName := filepath.Base(commandPath)
+			baseTemplate := rootBuild_pathStub(baseName, commandName)
+
+			var stubName string
+			if commandName == "default" {
+				stubName = baseName
+			} else {
+				stubName = baseName + "--" + commandName
+			}
+
+			err = os.WriteFile(
+				filepath.Join(pathPath, stubName),
+				[]byte(baseTemplate),
+				fs.ModePerm,
+			)
+			if err != nil {
+				return err
+			}
+
 		}
 
 	}
@@ -276,7 +294,7 @@ func RootDevelop(context BuildContext, rootPath string, editor string, editorArg
 		return "", err
 	}
 
-	fmt.Println("[info] dryad creating development environment for root " + relRootPath)
+	log.Info().Msg("creating development environment for root " + relRootPath)
 
 	// prepare a workspace
 	workspacePath, err := os.MkdirTemp("", "dryad-*")

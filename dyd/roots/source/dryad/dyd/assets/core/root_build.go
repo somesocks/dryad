@@ -1,30 +1,42 @@
 package core
 
 import (
+	"bytes"
 	fs2 "dryad/filesystem"
 	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
 	log "github.com/rs/zerolog/log"
+
+	"text/template"
 )
 
-func rootBuild_pathStub(commandName string) string {
-	builder := strings.Builder{}
+type PathStubRequest struct {
+	BaseName    string
+	CommandName string
+}
 
-	builder.WriteString("#!/usr/bin/env sh\n")
-	builder.WriteString("set -eu\n")
-	builder.WriteString("STEM_PATH=\"$(dirname $0)/../stems/$(basename $0)\"\n")
-	builder.WriteString("PATH=\"$STEM_PATH/dyd/path:$PATH\" \\\n")
-	builder.WriteString("DYD_STEM=\"$STEM_PATH\" \\\n")
-	builder.WriteString("DYD_STEM=\"$STEM_PATH\" \\\n")
-	builder.WriteString("\"$STEM_PATH\"/dyd/commands/")
-	builder.WriteString(commandName)
-	builder.WriteString(" \"$@\"\n")
+var PATH_STUB_TEMPLATE, _ = template.
+	New("path_stub").
+	Parse(
+		`#!/usr/bin/env sh
+set -eu
+STEM_PATH="$(dirname $0)/../stems/{{.BaseName}}"
+PATH="$STEM_PATH/dyd/path:$PATH" \
+DYD_STEM="$STEM_PATH" \
+"$STEM_PATH/dyd/commands/{{.CommandName}}" "$@"
+`)
 
-	return builder.String()
+func rootBuild_pathStub(baseName string, commandName string) string {
+	var buffer bytes.Buffer
+	PATH_STUB_TEMPLATE.Execute(&buffer, PathStubRequest{
+		BaseName:    baseName,
+		CommandName: commandName,
+	})
+
+	return buffer.String()
 }
 
 // stage 0 - build a shallow partial clone of the root into a working directory,
@@ -116,13 +128,22 @@ func rootBuild_stage0(rootPath string, workspacePath string) error {
 		}
 	}
 
+	err = os.MkdirAll(filepath.Join(workspacePath, "dyd", "stems"), fs.ModePerm)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // stage 1 - walk through the root dependencies,
 // and add the fingerprint as a dependency
-func rootBuild_stage1(context BuildContext, rootPath string, workspacePath string) error {
-	// fmt.Println("rootBuild_stage1 ", rootPath, " ", workspacePath)
+func rootBuild_stage1(
+	context BuildContext,
+	rootPath string,
+	workspacePath string,
+	gardenPath string,
+) error {
 
 	// walk through the dependencies, build them, and add the fingerprint as a dependency
 	rootsPath := filepath.Join(rootPath, "dyd", "roots")
@@ -139,15 +160,14 @@ func rootBuild_stage1(context BuildContext, rootPath string, workspacePath strin
 			return err
 		}
 
+		dependencyHeapPath := filepath.Join(gardenPath, "dyd", "heap", "stems", dependencyFingerprint)
+
 		dependencyName := filepath.Base(dependencyPath)
+
 		targetDepPath := filepath.Join(workspacePath, "dyd", "stems", dependencyName)
-		targetDydDir := filepath.Join(targetDepPath, "dyd")
-		targetFingerprintFile := filepath.Join(targetDydDir, "fingerprint")
-		err = os.MkdirAll(targetDydDir, fs.ModePerm)
-		if err != nil {
-			return err
-		}
-		err = os.WriteFile(targetFingerprintFile, []byte(dependencyFingerprint), fs.ModePerm)
+
+		err = os.Symlink(dependencyHeapPath, targetDepPath)
+
 		if err != nil {
 			return err
 		}
@@ -181,17 +201,34 @@ func rootBuild_stage2(workspacePath string) error {
 	}
 
 	for _, dependencyPath := range dependencies {
-		basename := filepath.Base(dependencyPath)
+		baseName := filepath.Base(dependencyPath)
 
-		baseTemplate := rootBuild_pathStub("default")
-
-		err = os.WriteFile(
-			filepath.Join(pathPath, basename),
-			[]byte(baseTemplate),
-			fs.ModePerm,
-		)
+		commandsPath := filepath.Join(dependencyPath, "dyd", "commands")
+		commands, err := os.ReadDir(commandsPath)
 		if err != nil {
 			return err
+		}
+
+		for _, command := range commands {
+			commandName := command.Name()
+			baseTemplate := rootBuild_pathStub(baseName, commandName)
+
+			var stubName string
+			if commandName == "default" {
+				stubName = baseName
+			} else {
+				stubName = baseName + "--" + commandName
+			}
+
+			err = os.WriteFile(
+				filepath.Join(pathPath, stubName),
+				[]byte(baseTemplate),
+				fs.ModePerm,
+			)
+			if err != nil {
+				return err
+			}
+
 		}
 
 	}
@@ -260,17 +297,34 @@ func rootBuild_stage5(rootStemPath string, stemBuildPath string, rootFingerprint
 	}
 
 	for _, dependencyPath := range dependencies {
-		basename := filepath.Base(dependencyPath)
+		baseName := filepath.Base(dependencyPath)
 
-		baseTemplate := rootBuild_pathStub("default")
-
-		err = os.WriteFile(
-			filepath.Join(pathPath, basename),
-			[]byte(baseTemplate),
-			fs.ModePerm,
-		)
+		commandsPath := filepath.Join(dependencyPath, "dyd", "commands")
+		commands, err := os.ReadDir(commandsPath)
 		if err != nil {
 			return "", err
+		}
+
+		for _, command := range commands {
+			commandName := command.Name()
+			baseTemplate := rootBuild_pathStub(baseName, commandName)
+
+			var stubName string
+			if commandName == "default" {
+				stubName = baseName
+			} else {
+				stubName = baseName + "--" + commandName
+			}
+
+			err = os.WriteFile(
+				filepath.Join(pathPath, stubName),
+				[]byte(baseTemplate),
+				fs.ModePerm,
+			)
+			if err != nil {
+				return "", err
+			}
+
 		}
 
 	}
@@ -344,7 +398,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		return "", err
 	}
 
-	err = rootBuild_stage1(context, rootPath, workspacePath)
+	err = rootBuild_stage1(context, rootPath, workspacePath, gardenPath)
 	if err != nil {
 		return "", err
 	}
