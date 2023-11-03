@@ -204,13 +204,13 @@ func rootBuild_stage2(workspacePath string) error {
 		baseName := filepath.Base(dependencyPath)
 
 		commandsPath := filepath.Join(dependencyPath, "dyd", "commands")
-		commands, err := os.ReadDir(commandsPath)
+		commands, err := filepath.Glob(filepath.Join(commandsPath, "*"))
 		if err != nil {
 			return err
 		}
 
-		for _, command := range commands {
-			commandName := command.Name()
+		for _, commandPath := range commands {
+			commandName := filepath.Base(commandPath)
 			baseTemplate := rootBuild_pathStub(baseName, commandName)
 
 			var stubName string
@@ -300,13 +300,13 @@ func rootBuild_stage5(rootStemPath string, stemBuildPath string, rootFingerprint
 		baseName := filepath.Base(dependencyPath)
 
 		commandsPath := filepath.Join(dependencyPath, "dyd", "commands")
-		commands, err := os.ReadDir(commandsPath)
+		commands, err := filepath.Glob(filepath.Join(commandsPath, "*"))
 		if err != nil {
 			return "", err
 		}
 
-		for _, command := range commands {
-			commandName := command.Name()
+		for _, commandPath := range commands {
+			commandName := filepath.Base(commandPath)
 			baseTemplate := rootBuild_pathStub(baseName, commandName)
 
 			var stubName string
