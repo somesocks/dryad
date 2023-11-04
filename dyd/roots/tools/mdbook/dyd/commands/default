@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+SRC_PACKAGE=$DYD_STEM
+DEST_PACKAGE="$1"
+
+SYSTEM="$DYD_OS-$DYD_ARCH"
+
+BUILD="$(cat $SRC_PACKAGE/dyd/assets/mdbook.$SYSTEM.source)"
+
+if [ -z "$BUILD" ]; then
+	echo "unsupported system $SYSTEM"
+	exit 1
+fi
+
+printf %s "mdbook" > "$DEST_PACKAGE/dyd/traits/name"
+printf %s "$BUILD" > "$DEST_PACKAGE/dyd/traits/source"
+
+# download the binary as the main
+TEMP_DIR=$(mktemp -d)
+
+curl -L "$BUILD" -o "$TEMP_DIR/mdbook.tar.gz"
+
+mkdir -p $DEST_PACKAGE/dyd/assets
+tar -xf $TEMP_DIR/mdbook.tar.gz -C $TEMP_DIR
+mv $TEMP_DIR/mdbook $DEST_PACKAGE/dyd/commands/default
+rm -rf $TEMP_DIR

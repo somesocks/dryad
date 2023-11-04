@@ -16,6 +16,11 @@ func StemInit(path string) error {
 		return err
 	}
 
+	var commandsPath string = filepath.Join(root_path, "commands")
+	if err := os.MkdirAll(commandsPath, os.ModePerm); err != nil {
+		return err
+	}
+
 	var stems_path string = filepath.Join(root_path, "stems")
 	if err := os.MkdirAll(stems_path, os.ModePerm); err != nil {
 		return err

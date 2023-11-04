@@ -6,7 +6,7 @@ Instead, we can create a root to "install" go as a package in our workspace, so 
 
 We can start by adding a new root for the go package, by running `dryad root init ./dyd/roots/tools/go`.
 
-In order to create a go package, we need to download a go release for the system os and architecture.  dryad passes the env vars DYD_OS and DYD_ARCH to stems on execution, which we can use to choose the go release we want to download.  In `./dyd/roots/tools/go/dyd/main`, we can write a script to download the go binaries and extract them into the stem we're building.
+In order to create a go package, we need to download a go release for the system os and architecture.  dryad passes the env vars DYD_OS and DYD_ARCH to stems on execution, which we can use to choose the go release we want to download.  In `./dyd/roots/tools/go/dyd/commands/default`, we can write a script to download the go binaries and extract them into the stem we're building.
 
 ```sh
 #!/usr/bin/env bash
@@ -46,7 +46,7 @@ mkdir -p $DEST_DIR/dyd/assets
 tar -xf $TEMP_DIR/go.tar -C $DEST_DIR/dyd/assets
 rm -rf $TEMP_DIR
 
-cat $SRC_DIR/dyd/assets/main > $DEST_DIR/dyd/main
+cat $SRC_DIR/dyd/assets/main > $DEST_DIR/dyd/commands/default
 
 ```
 

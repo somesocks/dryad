@@ -17,13 +17,11 @@ var RE_STEM_FINGERPRINT_SHOULD_MATCH = regexp.MustCompile(
 	"^(" +
 		"(dyd/path/.*)" +
 		"|(dyd/assets/.*)" +
-		"|(dyd/assets/.*)" +
+		"|(dyd/commands/.*)" +
 		"|(dyd/readme)" +
 		"|(dyd/type)" +
-		"|(dyd/main)" +
 		"|(dyd/secrets-fingerprint)" +
 		"|(dyd/stems/.*/dyd/fingerprint)" +
-		"|(dyd/stems/.*/dyd/traits/.*)" +
 		"|(dyd/stems/.*/dyd/traits/.*)" +
 		"|(dyd/traits/.*)" +
 		")$",

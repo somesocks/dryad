@@ -6,7 +6,7 @@ To create a web server, we'll want the core server package, some tools, and some
 
 We can start by creating the root for the core web server, by running `dryad root init ./dyd/roots/server`.
 
-After creating the core web server, we need to set up the main script for the root, `./dyd/roots/server/dyd/main`.  This script is what will be responsible for assembling a stem from the root during the build process.
+After creating the core web server, we need to set up the main script for the root, `./dyd/roots/server/dyd/commands/default`.  This script is what will be responsible for assembling a stem from the root during the build process.
 
 Right now, we can leave it to be an empty shell script:
 
@@ -36,7 +36,7 @@ $:~/work/dryad/tutorial$ dryad garden build
 
 Also note that the build created a new sprout, at `./dyd/sprouts/server`.  This is the resulting package from building the server root.  It has almost no content right now, just two files `dyd/fingerprint` and `dyd/traits/root-fingerprint`.
 
-dryad copies no content from roots to stems by default, which means all assets or traits we want in a stem should come from us.  We can update `./dyd/roots/server/dyd/main` to add a little more content during the build, like adding name and version traits to the stem.
+dryad copies no content from roots to stems by default, which means all assets or traits we want in a stem should come from us.  We can update `./dyd/roots/server/dyd/commands/default` to add a little more content during the build, like adding name and version traits to the stem.
 
 ```sh
 #!/usr/bin/env sh

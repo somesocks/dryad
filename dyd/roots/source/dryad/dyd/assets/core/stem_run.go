@@ -91,17 +91,15 @@ func StemRun(request StemRunRequest) error {
 	}
 	dryadPath = filepath.Dir(dryadPath)
 
-	// rootMain := filepath.Join(finalStemPath, "dyd", "main")
-
-	var main string
+	var command string
 	if request.MainOverride != "" {
-		main = request.MainOverride
+		command = request.MainOverride
 	} else {
-		main = stemPath + "/dyd/main"
+		command = stemPath + "/dyd/commands/default"
 	}
 
 	cmd := exec.Command(
-		main,
+		command,
 		args...,
 	)
 
