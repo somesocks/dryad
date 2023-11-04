@@ -116,7 +116,7 @@ func rootDevelop_stage1(
 	// fmt.Println("rootDevelop_stage1 ", rootPath, " ", workspacePath)
 
 	// walk through the dependencies, build them, and add the fingerprint as a dependency
-	rootsPath := filepath.Join(rootPath, "dyd", "roots")
+	rootsPath := filepath.Join(rootPath, "dyd", "requirements")
 
 	dependencies, err := filepath.Glob(filepath.Join(rootsPath, "*"))
 	if err != nil {

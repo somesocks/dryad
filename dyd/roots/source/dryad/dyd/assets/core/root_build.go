@@ -100,18 +100,14 @@ func rootBuild_stage0(rootPath string, workspacePath string) error {
 		}
 	}
 
-	exists, err = fileExists(filepath.Join(rootPath, "dyd", "traits"))
+	err = os.MkdirAll(filepath.Join(workspacePath, "dyd", "stems"), fs.ModePerm)
 	if err != nil {
 		return err
 	}
-	if exists {
-		err = os.Symlink(
-			filepath.Join(rootPath, "dyd", "traits"),
-			filepath.Join(workspacePath, "dyd", "traits"),
-		)
-		if err != nil {
-			return err
-		}
+
+	err = os.MkdirAll(filepath.Join(workspacePath, "dyd", "requirements"), fs.ModePerm)
+	if err != nil {
+		return err
 	}
 
 	exists, err = fileExists(filepath.Join(rootPath, "dyd", "secrets"))
@@ -128,9 +124,18 @@ func rootBuild_stage0(rootPath string, workspacePath string) error {
 		}
 	}
 
-	err = os.MkdirAll(filepath.Join(workspacePath, "dyd", "stems"), fs.ModePerm)
+	exists, err = fileExists(filepath.Join(rootPath, "dyd", "traits"))
 	if err != nil {
 		return err
+	}
+	if exists {
+		err = os.Symlink(
+			filepath.Join(rootPath, "dyd", "traits"),
+			filepath.Join(workspacePath, "dyd", "traits"),
+		)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -146,7 +151,7 @@ func rootBuild_stage1(
 ) error {
 
 	// walk through the dependencies, build them, and add the fingerprint as a dependency
-	rootsPath := filepath.Join(rootPath, "dyd", "roots")
+	rootsPath := filepath.Join(rootPath, "dyd", "requirements")
 
 	dependencies, err := filepath.Glob(filepath.Join(rootsPath, "*"))
 	if err != nil {

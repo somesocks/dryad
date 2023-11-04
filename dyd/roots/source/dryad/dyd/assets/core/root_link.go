@@ -31,7 +31,7 @@ func RootLink(rootPath string, depPath string, alias string) error {
 		return err
 	}
 
-	var rootsPath = filepath.Join(rootPath, "dyd", "roots")
+	var rootsPath = filepath.Join(rootPath, "dyd", "requirements")
 	var aliasPath = filepath.Join(rootsPath, alias)
 
 	var linkPath string
