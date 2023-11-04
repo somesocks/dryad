@@ -53,7 +53,7 @@ func RootCreate(path string) error {
 		return err
 	}
 
-	var rootsPath string = filepath.Join(basePath, "roots")
+	var rootsPath string = filepath.Join(basePath, "requirements")
 	if err := os.MkdirAll(rootsPath, os.ModePerm); err != nil {
 		return err
 	}
