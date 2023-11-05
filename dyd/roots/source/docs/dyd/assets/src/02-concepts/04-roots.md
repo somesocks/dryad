@@ -2,7 +2,7 @@
 
 A **root** is the package environment for building a stem.  All roots in a garden are stored under `dyd/roots/`.  Roots have a similar filesystem structure to stems, with `dyd/assets/`, `dyd/traits`, `dyd/secrets`, and a `dyd/commands/default`, but no path or fingerprint.
 
-Roots may have a `dyd/stems/` directory to specify dependencies.  In addition, roots may have a `dyd/roots/` directory, where other roots in the workspace may be symlinked as dependencies.
+Roots have a `dyd/requirements/` directory to specify dependencies.
 
 The root build process is roughly:
 

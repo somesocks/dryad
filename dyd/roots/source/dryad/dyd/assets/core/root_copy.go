@@ -22,10 +22,6 @@ var _ROOT_COPY_CRAWL_INCLUDE_REGEXP = regexp.MustCompile(
 		"|(dyd/secrets/.*)" +
 		"|(dyd/requirements)" +
 		"|(dyd/requirements/.*)" +
-		"|(dyd/stems)" +
-		"|(dyd/stems/[^/]*)" +
-		"|(dyd/stems/.*/dyd)" +
-		"|(dyd/stems/.*/dyd/traits(/.*)?)" +
 		")$",
 )
 
@@ -50,9 +46,6 @@ var _ROOT_COPY_MATCH_INCLUDE_REGEXP = regexp.MustCompile(
 		"|(dyd/secrets-fingerprint)" +
 		"|(dyd/requirements)" +
 		"|(dyd/requirements/.*)" +
-		"|(dyd/stems)" +
-		"|(dyd/stems/.*/dyd/fingerprint)" +
-		"|(dyd/stems/.*/dyd/traits/.*)" +
 		"|(dyd/traits)" +
 		"|(dyd/traits/.*)" +
 		")$",

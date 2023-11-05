@@ -97,7 +97,7 @@ func rootDevelop_stage0(rootPath string, workspacePath string) error {
 		}
 	}
 
-	err = os.Mkdir(filepath.Join(workspacePath, "dyd", "stems"), os.ModePerm)
+	err = os.Mkdir(filepath.Join(workspacePath, "dyd", "dependencies"), os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -148,7 +148,7 @@ func rootDevelop_stage1(
 		}
 
 		sproutPath := filepath.Join(gardenPath, "dyd", "sprouts", relRootPath)
-		targetDepPath := filepath.Join(workspacePath, "dyd", "stems", dependencyName)
+		targetDepPath := filepath.Join(workspacePath, "dyd", "dependencies", dependencyName)
 
 		err = os.Symlink(sproutPath, targetDepPath)
 
@@ -177,7 +177,7 @@ func rootDevelop_stage2(workspacePath string) error {
 	}
 
 	// walk through the dependencies, build them, and add the fingerprint as a dependency
-	dependenciesPath := filepath.Join(workspacePath, "dyd", "stems")
+	dependenciesPath := filepath.Join(workspacePath, "dyd", "dependencies")
 
 	dependencies, err := filepath.Glob(filepath.Join(dependenciesPath, "*"))
 	if err != nil {

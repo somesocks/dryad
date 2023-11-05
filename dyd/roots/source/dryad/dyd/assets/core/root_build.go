@@ -23,7 +23,7 @@ var PATH_STUB_TEMPLATE, _ = template.
 	Parse(
 		`#!/usr/bin/env sh
 set -eu
-STEM_PATH="$(dirname $0)/../stems/{{.BaseName}}"
+STEM_PATH="$(dirname $0)/../dependencies/{{.BaseName}}"
 PATH="$STEM_PATH/dyd/path:$PATH" \
 DYD_STEM="$STEM_PATH" \
 "$STEM_PATH/dyd/commands/{{.CommandName}}" "$@"
@@ -100,7 +100,7 @@ func rootBuild_stage0(rootPath string, workspacePath string) error {
 		}
 	}
 
-	err = os.MkdirAll(filepath.Join(workspacePath, "dyd", "stems"), fs.ModePerm)
+	err = os.MkdirAll(filepath.Join(workspacePath, "dyd", "dependencies"), fs.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func rootBuild_stage1(
 
 		dependencyName := filepath.Base(dependencyPath)
 
-		targetDepPath := filepath.Join(workspacePath, "dyd", "stems", dependencyName)
+		targetDepPath := filepath.Join(workspacePath, "dyd", "dependencies", dependencyName)
 
 		err = os.Symlink(dependencyHeapPath, targetDepPath)
 
@@ -198,7 +198,7 @@ func rootBuild_stage2(workspacePath string) error {
 	}
 
 	// walk through the dependencies, build them, and add the fingerprint as a dependency
-	dependenciesPath := filepath.Join(workspacePath, "dyd", "stems")
+	dependenciesPath := filepath.Join(workspacePath, "dyd", "dependencies")
 
 	dependencies, err := filepath.Glob(filepath.Join(dependenciesPath, "*"))
 	if err != nil {
@@ -294,7 +294,7 @@ func rootBuild_stage5(rootStemPath string, stemBuildPath string, rootFingerprint
 	// fmt.Println("rootBuild_stage5.3 ", rootStemPath)
 
 	// walk through the dependencies, build them, and add the fingerprint as a dependency
-	dependenciesPath := filepath.Join(stemBuildPath, "dyd", "stems", "*")
+	dependenciesPath := filepath.Join(stemBuildPath, "dyd", "dependencies", "*")
 
 	dependencies, err := filepath.Glob(dependenciesPath)
 	if err != nil {
