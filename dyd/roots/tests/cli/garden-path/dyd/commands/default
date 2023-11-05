@@ -25,7 +25,7 @@ DEST_DIR=$DYD_BUILD
 # ln -s $SRC_DIR/dyd/assets/main $DEST_DIR/dyd/commands/default
 
 # # link dependencies
-# ln -s $SRC_DIR/dyd/stems/dryad $DEST_DIR/dyd/stems/dryad
+# ln -s $SRC_DIR/dyd/dependencies/dryad $DEST_DIR/dyd/dependencies/dryad
 
 _setup() {
 	mkdir $DYD_BUILD/test

@@ -24,8 +24,8 @@ func StemAdd(rootPath string, fingerprint string, alias string) error {
 		return errors.New("heap missing stem with fingerprint " + fingerprint)
 	}
 
-	var stemsPath = filepath.Join(rootPath, "dyd", "stems")
-	var aliasPath = filepath.Join(rootPath, "dyd", "stems", alias)
+	var stemsPath = filepath.Join(rootPath, "dyd", "dependencies")
+	var aliasPath = filepath.Join(rootPath, "dyd", "dependencies", alias)
 
 	var linkPath string
 	linkPath, err = filepath.Rel(stemsPath, depPath)

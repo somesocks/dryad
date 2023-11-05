@@ -21,7 +21,7 @@ func StemInit(path string) error {
 		return err
 	}
 
-	var stems_path string = filepath.Join(root_path, "stems")
+	var stems_path string = filepath.Join(root_path, "dependencies")
 	if err := os.MkdirAll(stems_path, os.ModePerm); err != nil {
 		return err
 	}

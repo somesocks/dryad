@@ -159,7 +159,7 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 		}
 
 		// walk the dependencies and convert them to symlinks
-		dependenciesPath := filepath.Join(finalStemPath, "dyd", "stems")
+		dependenciesPath := filepath.Join(finalStemPath, "dyd", "dependencies")
 		dependencies, err := filepath.Glob(filepath.Join(dependenciesPath, "*"))
 		if err != nil {
 			return "", err
