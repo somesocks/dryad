@@ -228,7 +228,97 @@ func rootDevelop_stage3(rootPath string, workspacePath string) (string, error) {
 	return stemFingerprint, err
 }
 
-// stage 5 - execute the editor in the root to build its stem,
+// stage 4 - execute the `on-develop-start` command if it exists
+func rootDevelop_stage4(
+	rootStemPath string,
+	stemBuildPath string,
+	rootFingerprint string,
+	gardenPath string,
+	editor string,
+	editorArgs []string,
+	inherit bool,
+) error {
+	var err error
+
+	err = StemInit(stemBuildPath)
+	if err != nil {
+		return err
+	}
+
+	onDevelopStartPath := filepath.Join(rootStemPath, "dyd", "commands", "on-develop-start")
+
+	onDevelopStartExists, err := fileExists(onDevelopStartPath)
+	if err != nil {
+		return err
+	}
+
+	if !onDevelopStartExists {
+		return nil
+	}
+
+	err = StemRun(StemRunRequest{
+		StemPath:     rootStemPath,
+		WorkingPath:  rootStemPath,
+		MainOverride: onDevelopStartPath,
+		GardenPath:   gardenPath,
+		Env: map[string]string{
+			"DYD_BUILD": stemBuildPath,
+		},
+		Args:       editorArgs,
+		JoinStdout: true,
+		InheritEnv: inherit,
+	})
+
+	return err
+
+}
+
+// stage 6 - execute the `on-develop-stop` command if it exists
+func rootDevelop_stage6(
+	rootStemPath string,
+	stemBuildPath string,
+	rootFingerprint string,
+	gardenPath string,
+	editor string,
+	editorArgs []string,
+	inherit bool,
+) error {
+	var err error
+
+	err = StemInit(stemBuildPath)
+	if err != nil {
+		return err
+	}
+
+	onDevelopStopPath := filepath.Join(rootStemPath, "dyd", "commands", "on-develop-stop")
+
+	onDevelopStopExists, err := fileExists(onDevelopStopPath)
+	if err != nil {
+		return err
+	}
+
+	if !onDevelopStopExists {
+		return nil
+	}
+
+	err = StemRun(StemRunRequest{
+		StemPath:     rootStemPath,
+		WorkingPath:  rootStemPath,
+		MainOverride: onDevelopStopPath,
+		GardenPath:   gardenPath,
+		Env: map[string]string{
+			"DYD_BUILD": stemBuildPath,
+		},
+		Args:       editorArgs,
+		JoinStdout: true,
+		InheritEnv: inherit,
+	})
+
+	return err
+
+}
+
+// stage 5 - execute the editor in the root to build its stem
 func rootDevelop_stage5(
 	rootStemPath string,
 	stemBuildPath string,
@@ -330,10 +420,21 @@ func RootDevelop(context BuildContext, rootPath string, editor string, editorArg
 	}
 	defer os.RemoveAll(stemBuildPath)
 
-	stemBuildFingerprint, err := rootDevelop_stage5(workspacePath, stemBuildPath, rootFingerprint, gardenPath, editor, editorArgs, inherit)
+	err = rootDevelop_stage4(workspacePath, stemBuildPath, rootFingerprint, gardenPath, editor, editorArgs, inherit)
 	if err != nil {
 		return "", err
 	}
 
-	return stemBuildFingerprint, nil
+	stemBuildFingerprint, onDevelopErr := rootDevelop_stage5(workspacePath, stemBuildPath, rootFingerprint, gardenPath, editor, editorArgs, inherit)
+
+	onStopErr := rootDevelop_stage6(workspacePath, stemBuildPath, rootFingerprint, gardenPath, editor, editorArgs, inherit)
+
+	if onDevelopErr != nil {
+		return "", onDevelopErr
+	} else if onStopErr != nil {
+		return "", onStopErr
+	} else {
+		return stemBuildFingerprint, nil
+	}
+
 }
