@@ -13,15 +13,16 @@ var _ROOT_COPY_CRAWL_INCLUDE_REGEXP = regexp.MustCompile(
 	"^(" +
 		"(\\.)" +
 		"|(dyd)" +
-		"|(dyd/path)" +
 		"|(dyd/assets)" +
 		"|(dyd/assets/.*)" +
-		"|(dyd/traits)" +
-		"|(dyd/traits/.*)" +
-		"|(dyd/secrets)" +
-		"|(dyd/secrets/.*)" +
+		"|(dyd/commands)" +
+		"|(dyd/commands/.*)" +
 		"|(dyd/requirements)" +
 		"|(dyd/requirements/.*)" +
+		"|(dyd/secrets)" +
+		"|(dyd/secrets/.*)" +
+		"|(dyd/traits)" +
+		"|(dyd/traits/.*)" +
 		")$",
 )
 
@@ -31,8 +32,6 @@ var _ROOT_COPY_MATCH_INCLUDE_REGEXP = regexp.MustCompile(
 	"^(" +
 		"(\\.)" +
 		"|(dyd)" +
-		"|(dyd/path)" +
-		"|(dyd/path/.*)" +
 		"|(dyd/assets)" +
 		"|(dyd/assets/.*)" +
 		"|(dyd/commands)" +
