@@ -34,6 +34,12 @@ func RootLink(rootPath string, depPath string, alias string) error {
 	var rootsPath = filepath.Join(rootPath, "dyd", "requirements")
 	var aliasPath = filepath.Join(rootsPath, alias)
 
+	// make sure the roots path exists before trying to link
+	err = os.MkdirAll(rootsPath, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
 	var linkPath string
 	linkPath, err = filepath.Rel(rootsPath, depPath)
 	if err != nil {
