@@ -1,11 +1,10 @@
-# dryad garden build
+# dryad roots build
 
 ```
-$ dryad garden build --help
-dryad garden build [--path=string] [--include] [--exclude] [--scope=string] [--log-level=string] [--log-format=string] [--help]
+dryad roots build [--path=string] [--include] [--exclude] [--scope=string] [--log-level=string] [--log-format=string] [--help]
 
 Description:
-    build selected roots in a garden. alias for `dryad roots build`
+    build selected roots in a garden
 
 Options:
         --path         the target path for the garden to build
