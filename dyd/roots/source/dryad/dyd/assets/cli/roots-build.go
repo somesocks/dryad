@@ -6,8 +6,8 @@ import (
 	"log"
 )
 
-var gardenBuildCommand = func() clib.Command {
-	command := clib.NewCommand("build", "build selected roots in a garden. alias for `dryad roots build`").
+var rootsBuildCommand = func() clib.Command {
+	command := clib.NewCommand("build", "build selected roots in a garden").
 		WithOption(
 			clib.
 				NewOption("path", "the target path for the garden to build").
