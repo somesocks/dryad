@@ -38,6 +38,7 @@
 		- [dryad root move](./03-usage/03-cli-reference/dryad-root-move.md)
 		- [dryad root path](./03-usage/03-cli-reference/dryad-root-path.md)
 		- [dryad root replace](./03-usage/03-cli-reference/dryad-root-replace.md)
+		- [dryad root requirements](./03-usage/03-cli-reference/dryad-root-requirements.md)
 		- [dryad root unlink](./03-usage/03-cli-reference/dryad-root-unlink.md)
 		- [dryad roots](./03-usage/03-cli-reference/dryad-roots.md)
 		- [dryad roots build](./03-usage/03-cli-reference/dryad-roots-build.md)
