@@ -42,6 +42,7 @@
 		- [dryad root unlink](./03-usage/03-cli-reference/dryad-root-unlink.md)
 		- [dryad roots](./03-usage/03-cli-reference/dryad-roots.md)
 		- [dryad roots build](./03-usage/03-cli-reference/dryad-roots-build.md)
+		- [dryad roots graph](./03-usage/03-cli-reference/dryad-roots-graph.md)
 		- [dryad roots list](./03-usage/03-cli-reference/dryad-roots-list.md)
 		- [dryad roots path](./03-usage/03-cli-reference/dryad-roots-path.md)
 		- [dryad run](./03-usage/03-cli-reference/dryad-run.md)

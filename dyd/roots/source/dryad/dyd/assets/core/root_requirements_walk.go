@@ -32,7 +32,7 @@ func RootRequirementsWalk(path string, walkFn func(path string, info fs.FileInfo
 			return context.Path == context.BasePath, nil
 		},
 		ShouldMatch: func(context fs2.Walk4Context) (bool, error) {
-			return true, nil
+			return context.Path != context.BasePath, nil
 		},
 		OnMatch: func(context fs2.Walk4Context) error {
 			return walkFn(context.Path, context.Info)
