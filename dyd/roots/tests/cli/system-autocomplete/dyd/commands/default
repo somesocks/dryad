@@ -78,7 +78,7 @@ _test() {
 
 	COMMAND="dryad system autocomplete -- root ''"
 	OUTPUT=$(eval "$COMMAND")
-	EXPECTED="build  copy  create  develop  link  move  path  replace  requirements  unlink "
+	EXPECTED="ancestors  build  copy  create  descendants  develop  link  move  path  replace  requirements  unlink "
 	if [[ $OUTPUT != $EXPECTED ]]; then
 		echo "[error] command ($COMMAND) output was ($OUTPUT), expected ($EXPECTED)" 1>&2;
 		exit 1

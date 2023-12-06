@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
-	"os"
 )
 
 var rootRequirementsCommand = func() clib.Command {
@@ -14,20 +13,18 @@ var rootRequirementsCommand = func() clib.Command {
 		WithArg(
 			clib.
 				NewArg("root_path", "path to the root").
+				AsOptional().
 				WithAutoComplete(ArgAutoCompletePath),
 		).
 		WithAction(func(req clib.ActionRequest) int {
 			var args = req.Args
-			var source string = args[0]
-			var err error
-			if source == "" {
-				source, err = os.Getwd()
-				if err != nil {
-					return 1
-				}
+			var root string
+
+			if len(args) > 0 {
+				root = args[0]
 			}
 
-			err = dryad.RootRequirementsWalk(source, func(path string, info fs.FileInfo) error {
+			err := dryad.RootRequirementsWalk(root, func(path string, info fs.FileInfo) error {
 				fmt.Println(path)
 				return nil
 			})
