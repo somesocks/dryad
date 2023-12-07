@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 var rootsAffectedCommand = func() clib.Command {
@@ -23,10 +24,15 @@ var rootsAffectedCommand = func() clib.Command {
 			scanner := bufio.NewScanner(os.Stdin)
 
 			for scanner.Scan() {
-				filePath := scanner.Text()
-				rootPath, err := dryad.RootPath(filePath)
+				path := scanner.Text()
+				path, err := filepath.Abs(path)
+				if err != nil {
+					log.Fatal(err)
+				}
+				path = _rootsOwningDependencyCorrection(path)
+				path, err = dryad.RootPath(path)
 				if err == nil {
-					rootSet[rootPath] = true
+					rootSet[path] = true
 				}
 			}
 
@@ -63,6 +69,7 @@ var rootsAffectedCommand = func() clib.Command {
 			return 0
 		})
 
+	command = ScopedCommand(command)
 	command = LoggingCommand(command)
 	command = HelpCommand(command)
 
