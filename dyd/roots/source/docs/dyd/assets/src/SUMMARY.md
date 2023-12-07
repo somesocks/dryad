@@ -43,6 +43,7 @@
 		- [dryad root requirements](./03-usage/03-cli-reference/dryad-root-requirements.md)
 		- [dryad root unlink](./03-usage/03-cli-reference/dryad-root-unlink.md)
 		- [dryad roots](./03-usage/03-cli-reference/dryad-roots.md)
+		- [dryad roots affected](./03-usage/03-cli-reference/dryad-roots-affected.md)
 		- [dryad roots build](./03-usage/03-cli-reference/dryad-roots-build.md)
 		- [dryad roots graph](./03-usage/03-cli-reference/dryad-roots-graph.md)
 		- [dryad roots list](./03-usage/03-cli-reference/dryad-roots-list.md)
