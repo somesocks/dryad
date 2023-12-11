@@ -142,7 +142,9 @@ var sproutsRunCommand = func() clib.Command {
 					}
 
 					if includeSprouts(relPath) && !excludeSprouts(relPath) {
-						log.Info().Msg("running sprout at " + path)
+						log.Info().
+							Str("sprout", path).
+							Msg("running sprout")
 
 						err := dryad.StemRun(dryad.StemRunRequest{
 							StemPath:   path,
@@ -152,9 +154,11 @@ var sproutsRunCommand = func() clib.Command {
 							Context:    context,
 						})
 						if err != nil {
-							if ignoreErrors {
-								log.Warn().Msg("sprout at " + path + " threw error ")
-							} else {
+							log.Warn().
+								Str("sprout", path).
+								Err(err).
+								Msg("sprout threw error during execution")
+							if !ignoreErrors {
 								return err
 							}
 						}
