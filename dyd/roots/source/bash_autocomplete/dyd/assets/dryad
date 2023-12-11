@@ -5,7 +5,7 @@
 _dryad_complete(){
 	OIFS="$IFS"
 	IFS=:
-	COMPREPLY=( $(dryad system autocomplete --separator=: -- "${COMP_WORDS[@]:1}") )
+	COMPREPLY=( $(dryad system autocomplete --separator=: -- "${COMP_WORDS[@]:1:$COMP_CWORD}") )
 	IFS="$OIFS"
 }
 

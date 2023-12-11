@@ -72,10 +72,30 @@ func ArgumentsAutoComplete(args []Arg, options []Option, tokens []string) []stri
 			// fmt.Println("case 1", token, strings.HasPrefix(token, "-"))
 			if strings.HasPrefix(token, "-") {
 				for _, option := range options {
-					var optionKey = "--" + option.Key() + "="
-					// fmt.Println("case 1 option", optionKey, strings.HasPrefix(optionKey, token))
-					if strings.HasPrefix(optionKey, token) {
-						results = append(results, optionKey)
+					switch option.Type() {
+					case OptionTypeBool:
+						var impliedKey = "--" + option.Key()
+						if strings.HasPrefix(impliedKey, token) {
+							results = append(results, impliedKey)
+						}
+						var equalsKey = impliedKey + "="
+						if strings.HasPrefix(equalsKey, token) {
+							results = append(results, equalsKey)
+						}
+					case OptionTypeMultiBool:
+						var impliedKey = "--" + option.Key()
+						if strings.HasPrefix(impliedKey, token) {
+							results = append(results, impliedKey)
+						}
+						var equalsKey = impliedKey + "="
+						if strings.HasPrefix(equalsKey, token) {
+							results = append(results, equalsKey)
+						}
+					default:
+						var optionKey = "--" + option.Key() + "="
+						if strings.HasPrefix(optionKey, token) {
+							results = append(results, optionKey)
+						}
 					}
 				}
 			} else if len(args) > 0 {
