@@ -2,7 +2,7 @@
 
 ```
 $ dryad sprouts run --help
-dryad sprouts run [--include] [--exclude] [--context=string] [--inherit] [--confirm] [--ignore-errors] [--scope=string] [--log-level=string] [--log-format=string] [--help] [-- args]
+dryad sprouts run [--include] [--exclude] [--context=string] [--inherit] [--confirm=string] [--ignore-errors] [--scope=string] [--log-level=string] [--log-format=string] [--help] [-- args]
 
 Description:
     run each sprout in the current garden
@@ -15,7 +15,7 @@ Options:
         --exclude         choose which sprouts are excluded
         --context         name of the execution context. the HOME env var is set to the path for this context
         --inherit         pass all environment variables from the parent environment to the stem
-        --confirm         display the list of sprouts to exec, and ask for confirmation
+        --confirm         ask for a confirmation string to be entered to execute this command
         --ignore-errors   continue running even if a sprout returns an error
         --scope           set the scope for the command
         --log-level       set the logging level. can be one of 'panic', 'fatal', 'error', 'warn', 'info', 'debug', or 'trace'.  defaults to 'info'
