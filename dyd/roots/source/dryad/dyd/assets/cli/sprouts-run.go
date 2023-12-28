@@ -19,7 +19,7 @@ var sproutsRunCommand = func() clib.Command {
 		WithOption(clib.NewOption("exclude", "choose which sprouts are excluded").WithType(clib.OptionTypeMultiString)).
 		WithOption(clib.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
 		WithOption(clib.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(clib.OptionTypeBool)).
-		WithOption(clib.NewOption("confirm", "display the list of sprouts to exec, and ask for confirmation").WithType(clib.OptionTypeBool)).
+		WithOption(clib.NewOption("confirm", "ask for a confirmation string to be entered to execute this command").WithType(clib.OptionTypeString)).
 		WithOption(clib.NewOption("ignore-errors", "continue running even if a sprout returns an error").WithType(clib.OptionTypeBool)).
 		WithArg(clib.NewArg("-- args", "args to pass to each sprout on execution").AsOptional()).
 		WithAction(
@@ -57,7 +57,7 @@ var sproutsRunCommand = func() clib.Command {
 				var context string
 				var inherit bool
 				var ignoreErrors bool
-				var confirm bool
+				var confirm string
 
 				if options["context"] != nil {
 					context = options["context"].(string)
@@ -72,12 +72,12 @@ var sproutsRunCommand = func() clib.Command {
 				}
 
 				if options["confirm"] != nil {
-					confirm = options["confirm"].(bool)
+					confirm = options["confirm"].(string)
 				}
 
 				// if confirm is set, we want to print the list
 				// of sprouts to run
-				if confirm {
+				if confirm != "" {
 					fmt.Println("dryad sprouts exec will execute these sprouts:")
 
 					err = dryad.SproutsWalk(path, func(path string, info fs.FileInfo) error {
@@ -98,7 +98,7 @@ var sproutsRunCommand = func() clib.Command {
 						log.Fatal().Err(err)
 					}
 
-					fmt.Println("are you sure? y/n")
+					fmt.Println("are you sure? type '" + confirm + "' to continue")
 
 					reader := bufio.NewReader(os.Stdin)
 
@@ -110,7 +110,7 @@ var sproutsRunCommand = func() clib.Command {
 
 					input = strings.TrimSuffix(input, "\n")
 
-					if input != "y" {
+					if input != confirm {
 						fmt.Println("confirmation denied, aborting")
 						return 0
 					}

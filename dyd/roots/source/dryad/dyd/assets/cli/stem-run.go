@@ -1,11 +1,14 @@
 package cli
 
 import (
+	"bufio"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	"log"
+	"fmt"
 	"os"
 	"strings"
+
+	log "github.com/rs/zerolog/log"
 )
 
 var stemRunCommand = func() clib.Command {
@@ -18,6 +21,7 @@ var stemRunCommand = func() clib.Command {
 		WithOption(clib.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
 		WithOption(clib.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(clib.OptionTypeBool)).
 		WithOption(clib.NewOption("override", "run this executable in the stem run envinronment instead of the main")).
+		WithOption(clib.NewOption("confirm", "ask for a confirmation string to be entered to execute this command").WithType(clib.OptionTypeString)).
 		WithArg(clib.NewArg("-- args", "args to pass to the stem").AsOptional()).
 		WithAction(func(req clib.ActionRequest) int {
 			var args = req.Args
@@ -26,6 +30,7 @@ var stemRunCommand = func() clib.Command {
 			var context string
 			var override string
 			var inherit bool
+			var confirm string
 
 			if options["context"] != nil {
 				context = options["context"].(string)
@@ -37,6 +42,34 @@ var stemRunCommand = func() clib.Command {
 
 			if options["override"] != nil {
 				override = options["override"].(string)
+			}
+
+			if options["confirm"] != nil {
+				confirm = options["confirm"].(string)
+			}
+
+			// if confirm is set, we want to print the list
+			// of sprouts to run
+			if confirm != "" {
+				fmt.Println("this package will be executed:")
+				fmt.Println(args[0])
+				fmt.Println("are you sure? type '" + confirm + "' to continue")
+
+				reader := bufio.NewReader(os.Stdin)
+
+				input, err := reader.ReadString('\n')
+				if err != nil {
+					log.Fatal().Err(err).Msg("error reading input")
+					return -1
+				}
+
+				input = strings.TrimSuffix(input, "\n")
+
+				if input != confirm {
+					fmt.Println("confirmation denied, aborting")
+					return 0
+				}
+
 			}
 
 			var env = map[string]string{}
@@ -64,7 +97,8 @@ var stemRunCommand = func() clib.Command {
 				Context:      context,
 			})
 			if err != nil {
-				log.Fatal(err)
+				log.Error().Err(err).Msg("error executing stem")
+				return -1
 			}
 
 			return 0
