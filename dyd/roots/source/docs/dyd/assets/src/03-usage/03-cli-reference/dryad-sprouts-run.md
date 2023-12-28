@@ -2,7 +2,7 @@
 
 ```
 $ dryad sprouts run --help
-dryad sprouts run [--include] [--exclude] [--context=string] [--inherit] [--confirm=string] [--ignore-errors] [--scope=string] [--log-level=string] [--log-format=string] [--help] [-- args]
+dryad sprouts run [--include=multi-string] [--exclude=multi-string] [--context=string] [--inherit=boolean] [--confirm=string] [--ignore-errors=boolean] [--scope=string] [--log-level=string] [--log-format=string] [--help] [-- args]
 
 Description:
     run each sprout in the current garden

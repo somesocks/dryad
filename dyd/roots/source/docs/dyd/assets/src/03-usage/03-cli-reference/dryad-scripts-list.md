@@ -2,7 +2,7 @@
 
 ```
 $ dryad scripts list --help
-dryad scripts list [--path] [--oneline] [--scope=string] [--log-level=string] [--log-format=string] [--help]
+dryad scripts list [--path=boolean] [--oneline=boolean] [--scope=string] [--log-level=string] [--log-format=string] [--help]
 
 Description:
     list all available scripts in the current scope

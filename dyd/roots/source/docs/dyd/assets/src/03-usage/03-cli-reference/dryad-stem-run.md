@@ -2,7 +2,7 @@
 
 ```
 $ dryad stem run --help
-dryad stem run [--context=string] [--inherit] [--override=string] [--confirm=string] [--log-level=string] [--log-format=string] [--help] <path> [-- args]
+dryad stem run [--context=string] [--inherit=boolean] [--override=string] [--confirm=string] [--log-level=string] [--log-format=string] [--help] <path> [-- args]
 
 Description:
     execute the main for a stem

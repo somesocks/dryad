@@ -2,7 +2,7 @@
 
 ```
 $ dryad run --help
-dryad run [--scope=string] [--inherit] [--log-level=string] [--log-format=string] [--help] <command> [-- args]
+dryad run [--scope=string] [--inherit=boolean] [--log-level=string] [--log-format=string] [--help] <command> [-- args]
 
 Description:
     alias for `dryad script run`

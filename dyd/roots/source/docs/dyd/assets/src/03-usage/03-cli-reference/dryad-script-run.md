@@ -2,7 +2,7 @@
 
 ```
 $ dryad script run --help
-dryad script run [--inherit] [--scope=string] [--log-level=string] [--log-format=string] [--help] <command> [-- args]
+dryad script run [--inherit=boolean] [--scope=string] [--log-level=string] [--log-format=string] [--help] <command> [-- args]
 
 Description:
     run a script in the current scope
