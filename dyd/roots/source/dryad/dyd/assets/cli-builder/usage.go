@@ -133,10 +133,22 @@ func optstring(opts []Option) string {
 		switch opt.Type() {
 		case OptionTypeString:
 			res += "=string"
+		case OptionTypeBool:
+			if opt.Key() != "help" {
+				res += "=boolean"
+			}
 		case OptionTypeInt:
-			res += "=int"
+			res += "=integer"
 		case OptionTypeNumber:
 			res += "=number"
+		case OptionTypeMultiString:
+			res += "=multi-string"
+		case OptionTypeMultiBool:
+			res += "=multi-boolean"
+		case OptionTypeMultiInt:
+			res += "=multi-integer"
+		case OptionTypeMultiNumber:
+			res += "=multi-number"
 		}
 		res += "]"
 	}

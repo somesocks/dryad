@@ -8,7 +8,7 @@ Description:
     commands to work with a dryad garden
 
 Sub-commands:
-    dryad garden build    build all roots in the garden
+    dryad garden build    build selected roots in a garden. alias for `dryad roots build`
     dryad garden create   create a garden
     dryad garden pack     pack the current garden into an archive 
     dryad garden path     return the base path for a garden

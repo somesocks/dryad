@@ -2,7 +2,7 @@
 
 ```
 $ dryad root develop --help
-dryad root develop [--editor=string] [--arg] [--inherit] [--log-level=string] [--log-format=string] [--help] [path]
+dryad root develop [--editor=string] [--arg=multi-string] [--inherit=boolean] [--log-level=string] [--log-format=string] [--help] [path]
 
 Description:
     create a temporary development environment for a root

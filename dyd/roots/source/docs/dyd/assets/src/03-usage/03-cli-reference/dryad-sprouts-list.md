@@ -2,7 +2,7 @@
 
 ```
 $ dryad sprouts list --help
-dryad sprouts list [--include] [--exclude] [--scope=string] [--log-level=string] [--log-format=string] [--help]
+dryad sprouts list [--include=multi-string] [--exclude=multi-string] [--scope=string] [--log-level=string] [--log-format=string] [--help]
 
 Description:
     list all sprouts of the current garden

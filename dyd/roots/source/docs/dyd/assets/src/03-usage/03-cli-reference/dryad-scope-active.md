@@ -2,7 +2,7 @@
 
 ```
 $ dryad scope active --help
-dryad scope active [--oneline] [--log-level=string] [--log-format=string] [--help]
+dryad scope active [--oneline=boolean] [--log-level=string] [--log-format=string] [--help]
 
 Description:
     return the name of the active scope, if set. alias for `dryad scopes default get`

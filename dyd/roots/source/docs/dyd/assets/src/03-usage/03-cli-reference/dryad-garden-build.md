@@ -2,7 +2,7 @@
 
 ```
 $ dryad garden build --help
-dryad garden build [--path=string] [--include] [--exclude] [--scope=string] [--log-level=string] [--log-format=string] [--help]
+dryad garden build [--path=string] [--include=multi-string] [--exclude=multi-string] [--scope=string] [--log-level=string] [--log-format=string] [--help]
 
 Description:
     build selected roots in a garden. alias for `dryad roots build`
