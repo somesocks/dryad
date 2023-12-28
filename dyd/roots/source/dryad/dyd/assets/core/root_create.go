@@ -12,11 +12,25 @@ func RootCreate(path string) error {
 		return err
 	}
 
+	// check to make sure the destination doesn't already exist
 	pathExists, err := fileExists(path)
 	if err != nil {
 		return err
 	} else if pathExists {
-		return fmt.Errorf("error: init destination %s already exists", path)
+		return fmt.Errorf("error: root destination %s already exists", path)
+	}
+
+	// check to make sure that the destination is within roots dir
+	rootsPath, err := RootsPath(path)
+	if err != nil {
+		return err
+	}
+
+	isInRootsDir, err := fileIsDescendant(path, rootsPath)
+	if err != nil {
+		return err
+	} else if !isInRootsDir {
+		return fmt.Errorf("error: root destination %s must be in roots directory %s", path, rootsPath)
 	}
 
 	var basePath string = filepath.Join(path, "dyd")
@@ -53,8 +67,8 @@ func RootCreate(path string) error {
 		return err
 	}
 
-	var rootsPath string = filepath.Join(basePath, "requirements")
-	if err := os.MkdirAll(rootsPath, os.ModePerm); err != nil {
+	var requirementsPath string = filepath.Join(basePath, "requirements")
+	if err := os.MkdirAll(requirementsPath, os.ModePerm); err != nil {
 		return err
 	}
 
