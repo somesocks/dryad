@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func ArgAutoCompleteScript(token string) []string {
+func ArgAutoCompleteScript(token string) (error, []string) {
 	var results = []string{}
 
 	wd, err := os.Getwd()
@@ -18,11 +18,11 @@ func ArgAutoCompleteScript(token string) []string {
 
 	activeScope, err := dryad.ScopeGetDefault(wd)
 	if err != nil {
-		log.Fatal(err)
+		return err, results
 	}
 
 	if activeScope == "" {
-		return results
+		return nil, results
 	}
 
 	err = dryad.ScriptsWalk(dryad.ScriptsWalkRequest{
@@ -38,8 +38,8 @@ func ArgAutoCompleteScript(token string) []string {
 		},
 	})
 	if err != nil {
-		log.Fatal(err)
+		return err, results
 	}
 
-	return results
+	return nil, results
 }

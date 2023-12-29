@@ -3,13 +3,12 @@ package cli
 import (
 	"io"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-func ArgAutoCompletePath(token string) []string {
+func ArgAutoCompletePath(token string) (error, []string) {
 
 	var results = []string{}
 	var base string
@@ -31,7 +30,7 @@ func ArgAutoCompletePath(token string) []string {
 
 	dir, err := os.Open(parent)
 	if err != nil {
-		log.Fatal(err)
+		return err, results
 	}
 	defer dir.Close()
 
@@ -39,7 +38,7 @@ func ArgAutoCompletePath(token string) []string {
 	entries, err = dir.ReadDir(100)
 	for err != io.EOF {
 		if err != nil {
-			log.Fatal(err)
+			return err, results
 		}
 		for _, entry := range entries {
 			var name = entry.Name()
@@ -60,5 +59,5 @@ func ArgAutoCompletePath(token string) []string {
 		entries, err = dir.ReadDir(100)
 	}
 
-	return results
+	return nil, results
 }

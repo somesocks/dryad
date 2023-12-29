@@ -4,6 +4,8 @@ import (
 	clib "dryad/cli-builder"
 	"fmt"
 	"strings"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var systemAutocomplete = func() clib.Command {
@@ -22,7 +24,11 @@ var systemAutocomplete = func() clib.Command {
 				separator = " "
 			}
 
-			var results = req.App.AutoComplete(args)
+			var err, results = req.App.AutoComplete(args)
+			if err != nil {
+				zlog.Error().Err(err)
+				return -1
+			}
 			fmt.Println(strings.Join(results, separator))
 			return 0
 		})

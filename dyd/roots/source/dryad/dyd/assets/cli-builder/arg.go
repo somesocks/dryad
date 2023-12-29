@@ -1,6 +1,6 @@
 package cli_builder
 
-type ArgAutoComplete func(token string) []string
+type ArgAutoComplete func(token string) (error, []string)
 
 // Arg defines a positional argument. Arguments are validated for their
 // count and their type. If the last defined argument is optional, then
@@ -36,8 +36,8 @@ type Arg interface {
 	WithAutoComplete(ac ArgAutoComplete) Arg
 }
 
-func DefaultArgAutoComplete(token string) []string {
-	return []string{}
+func DefaultArgAutoComplete(token string) (error, []string) {
+	return nil, []string{}
 }
 
 // NewArg creates a new positional argument.

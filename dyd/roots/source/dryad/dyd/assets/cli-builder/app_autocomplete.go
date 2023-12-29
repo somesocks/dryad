@@ -7,17 +7,21 @@ import (
 	"strings"
 )
 
-func AppAutoComplete(app App, tokens []string) []string {
+func AppAutoComplete(app App, tokens []string) (error, []string) {
 	var results = []string{}
 	var commands = app.Commands()
 	for _, command := range commands {
-		results = append(results, CommandAutoComplete(command, tokens)...)
+		var err, res = CommandAutoComplete(command, tokens)
+		if err != nil {
+			return err, results
+		}
+		results = append(results, res...)
 	}
 
-	return results
+	return nil, results
 }
 
-func CommandAutoComplete(cmd Command, tokens []string) []string {
+func CommandAutoComplete(cmd Command, tokens []string) (error, []string) {
 	var key = cmd.Key()
 	var results = []string{}
 	// fmt.Println("CommandAutoComplete", key, tokens)
@@ -40,31 +44,39 @@ func CommandAutoComplete(cmd Command, tokens []string) []string {
 				var subCommands = cmd.Commands()
 				if len(subCommands) > 0 {
 					for _, subCommand := range subCommands {
-						results = append(results, CommandAutoComplete(subCommand, subTokens)...)
+						var err, res = CommandAutoComplete(subCommand, subTokens)
+						if err != nil {
+							return err, results
+						}
+						results = append(results, res...)
 					}
 				} else {
-					results = append(results, ArgumentsAutoComplete(
+					var err, res = ArgumentsAutoComplete(
 						cmd.Args(),
 						cmd.Options(),
 						subTokens,
-					)...)
+					)
+					if err != nil {
+						return err, results
+					}
+					results = append(results, res...)
 				}
 
 			}
 		}
 	}
 
-	return results
+	return nil, results
 }
 
-func ArgumentsAutoComplete(args []Arg, options []Option, tokens []string) []string {
+func ArgumentsAutoComplete(args []Arg, options []Option, tokens []string) (error, []string) {
 	var results = []string{}
 	// fmt.Println("ArgumentsAutoComplete", tokens, args, options)
 
 	switch len(tokens) {
 	case 0:
 		{
-			return results
+			return nil, results
 		}
 	case 1:
 		{
@@ -101,19 +113,31 @@ func ArgumentsAutoComplete(args []Arg, options []Option, tokens []string) []stri
 			} else if len(args) > 0 {
 				var arg = args[0]
 				var ac = arg.AutoComplete()
-				results = append(results, ac(token)...)
+				var err, aac = ac(token)
+				if err != nil {
+					return err, results
+				}
+				results = append(results, aac...)
 			}
 		}
 	default:
 		{
 			var token = tokens[0]
 			if strings.HasPrefix(token, "-") {
-				results = append(results, ArgumentsAutoComplete(args, options, tokens[1:])...)
+				var err, res = ArgumentsAutoComplete(args, options, tokens[1:])
+				if err != nil {
+					return err, results
+				}
+				results = append(results, res...)
 			} else if len(args) > 0 {
-				results = append(results, ArgumentsAutoComplete(args[1:], options, tokens[1:])...)
+				var err, res = ArgumentsAutoComplete(args[1:], options, tokens[1:])
+				if err != nil {
+					return err, results
+				}
+				results = append(results, res...)
 			}
 		}
 	}
 
-	return results
+	return nil, results
 }
