@@ -5,8 +5,9 @@ import (
 	dryad "dryad/core"
 	"fmt"
 	"io/fs"
-	"log"
 	"path/filepath"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var rootsListCommand = func() clib.Command {
@@ -34,7 +35,8 @@ var rootsListCommand = func() clib.Command {
 				var gardenPath string
 				gardenPath, err = dryad.GardenPath(path)
 				if err != nil {
-					log.Fatal(err)
+					zlog.Fatal().Err(err)
+					return 1
 				}
 
 				var includeOpts []string
@@ -66,7 +68,8 @@ var rootsListCommand = func() clib.Command {
 					return nil
 				})
 				if err != nil {
-					log.Fatal(err)
+					zlog.Fatal().Err(err)
+					return 1
 				}
 
 				return 0

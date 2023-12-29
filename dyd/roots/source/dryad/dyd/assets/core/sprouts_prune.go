@@ -5,14 +5,14 @@ import (
 	"os"
 	"path/filepath"
 
-	log "github.com/rs/zerolog/log"
+	zlog "github.com/rs/zerolog/log"
 )
 
 func SproutsPrune(path string) error {
-	log.Debug().Msg("pruning sprouts")
+	zlog.Debug().Msg("pruning sprouts")
 
 	sproutsPath, err := SproutsPath(path)
-	log.Trace().
+	zlog.Trace().
 		Str("sproutsPath", sproutsPath).
 		Err(err).
 		Msg("SproutsPrune.sproutsPath")
@@ -34,7 +34,7 @@ func SproutsPrune(path string) error {
 	}
 
 	rootsPath, err := RootsPath(path)
-	log.Trace().
+	zlog.Trace().
 		Str("rootsPath", rootsPath).
 		Err(err).
 		Msg("SproutsPrune.rootsPath")
@@ -44,7 +44,7 @@ func SproutsPrune(path string) error {
 
 	// crawl everything that isn't a symlink
 	shouldCrawl := func(context fs2.Walk4Context) (bool, error) {
-		log.Trace().
+		zlog.Trace().
 			Str("path", context.Path).
 			Msg("SproutsPrune.shouldCrawl")
 		return context.Info.Mode()&os.ModeSymlink != os.ModeSymlink, nil
@@ -52,7 +52,7 @@ func SproutsPrune(path string) error {
 
 	// match any path that we should delete
 	shouldMatch := func(context fs2.Walk4Context) (bool, error) {
-		log.Trace().
+		zlog.Trace().
 			Str("path", context.Path).
 			Msg("SproutsPrune.shouldMatch")
 		relPath, err := filepath.Rel(context.BasePath, context.Path)
@@ -77,7 +77,7 @@ func SproutsPrune(path string) error {
 	}
 
 	onMatch := func(context fs2.Walk4Context) error {
-		log.Trace().
+		zlog.Trace().
 			Str("path", context.Path).
 			Msg("SproutsPrune.onMatch")
 		parentPath := filepath.Dir(context.Path)

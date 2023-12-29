@@ -3,7 +3,8 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	"log"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var rootCopyCommand = func() clib.Command {
@@ -27,7 +28,8 @@ var rootCopyCommand = func() clib.Command {
 			err := dryad.RootCopy(source, dest)
 
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			return 0

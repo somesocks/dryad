@@ -5,9 +5,10 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var rootsAffectedCommand = func() clib.Command {
@@ -16,7 +17,8 @@ var rootsAffectedCommand = func() clib.Command {
 
 			wd, err := os.Getwd()
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			rootSet := make(dryad.TStringSet)
@@ -27,7 +29,8 @@ var rootsAffectedCommand = func() clib.Command {
 				path := scanner.Text()
 				path, err := filepath.Abs(path)
 				if err != nil {
-					log.Fatal(err)
+					zlog.Fatal().Err(err)
+					return 1
 				}
 				path = _rootsOwningDependencyCorrection(path)
 				path, err = dryad.RootPath(path)
@@ -38,19 +41,22 @@ var rootsAffectedCommand = func() clib.Command {
 
 			// Check for any errors during scanning
 			if err := scanner.Err(); err != nil {
-				log.Fatal("error reading stdin", err)
+				zlog.Fatal().Err(err).Msg("error reading stdin")
+				return 1
 			}
 
 			rootList := rootSet.ToArray([]string{})
 
 			gardenPath, err := dryad.GardenPath(wd)
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			graph, err := dryad.RootsGraph(gardenPath)
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			graph = graph.Transpose()

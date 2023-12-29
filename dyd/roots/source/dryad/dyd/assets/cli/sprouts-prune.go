@@ -3,8 +3,9 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	"log"
 	"os"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var sproutsPruneCommand = func() clib.Command {
@@ -12,11 +13,13 @@ var sproutsPruneCommand = func() clib.Command {
 		WithAction(func(req clib.ActionRequest) int {
 			path, err := os.Getwd()
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 			err = dryad.SproutsPrune(path)
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			return 0

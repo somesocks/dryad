@@ -3,7 +3,8 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	"log"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var gardenCreateCommand = func() clib.Command {
@@ -26,7 +27,8 @@ var gardenCreateCommand = func() clib.Command {
 
 			err = dryad.GardenCreate(path)
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			return 0

@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var stemFilesCommand = func() clib.Command {
@@ -37,13 +39,15 @@ var stemFilesCommand = func() clib.Command {
 				path = args[0]
 				path, err = filepath.Abs(path)
 				if err != nil {
-					log.Fatal(err)
+					zlog.Fatal().Err(err)
+					return 1
 				}
 			}
 			if path == "" {
 				path, err = os.Getwd()
 				if err != nil {
-					log.Fatal(err)
+					zlog.Fatal().Err(err)
+					return 1
 				}
 			}
 
@@ -54,7 +58,8 @@ var stemFilesCommand = func() clib.Command {
 				},
 			)
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			return 0

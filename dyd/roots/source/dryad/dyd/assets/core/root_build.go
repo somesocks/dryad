@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	log "github.com/rs/zerolog/log"
+	zlog "github.com/rs/zerolog/log"
 )
 
 // stage 0 - build a shallow partial clone of the root into a working directory,
@@ -263,7 +263,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		return rootFingerprint, nil
 	}
 
-	log.Info().Msg("dryad checking root " + relRootPath)
+	zlog.Info().Msg("dryad checking root " + relRootPath)
 
 	// prepare a workspace
 	workspacePath, err := os.MkdirTemp("", "dryad-*")
@@ -332,7 +332,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		context.RootFingerprints[absRootPath] = derivationsFingerprint
 
 	} else {
-		log.Info().Msg("dryad building root " + relRootPath)
+		zlog.Info().Msg("dryad building root " + relRootPath)
 
 		// otherwise run the root in a build env
 		stemBuildPath, err := os.MkdirTemp("", "dryad-*")
@@ -373,7 +373,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 			}
 		}
 
-		log.Info().Msg("dryad done building root " + relRootPath)
+		zlog.Info().Msg("dryad done building root " + relRootPath)
 	}
 
 	sproutPath := filepath.Join(gardenPath, "dyd", "sprouts", relRootPath)

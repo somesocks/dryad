@@ -5,9 +5,10 @@ import (
 	dryad "dryad/core"
 	"fmt"
 	"io/fs"
-	"log"
 	"path/filepath"
 	"sort"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var scopesListCommand = func() clib.Command {
@@ -47,7 +48,8 @@ var scopesListCommand = func() clib.Command {
 				return nil
 			})
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			sort.Strings(scopes)

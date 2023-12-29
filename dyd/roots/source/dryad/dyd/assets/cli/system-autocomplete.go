@@ -26,8 +26,8 @@ var systemAutocomplete = func() clib.Command {
 
 			var err, results = req.App.AutoComplete(args)
 			if err != nil {
-				zlog.Error().Err(err)
-				return -1
+				zlog.Fatal().Err(err)
+				return 1
 			}
 			fmt.Println(strings.Join(results, separator))
 			return 0

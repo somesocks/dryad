@@ -4,9 +4,10 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"fmt"
-	"log"
 	"os"
 	"regexp"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var stemFingerprintCommand = func() clib.Command {
@@ -28,7 +29,8 @@ var stemFingerprintCommand = func() clib.Command {
 			if options["exclude"] != "" {
 				matchExclude, err = regexp.Compile(options["exclude"].(string))
 				if err != nil {
-					log.Fatal(err)
+					zlog.Fatal().Err(err)
+					return 1
 				}
 			}
 
@@ -39,7 +41,8 @@ var stemFingerprintCommand = func() clib.Command {
 			if path == "" {
 				path, err = os.Getwd()
 				if err != nil {
-					log.Fatal(err)
+					zlog.Fatal().Err(err)
+					return 1
 				}
 			}
 
@@ -50,7 +53,8 @@ var stemFingerprintCommand = func() clib.Command {
 				},
 			)
 			if fingerprintErr != nil {
-				log.Fatal(fingerprintErr)
+				zlog.Error().Err(fingerprintErr)
+				return 1
 			}
 			fmt.Println(fingerprintString)
 

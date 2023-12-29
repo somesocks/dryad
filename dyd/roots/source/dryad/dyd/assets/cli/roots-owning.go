@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	log "github.com/rs/zerolog/log"
+	zlog "github.com/rs/zerolog/log"
 )
 
 var _rootsOwningDependencyCorrection = func(path string) string {
@@ -40,7 +40,7 @@ var rootsOwningCommand = func() clib.Command {
 					path := scanner.Text()
 					path, err := filepath.Abs(path)
 					if err != nil {
-						log.Error().
+						zlog.Error().
 							Err(err).
 							Msg("")
 						return 1
@@ -54,7 +54,7 @@ var rootsOwningCommand = func() clib.Command {
 
 				// Check for any errors during scanning
 				if err := scanner.Err(); err != nil {
-					// log.Fatal("error reading stdin", err)
+					zlog.Fatal().Err(err).Msg("error reading stdin")
 					return 1
 				}
 

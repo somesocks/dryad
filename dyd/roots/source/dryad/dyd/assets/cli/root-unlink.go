@@ -3,8 +3,9 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	"log"
 	"os"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var rootUnlinkCommand = func() clib.Command {
@@ -19,14 +20,16 @@ var rootUnlinkCommand = func() clib.Command {
 
 			var rootPath, err = os.Getwd()
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			var path = args[0]
 
 			err = dryad.RootUnlink(rootPath, path)
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			return 0

@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	log "github.com/rs/zerolog/log"
+	zlog "github.com/rs/zerolog/log"
 )
 
 var sproutsRunCommand = func() clib.Command {
@@ -37,7 +37,8 @@ var sproutsRunCommand = func() clib.Command {
 				var gardenPath string
 				gardenPath, err = dryad.GardenPath(path)
 				if err != nil {
-					log.Fatal().Err(err)
+					zlog.Fatal().Err(err)
+					return 1
 				}
 
 				var includeOpts []string
@@ -95,7 +96,8 @@ var sproutsRunCommand = func() clib.Command {
 						return nil
 					})
 					if err != nil {
-						log.Fatal().Err(err)
+						zlog.Fatal().Err(err)
+						return 1
 					}
 
 					fmt.Println("are you sure? type '" + confirm + "' to continue")
@@ -104,8 +106,8 @@ var sproutsRunCommand = func() clib.Command {
 
 					input, err := reader.ReadString('\n')
 					if err != nil {
-						log.Fatal().Err(err).Msg("error reading input")
-						return -1
+						zlog.Fatal().Err(err).Msg("error reading input")
+						return 1
 					}
 
 					input = strings.TrimSuffix(input, "\n")
@@ -142,7 +144,7 @@ var sproutsRunCommand = func() clib.Command {
 					}
 
 					if includeSprouts(relPath) && !excludeSprouts(relPath) {
-						log.Info().
+						zlog.Info().
 							Str("sprout", path).
 							Msg("running sprout")
 
@@ -154,7 +156,7 @@ var sproutsRunCommand = func() clib.Command {
 							Context:    context,
 						})
 						if err != nil {
-							log.Warn().
+							zlog.Warn().
 								Str("sprout", path).
 								Err(err).
 								Msg("sprout threw error during execution")
@@ -168,7 +170,8 @@ var sproutsRunCommand = func() clib.Command {
 					return nil
 				})
 				if err != nil {
-					log.Fatal().Err(err)
+					zlog.Fatal().Err(err)
+					return 1
 				}
 
 				return 0

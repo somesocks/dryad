@@ -5,8 +5,9 @@ import (
 	dryad "dryad/core"
 	"fmt"
 	"io/fs"
-	"log"
 	"os"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var stemsListCommand = func() clib.Command {
@@ -14,14 +15,16 @@ var stemsListCommand = func() clib.Command {
 		WithAction(func(req clib.ActionRequest) int {
 			var path, err = os.Getwd()
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 			err = dryad.StemsWalk(path, func(path string, info fs.FileInfo, err error) error {
 				fmt.Println(path)
 				return nil
 			})
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			return 0

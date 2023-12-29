@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/rs/zerolog/log"
+	zlog "github.com/rs/zerolog/log"
 )
 
 var stemRunCommand = func() clib.Command {
@@ -59,8 +59,8 @@ var stemRunCommand = func() clib.Command {
 
 				input, err := reader.ReadString('\n')
 				if err != nil {
-					log.Fatal().Err(err).Msg("error reading input")
-					return -1
+					zlog.Fatal().Err(err).Msg("error reading input")
+					return 1
 				}
 
 				input = strings.TrimSuffix(input, "\n")
@@ -97,8 +97,8 @@ var stemRunCommand = func() clib.Command {
 				Context:      context,
 			})
 			if err != nil {
-				log.Error().Err(err).Msg("error executing stem")
-				return -1
+				zlog.Fatal().Err(err).Msg("error executing stem")
+				return 1
 			}
 
 			return 0

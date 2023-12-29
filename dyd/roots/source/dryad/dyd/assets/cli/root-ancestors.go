@@ -4,9 +4,10 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var rootAncestorsCommand = func() clib.Command {
@@ -28,19 +29,22 @@ var rootAncestorsCommand = func() clib.Command {
 			if !filepath.IsAbs(rootPath) {
 				wd, err := os.Getwd()
 				if err != nil {
-					log.Fatal(err)
+					zlog.Fatal().Err(err)
+					return 1
 				}
 				rootPath = filepath.Join(wd, rootPath)
 			}
 
 			gardenPath, err := dryad.GardenPath(rootPath)
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			graph, err := dryad.RootsGraph(gardenPath)
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			ancestors := graph.Descendants(make(dryad.TStringSet), []string{rootPath}).ToArray([]string{})

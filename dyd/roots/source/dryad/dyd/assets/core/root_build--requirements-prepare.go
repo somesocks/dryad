@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"regexp"
 
-	log "github.com/rs/zerolog/log"
+	zlog "github.com/rs/zerolog/log"
 )
 
 var rootBuild_requirementsPrepare = func() func(string) error {
@@ -17,7 +17,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 
 	var fs_should_crawl = func(context fs2.Walk4Context) (bool, error) {
 		shouldCrawl := re_should_crawl.MatchString(context.VPath)
-		log.Trace().
+		zlog.Trace().
 			Str("context.VPath", context.VPath).
 			Bool("shouldCrawl", shouldCrawl).
 			Msg("rootBuild_requirementsPrepare.fs_should_crawl")
@@ -33,7 +33,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 
 	var fs_should_match = func(context fs2.Walk4Context) (bool, error) {
 		shouldMatch := re_should_match.MatchString(context.VPath)
-		log.Trace().
+		zlog.Trace().
 			Str("context.VPath", context.VPath).
 			Bool("shouldMatch", shouldMatch).
 			Msg("rootBuild_requirementsPrepare.fs_should_match")
@@ -41,7 +41,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 	}
 
 	var fs_on_match = func(context fs2.Walk4Context) error {
-		log.Trace().
+		zlog.Trace().
 			Str("context.VPath", context.VPath).
 			Msg("rootBuild_requirementsPrepare.fs_on_match")
 
@@ -49,14 +49,14 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 		if err != nil {
 			return err
 		}
-		// log.Trace().
+		// zlog.Trace().
 		// 	Str("relPath", relPath).
 		// 	Msg("rootBuild_requirementsPrepare.fs_on_match")
 
 		rootPath := filepath.Dir(filepath.Dir(context.BasePath))
 
 		reqsPath := filepath.Join(rootPath, "dyd", "requirements", relPath)
-		// log.Trace().
+		// zlog.Trace().
 		// 	Str("reqsPath", reqsPath).
 		// 	Msg("rootBuild_requirementsPrepare.fs_on_match")
 
@@ -66,7 +66,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 			return err
 		}
 
-		// log.Trace().
+		// zlog.Trace().
 		// 	Str("reqsParentPath", reqsParentPath).
 		// 	Msg("rootBuild_requirementsPrepare.fs_on_match")
 
@@ -74,7 +74,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 		var isInternalLink = false
 		var linkTarget = ""
 
-		// log.Trace().
+		// zlog.Trace().
 		// 	Bool("isSymlink", isSymlink).
 		// 	Msg("rootBuild_requirementsPrepare.fs_on_match")
 
@@ -140,7 +140,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 	}
 
 	var action = func(workspacePath string) error {
-		log.Trace().
+		zlog.Trace().
 			Str("workspacePath", workspacePath).
 			Msg("rootBuild_requirementsPrepare")
 

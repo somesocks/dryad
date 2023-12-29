@@ -2,7 +2,6 @@ package core
 
 import (
 	"errors"
-	"log"
 	"os"
 	"path/filepath"
 )
@@ -10,7 +9,7 @@ import (
 func StemsPath(path string) (string, error) {
 	var working_path, err = filepath.Abs(path)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	var heap_path = filepath.Join(working_path, "dyd", "stems")

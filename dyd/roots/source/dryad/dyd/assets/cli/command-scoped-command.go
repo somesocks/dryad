@@ -6,8 +6,7 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/rs/zerolog/log"
-	log2 "github.com/rs/zerolog/log"
+	zlog "github.com/rs/zerolog/log"
 )
 
 var ScopedCommand = func(
@@ -25,9 +24,9 @@ var ScopedCommand = func(
 		} else {
 			var err error
 			scope, err = dryad.ScopeGetDefault(scope)
-			log.Info().Msg("loading default scope: " + scope)
+			zlog.Info().Msg("loading default scope: " + scope)
 			if err != nil {
-				log.Fatal().Err(err)
+				zlog.Fatal().Err(err)
 				return 1
 			}
 		}
@@ -36,26 +35,26 @@ var ScopedCommand = func(
 		if scope == "" || scope == "none" {
 			return action(req)
 		} else {
-			log.Info().Msg("using scope: " + scope)
+			zlog.Info().Msg("using scope: " + scope)
 		}
 
 		settingName := strings.Join(invocation[1:], "-")
 
 		path, err := os.Getwd()
 		if err != nil {
-			log.Fatal().Err(err)
+			zlog.Fatal().Err(err)
 			return 1
 		}
 
 		setting, err := dryad.ScopeSettingGet(path, scope, settingName)
 		if err != nil {
-			log.Fatal().Err(err)
+			zlog.Fatal().Err(err)
 			return 1
 		}
 
 		settings, err := dryad.ScopeSettingParseShell(setting)
 		if err != nil {
-			log.Fatal().Err(err)
+			zlog.Fatal().Err(err)
 			return 1
 		}
 
@@ -91,7 +90,7 @@ var ScopedCommand = func(
 			argsRewrite = append(argsRewrite, element)
 			index++
 		}
-		log2.Debug().Msg("rewriting args to: " + strings.Join(argsRewrite, " "))
+		zlog.Debug().Msg("rewriting args to: " + strings.Join(argsRewrite, " "))
 		return req.App.Run(argsRewrite, os.Stdout)
 	}
 
