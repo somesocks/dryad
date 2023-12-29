@@ -263,7 +263,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		return rootFingerprint, nil
 	}
 
-	zlog.Info().Msg("dryad checking root " + relRootPath)
+	zlog.Info().Msg("dryad verifying root " + relRootPath)
 
 	// prepare a workspace
 	workspacePath, err := os.MkdirTemp("", "dryad-*")
