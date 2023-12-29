@@ -3,7 +3,6 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -30,7 +29,8 @@ var stemFilesCommand = func() clib.Command {
 			if options["exclude"] != nil && options["exclude"] != "" {
 				matchExclude, err = regexp.Compile(options["exclude"].(string))
 				if err != nil {
-					log.Fatal(err)
+					zlog.Fatal().Err(err)
+					return -1
 				}
 			}
 

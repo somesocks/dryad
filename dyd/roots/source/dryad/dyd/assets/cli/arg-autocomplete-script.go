@@ -3,7 +3,6 @@ package cli
 import (
 	dryad "dryad/core"
 	"io/fs"
-	"log"
 	"os"
 	"strings"
 )
@@ -13,7 +12,7 @@ func ArgAutoCompleteScript(token string) (error, []string) {
 
 	wd, err := os.Getwd()
 	if err != nil {
-		log.Fatal(err)
+		return err, results
 	}
 
 	activeScope, err := dryad.ScopeGetDefault(wd)
