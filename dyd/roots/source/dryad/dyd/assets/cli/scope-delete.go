@@ -3,8 +3,9 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	"log"
 	"os"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var scopeDeleteCommand = func() clib.Command {
@@ -21,12 +22,14 @@ var scopeDeleteCommand = func() clib.Command {
 
 			var path, err = os.Getwd()
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			err = dryad.ScopeDelete(path, name)
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			return 0

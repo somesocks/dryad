@@ -3,12 +3,11 @@ package cli
 import (
 	dryad "dryad/core"
 	"io/fs"
-	"log"
 	"path/filepath"
 	"strings"
 )
 
-func ArgAutoCompleteScope(token string) []string {
+func ArgAutoCompleteScope(token string) (error, []string) {
 	var results = []string{}
 
 	err := dryad.ScopesWalk("", func(path string, info fs.FileInfo) error {
@@ -21,8 +20,8 @@ func ArgAutoCompleteScope(token string) []string {
 		return nil
 	})
 	if err != nil {
-		log.Fatal(err)
+		return err, results
 	}
 
-	return results
+	return nil, results
 }

@@ -4,7 +4,8 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"fmt"
-	"log"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var rootPathCommand = func() clib.Command {
@@ -26,7 +27,8 @@ var rootPathCommand = func() clib.Command {
 
 			path, err := dryad.RootPath(path)
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 			fmt.Println(path)
 

@@ -5,17 +5,17 @@ import (
 	"os"
 	"path/filepath"
 
-	log "github.com/rs/zerolog/log"
+	zlog "github.com/rs/zerolog/log"
 )
 
 func RootPath(path string) (string, error) {
-	log.Trace().
+	zlog.Trace().
 		Str("path", path).
 		Msg("RootPath")
 
 	var err error
 	path, err = filepath.Abs(path)
-	// log.Trace().
+	// zlog.Trace().
 	// 	Str("path", path).
 	// 	Err(err).
 	// 	Msg("RootPath.filepath.Abs")
@@ -28,7 +28,7 @@ func RootPath(path string) (string, error) {
 	var fileBytes, fileInfoErr = os.ReadFile(flagPath)
 
 	for workingPath != "/" {
-		// log.Trace().
+		// zlog.Trace().
 		// 	Str("workingPath", workingPath).
 		// 	Str("flagPath", flagPath).
 		// 	Err(fileInfoErr).
@@ -36,7 +36,7 @@ func RootPath(path string) (string, error) {
 
 		if fileInfoErr == nil && string(fileBytes) == "root" {
 
-			log.Trace().
+			zlog.Trace().
 				Str("result", workingPath).
 				Msg("RootPath success")
 
@@ -48,7 +48,7 @@ func RootPath(path string) (string, error) {
 		fileBytes, fileInfoErr = os.ReadFile(flagPath)
 	}
 
-	log.Trace().
+	zlog.Trace().
 		Msg("RootPath failure")
 
 	return "", errors.New("dyd root path not found starting from " + path)

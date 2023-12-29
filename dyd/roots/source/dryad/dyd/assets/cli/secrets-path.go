@@ -4,9 +4,10 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var secretsPathCommand = func() clib.Command {
@@ -26,25 +27,29 @@ var secretsPathCommand = func() clib.Command {
 				path = args[0]
 				path, err = filepath.Abs(path)
 				if err != nil {
-					log.Fatal(err)
+					zlog.Fatal().Err(err)
+					return 1
 				}
 			} else {
 				path, err = os.Getwd()
 				if err != nil {
-					log.Fatal(err)
+					zlog.Fatal().Err(err)
+					return 1
 				}
 			}
 
 			// normalize the path to point to the closest secrets
 			path, err = dryad.SecretsPath(path)
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			// check if the secrets folder exists
 			exists, err := dryad.SecretsExist(path)
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			if exists {

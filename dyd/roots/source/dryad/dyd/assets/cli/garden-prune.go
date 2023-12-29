@@ -3,8 +3,9 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	"log"
 	"os"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var gardenPruneCommand = func() clib.Command {
@@ -13,13 +14,15 @@ var gardenPruneCommand = func() clib.Command {
 		WithAction(func(req clib.ActionRequest) int {
 			var path, err = os.Getwd()
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 			err = dryad.GardenPrune(
 				path,
 			)
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			return 0

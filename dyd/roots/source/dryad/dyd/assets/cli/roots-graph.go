@@ -4,8 +4,9 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"fmt"
-	"log"
 	"os"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var rootsGraphCommand = func() clib.Command {
@@ -13,12 +14,14 @@ var rootsGraphCommand = func() clib.Command {
 		WithAction(func(req clib.ActionRequest) int {
 			var path, err = os.Getwd()
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			graph, err := dryad.RootsGraph(path)
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			for k, v := range graph {

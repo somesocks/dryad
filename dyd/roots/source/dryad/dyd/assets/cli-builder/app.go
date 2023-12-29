@@ -70,7 +70,7 @@ type App interface {
 	// Usage prints out the full usage help.
 	Usage(invocation []string, w io.Writer) error
 
-	AutoComplete(tokens []string) []string
+	AutoComplete(tokens []string) (error, []string)
 }
 
 // New creates a new CLI App.
@@ -107,7 +107,7 @@ func (a *app) Action() Action {
 	return a.action
 }
 
-func (a *app) AutoComplete(tokens []string) []string {
+func (a *app) AutoComplete(tokens []string) (error, []string) {
 	return AppAutoComplete(a, tokens)
 }
 

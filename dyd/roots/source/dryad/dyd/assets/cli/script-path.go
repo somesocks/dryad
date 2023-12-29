@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	log "github.com/rs/zerolog/log"
+	zlog "github.com/rs/zerolog/log"
 )
 
 var scriptPathAction = func(req clib.ActionRequest) int {
@@ -15,7 +15,7 @@ var scriptPathAction = func(req clib.ActionRequest) int {
 
 	basePath, err := os.Getwd()
 	if err != nil {
-		log.Fatal().Err(err)
+		zlog.Fatal().Err(err)
 		return 1
 	}
 
@@ -25,19 +25,19 @@ var scriptPathAction = func(req clib.ActionRequest) int {
 	} else {
 		var err error
 		scope, err = dryad.ScopeGetDefault(scope)
-		log.Info().Msg("loading default scope: " + scope)
+		zlog.Info().Msg("loading default scope: " + scope)
 		if err != nil {
-			log.Fatal().Err(err)
+			zlog.Fatal().Err(err)
 			return 1
 		}
 	}
 
 	// if the scope is unset, bypass expansion and run the action directly
 	if scope == "" || scope == "none" {
-		log.Fatal().Msg("no scope set, can't find command")
+		zlog.Fatal().Msg("no scope set, can't find command")
 		return 1
 	} else {
-		log.Info().Msg("using scope: " + scope)
+		zlog.Info().Msg("using scope: " + scope)
 	}
 
 	scriptPath, err := dryad.ScriptPath(dryad.ScriptPathRequest{
@@ -46,7 +46,7 @@ var scriptPathAction = func(req clib.ActionRequest) int {
 		Setting:  "script-run-" + command,
 	})
 	if err != nil {
-		log.Fatal().Err(err)
+		zlog.Fatal().Err(err)
 		return 1
 	}
 

@@ -3,8 +3,9 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	"log"
 	"os"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var scopeUseCommand = func() clib.Command {
@@ -21,7 +22,8 @@ var scopeUseCommand = func() clib.Command {
 
 			var path, err = os.Getwd()
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			if name == "none" {
@@ -31,7 +33,8 @@ var scopeUseCommand = func() clib.Command {
 			}
 
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			return 0

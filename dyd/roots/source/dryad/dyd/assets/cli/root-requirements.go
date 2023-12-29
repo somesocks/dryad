@@ -5,7 +5,8 @@ import (
 	dryad "dryad/core"
 	"fmt"
 	"io/fs"
-	"log"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var rootRequirementsCommand = func() clib.Command {
@@ -30,7 +31,8 @@ var rootRequirementsCommand = func() clib.Command {
 			})
 
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			return 0

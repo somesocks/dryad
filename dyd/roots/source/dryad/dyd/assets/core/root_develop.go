@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	log "github.com/rs/zerolog/log"
+	zlog "github.com/rs/zerolog/log"
 )
 
 // stage 0 - build a shallow partial clone of the root into a working directory,
@@ -336,7 +336,7 @@ func RootDevelop(context BuildContext, rootPath string, editor string, editorArg
 		return "", err
 	}
 
-	log.Info().Msg("creating development environment for root " + relRootPath)
+	zlog.Info().Msg("creating development environment for root " + relRootPath)
 
 	// prepare a workspace
 	workspacePath, err := os.MkdirTemp("", "dryad-*")

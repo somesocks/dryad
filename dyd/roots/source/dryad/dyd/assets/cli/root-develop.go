@@ -4,9 +4,10 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var rootDevelopCommand = func() clib.Command {
@@ -50,7 +51,8 @@ var rootDevelopCommand = func() clib.Command {
 			if !filepath.IsAbs(path) {
 				wd, err := os.Getwd()
 				if err != nil {
-					log.Fatal(err)
+					zlog.Fatal().Err(err)
+					return 1
 				}
 				path = filepath.Join(wd, path)
 			}
@@ -66,7 +68,8 @@ var rootDevelopCommand = func() clib.Command {
 				inherit,
 			)
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 			fmt.Println(rootFingerprint)
 

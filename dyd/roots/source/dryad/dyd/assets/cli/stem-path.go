@@ -4,8 +4,9 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"fmt"
-	"log"
 	"os"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var stemPathCommand = func() clib.Command {
@@ -14,11 +15,13 @@ var stemPathCommand = func() clib.Command {
 		WithAction(func(req clib.ActionRequest) int {
 			var path, err = os.Getwd()
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 			path, err = dryad.StemPath(path)
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 			fmt.Println(path)
 

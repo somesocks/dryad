@@ -4,8 +4,9 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"fmt"
-	"log"
 	"os"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var stemUnpackCommand = func() clib.Command {
@@ -22,12 +23,14 @@ var stemUnpackCommand = func() clib.Command {
 
 			gardenPath, err := os.Getwd()
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			targetPath, err := dryad.StemUnpack(gardenPath, stemPath)
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			fmt.Println(targetPath)

@@ -4,8 +4,9 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"fmt"
-	"log"
 	"os"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var scopeActiveCommand = func() clib.Command {
@@ -22,12 +23,14 @@ var scopeActiveCommand = func() clib.Command {
 
 			var path, err = os.Getwd()
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			scopeName, err := dryad.ScopeGetDefault(path)
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 
 			if scopeName == "" {

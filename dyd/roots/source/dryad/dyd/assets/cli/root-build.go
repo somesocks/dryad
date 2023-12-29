@@ -4,9 +4,10 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var rootBuildCommand = func() clib.Command {
@@ -30,7 +31,8 @@ var rootBuildCommand = func() clib.Command {
 			if !filepath.IsAbs(path) {
 				wd, err := os.Getwd()
 				if err != nil {
-					log.Fatal(err)
+					zlog.Fatal().Err(err)
+					return 1
 				}
 				path = filepath.Join(wd, path)
 			}
@@ -43,7 +45,8 @@ var rootBuildCommand = func() clib.Command {
 				path,
 			)
 			if err != nil {
-				log.Fatal(err)
+				zlog.Fatal().Err(err)
+				return 1
 			}
 			fmt.Println(rootFingerprint)
 

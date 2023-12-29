@@ -3,26 +3,25 @@ package cli
 import (
 	dryad "dryad/core"
 	"io/fs"
-	"log"
 	"os"
 	"strings"
 )
 
-func ArgAutoCompleteScript(token string) []string {
+func ArgAutoCompleteScript(token string) (error, []string) {
 	var results = []string{}
 
 	wd, err := os.Getwd()
 	if err != nil {
-		log.Fatal(err)
+		return err, results
 	}
 
 	activeScope, err := dryad.ScopeGetDefault(wd)
 	if err != nil {
-		log.Fatal(err)
+		return err, results
 	}
 
 	if activeScope == "" {
-		return results
+		return nil, results
 	}
 
 	err = dryad.ScriptsWalk(dryad.ScriptsWalkRequest{
@@ -38,8 +37,8 @@ func ArgAutoCompleteScript(token string) []string {
 		},
 	})
 	if err != nil {
-		log.Fatal(err)
+		return err, results
 	}
 
-	return results
+	return nil, results
 }

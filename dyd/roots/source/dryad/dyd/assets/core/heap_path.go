@@ -1,18 +1,15 @@
 package core
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 )
 
 func HeapPath(path string) (string, error) {
-	// fmt.Println("[trace] HeapPath " + path)
-
 	gardenPath, err := GardenPath(path)
 
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	heapPath := filepath.Join(gardenPath, "dyd", "heap")
