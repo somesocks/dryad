@@ -66,8 +66,8 @@ var stemRunCommand = func() clib.Command {
 				input = strings.TrimSuffix(input, "\n")
 
 				if input != confirm {
-					fmt.Println("confirmation denied, aborting")
-					return 0
+					zlog.Fatal().Msg("input does not match confirmation, aborting")
+					return 1
 				}
 
 			}
