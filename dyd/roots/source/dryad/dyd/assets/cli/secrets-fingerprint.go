@@ -27,13 +27,13 @@ var secretsFingerprintCommand = func() clib.Command {
 				path = args[0]
 				path, err = filepath.Abs(path)
 				if err != nil {
-					zlog.Fatal().Err(err)
+					zlog.Fatal().Err(err).Msg("error while cleaning path")
 					return 1
 				}
 			} else {
 				path, err = os.Getwd()
 				if err != nil {
-					zlog.Fatal().Err(err)
+					zlog.Fatal().Err(err).Msg("error while finding working directory")
 					return 1
 				}
 			}
@@ -41,7 +41,7 @@ var secretsFingerprintCommand = func() clib.Command {
 			// normalize the path to point to the closest secrets
 			path, err = dryad.SecretsPath(path)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while finding secrets path")
 				return 1
 			}
 
@@ -51,7 +51,7 @@ var secretsFingerprintCommand = func() clib.Command {
 				},
 			)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while building secrets fingerprint")
 				return 1
 			}
 			fmt.Println(fingerprint)

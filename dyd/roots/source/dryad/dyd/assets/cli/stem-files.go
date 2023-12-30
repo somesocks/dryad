@@ -29,7 +29,7 @@ var stemFilesCommand = func() clib.Command {
 			if options["exclude"] != nil && options["exclude"] != "" {
 				matchExclude, err = regexp.Compile(options["exclude"].(string))
 				if err != nil {
-					zlog.Fatal().Err(err)
+					zlog.Fatal().Err(err).Msg("error while compiling exclusion expression")
 					return -1
 				}
 			}
@@ -39,14 +39,14 @@ var stemFilesCommand = func() clib.Command {
 				path = args[0]
 				path, err = filepath.Abs(path)
 				if err != nil {
-					zlog.Fatal().Err(err)
+					zlog.Fatal().Err(err).Msg("error while cleaning path")
 					return 1
 				}
 			}
 			if path == "" {
 				path, err = os.Getwd()
 				if err != nil {
-					zlog.Fatal().Err(err)
+					zlog.Fatal().Err(err).Msg("error while finding working directory")
 					return 1
 				}
 			}
@@ -58,7 +58,7 @@ var stemFilesCommand = func() clib.Command {
 				},
 			)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while listing files")
 				return 1
 			}
 

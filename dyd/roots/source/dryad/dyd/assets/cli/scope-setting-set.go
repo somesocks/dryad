@@ -26,13 +26,13 @@ var scopeSettingSetCommand = func() clib.Command {
 
 			var path, err = os.Getwd()
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while finding working directory")
 				return 1
 			}
 
 			err = dryad.ScopeSettingSet(path, scope, setting, value)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while changing scope setting")
 				return 1
 			}
 

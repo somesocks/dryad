@@ -15,12 +15,12 @@ var stemPathCommand = func() clib.Command {
 		WithAction(func(req clib.ActionRequest) int {
 			var path, err = os.Getwd()
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while finding working directory")
 				return 1
 			}
 			path, err = dryad.StemPath(path)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while finding stem path")
 				return 1
 			}
 			fmt.Println(path)

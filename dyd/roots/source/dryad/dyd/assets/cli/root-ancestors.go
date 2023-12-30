@@ -29,7 +29,7 @@ var rootAncestorsCommand = func() clib.Command {
 			if !filepath.IsAbs(rootPath) {
 				wd, err := os.Getwd()
 				if err != nil {
-					zlog.Fatal().Err(err)
+					zlog.Fatal().Err(err).Msg("error while finding working directory")
 					return 1
 				}
 				rootPath = filepath.Join(wd, rootPath)
@@ -37,13 +37,13 @@ var rootAncestorsCommand = func() clib.Command {
 
 			gardenPath, err := dryad.GardenPath(rootPath)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while finding garden path")
 				return 1
 			}
 
 			graph, err := dryad.RootsGraph(gardenPath)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while building graph")
 				return 1
 			}
 

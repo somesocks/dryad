@@ -28,7 +28,7 @@ var rootReplaceCommand = func() clib.Command {
 			err := dryad.RootReplace(source, dest)
 
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while replacing root")
 				return 1
 			}
 

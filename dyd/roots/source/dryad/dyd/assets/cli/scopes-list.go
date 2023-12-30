@@ -48,7 +48,7 @@ var scopesListCommand = func() clib.Command {
 				return nil
 			})
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while crawling scopes")
 				return 1
 			}
 

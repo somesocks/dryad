@@ -28,7 +28,7 @@ var rootCopyCommand = func() clib.Command {
 			err := dryad.RootCopy(source, dest)
 
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while copying root")
 				return 1
 			}
 

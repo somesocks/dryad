@@ -19,13 +19,13 @@ var scopeCreateCommand = func() clib.Command {
 
 			var path, err = os.Getwd()
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while finding working directory")
 				return 1
 			}
 
 			scopePath, err := dryad.ScopeCreate(path, name)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while creating scope")
 				return 1
 			}
 

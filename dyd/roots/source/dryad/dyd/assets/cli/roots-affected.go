@@ -17,7 +17,7 @@ var rootsAffectedCommand = func() clib.Command {
 
 			wd, err := os.Getwd()
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while finding working directory")
 				return 1
 			}
 
@@ -29,7 +29,7 @@ var rootsAffectedCommand = func() clib.Command {
 				path := scanner.Text()
 				path, err := filepath.Abs(path)
 				if err != nil {
-					zlog.Fatal().Err(err)
+					zlog.Fatal().Err(err).Msg("error while reading from stdin")
 					return 1
 				}
 				path = _rootsOwningDependencyCorrection(path)
@@ -41,7 +41,7 @@ var rootsAffectedCommand = func() clib.Command {
 
 			// Check for any errors during scanning
 			if err := scanner.Err(); err != nil {
-				zlog.Fatal().Err(err).Msg("error reading stdin")
+				zlog.Fatal().Err(err).Msg("error after reading from stdin")
 				return 1
 			}
 
@@ -49,13 +49,13 @@ var rootsAffectedCommand = func() clib.Command {
 
 			gardenPath, err := dryad.GardenPath(wd)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while finding garden path")
 				return 1
 			}
 
 			graph, err := dryad.RootsGraph(gardenPath)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while building roots graph")
 				return 1
 			}
 

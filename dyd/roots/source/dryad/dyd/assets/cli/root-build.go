@@ -31,7 +31,7 @@ var rootBuildCommand = func() clib.Command {
 			if !filepath.IsAbs(path) {
 				wd, err := os.Getwd()
 				if err != nil {
-					zlog.Fatal().Err(err)
+					zlog.Fatal().Err(err).Msg("error while finding working directory")
 					return 1
 				}
 				path = filepath.Join(wd, path)
@@ -45,7 +45,7 @@ var rootBuildCommand = func() clib.Command {
 				path,
 			)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while building root")
 				return 1
 			}
 			fmt.Println(rootFingerprint)

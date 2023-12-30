@@ -23,13 +23,13 @@ var scopeActiveCommand = func() clib.Command {
 
 			var path, err = os.Getwd()
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while finding working directory")
 				return 1
 			}
 
 			scopeName, err := dryad.ScopeGetDefault(path)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while loading active scope")
 				return 1
 			}
 

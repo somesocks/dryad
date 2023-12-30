@@ -22,7 +22,7 @@ var rootCreateCommand = func() clib.Command {
 			err := dryad.RootCreate(path)
 
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while creating root")
 				return 1
 			}
 

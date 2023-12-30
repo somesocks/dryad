@@ -13,13 +13,13 @@ var scopesDefaultUnsetCommand = func() clib.Command {
 		WithAction(func(req clib.ActionRequest) int {
 			var path, err = os.Getwd()
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while finding active directory")
 				return 1
 			}
 
 			err = dryad.ScopeUnsetDefault(path)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while removing active scope")
 				return 1
 			}
 

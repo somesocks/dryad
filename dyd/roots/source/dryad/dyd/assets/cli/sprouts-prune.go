@@ -13,12 +13,12 @@ var sproutsPruneCommand = func() clib.Command {
 		WithAction(func(req clib.ActionRequest) int {
 			path, err := os.Getwd()
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while finding working directory")
 				return 1
 			}
 			err = dryad.SproutsPrune(path)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while pruning sprouts")
 				return 1
 			}
 

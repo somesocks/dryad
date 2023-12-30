@@ -29,7 +29,7 @@ var stemFingerprintCommand = func() clib.Command {
 			if options["exclude"] != "" {
 				matchExclude, err = regexp.Compile(options["exclude"].(string))
 				if err != nil {
-					zlog.Fatal().Err(err)
+					zlog.Fatal().Err(err).Msg("error while compiling exclusion expression")
 					return 1
 				}
 			}
@@ -41,7 +41,7 @@ var stemFingerprintCommand = func() clib.Command {
 			if path == "" {
 				path, err = os.Getwd()
 				if err != nil {
-					zlog.Fatal().Err(err)
+					zlog.Fatal().Err(err).Msg("error while finding working directory")
 					return 1
 				}
 			}
@@ -53,7 +53,7 @@ var stemFingerprintCommand = func() clib.Command {
 				},
 			)
 			if fingerprintErr != nil {
-				zlog.Error().Err(fingerprintErr)
+				zlog.Fatal().Err(fingerprintErr).Msg("error while building stem fingerprint")
 				return 1
 			}
 			fmt.Println(fingerprintString)

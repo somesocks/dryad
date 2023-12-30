@@ -59,7 +59,7 @@ var stemRunCommand = func() clib.Command {
 
 				input, err := reader.ReadString('\n')
 				if err != nil {
-					zlog.Fatal().Err(err).Msg("error reading input")
+					zlog.Fatal().Err(err).Msg("error while reading input")
 					return 1
 				}
 
