@@ -39,7 +39,7 @@ var gardenPackCommand = func() clib.Command {
 
 			targetPath, err := dryad.GardenPack(gardenPath, targetPath)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while packing garden")
 				return 1
 			}
 

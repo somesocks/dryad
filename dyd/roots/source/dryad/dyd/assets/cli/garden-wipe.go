@@ -14,14 +14,14 @@ var gardenWipeCommand = func() clib.Command {
 		WithAction(func(req clib.ActionRequest) int {
 			var path, err = os.Getwd()
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while finding working directory")
 				return 1
 			}
 			err = dryad.GardenWipe(
 				path,
 			)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while wiping garden")
 				return 1
 			}
 

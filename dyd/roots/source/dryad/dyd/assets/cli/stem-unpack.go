@@ -23,13 +23,13 @@ var stemUnpackCommand = func() clib.Command {
 
 			gardenPath, err := os.Getwd()
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while finding working directory")
 				return 1
 			}
 
 			targetPath, err := dryad.StemUnpack(gardenPath, stemPath)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while unpacking stem")
 				return 1
 			}
 

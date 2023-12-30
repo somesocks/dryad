@@ -16,7 +16,7 @@ var scriptRunAction = func(req clib.ActionRequest) int {
 
 	basePath, err := os.Getwd()
 	if err != nil {
-		zlog.Fatal().Err(err)
+		zlog.Fatal().Err(err).Msg("error while finding working directory")
 		return 1
 	}
 
@@ -28,7 +28,7 @@ var scriptRunAction = func(req clib.ActionRequest) int {
 		scope, err = dryad.ScopeGetDefault(scope)
 		zlog.Info().Msg("loading default scope: " + scope)
 		if err != nil {
-			zlog.Fatal().Err(err)
+			zlog.Fatal().Err(err).Msg("error while finding active scope")
 			return 1
 		}
 	}
@@ -70,7 +70,7 @@ var scriptRunAction = func(req clib.ActionRequest) int {
 		Env:      env,
 	})
 	if err != nil {
-		zlog.Fatal().Err(err)
+		zlog.Fatal().Err(err).Msg("error while running script")
 		return 1
 	}
 

@@ -21,7 +21,7 @@ var rootLinkCommand = func() clib.Command {
 
 			var rootPath, err = os.Getwd()
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while finding working directory")
 				return 1
 			}
 
@@ -33,7 +33,7 @@ var rootLinkCommand = func() clib.Command {
 
 			err = dryad.RootLink(rootPath, path, alias)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while linking root")
 				return 1
 			}
 

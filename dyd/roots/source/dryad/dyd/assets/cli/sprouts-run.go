@@ -37,7 +37,7 @@ var sproutsRunCommand = func() clib.Command {
 				var gardenPath string
 				gardenPath, err = dryad.GardenPath(path)
 				if err != nil {
-					zlog.Fatal().Err(err)
+					zlog.Fatal().Err(err).Msg("error while finding garden path")
 					return 1
 				}
 
@@ -96,7 +96,7 @@ var sproutsRunCommand = func() clib.Command {
 						return nil
 					})
 					if err != nil {
-						zlog.Fatal().Err(err)
+						zlog.Fatal().Err(err).Msg("error while crawling sprouts")
 						return 1
 					}
 
@@ -106,15 +106,15 @@ var sproutsRunCommand = func() clib.Command {
 
 					input, err := reader.ReadString('\n')
 					if err != nil {
-						zlog.Fatal().Err(err).Msg("error reading input")
+						zlog.Fatal().Err(err).Msg("error while reading input")
 						return 1
 					}
 
 					input = strings.TrimSuffix(input, "\n")
 
 					if input != confirm {
-						fmt.Println("confirmation denied, aborting")
-						return 0
+						zlog.Fatal().Msg("input does not match confirmation, aborting")
+						return 1
 					}
 
 				}
@@ -170,7 +170,7 @@ var sproutsRunCommand = func() clib.Command {
 					return nil
 				})
 				if err != nil {
-					zlog.Fatal().Err(err)
+					zlog.Fatal().Err(err).Msg("error while crawling sprouts")
 					return 1
 				}
 

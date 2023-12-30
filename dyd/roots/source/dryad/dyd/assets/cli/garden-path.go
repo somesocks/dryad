@@ -28,7 +28,7 @@ var gardenPathCommand = func() clib.Command {
 
 			path, err = dryad.GardenPath(path)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while finding garden path")
 				return 1
 			}
 			fmt.Println(path)

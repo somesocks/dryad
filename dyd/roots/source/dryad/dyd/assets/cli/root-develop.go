@@ -51,7 +51,7 @@ var rootDevelopCommand = func() clib.Command {
 			if !filepath.IsAbs(path) {
 				wd, err := os.Getwd()
 				if err != nil {
-					zlog.Fatal().Err(err)
+					zlog.Fatal().Err(err).Msg("error while finding working directory")
 					return 1
 				}
 				path = filepath.Join(wd, path)
@@ -68,7 +68,7 @@ var rootDevelopCommand = func() clib.Command {
 				inherit,
 			)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error from root development environment")
 				return 1
 			}
 			fmt.Println(rootFingerprint)

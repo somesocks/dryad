@@ -26,7 +26,7 @@ var systemAutocomplete = func() clib.Command {
 
 			var err, results = req.App.AutoComplete(args)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while building autocomplete tokens")
 				return 1
 			}
 			fmt.Println(strings.Join(results, separator))

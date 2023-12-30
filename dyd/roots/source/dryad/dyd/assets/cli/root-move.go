@@ -28,7 +28,7 @@ var rootMoveCommand = func() clib.Command {
 			err := dryad.RootMove(source, dest)
 
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while moving root")
 				return 1
 			}
 

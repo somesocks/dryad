@@ -20,7 +20,7 @@ var rootUnlinkCommand = func() clib.Command {
 
 			var rootPath, err = os.Getwd()
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while finding working directory")
 				return 1
 			}
 
@@ -28,7 +28,7 @@ var rootUnlinkCommand = func() clib.Command {
 
 			err = dryad.RootUnlink(rootPath, path)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while unlinking root")
 				return 1
 			}
 

@@ -26,7 +26,7 @@ var ScopedCommand = func(
 			scope, err = dryad.ScopeGetDefault(scope)
 			zlog.Info().Msg("loading default scope: " + scope)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while loading default scope")
 				return 1
 			}
 		}
@@ -42,19 +42,19 @@ var ScopedCommand = func(
 
 		path, err := os.Getwd()
 		if err != nil {
-			zlog.Fatal().Err(err)
+			zlog.Fatal().Err(err).Msg("error while finding working directory")
 			return 1
 		}
 
 		setting, err := dryad.ScopeSettingGet(path, scope, settingName)
 		if err != nil {
-			zlog.Fatal().Err(err)
+			zlog.Fatal().Err(err).Msg("error while loading setting")
 			return 1
 		}
 
 		settings, err := dryad.ScopeSettingParseShell(setting)
 		if err != nil {
-			zlog.Fatal().Err(err)
+			zlog.Fatal().Err(err).Msg("error while parsing setting")
 			return 1
 		}
 

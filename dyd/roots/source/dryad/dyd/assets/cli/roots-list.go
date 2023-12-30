@@ -35,7 +35,7 @@ var rootsListCommand = func() clib.Command {
 				var gardenPath string
 				gardenPath, err = dryad.GardenPath(path)
 				if err != nil {
-					zlog.Fatal().Err(err)
+					zlog.Fatal().Err(err).Msg("error while finding garden path")
 					return 1
 				}
 
@@ -68,7 +68,7 @@ var rootsListCommand = func() clib.Command {
 					return nil
 				})
 				if err != nil {
-					zlog.Fatal().Err(err)
+					zlog.Fatal().Err(err).Msg("error while crawling roots")
 					return 1
 				}
 

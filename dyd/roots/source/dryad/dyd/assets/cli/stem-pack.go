@@ -27,7 +27,7 @@ var stemPackCommand = func() clib.Command {
 
 			targetPath, err := dryad.StemPack(stemPath, targetPath)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while packing stem")
 				return 1
 			}
 

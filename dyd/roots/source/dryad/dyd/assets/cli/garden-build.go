@@ -52,7 +52,7 @@ var gardenBuildCommand = func() clib.Command {
 				},
 			)
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while building garden")
 				return 1
 			}
 

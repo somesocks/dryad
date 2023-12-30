@@ -59,15 +59,15 @@ var stemRunCommand = func() clib.Command {
 
 				input, err := reader.ReadString('\n')
 				if err != nil {
-					zlog.Fatal().Err(err).Msg("error reading input")
+					zlog.Fatal().Err(err).Msg("error while reading input")
 					return 1
 				}
 
 				input = strings.TrimSuffix(input, "\n")
 
 				if input != confirm {
-					fmt.Println("confirmation denied, aborting")
-					return 0
+					zlog.Fatal().Msg("input does not match confirmation, aborting")
+					return 1
 				}
 
 			}

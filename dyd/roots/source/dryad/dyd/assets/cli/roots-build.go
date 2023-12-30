@@ -51,8 +51,9 @@ var rootsBuildCommand = func() clib.Command {
 					ExcludeRoots: excludeRoots,
 				},
 			)
+
 			if err != nil {
-				zlog.Fatal().Err(err)
+				zlog.Fatal().Err(err).Msg("error while building roots")
 				return 1
 			}
 
