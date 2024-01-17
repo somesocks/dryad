@@ -37,7 +37,7 @@ var rootDevelopCommand = func() clib.Command {
 			if opts["editor"] != nil {
 				editor = opts["editor"].(string)
 			} else {
-				editor = "sh"
+				editor = ""
 			}
 
 			if opts["arg"] != nil {
