@@ -282,6 +282,24 @@ func rootDevelop_stage5(
 ) (string, error) {
 	// fmt.Println("rootDevelop_stage5 ", rootStemPath, stemBuildPath)
 
+	// find default development editor if not passed in
+	// fallback to 'sh' if no on-develop command exists
+	if editor == "" {
+
+		onDevelopPath := filepath.Join(rootStemPath, "dyd", "commands", "on-develop")
+		onDevelopExists, err := fileExists(onDevelopPath)
+		if err != nil {
+			return "", err
+		}
+
+		if onDevelopExists {
+			editor = onDevelopPath
+		} else {
+			editor = "sh"
+		}
+
+	}
+
 	var err error
 
 	err = StemInit(stemBuildPath)
