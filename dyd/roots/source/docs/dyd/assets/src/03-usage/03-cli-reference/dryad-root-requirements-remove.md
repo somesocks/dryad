@@ -1,14 +1,14 @@
-# dryad root unlink
+# dryad root requirements remove
 
 ```
-$ dryad root unlink --help
-dryad root unlink [--log-level=string] [--log-format=string] [--help] <path>
+$ dryad root requirements remove --help
+dryad root requirements remove [--log-level=string] [--log-format=string] [--help] <path>
 
 Description:
-    remove a dependency linked to the current root
+    remove a requirement from the current root
 
 Arguments:
-    path               path to the dependency to unlink
+    path               path to the dependency to remove
 
 Options:
         --log-level    set the logging level. can be one of 'panic', 'fatal', 'error', 'warn', 'info', 'debug', or 'trace'.  defaults to 'info'
