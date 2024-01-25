@@ -2,16 +2,13 @@
 
 ```
 $ dryad root requirements --help
-dryad root requirements [--log-level=string] [--log-format=string] [--help] [root_path]
+dryad root requirements
 
 Description:
-    list all requirements of this root
+    commands to work with the requirements of a root
 
-Arguments:
-    root_path          path to the root, optional
-
-Options:
-        --log-level    set the logging level. can be one of 'panic', 'fatal', 'error', 'warn', 'info', 'debug', or 'trace'.  defaults to 'info'
-        --log-format   set the logging format. can be one of 'console' or 'json'.  defaults to 'console'
-        --help         display help text for this command
+Sub-commands:
+    dryad root requirements add      add a root as a dependency of the current root
+    dryad root requirements list     list all requirements of this root
+    dryad root requirements remove   remove a requirement from the current root
 ```

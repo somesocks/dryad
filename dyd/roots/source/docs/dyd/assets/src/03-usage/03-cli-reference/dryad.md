@@ -5,7 +5,7 @@ $ dryad --help
 dryad
 
 Description:
-    dryad package manager 0.9.2,-X=main.Fingerprint=blake2b-87ab91d2b44c0a6f47ec5e7332d415c3,-s,-w
+    dryad package manager 0.9.5,-X=main.Fingerprint=blake2b-28d25c91f6d537b58ccf1baca6fc2b36,-s,-w
 
 Sub-commands:
     dryad garden    commands to work with a dryad garden

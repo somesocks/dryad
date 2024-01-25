@@ -8,13 +8,14 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-var rootUnlinkCommand = func() clib.Command {
-	command := clib.NewCommand("unlink", "remove a dependency linked to the current root").
+var rootRequirementsAddCommand = func() clib.Command {
+	command := clib.NewCommand("add", "add a root as a dependency of the current root").
 		WithArg(
 			clib.
-				NewArg("path", "path to the dependency to unlink").
+				NewArg("path", "path to the root you want to add as a dependency").
 				WithAutoComplete(ArgAutoCompletePath),
 		).
+		WithArg(clib.NewArg("alias", "the alias to add the root under. if not specified, this defaults to the basename of the linked root").AsOptional()).
 		WithAction(func(req clib.ActionRequest) int {
 			var args = req.Args
 
@@ -25,10 +26,14 @@ var rootUnlinkCommand = func() clib.Command {
 			}
 
 			var path = args[0]
+			var alias = ""
+			if len(args) > 1 {
+				alias = args[1]
+			}
 
-			err = dryad.RootUnlink(rootPath, path)
+			err = dryad.RootLink(rootPath, path, alias)
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while unlinking root")
+				zlog.Fatal().Err(err).Msg("error while linking root")
 				return 1
 			}
 
