@@ -67,6 +67,11 @@ func RootCreate(path string) error {
 		return err
 	}
 
+	var docsPath string = filepath.Join(basePath, "docs")
+	if err := os.MkdirAll(docsPath, os.ModePerm); err != nil {
+		return err
+	}
+
 	var requirementsPath string = filepath.Join(basePath, "requirements")
 	if err := os.MkdirAll(requirementsPath, os.ModePerm); err != nil {
 		return err
