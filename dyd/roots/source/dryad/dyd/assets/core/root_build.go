@@ -109,6 +109,20 @@ func rootBuild_stage0(rootPath string, workspacePath string) error {
 		}
 	}
 
+	exists, err = fileExists(filepath.Join(rootPath, "dyd", "docs"))
+	if err != nil {
+		return err
+	}
+	if exists {
+		err = os.Symlink(
+			filepath.Join(rootPath, "dyd", "docs"),
+			filepath.Join(workspacePath, "dyd", "docs"),
+		)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
