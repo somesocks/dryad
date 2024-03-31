@@ -38,7 +38,7 @@ _prepare() {
 _test() {
 	COMMAND="dryad system autocomplete --"
 	OUTPUT=$(eval "$COMMAND")
-	EXPECTED="garden  root  roots  run  scope  scopes  script  scripts  secrets  sprouts  stem  stems  system  version "
+	EXPECTED="garden  root  roots  run  scope  scopes  script  scripts  secrets  sprout  sprouts  stem  stems  system  version "
 	if [[ $OUTPUT != $EXPECTED ]]; then
 		echo "[error] command ($COMMAND) output was ($OUTPUT), expected ($EXPECTED)" 1>&2;
 		exit 1
