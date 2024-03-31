@@ -40,7 +40,7 @@ func ScriptEdit(request ScriptEditRequest) error {
 		Msg("script path")
 
 	// If the file doesn't exist, create it, or append to the file
-	f, err := os.OpenFile(scriptPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(scriptPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
 	if err != nil {
 		zlog.
 			Fatal().
