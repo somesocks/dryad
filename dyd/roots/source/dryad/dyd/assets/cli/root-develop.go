@@ -76,6 +76,7 @@ var rootDevelopCommand = func() clib.Command {
 			return 0
 		})
 
+	command = ScopedCommand(command)
 	command = LoggingCommand(command)
 	command = HelpCommand(command)
 
