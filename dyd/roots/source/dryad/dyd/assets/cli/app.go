@@ -21,6 +21,7 @@ func BuildCLI(
 		WithCommand(scriptCommand).
 		WithCommand(scriptsCommand).
 		WithCommand(secretsCommand).
+		WithCommand(sproutCommand).
 		WithCommand(sproutsCommand).
 		WithCommand(stemCommand).
 		WithCommand(stemsCommand).

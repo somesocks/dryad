@@ -5,7 +5,7 @@ $ dryad stem --help
 dryad stem
 
 Description:
-    commands to work with dryad stems
+    commands to work with a single dryad stem
 
 Sub-commands:
     dryad stem fingerprint   calculate the fingerprint for a stem dir

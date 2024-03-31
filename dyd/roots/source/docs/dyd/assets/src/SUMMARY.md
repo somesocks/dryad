@@ -78,6 +78,8 @@
 		- [dryad secrets fingerprint](./03-usage/03-cli-reference/dryad-secrets-fingerprint.md)
 		- [dryad secrets list](./03-usage/03-cli-reference/dryad-secrets-list.md)
 		- [dryad secrets path](./03-usage/03-cli-reference/dryad-secrets-path.md)
+		- [dryad sprout](./03-usage/03-cli-reference/dryad-sprout.md)
+		- [dryad sprout run](./03-usage/03-cli-reference/dryad-sprout-run.md)
 		- [dryad sprouts](./03-usage/03-cli-reference/dryad-sprouts.md)
 		- [dryad sprouts list](./03-usage/03-cli-reference/dryad-sprouts-list.md)
 		- [dryad sprouts path](./03-usage/03-cli-reference/dryad-sprouts-path.md)
