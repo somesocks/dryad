@@ -5,7 +5,7 @@ $ dryad --help
 dryad
 
 Description:
-    dryad package manager 0.9.5,-X=main.Fingerprint=blake2b-28d25c91f6d537b58ccf1baca6fc2b36,-s,-w
+    dryad package manager 0.9.7,-X=main.Fingerprint=blake2b-51f41d1f09cfe93dd788cedfe8edaca4,-s,-w
 
 Sub-commands:
     dryad garden    commands to work with a dryad garden
@@ -17,8 +17,9 @@ Sub-commands:
     dryad script    commands to work with a scoped script
     dryad scripts   commands to work with scoped scripts
     dryad secrets   commands to work with dryad secrets
+    dryad sprout    commands to work with a single dryad sprout
     dryad sprouts   commands to work with dryad sprouts
-    dryad stem      commands to work with dryad stems
+    dryad stem      commands to work with a single dryad stem
     dryad stems     commands to work with dryad stems
     dryad system    maintenance and utility commands for dryad
     dryad version   print out detailed version info

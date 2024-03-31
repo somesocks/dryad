@@ -4,7 +4,7 @@ import (
 	clib "dryad/cli-builder"
 )
 
-var stemCommand = clib.NewCommand("stem", "commands to work with dryad stems").
+var stemCommand = clib.NewCommand("stem", "commands to work with a single dryad stem").
 	WithCommand(stemFingerprintCommand).
 	WithCommand(stemFilesCommand).
 	WithCommand(stemPackCommand).
