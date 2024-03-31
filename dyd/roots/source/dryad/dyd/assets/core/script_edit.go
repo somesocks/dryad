@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+
+	zerolog "github.com/rs/zerolog"
 )
 
 type ScriptEditRequest struct {
@@ -53,6 +55,7 @@ func ScriptEdit(request ScriptEditRequest) error {
 		// "DYD_GARDEN="+gardenPath,
 		"DYD_OS="+runtime.GOOS,
 		"DYD_ARCH="+runtime.GOARCH,
+		"DYD_LOG_LEVEL="+zerolog.GlobalLevel().String(),
 	)
 
 	err = cmd.Run()
