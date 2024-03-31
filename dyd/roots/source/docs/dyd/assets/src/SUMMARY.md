@@ -68,6 +68,7 @@
 		- [dryad scopes list](./03-usage/03-cli-reference/dryad-scopes-list.md)
 		- [dryad scopes path](./03-usage/03-cli-reference/dryad-scopes-path.md)
 		- [dryad script](./03-usage/03-cli-reference/dryad-script.md)
+		- [dryad script create](./03-usage/03-cli-reference/dryad-script-create.md)
 		- [dryad script edit](./03-usage/03-cli-reference/dryad-script-edit.md)
 		- [dryad script get](./03-usage/03-cli-reference/dryad-script-get.md)
 		- [dryad script path](./03-usage/03-cli-reference/dryad-script-path.md)
