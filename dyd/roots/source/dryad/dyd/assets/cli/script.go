@@ -5,6 +5,7 @@ import (
 )
 
 var scriptCommand = clib.NewCommand("script", "commands to work with a scoped script").
+	WithCommand(scriptCreateCommand).
 	WithCommand(scriptEditCommand).
 	WithCommand(scriptGetCommand).
 	WithCommand(scriptPathCommand).
