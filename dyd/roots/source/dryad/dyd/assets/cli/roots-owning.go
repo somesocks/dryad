@@ -29,8 +29,27 @@ var _rootsOwningDependencyCorrection = func(path string) string {
 
 var rootsOwningCommand = func() clib.Command {
 	command := clib.NewCommand("owning", "list all roots that are owners of the provided files. The files to check should be provided as relative or absolute paths through stdin.").
+		WithOption(clib.NewOption("relative", "print roots relative to the base garden path. default true").WithType(clib.OptionTypeBool)).
 		WithAction(
 			func(req clib.ActionRequest) int {
+				var options = req.Opts
+
+				var path string = ""
+
+				var relative bool = true
+
+				if options["relative"] != nil {
+					relative = options["relative"].(bool)
+				} else {
+					relative = true
+				}
+
+				var gardenPath string
+				gardenPath, err := dryad.GardenPath(path)
+				if err != nil {
+					zlog.Fatal().Err(err).Msg("error while finding garden path")
+					return 1
+				}
 
 				rootSet := make(map[string]bool)
 
@@ -59,8 +78,20 @@ var rootsOwningCommand = func() clib.Command {
 				}
 
 				// Print the resulting roots
-				for key := range rootSet {
-					fmt.Println(key)
+				if relative {
+					for key := range rootSet {
+						// calculate the relative path to the root from the base of the garden
+						relPath, err := filepath.Rel(gardenPath, key)
+						if err != nil {
+							zlog.Fatal().Err(err).Msg("error while finding root")
+							return 1
+						}
+						fmt.Println(relPath)
+					}
+				} else {
+					for key := range rootSet {
+						fmt.Println(key)
+					}
 				}
 
 				return 0
