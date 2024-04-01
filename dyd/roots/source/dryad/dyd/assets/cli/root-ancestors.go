@@ -18,12 +18,23 @@ var rootAncestorsCommand = func() clib.Command {
 				AsOptional().
 				WithAutoComplete(ArgAutoCompletePath),
 		).
+		WithOption(clib.NewOption("relative", "print roots relative to the base garden path. default true").WithType(clib.OptionTypeBool)).
 		WithAction(func(req clib.ActionRequest) int {
 			var args = req.Args
+			var options = req.Opts
+
 			var rootPath string
 
 			if len(args) > 0 {
 				rootPath = args[0]
+			}
+
+			var relative bool = true
+
+			if options["relative"] != nil {
+				relative = options["relative"].(bool)
+			} else {
+				relative = true
 			}
 
 			if !filepath.IsAbs(rootPath) {
@@ -41,13 +52,22 @@ var rootAncestorsCommand = func() clib.Command {
 				return 1
 			}
 
-			graph, err := dryad.RootsGraph(gardenPath, false)
+			graph, err := dryad.RootsGraph(gardenPath, relative)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while building graph")
 				return 1
 			}
 
+			if relative {
+				rootPath, err = filepath.Rel(gardenPath, rootPath)
+				if err != nil {
+					zlog.Fatal().Err(err).Msg("error while making root relative")
+					return 1
+				}
+			}
+
 			ancestors := graph.Descendants(make(dryad.TStringSet), []string{rootPath}).ToArray([]string{})
+
 			for _, v := range ancestors {
 				fmt.Println(v)
 			}
