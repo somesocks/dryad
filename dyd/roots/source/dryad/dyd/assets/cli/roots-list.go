@@ -18,6 +18,7 @@ var rootsListCommand = func() clib.Command {
 				AsOptional().
 				WithAutoComplete(ArgAutoCompletePath),
 		).
+		WithOption(clib.NewOption("relative", "print roots relative to the base garden path. default true").WithType(clib.OptionTypeBool)).
 		WithOption(clib.NewOption("include", "choose which roots are included in the list").WithType(clib.OptionTypeMultiString)).
 		WithOption(clib.NewOption("exclude", "choose which roots are excluded from the list").WithType(clib.OptionTypeMultiString)).
 		WithAction(
@@ -25,11 +26,18 @@ var rootsListCommand = func() clib.Command {
 				var args = req.Args
 				var options = req.Opts
 
+				var relative bool = true
 				var path string = ""
 				var err error
 
 				if len(args) > 0 {
 					path = args[0]
+				}
+
+				if options["relative"] != nil {
+					relative = options["relative"].(bool)
+				} else {
+					relative = true
 				}
 
 				var gardenPath string
@@ -62,7 +70,11 @@ var rootsListCommand = func() clib.Command {
 					}
 
 					if includeRoots(relPath) && !excludeRoots(relPath) {
-						fmt.Println(path)
+						if relative {
+							fmt.Println(relPath)
+						} else {
+							fmt.Println(path)
+						}
 					}
 
 					return nil

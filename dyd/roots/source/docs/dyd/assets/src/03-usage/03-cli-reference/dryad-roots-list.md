@@ -2,7 +2,7 @@
 
 ```
 $ dryad roots list --help
-dryad roots list [--include=multi-string] [--exclude=multi-string] [--scope=string] [--log-level=string] [--log-format=string] [--help] [path]
+dryad roots list [--relative=boolean] [--include=multi-string] [--exclude=multi-string] [--scope=string] [--log-level=string] [--log-format=string] [--help] [path]
 
 Description:
     list all roots that are dependencies for the current root (or roots of the current garden, if the path is not a root)
@@ -11,6 +11,7 @@ Arguments:
     path               path to the base root (or garden) to list roots in, optional
 
 Options:
+        --relative     print roots relative to the base garden path. default true
         --include      choose which roots are included in the list
         --exclude      choose which roots are excluded from the list
         --scope        set the scope for the command
