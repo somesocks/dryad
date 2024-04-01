@@ -49,10 +49,15 @@ func (g TRootsGraph) Descendants(results TStringSet, roots []string) TStringSet 
 	return results
 }
 
-func RootsGraph(gardenPath string) (TRootsGraph, error) {
+func RootsGraph(gardenPath string, relative bool) (TRootsGraph, error) {
+	gardenPath, err := GardenPath(gardenPath)
+	if err != nil {
+		return nil, err
+	}
+
 	graph := make(TRootsGraph)
 
-	err := RootsWalk(gardenPath, func(rootPath string, info fs.FileInfo) error {
+	err = RootsWalk(gardenPath, func(rootPath string, info fs.FileInfo) error {
 		rootPath, err := filepath.EvalSymlinks(rootPath)
 		if err != nil {
 			return err
@@ -64,7 +69,22 @@ func RootsGraph(gardenPath string) (TRootsGraph, error) {
 				return err
 			}
 
-			graph.AddEdge(rootPath, requirementPath)
+			if relative {
+				relRootPath, err := filepath.Rel(gardenPath, rootPath)
+				if err != nil {
+					return err
+				}
+
+				relRequirementPath, err := filepath.Rel(gardenPath, requirementPath)
+				if err != nil {
+					return err
+				}
+
+				graph.AddEdge(relRootPath, relRequirementPath)
+			} else {
+				graph.AddEdge(rootPath, requirementPath)
+			}
+
 			return nil
 		})
 		if err != nil {

@@ -8,4 +8,5 @@ require (
 	github.com/rs/zerolog v1.30.0 // indirect
 	golang.org/x/crypto v0.5.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
+	sigs.k8s.io/yaml v1.4.0 // indirect
 )
