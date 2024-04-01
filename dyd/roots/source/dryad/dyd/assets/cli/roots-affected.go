@@ -13,7 +13,17 @@ import (
 
 var rootsAffectedCommand = func() clib.Command {
 	command := clib.NewCommand("affected", "take a list of files from stdin, and print a list of roots that may depend on those files").
+		WithOption(clib.NewOption("relative", "print roots relative to the base garden path. default true").WithType(clib.OptionTypeBool)).
 		WithAction(func(req clib.ActionRequest) int {
+			var options = req.Opts
+
+			var relative bool = true
+
+			if options["relative"] != nil {
+				relative = options["relative"].(bool)
+			} else {
+				relative = true
+			}
 
 			wd, err := os.Getwd()
 			if err != nil {
@@ -67,9 +77,21 @@ var rootsAffectedCommand = func() clib.Command {
 				rootSet[k] = true
 			}
 
-			// print all of the resulting roots
-			for key := range rootSet {
-				fmt.Println(key)
+			// Print the resulting roots
+			if relative {
+				for key := range rootSet {
+					// calculate the relative path to the root from the base of the garden
+					relPath, err := filepath.Rel(gardenPath, key)
+					if err != nil {
+						zlog.Fatal().Err(err).Msg("error while finding root")
+						return 1
+					}
+					fmt.Println(relPath)
+				}
+			} else {
+				for key := range rootSet {
+					fmt.Println(key)
+				}
 			}
 
 			return 0
