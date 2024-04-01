@@ -2,7 +2,7 @@
 
 ```
 $ dryad roots graph --help
-dryad roots graph [--transpose=boolean] [--relative=boolean] [--scope=string] [--log-level=string] [--log-format=string] [--help]
+dryad roots graph [--transpose=boolean] [--relative=boolean] [--format=string] [--scope=string] [--log-level=string] [--log-format=string] [--help]
 
 Description:
     print the local dependency graph of all roots in the garden
@@ -10,6 +10,7 @@ Description:
 Options:
         --transpose    transpose the dependency graph before printing
         --relative     print roots relative to the base garden path. default true
+        --format       change the output format of the graph. can be one of (yaml, json, json-compact). defaults to yaml
         --scope        set the scope for the command
         --log-level    set the logging level. can be one of 'panic', 'fatal', 'error', 'warn', 'info', 'debug', or 'trace'.  defaults to 'info'
         --log-format   set the logging format. can be one of 'console' or 'json'.  defaults to 'console'
