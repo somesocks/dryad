@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+
+dryad roots build

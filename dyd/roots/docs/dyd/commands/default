@@ -1,0 +1,49 @@
+#!/bin/sh
+
+# exit on errors
+set -eu
+
+_SETUP_GLOBALS () {
+	SRC_PACKAGE=$DYD_STEM
+	DEST_PACKAGE=$DYD_BUILD
+
+	HUGO_SOURCE_DIR=$SRC_PACKAGE/dyd/assets/site
+	HUGO_BUILD_DIR=$DEST_PACKAGE/dyd/assets/build
+
+
+	case $DYD_LOG_LEVEL in
+		'debug' | 'trace' )
+			set -x
+		;;
+		* )
+		;;
+	esac
+}
+
+_BUILD_PACKAGE () {
+
+	echo "[info] copying assets to build folder" 1>&2
+	mkdir -p "$HUGO_BUILD_DIR"
+	cp -R "$HUGO_SOURCE_DIR/." "$HUGO_BUILD_DIR/"
+	chmod -R +w "$HUGO_BUILD_DIR"
+	echo "[info] done copying assets" 1>&2
+
+	$SRC_PACKAGE/dyd/assets/cli-docs/generate-cli-page.sh "$HUGO_BUILD_DIR/content/docs/03-usage/03-cli-reference.md"
+
+	# build hugo site in dest
+	echo "[info] building hugo site" 1>&2
+	cd "$HUGO_BUILD_DIR" && \
+	hugo --debug --verbose \
+		--destination="$DEST_PACKAGE/dyd/assets/site" \
+		--noBuildLock 1>&2
+	echo "[info] done building hugo site" 1>&2
+
+	echo "[info] cleaning up" 1>&2
+	chmod -R +w "$HUGO_BUILD_DIR"
+	rm -rf "$HUGO_BUILD_DIR"
+	echo "[info] done cleaning up" 1>&2
+}
+
+_SETUP_GLOBALS
+_BUILD_PACKAGE
+

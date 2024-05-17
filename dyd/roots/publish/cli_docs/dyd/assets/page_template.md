@@ -1,6 +1,0 @@
-# $COMMAND
-
-```
-$ $COMMAND --help
-$HELP
-```
