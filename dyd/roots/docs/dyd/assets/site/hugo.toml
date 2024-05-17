@@ -1,0 +1,14 @@
+baseURL = ''
+languageCode = 'en-us'
+title = 'dryad'
+
+relativeURLs = true
+uglyURLs = true
+
+[module]
+  [[module.imports]]
+		path = 'github.com/alex-shpak/hugo-book'
+
+
+[markup.tableOfContents]
+  startLevel = 1
