@@ -16,7 +16,13 @@ var scriptRunAction = func(req clib.ActionRequest) int {
 
 	basePath, err := os.Getwd()
 	if err != nil {
-		zlog.Fatal().Err(err).Msg("error while finding working directory")
+		zlog.Fatal().Err(err).Msg("error finding working directory")
+		return 1
+	}
+
+	gardenPath, err := dryad.GardenPath(basePath)
+	if err != nil {
+		zlog.Fatal().Err(err).Msg("error finding garden path")
 		return 1
 	}
 
@@ -63,11 +69,11 @@ var scriptRunAction = func(req clib.ActionRequest) int {
 	}
 
 	err = dryad.ScriptRun(dryad.ScriptRunRequest{
-		BasePath: basePath,
-		Scope:    scope,
-		Setting:  "script-run-" + command,
-		Args:     args,
-		Env:      env,
+		GardenPath: gardenPath,
+		Scope:      scope,
+		Setting:    "script-run-" + command,
+		Args:       args,
+		Env:        env,
 	})
 	if err != nil {
 		zlog.Fatal().Err(err).Msg("error while running script")
