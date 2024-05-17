@@ -1,4 +1,4 @@
 #!/bin/sh
 set -eu
 
-open "dyd/sprouts/docs/dyd/assets/site/index.html"
+open "$DYD_GARDEN/dyd/sprouts/docs/dyd/assets/site/index.html"

@@ -9,15 +9,15 @@ import (
 )
 
 type ScriptRunRequest struct {
-	BasePath string
-	Scope    string
-	Setting  string
-	Env      map[string]string
-	Args     []string
+	GardenPath string
+	Scope      string
+	Setting    string
+	Env        map[string]string
+	Args       []string
 }
 
 func ScriptRun(request ScriptRunRequest) error {
-	runPath, err := ScopeSettingPath(request.BasePath, request.Scope, request.Setting)
+	runPath, err := ScopeSettingPath(request.GardenPath, request.Scope, request.Setting)
 	if err != nil {
 		return err
 	}
@@ -39,10 +39,7 @@ func ScriptRun(request ScriptRunRequest) error {
 
 	cmd.Env = append(
 		cmd.Env,
-		// "HOME="+contextPath,
-		// "DYD_CONTEXT="+contextPath,
-		// "DYD_STEM="+stemPath,
-		// "DYD_GARDEN="+gardenPath,
+		"DYD_GARDEN="+request.GardenPath,
 		"DYD_OS="+runtime.GOOS,
 		"DYD_ARCH="+runtime.GOARCH,
 		"DYD_LOG_LEVEL="+zerolog.GlobalLevel().String(),
