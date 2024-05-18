@@ -8,6 +8,6 @@ DEST_PACKAGE=$DYD_BUILD
 
 # copy assets to build
 VERSION="$(cat $SRC_PACKAGE/dyd/dependencies/dryad/dyd/traits/version)" \
-envsubst '$VERSION' \
+envsubst '${VERSION}' \
 	< $SRC_PACKAGE/dyd/assets/install.sh \
 	> $DEST_PACKAGE/dyd/assets/install.sh

@@ -4,7 +4,7 @@ set -e
 
 SYSTEM="$(uname)-$(uname -m)"
 
-case $SYSTEM in
+case $$SYSTEM in
 	"Linux-aarch64" | "Linux-arm64")
 		RELEASE="https://github.com/somesocks/dryad/releases/download/release-$VERSION/dryad-$VERSION-linux-arm64"
 		;;
@@ -18,12 +18,12 @@ case $SYSTEM in
 		RELEASE="https://github.com/somesocks/dryad/releases/download/release-$VERSION/dryad-$VERSION-darwin-amd64"
 		;;
 	*)
-		echo "cannot install for system ($SYSTEM)" 1>&2;
+		echo "cannot install for system ($$SYSTEM)" 1>&2;
 		exit 1;
 		;;
 esac
 
-BIN_DIR="$HOME/bin";
-mkdir -p $BIN_DIR;
-curl -L -f "$RELEASE" -o "$BIN_DIR/dryad";
-chmod 755 "$BIN_DIR/dryad";
+BIN_DIR="$$HOME/bin";
+mkdir -p $$BIN_DIR;
+curl -L -f "$$RELEASE" -o "$$BIN_DIR/dryad";
+chmod 755 "$$BIN_DIR/dryad";
