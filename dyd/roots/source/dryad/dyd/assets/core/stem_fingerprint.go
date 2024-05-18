@@ -2,6 +2,7 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
+	"io"
 	"os"
 
 	"encoding/hex"
@@ -122,7 +123,7 @@ func StemFingerprint(args StemFingerprintArgs) (string, error) {
 		checksumTable = append(checksumTable, checksumMap[key]+" ./"+key)
 	}
 
-	var checksumString = strings.Join(checksumTable, " ")
+	var checksumString = strings.Join(checksumTable, "\u0000")
 	// log.Print("checksumString ", checksumString)
 
 	hash, err := blake2b.New(16, []byte{})
@@ -130,14 +131,19 @@ func StemFingerprint(args StemFingerprintArgs) (string, error) {
 		return "", err
 	}
 
-	_, err = hash.Write([]byte(checksumString))
+	_, err = io.WriteString(hash, "stem\u0000")
+	if err != nil {
+		return "", err
+	}
+
+	_, err = io.WriteString(hash, checksumString)
 	if err != nil {
 		return "", err
 	}
 
 	var fingerprintHashBytes = hash.Sum([]byte{})
 	var fingerprintHash = hex.EncodeToString(fingerprintHashBytes[:])
-	var fingerprint = "blake2b-" + fingerprintHash
+	var fingerprint = "dyd-v1-" + fingerprintHash
 
 	// fmt.Println("StemFingerprint", args.BasePath, fingerprint)
 
