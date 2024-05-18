@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/hex"
+	"io"
 	"io/fs"
 	"path/filepath"
 	"sort"
@@ -68,7 +69,7 @@ func SecretsFingerprint(args SecretsFingerprintArgs) (string, error) {
 		checksumTable = append(checksumTable, checksumMap[key]+" ./"+key)
 	}
 
-	var checksumString = strings.Join(checksumTable, " ")
+	var checksumString = strings.Join(checksumTable, "\u0000")
 	// log.Print("checksumString ", checksumString)
 
 	hash, err := blake2b.New(16, []byte{})
@@ -76,14 +77,19 @@ func SecretsFingerprint(args SecretsFingerprintArgs) (string, error) {
 		return "", err
 	}
 
-	_, err = hash.Write([]byte(checksumString))
+	_, err = io.WriteString(hash, "secrets\u0000")
+	if err != nil {
+		return "", err
+	}
+
+	_, err = io.WriteString(hash, checksumString)
 	if err != nil {
 		return "", err
 	}
 
 	var fingerprintHashBytes = hash.Sum([]byte{})
 	var fingerprintHash = hex.EncodeToString(fingerprintHashBytes[:])
-	var fingerprint = "blake2b-" + fingerprintHash
+	var fingerprint = "dyd-v1-" + fingerprintHash
 
 	return fingerprint, nil
 }
