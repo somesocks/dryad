@@ -15,6 +15,3 @@ DEST_MAIN=$DEST_DIR/dyd/commands/default
 
 # copy source code to stem assets
 cp -s -R $SRC_DIR/dyd/assets/* $DEST_DIR/dyd/assets/
-
-# # copy readme
-# cp -s $SRC_DIR/dyd/readme $DEST_DIR/dyd/readme

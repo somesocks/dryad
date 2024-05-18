@@ -7,7 +7,7 @@ import (
 	"regexp"
 )
 
-var ROOT_REGEXP = `^((dyd/assets/.*)|(dyd/readme)|(dyd/fingerprint)|(dyd/docs/.*)|(dyd/commands/.*)|(dyd/traits/.*))$`
+var ROOT_REGEXP = `^((dyd/assets/.*)|(dyd/fingerprint)|(dyd/docs/.*)|(dyd/commands/.*)|(dyd/traits/.*))$`
 
 func rootWalk(filename string, linkDirname string, walkFn filepath.WalkFunc) error {
 	symWalkFunc := func(path string, info os.FileInfo, err error) error {
