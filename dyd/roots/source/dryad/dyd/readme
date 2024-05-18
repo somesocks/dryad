@@ -1,6 +1,0 @@
-
-# dryad/src
-
-This package is _only_ a container for the dryad source code.
-
-Other packages are responsible for compiling dryad for different operating systems/architectures.

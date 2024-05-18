@@ -28,22 +28,7 @@ func rootBuild_stage0(rootPath string, workspacePath string) error {
 		return err
 	}
 
-	readmePath := filepath.Join(rootPath, "dyd", "readme")
-	exists, err := fileExists(readmePath)
-	if err != nil {
-		return err
-	}
-	if exists {
-		err = os.Symlink(
-			readmePath,
-			filepath.Join(workspacePath, "dyd", "readme"),
-		)
-		if err != nil {
-			return err
-		}
-	}
-
-	exists, err = fileExists(filepath.Join(rootPath, "dyd", "assets"))
+	exists, err := fileExists(filepath.Join(rootPath, "dyd", "assets"))
 	if err != nil {
 		return err
 	}
