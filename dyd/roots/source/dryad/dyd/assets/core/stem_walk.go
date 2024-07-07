@@ -25,10 +25,6 @@ var RE_STEM_WALK_SHOULD_CRAWL = regexp.MustCompile(
 		"|(dyd/requirements/.*)" +
 		"|(dyd/traits)" +
 		"|(dyd/traits/.*)" +
-		"|(dyd/dependencies)" +
-		"|(dyd/dependencies/[^/]*)" +
-		"|(dyd/dependencies/.*/dyd)" +
-		"|(dyd/dependencies/.*/dyd/fingerprint)" +
 		")$",
 )
 
