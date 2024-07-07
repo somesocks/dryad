@@ -22,9 +22,8 @@ var RE_STEM_FINGERPRINT_SHOULD_MATCH = regexp.MustCompile(
 		"|(dyd/docs/.*)" +
 		"|(dyd/type)" +
 		"|(dyd/secrets-fingerprint)" +
-		"|(dyd/dependencies/.*/dyd/fingerprint)" +
-		"|(dyd/dependencies/.*/dyd/traits/.*)" +
 		"|(dyd/traits/.*)" +
+		"|(dyd/requirements/.*)" +
 		")$",
 )
 
