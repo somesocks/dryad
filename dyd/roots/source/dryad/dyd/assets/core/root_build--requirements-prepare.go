@@ -9,14 +9,36 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
+var RE_ROOT_BUILD_REQUIREMENTS_PREPARE_SHOULD_CRAWL = regexp.MustCompile(
+	"^(" +
+		"([^/]*)" +
+		"|([^/]*/dyd)" +
+		"|([^/]*/dyd/traits)" +
+		"|([^/]*/dyd/traits/.*)" +
+		")$",
+)
+
+var RE_ROOT_BUILD_REQUIREMENTS_PREPARE_SHOULD_MATCH = regexp.MustCompile(
+	"^(" +
+		"([^/]*/dyd/fingerprint)" +
+		"|([^/]*/dyd/secrets-fingerprint)" +
+		"|([^/]*/dyd/traits/.*)" +
+		")$",
+)
+
+
+// This function is used to prepare the dyd/requirements for a package,
+// based on the contents of dyd/dependencies.
 var rootBuild_requirementsPrepare = func() func(string) error {
 
-	var re_should_crawl = regexp.MustCompile(
-		"^((.*/dyd)|(.*/dyd/dependencies)|(.*/dyd/dependencies/[^/]*)|(.*/dyd/dependencies/[^/]*/dyd)|(.*/dyd/dependencies/.*/dyd/traits)|(.*/dyd/dependencies/[^/]*/dyd/traits/.*))$",
-	)
-
+	// crawler used to match files to copy 
+	// context.BasePath should be the path to the package dyd/dependencies 
 	var fs_should_crawl = func(context fs2.Walk4Context) (bool, error) {
-		shouldCrawl := re_should_crawl.MatchString(context.VPath)
+		var relPath, relErr = filepath.Rel(context.BasePath, context.VPath)
+		if relErr != nil {
+			return false, relErr
+		}
+		shouldCrawl := RE_ROOT_BUILD_REQUIREMENTS_PREPARE_SHOULD_CRAWL.MatchString(relPath)
 		zlog.Trace().
 			Str("context.VPath", context.VPath).
 			Bool("shouldCrawl", shouldCrawl).
@@ -24,15 +46,14 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 		return shouldCrawl, nil
 	}
 
-	// var fs_on_crawl = func(context fs2.Walk4Context) error {
-	// 	fmt.Println("fs_on_crawl", context.VPath)
-	// 	return nil
-	// }
-
-	var re_should_match = regexp.MustCompile("^(.*/dyd/dependencies/[^/]*/dyd/fingerprint)|(.*/dyd/dependencies/[^/]*/dyd/secrets-fingerprint)|(.*/dyd/dependencies/[^/]*/dyd/traits/.*)$")
-
+	// matcher used to match files to copy 
+	// context.BasePath should be the path to the package dyd/dependencies 
 	var fs_should_match = func(context fs2.Walk4Context) (bool, error) {
-		shouldMatch := re_should_match.MatchString(context.VPath)
+		var relPath, relErr = filepath.Rel(context.BasePath, context.VPath)
+		if relErr != nil {
+			return false, relErr
+		}
+		shouldMatch := RE_ROOT_BUILD_REQUIREMENTS_PREPARE_SHOULD_MATCH.MatchString(relPath)
 		zlog.Trace().
 			Str("context.VPath", context.VPath).
 			Bool("shouldMatch", shouldMatch).
