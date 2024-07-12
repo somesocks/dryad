@@ -1,24 +1,31 @@
 package core
 
 import (
-	"archive/tar"
-	"compress/gzip"
-	"errors"
+	// "archive/tar"
+	// "compress/gzip"
+	// "errors"
 	"io/fs"
 	"os"
 	"path/filepath"
+
+	fs2 "dryad/filesystem"
 )
 
-func StemPack(stemPath string, targetPath string) (string, error) {
+type StemPackRequest struct {
+	StemPath string
+	TargetPath string
+	IncludeDependencies bool
+}
+
+func stemPack(context BuildContext, request StemPackRequest) (string, error) {
+	var stemPath = request.StemPath
+	var targetPath = request.TargetPath
 	var err error
 
 	// convert relative stem path to absolute
-	if !filepath.IsAbs(stemPath) {
-		wd, err := os.Getwd()
-		if err != nil {
-			return "", err
-		}
-		stemPath = filepath.Join(wd, stemPath)
+	stemPath, err = filepath.Abs(stemPath) 
+	if err != nil {
+		return "", err
 	}
 
 	// resolve the dir to the root of the stem
@@ -28,95 +35,114 @@ func StemPack(stemPath string, targetPath string) (string, error) {
 	}
 
 	// convert relative target to absolute
-	if !filepath.IsAbs(targetPath) {
-		wd, err := os.Getwd()
-		if err != nil {
-			return "", err
-		}
-		targetPath = filepath.Join(wd, targetPath)
-	}
-
-	targetInfo, err := os.Stat(targetPath)
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+	targetPath, err = filepath.Abs(targetPath) 
+	if err != nil {
 		return "", err
-	} else if targetInfo.IsDir() {
-		baseName := filepath.Base(stemPath + ".tar.gz")
-		targetPath = filepath.Join(targetPath, baseName)
-	}
+	}	
 
-	file, err := os.Create(targetPath)
+	stemFingerprint, err := _readFile(filepath.Join(stemPath, "dyd", "fingerprint"))
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
 
-	var gzw = gzip.NewWriter(file)
-	defer gzw.Close()
+	_, contextHasFingerprint := context.Fingerprints[stemPath]
 
-	var tw = tar.NewWriter(gzw)
-	defer tw.Close()
+	if contextHasFingerprint {
+		return stemPath, nil
+	}
 
-	// var onMatch = func(walkPath string, info fs.FileInfo, basePath string) error {
-	// 	var relativePath string
-	// 	var err error
+	context.Fingerprints[stemPath] = stemFingerprint	
 
-	// 	relativePath, err = filepath.Rel(basePath, walkPath)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+	// walk through the dependencies, and add them to the archive
+	if request.IncludeDependencies {
+		dependenciesPath := filepath.Join(stemPath, "dyd", "dependencies")
 
-	// 	// if we have a symlink, we need to read the real file to guarantee
-	// 	// we get the real size and other info needed to build the tar header
-	// 	if info.Mode()&os.ModeSymlink == os.ModeSymlink {
-	// 		realPath, err := filepath.EvalSymlinks(walkPath)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 		info, err = os.Stat(realPath)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 	}
+		dependencies, err := filepath.Glob(filepath.Join(dependenciesPath, "*"))
+		if err != nil {
+			return "", err
+		}
 
-	// 	// create a new dir/file header
-	// 	header, err := tar.FileInfoHeader(info, relativePath)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	header.Name = relativePath
+		for _, dependencyPath := range dependencies {
+			dependencyPath, err = filepath.EvalSymlinks(dependencyPath)
+			if err != nil {
+				return "", err
+			}
 
-	// 	err = tw.WriteHeader(header)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+			stemPack(context, StemPackRequest{
+				StemPath: dependencyPath,
+				TargetPath: targetPath,
+				IncludeDependencies: request.IncludeDependencies,
+			})
+		}
+	}
 
-	// 	if info.IsDir() {
-	// 		return nil
-	// 	}
+	var packedStemPath string
+	packedStemPath, err = HeapAddStem(targetPath, stemPath)
+	if err != nil {
+		return "", err
+	}
 
-	// 	file, err := os.Open(walkPath)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	defer file.Close()
+	sproutPath := filepath.Join(targetPath, "dyd", "sprouts", "main")
+	sproutParent := filepath.Dir(sproutPath)
+	sproutHeapPath := packedStemPath
+	relSproutLink, err := filepath.Rel(
+		sproutParent,
+		sproutHeapPath,
+	)
+	if err != nil {
+		return "", err
+	}
 
-	// 	_, err = io.Copy(tw, file)
-	// 	if err != nil {
-	// 		return err
-	// 	}
+	// fmt.Println("[debug] building sprout parent")
+	err = fs2.MkDir(sproutParent, fs.ModePerm)
+	if err != nil {
+		return "", err
+	}
 
-	// 	return nil
-	// }
+	// fmt.Println("[debug] setting write permission on sprout parent")
+	err = os.Chmod(sproutParent, 0o711)
+	if err != nil {
+		return "", err
+	}
 
-	// err = StemWalk(
-	// 	StemWalkRequest{
-	// 		BasePath: stemPath,
-	// 		OnMatch:  onMatch,
-	// 	},
-	// )
-	// if err != nil {
-	// 	return "", err
-	// }
+	tmpSproutPath := sproutPath + ".tmp"
+	// fmt.Println("[debug] adding temporary sprout link")
+	err = os.Symlink(relSproutLink, tmpSproutPath)
+	if err != nil {
+		return "", err
+	}
 
-	return targetPath, err
+	// fmt.Println("[debug] renaming sprout link", sproutPath)
+	err = os.Rename(tmpSproutPath, sproutPath)
+	if err != nil {
+		return "", err
+	}
+
+	// fmt.Println("[debug] setting read permissions on sprout parent")
+	err = os.Chmod(sproutParent, 0o511)
+	if err != nil {
+		return "", err
+	}
+
+	return sproutPath, nil
+}
+
+func StemPack(request StemPackRequest) (string, error) {
+	var buildContext BuildContext = BuildContext{
+		Fingerprints: map[string]string{},
+	}
+
+	err := os.MkdirAll(request.TargetPath, os.ModePerm)
+	if err != nil {
+		return "", err
+	}	
+	
+	err = GardenCreate(request.TargetPath)
+	if err != nil {
+		return "", err
+	}
+
+	_, err = stemPack(buildContext, request)
+
+	return request.TargetPath, err
 }

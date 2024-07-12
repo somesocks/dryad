@@ -1,5 +1,5 @@
 package core
 
 type BuildContext struct {
-	RootFingerprints map[string]string
+	Fingerprints map[string]string
 }

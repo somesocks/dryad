@@ -60,7 +60,7 @@ var rootDevelopCommand = func() clib.Command {
 			var rootFingerprint string
 			rootFingerprint, err := dryad.RootDevelop(
 				dryad.BuildContext{
-					RootFingerprints: map[string]string{},
+					Fingerprints: map[string]string{},
 				},
 				path,
 				editor,
