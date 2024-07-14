@@ -22,27 +22,27 @@ var stemPackCommand = func() clib.Command {
 		).
 		WithOption(
 			clib.
-				NewOption("includeDependencies", "include direct and indirect dependencies of the stem into the export. default false").
-				WithType(clib.OptionTypeBool),
+				NewOption("format", "export format. can be one of 'dir', 'tar', or 'tar.gz'. defaults to 'tar.gz'").
+				WithType(clib.OptionTypeString),
 		).
 		WithAction(func(req clib.ActionRequest) int {
 			var args = req.Args
 			var options = req.Opts
+			var format string
 
 			var stemPath = args[0]
 			var targetPath = args[1]
-			var includeDependencies bool
 
-			if options["includeDependencies"] != nil {
-				includeDependencies = options["includeDependencies"].(bool)
+			if options["format"] != nil {
+				format = options["format"].(string)
 			} else {
-				includeDependencies = false
+				format = "tar.gz"
 			}
 
 			targetPath, err := dryad.StemPack(dryad.StemPackRequest{
 				StemPath : stemPath,
 				TargetPath: targetPath,	
-				IncludeDependencies: includeDependencies,			
+				Format: format,			
 			})
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while packing stem")
