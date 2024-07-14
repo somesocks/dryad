@@ -257,7 +257,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	}
 
 	// check if the root is already present in the context
-	rootFingerprint, contextHasRootFingerprint := context.RootFingerprints[absRootPath]
+	rootFingerprint, contextHasRootFingerprint := context.Fingerprints[absRootPath]
 	if contextHasRootFingerprint {
 		return rootFingerprint, nil
 	}
@@ -328,7 +328,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		stemBuildFingerprint = derivationsFingerprint
 
 		// add the built fingerprint to the context
-		context.RootFingerprints[absRootPath] = derivationsFingerprint
+		context.Fingerprints[absRootPath] = derivationsFingerprint
 
 	} else {
 		zlog.Info().Msg("dryad building root " + relRootPath)
@@ -351,7 +351,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		}
 
 		// add the built fingerprint to the context
-		context.RootFingerprints[absRootPath] = stemBuildFingerprint
+		context.Fingerprints[absRootPath] = stemBuildFingerprint
 
 		if !isUnstableRoot {
 			// add the derivation link

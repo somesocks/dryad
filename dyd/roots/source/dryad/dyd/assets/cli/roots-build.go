@@ -43,7 +43,7 @@ var rootsBuildCommand = func() clib.Command {
 
 			err = dryad.GardenBuild(
 				dryad.BuildContext{
-					RootFingerprints: map[string]string{},
+					Fingerprints: map[string]string{},
 				},
 				dryad.GardenBuildRequest{
 					BasePath:     path,

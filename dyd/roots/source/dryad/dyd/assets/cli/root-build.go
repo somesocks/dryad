@@ -40,7 +40,7 @@ var rootBuildCommand = func() clib.Command {
 			var rootFingerprint string
 			rootFingerprint, err := dryad.RootBuild(
 				dryad.BuildContext{
-					RootFingerprints: map[string]string{},
+					Fingerprints: map[string]string{},
 				},
 				path,
 			)
