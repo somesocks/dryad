@@ -13,6 +13,10 @@ import (
 // stage 0 - build a shallow partial clone of the root into a working directory,
 // so we can build it into a stem
 func rootBuild_stage0(rootPath string, workspacePath string) error {
+	zlog.Debug().
+		Str("path", rootPath).
+		Msg("root build - stage0")
+
 	// fmt.Println("rootBuild_stage0 ", rootPath, " ", workspacePath)
 
 	rootPath, err := filepath.EvalSymlinks(rootPath)
@@ -119,6 +123,9 @@ func rootBuild_stage1(
 	workspacePath string,
 	gardenPath string,
 ) error {
+	zlog.Debug().
+		Str("path", rootPath).
+		Msg("root build - stage1")
 
 	// walk through the dependencies, build them, and add the fingerprint as a dependency
 	rootsPath := filepath.Join(rootPath, "dyd", "requirements")
@@ -152,7 +159,11 @@ func rootBuild_stage1(
 }
 
 // stage 2 - generate the artificial links to all executable stems for the path
-func rootBuild_stage2(workspacePath string) error {
+func rootBuild_stage2(relRootPath string, workspacePath string) error {
+	zlog.Debug().
+		Str("path", relRootPath).
+		Msg("root build - stage2")
+
 	err := rootBuild_pathPrepare(workspacePath)
 	if err != nil {
 		return err
@@ -165,21 +176,30 @@ func rootBuild_stage2(workspacePath string) error {
 }
 
 // stage 3 - finalize the stem by generating fingerprints,
-func rootBuild_stage3(rootPath string, workspacePath string) (string, error) {
+func rootBuild_stage3(relRootPath string, rootPath string, workspacePath string) (string, error) {
+	zlog.Debug().
+		Str("path", relRootPath).
+		Msg("root build - stage3")
+
 	stemFingerprint, err := stemFinalize(workspacePath)
 	return stemFingerprint, err
 }
 
-// stage 5 - check the garden to see if the stem exists,
+// stage 4 - check the garden to see if the stem exists,
 // and add it if it doesn't
-func rootBuild_stage5(gardenPath string, workspacePath string, rootFingerprint string) (string, error) {
-	// fmt.Println("[trace] rootBuild_stage5", gardenPath, workspacePath, rootFingerprint)
+func rootBuild_stage4(relRootPath string, gardenPath string, workspacePath string, rootFingerprint string) (string, error) {
+	zlog.Debug().
+		Str("path", relRootPath).
+		Msg("root build - stage4")
+
 	return HeapAddStem(gardenPath, workspacePath)
 }
 
-// stage 6 - execute the root to build its stem,
-func rootBuild_stage6(rootStemPath string, stemBuildPath string, rootFingerprint string) (string, error) {
-	// fmt.Println("rootBuild_stage6 ", rootStemPath)
+// stage 5 - execute the root to build its stem,
+func rootBuild_stage5(relRootPath string, rootStemPath string, stemBuildPath string, rootFingerprint string) (string, error) {
+	zlog.Debug().
+		Str("path", relRootPath).
+		Msg("root build - stage5")
 
 	var err error
 
@@ -219,9 +239,12 @@ func rootBuild_stage6(rootStemPath string, stemBuildPath string, rootFingerprint
 	return stemBuildFingerprint, err
 }
 
-// stage 7 - pack the dervied stem into the heap and garden
-func rootBuild_stage7(gardenPath string, sourcePath string, stemFingerprint string) (string, error) {
-	// fmt.Println("[trace] rootBuild_stage7", gardenPath, sourcePath, stemFingerprint)
+// stage 6 - pack the derived stem into the heap and garden
+func rootBuild_stage6(relRootPath string, gardenPath string, sourcePath string, stemFingerprint string) (string, error) {
+	zlog.Debug().
+		Str("path", relRootPath).
+		Msg("root build - stage6")
+
 	return HeapAddStem(gardenPath, sourcePath)
 }
 
@@ -262,7 +285,9 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		return rootFingerprint, nil
 	}
 
-	zlog.Info().Msg("dryad verifying root " + relRootPath)
+	zlog.Info().
+		Str("path", relRootPath).
+		Msg("root build - verifying root")
 
 	// prepare a workspace
 	workspacePath, err := os.MkdirTemp("", "dryad-*")
@@ -281,17 +306,17 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		return "", err
 	}
 
-	err = rootBuild_stage2(workspacePath)
+	err = rootBuild_stage2(relRootPath, workspacePath)
 	if err != nil {
 		return "", err
 	}
 
-	rootFingerprint, err = rootBuild_stage3(rootPath, workspacePath)
+	rootFingerprint, err = rootBuild_stage3(relRootPath, rootPath, workspacePath)
 	if err != nil {
 		return "", err
 	}
 
-	finalStemPath, err := rootBuild_stage5(gardenPath, workspacePath, rootFingerprint)
+	finalStemPath, err := rootBuild_stage4(relRootPath, gardenPath, workspacePath, rootFingerprint)
 	if err != nil {
 		return "", err
 	}
@@ -331,7 +356,9 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		context.Fingerprints[absRootPath] = derivationsFingerprint
 
 	} else {
-		zlog.Info().Msg("dryad building root " + relRootPath)
+		zlog.Info().
+			Str("path", relRootPath).
+			Msg("root build - building root")
 
 		// otherwise run the root in a build env
 		stemBuildPath, err := os.MkdirTemp("", "dryad-*")
@@ -340,12 +367,12 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		}
 		defer os.RemoveAll(stemBuildPath)
 
-		stemBuildFingerprint, err = rootBuild_stage6(finalStemPath, stemBuildPath, rootFingerprint)
+		stemBuildFingerprint, err = rootBuild_stage5(relRootPath, finalStemPath, stemBuildPath, rootFingerprint)
 		if err != nil {
 			return "", err
 		}
 
-		finalStemPath, err = rootBuild_stage7(gardenPath, stemBuildPath, stemBuildFingerprint)
+		finalStemPath, err = rootBuild_stage6(relRootPath, gardenPath, stemBuildPath, stemBuildFingerprint)
 		if err != nil {
 			return "", err
 		}
@@ -372,7 +399,9 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 			}
 		}
 
-		zlog.Info().Msg("dryad done building root " + relRootPath)
+		zlog.Info().
+			Str("path", relRootPath).
+			Msg("root build - done building root")
 	}
 
 	sproutPath := filepath.Join(gardenPath, "dyd", "sprouts", relRootPath)
@@ -416,6 +445,10 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	zlog.Info().
+		Str("path", relRootPath).
+		Msg("root build - done verifying root")
 
 	return stemBuildFingerprint, nil
 }
