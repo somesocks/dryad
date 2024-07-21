@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"time"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var REGEX_GARDEN_PRUNE_STEMS_CRAWL = regexp.MustCompile(`^((\.)|(stems))$`)
@@ -32,6 +34,9 @@ func GardenPrune(gardenPath string) error {
 	}
 
 	sproutsPath := filepath.Join(gardenPath, "dyd", "sprouts")
+
+	markCount := 0
+	markGap := 0
 
 	// we mark both the symlink and the referenced file
 	markFile := func(path string, info fs.FileInfo, basePath string) error {
@@ -77,6 +82,15 @@ func GardenPrune(gardenPath string) error {
 			return err
 		}
 
+		markCount += 1
+		markGap += 1
+		if markGap >= 1000 {
+			markGap = 0
+			zlog.Info().
+				Int("total", markCount).
+				Msg("garden prune - marking files to keep")
+		}
+
 		return nil
 	}
 
@@ -111,12 +125,25 @@ func GardenPrune(gardenPath string) error {
 		return shouldMatch, nil
 	}
 
+	sweepStemCount := 0
+	sweepStemGap := 0
+
 	sweepStem := func(path string, info fs.FileInfo, basePath string) error {
 		if info.ModTime().Before(currentTime) {
 			err = fs2.RemoveAll(path)
 			if err != nil {
 				return err
 			}
+
+			sweepStemCount += 1
+			sweepStemGap += 1
+			if sweepStemGap >= 100 {
+				sweepStemGap = 0
+				zlog.Info().
+					Int("total", sweepStemCount).
+					Msg("garden prune - sweeping stems")
+			}
+	
 		}
 
 		return nil
@@ -160,7 +187,19 @@ func GardenPrune(gardenPath string) error {
 		return shouldMatch, nil
 	}
 
+	sweepDerivationCount := 0
+	sweepDerivationGap := 0
+
 	sweepDerivation := func(path string, info fs.FileInfo, basePath string) error {
+		sweepDerivationCount += 1
+		sweepDerivationGap += 1
+		if sweepDerivationGap >= 100 {
+			sweepDerivationGap = 0
+			zlog.Info().
+				Int("total", sweepDerivationCount).
+				Msg("garden prune - sweeping derivations")
+		}	 
+
 		return os.Remove(path)
 	}
 
@@ -195,6 +234,9 @@ func GardenPrune(gardenPath string) error {
 		return shouldMatch, nil
 	}
 
+	sweepFileCount := 0
+	sweepFileGap := 0
+
 	sweepFile := func(path string, info fs.FileInfo, basePath string) error {
 		if info.ModTime().Before(currentTime) {
 			parentInfo, err := os.Lstat(filepath.Dir(path))
@@ -213,6 +255,16 @@ func GardenPrune(gardenPath string) error {
 			if err != nil {
 				return err
 			}
+
+			sweepFileCount += 1
+			sweepFileGap += 1
+			if sweepFileGap >= 1000 {
+				sweepFileGap = 0
+				zlog.Info().
+					Int("total", sweepFileCount).
+					Msg("garden prune - sweeping files")
+			}	 
+	
 		}
 
 		return nil
