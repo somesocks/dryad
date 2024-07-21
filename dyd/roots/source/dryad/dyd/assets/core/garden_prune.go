@@ -35,6 +35,7 @@ func GardenPrune(gardenPath string) error {
 
 	sproutsPath := filepath.Join(gardenPath, "dyd", "sprouts")
 
+	markCheckCount := 0
 	markCount := 0
 	markGap := 0
 
@@ -48,46 +49,53 @@ func GardenPrune(gardenPath string) error {
 			return err
 		}
 
-		// set to RWX--X--X temporarily
-		err = os.Chmod(path, 0o711)
-		if err != nil {
-			return err
+		markCheckCount += 1
+
+		// if the mod time is before the mark time, mark the file
+		if info.ModTime().Before(currentTime) {
+			// set to RWX--X--X temporarily
+			err = os.Chmod(path, 0o711)
+			if err != nil {
+				return err
+			}
+
+			err = os.Chtimes(path, currentTime, currentTime)
+			if err != nil {
+				return err
+			}
+
+			// set back to R-X--X--X
+			err = os.Chmod(path, 0o511)
+			if err != nil {
+				return err
+			}
+
+			// set to RWX--X--X temporarily
+			err = os.Chmod(realPath, 0o711)
+			if err != nil {
+				return err
+			}
+
+			err = os.Chtimes(realPath, currentTime, currentTime)
+			if err != nil {
+				return err
+			}
+
+			// set back to R-X--X--X
+			err = os.Chmod(realPath, 0o511)
+			if err != nil {
+				return err
+			}
+
+			markCount += 1
 		}
 
-		err = os.Chtimes(path, currentTime, currentTime)
-		if err != nil {
-			return err
-		}
-
-		// set back to R-X--X--X
-		err = os.Chmod(path, 0o511)
-		if err != nil {
-			return err
-		}
-
-		// set to RWX--X--X temporarily
-		err = os.Chmod(realPath, 0o711)
-		if err != nil {
-			return err
-		}
-
-		err = os.Chtimes(realPath, currentTime, currentTime)
-		if err != nil {
-			return err
-		}
-
-		// set back to R-X--X--X
-		err = os.Chmod(realPath, 0o511)
-		if err != nil {
-			return err
-		}
-
-		markCount += 1
 		markGap += 1
 		if markGap >= 1000 {
 			markGap = 0
 			zlog.Info().
-				Int("total", markCount).
+				Int("checked", markCheckCount).
+				Int("marked", markCount).
 				Msg("garden prune - marking files to keep")
 		}
 
