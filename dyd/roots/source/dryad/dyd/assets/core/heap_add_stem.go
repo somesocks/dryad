@@ -237,6 +237,13 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 			return isDir, nil
 		},
 		OnMatch: func(path string, info fs.FileInfo) error {
+			dirPerms := info.Mode().Perm()
+
+			// if permissions are already set correctly, do nothing
+			if dirPerms == 0o511 {
+				return nil
+			}
+
 			dir, err := os.Open(path)
 			if err != nil {
 				return err
