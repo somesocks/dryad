@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 func _readFile(filePath string) (string, error) {
@@ -192,6 +194,9 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 		if err != nil {
 			return "", err
 		}
+
+
+
 	}
 
 	secretsFingerprintPath := filepath.Join(finalStemPath, "dyd", "secrets-fingerprint")
@@ -226,25 +231,43 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 	}
 
 	// now that all files are added, sweep through in a second pass and make directories read-only
-	err = fs2.Walk2(fs2.Walk2Request{
-		BasePath: finalStemPath,
-		CrawlInclude: func(path string, info fs.FileInfo) (bool, error) {
-			isDir := info.IsDir()
+	err = fs2.DFSWalk2(fs2.Walk4Request{
+		Path:        finalStemPath,
+		VPath:       finalStemPath,
+		BasePath:    finalStemPath,
+		ShouldCrawl: func(context fs2.Walk4Context) (bool, error) {
+			isDir := context.Info.IsDir()
+
+			zlog.Trace().
+				Str("path", context.VPath).
+				Bool("shouldCrawl", isDir).
+				Msg("heap add stem - dir ShouldCrawl")
+
 			return isDir, nil
 		},
-		MatchInclude: func(path string, info fs.FileInfo) (bool, error) {
-			isDir := info.IsDir()
+		ShouldMatch: func(context fs2.Walk4Context) (bool, error) {
+			isDir := context.Info.IsDir()
+
+			zlog.Trace().
+				Str("path", context.VPath).
+				Bool("shouldMatch", isDir).
+				Msg("heap add stem - dir ShouldMatch")
+
 			return isDir, nil
 		},
-		OnMatch: func(path string, info fs.FileInfo) error {
-			dirPerms := info.Mode().Perm()
+		OnMatch: func(context fs2.Walk4Context) error {
+			zlog.Trace().
+				Str("path", context.VPath).
+				Msg("heap add stem - dir OnMatch")
+	
+			dirPerms := context.Info.Mode().Perm()
 
 			// if permissions are already set correctly, do nothing
 			if dirPerms == 0o511 {
 				return nil
 			}
 
-			dir, err := os.Open(path)
+			dir, err := os.Open(context.Path)
 			if err != nil {
 				return err
 			}
@@ -260,7 +283,7 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 		},
 	})
 	if err != nil {
-		return finalStemPath, err
+		return "", err
 	}
 
 	return finalStemPath, nil
