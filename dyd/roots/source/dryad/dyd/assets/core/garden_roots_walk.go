@@ -42,7 +42,6 @@ func GardenRootsWalk(rootsPath string, walkFn filepath.WalkFunc) error {
 		rootsPath,
 		func(path string, info fs.FileInfo, err error) error {
 			if err != nil {
-				// fmt.Println("stemwalk patherror ", stem_path, " ", path, " ", err)
 				return err
 			}
 
