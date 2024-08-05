@@ -89,10 +89,6 @@ func HeapAddSecrets(heapPath string, secretsPath string) (string, error) {
 				return err
 			}
 
-			err = destFile.Sync()
-			if err != nil {
-				return err
-			}
 		}
 
 		return nil

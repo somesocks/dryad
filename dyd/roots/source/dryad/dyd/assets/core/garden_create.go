@@ -82,10 +82,5 @@ func GardenCreate(path string) error {
 		return err
 	}
 
-	err = typeFile.Sync()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }

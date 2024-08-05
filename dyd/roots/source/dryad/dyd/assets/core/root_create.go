@@ -52,11 +52,6 @@ func RootCreate(path string) error {
 		return err
 	}
 
-	err = typeFile.Sync()
-	if err != nil {
-		return err
-	}
-
 	var assetsPath string = filepath.Join(basePath, "assets")
 	if err := os.MkdirAll(assetsPath, os.ModePerm); err != nil {
 		return err
