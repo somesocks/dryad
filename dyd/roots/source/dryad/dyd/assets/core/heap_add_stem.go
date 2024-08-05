@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"errors"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -60,7 +61,11 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 		StemWalkRequest{
 			BasePath: stemPath,
 			OnMatch: func(context fs2.Walk4Context) error {
-				// fmt.Println("HeapAddStem stemwalk", context.Path)
+				zlog.
+					Trace().
+					Str("path", context.Path).
+					Str("vpath", context.VPath).
+					Msg("HeapAddStem / onMatch")
 
 				relPath, err := filepath.Rel(context.BasePath, context.VPath)
 				if err != nil {
@@ -75,63 +80,48 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 					return err
 				}
 				if destExists {
-					return nil
+					return errors.New("heap add stem error - file already exists but should not")
 				}
 
 				if context.Info.IsDir() {
+					// zlog.
+					// 	Trace().
+					// 	Str("path", context.Path).
+					// 	Msg("HeapAddStem / onMatch isDir")
+
+					err = os.Mkdir(destPath, os.ModePerm)
+					if err != nil {
+						return err
+					}
 				} else if context.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
-					// fmt.Println("HeapAddStem stemwalk symlink")
+					// zlog.
+					// 	Trace().
+					// 	Str("path", context.Path).
+					// 	Msg("HeapAddStem / onMatch isSymlink")
 
 					linkTarget, err := os.Readlink(context.Path)
 					if err != nil {
 						return err
 					}
-
+										
 					absLinkTarget := linkTarget
-
-					// clean up relative links
 					if !filepath.IsAbs(absLinkTarget) {
-						absLinkTarget = filepath.Clean(filepath.Join(filepath.Dir(context.Path), absLinkTarget))
-					}
-
+						absLinkTarget = filepath.Join(filepath.Dir(context.VPath), linkTarget)
+					} 
+						
 					isInternalLink, err := fileIsDescendant(absLinkTarget, context.BasePath)
-					if err != nil {
-						return err
-					}
-
-					// fmt.Println("HeapAddStem stemwalk symlink isInternalLink", isInternalLink)
-
-					err = os.MkdirAll(filepath.Dir(destPath), os.ModePerm)
-					if err != nil {
-						return err
-					}
-
+			
 					if isInternalLink {
 						err = os.Symlink(linkTarget, destPath)
 						if err != nil {
 							return err
 						}
-					} else {
-						fileFingerprint, err := HeapAddFile(gardenFilesPath, context.Path)
-						if err != nil {
-							return err
-						}
-
-						fileHeapPath := filepath.Join(gardenFilesPath, fileFingerprint)
-
-						// relativeFilePath, err := filepath.Rel(filepath.Dir(destPath), fileHeapPath)
-						// if err != nil {
-						// 	return err
-						// }
-
-						err = os.Link(fileHeapPath, destPath)
-						if err != nil {
-							return err
-						}
-					}
-
+					} 
 				} else {
-					// fmt.Println("HeapAddStem stemwalk file")
+					// zlog.
+					// 	Trace().
+					// 	Str("path", context.Path).
+					// 	Msg("HeapAddStem / onMatch isFile")
 
 					fileFingerprint, err := HeapAddFile(gardenFilesPath, context.Path)
 					if err != nil {
@@ -139,16 +129,6 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 					}
 
 					fileHeapPath := filepath.Join(gardenFilesPath, fileFingerprint)
-
-					// relativeFilePath, err := filepath.Rel(filepath.Dir(destPath), fileHeapPath)
-					// if err != nil {
-					// 	return err
-					// }
-
-					err = os.MkdirAll(filepath.Dir(destPath), os.ModePerm)
-					if err != nil {
-						return err
-					}
 
 					err = os.Link(fileHeapPath, destPath)
 					if err != nil {
@@ -164,28 +144,25 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 		return "", err
 	}
 
-	// walk the dependencies and convert them to symlinks
+	// walk the requirements and convert them to dependencies
+	requirementsPath := filepath.Join(finalStemPath, "dyd", "requirements")
 	dependenciesPath := filepath.Join(finalStemPath, "dyd", "dependencies")
-	dependencies, err := filepath.Glob(filepath.Join(dependenciesPath, "*"))
+	requirements, err := filepath.Glob(filepath.Join(requirementsPath, "*"))
 	if err != nil {
 		return "", err
 	}
 
-	for _, dependencyPath := range dependencies {
-		targetFingerprintFile := filepath.Join(dependencyPath, "dyd", "fingerprint")
+	for _, requirementPath := range requirements {
+		targetFingerprintFile := filepath.Join(requirementPath, "dyd", "fingerprint")
 		targetFingerprintBytes, err := ioutil.ReadFile(targetFingerprintFile)
 		if err != nil {
 			return "", err
 		}
 		targetFingerprint := string(targetFingerprintBytes)
 
+		dependencyPath := filepath.Join(dependenciesPath, filepath.Base(requirementPath))
 		dependencyGardenPath := filepath.Join(gardenStemsPath, targetFingerprint)
 		relPath, err := filepath.Rel(dependenciesPath, dependencyGardenPath)
-		if err != nil {
-			return "", err
-		}
-
-		err = os.RemoveAll(dependencyPath)
 		if err != nil {
 			return "", err
 		}
@@ -194,8 +171,6 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-
-
 
 	}
 

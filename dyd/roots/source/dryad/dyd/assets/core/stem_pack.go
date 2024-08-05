@@ -22,10 +22,16 @@ type StemPackRequest struct {
 	Format string
 }
 
-func stemPack(context BuildContext, request StemPackRequest) (string, error) {
+func stemPack(context BuildContext, request StemPackRequest) (string, error) {	
 	var stemPath = request.StemPath
 	var targetPath = request.TargetPath
 	var err error
+
+	zlog.
+		Debug().
+		Str("stemPath", stemPath).
+		Str("targetPath", targetPath).
+		Msg("StemPack packing stem")
 
 	// convert relative stem path to absolute
 	stemPath, err = filepath.Abs(stemPath) 
@@ -43,7 +49,7 @@ func stemPack(context BuildContext, request StemPackRequest) (string, error) {
 	targetPath, err = filepath.Abs(targetPath) 
 	if err != nil {
 		return "", err
-	}	
+	}
 
 	stemFingerprint, err := _readFile(filepath.Join(stemPath, "dyd", "fingerprint"))
 	if err != nil {
@@ -81,6 +87,21 @@ func stemPack(context BuildContext, request StemPackRequest) (string, error) {
 
 	var packedStemPath string
 	packedStemPath, err = HeapAddStem(targetPath, stemPath)
+	if err != nil {
+		return "", err
+	}
+
+	return packedStemPath, nil
+}
+
+func finalizeSproutPath(targetPath string, packedStemPath string) (string, error) {
+	zlog.
+		Debug().
+		Str("targetPath", targetPath).
+		Str("stemPath", packedStemPath).
+		Msg("StemPack / finalizeSproutPath")
+
+	targetPath, err := filepath.Abs(targetPath)
 	if err != nil {
 		return "", err
 	}
@@ -146,6 +167,13 @@ func _stripFirstSegment(path string) string {
 
 
 func stemArchive(request StemPackRequest) (string, error) {
+	zlog.
+		Debug().
+		Str("stemPath", request.StemPath).
+		Str("targetPath", request.TargetPath).
+		Str("format", request.Format).
+		Msg("StemPack / stemArchive")
+
 	var err error
 
 	switch request.Format {
@@ -323,6 +351,13 @@ func stemArchive(request StemPackRequest) (string, error) {
 }
 
 func StemPack(request StemPackRequest) (string, error) {
+	zlog.
+		Debug().
+		Str("stemPath", request.StemPath).
+		Str("targetPath", request.TargetPath).
+		Str("format", request.Format).
+		Msg("StemPack")
+
 	var buildContext BuildContext = BuildContext{
 		Fingerprints: map[string]string{},
 	}
@@ -337,7 +372,12 @@ func StemPack(request StemPackRequest) (string, error) {
 		return "", err
 	}
 
-	_, err = stemPack(buildContext, request)
+	packedStemPath, err := stemPack(buildContext, request)
+	if err != nil {
+		return "", err
+	}
+
+	_, err = finalizeSproutPath(request.TargetPath, packedStemPath)
 	if err != nil {
 		return "", err
 	}

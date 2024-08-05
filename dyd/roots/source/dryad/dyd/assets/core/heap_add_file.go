@@ -3,9 +3,17 @@ package core
 import (
 	"os"
 	"path/filepath"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 func HeapAddFile(heapPath string, filePath string) (string, error) {
+	zlog.
+		Trace().
+		Str("heapPath", heapPath).
+		Str("filePath", filePath).
+		Msg("HeapAddFile")
+
 	// fmt.Println("[trace] HeapAddFile", heapPath, filePath)
 	heapPath, err := HeapPath(heapPath)
 	if err != nil {
