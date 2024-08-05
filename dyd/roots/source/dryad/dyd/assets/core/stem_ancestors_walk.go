@@ -65,7 +65,6 @@ var RE_STEM_ANCESTORS_WALK_SHOULD_MATCH = regexp.MustCompile(
 
 // should match
 func StemAncestorsWalkShouldMatch(context fs2.Walk4Context) (bool, error) {
-	// fmt.Println("[debug] StemWalkShouldMatch", context.VPath)
 
 	var relPath, relErr = filepath.Rel(context.BasePath, context.VPath)
 	if relErr != nil {
