@@ -215,9 +215,7 @@ func RootCopy(sourcePath string, destPath string) error {
 				return err
 			}
 
-			err = destFile.Sync()
-			return err
-
+			return nil
 		}
 	}
 
