@@ -1,6 +1,8 @@
 package core
 
 import (
+	dydfs "dryad/filesystem"
+
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -10,7 +12,7 @@ func rootBuild_pathPrepare(workspacePath string) error {
 
 	pathPath := filepath.Join(workspacePath, "dyd", "path")
 
-	err := os.RemoveAll(pathPath)
+	err := dydfs.RemoveAll(pathPath)
 	if err != nil {
 		return err
 	}
