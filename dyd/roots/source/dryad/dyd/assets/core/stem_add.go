@@ -1,6 +1,8 @@
 package core
 
 import (
+	dydfs "dryad/filesystem"
+
 	"errors"
 	"fmt"
 	"os"
@@ -36,7 +38,7 @@ func StemAdd(rootPath string, fingerprint string, alias string) error {
 		return err
 	}
 
-	err = os.RemoveAll(aliasPath)
+	err = dydfs.RemoveAll(aliasPath)
 	if err != nil {
 		return err
 	}

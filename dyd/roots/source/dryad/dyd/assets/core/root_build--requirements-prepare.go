@@ -1,7 +1,8 @@
 package core
 
 import (
-	fs2 "dryad/filesystem"
+	dydfs "dryad/filesystem"
+
 	"os"
 	"path/filepath"
 	"regexp"
@@ -33,7 +34,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 
 	// crawler used to match files to copy 
 	// context.BasePath should be the path to the package dyd/dependencies 
-	var fs_should_crawl = func(context fs2.Walk4Context) (bool, error) {
+	var fs_should_crawl = func(context dydfs.Walk4Context) (bool, error) {
 		var relPath, relErr = filepath.Rel(context.BasePath, context.VPath)
 		if relErr != nil {
 			return false, relErr
@@ -48,7 +49,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 
 	// matcher used to match files to copy 
 	// context.BasePath should be the path to the package dyd/dependencies 
-	var fs_should_match = func(context fs2.Walk4Context) (bool, error) {
+	var fs_should_match = func(context dydfs.Walk4Context) (bool, error) {
 		var relPath, relErr = filepath.Rel(context.BasePath, context.VPath)
 		if relErr != nil {
 			return false, relErr
@@ -61,7 +62,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 		return shouldMatch, nil
 	}
 
-	var fs_on_match = func(context fs2.Walk4Context) error {
+	var fs_on_match = func(context dydfs.Walk4Context) error {
 		zlog.Trace().
 			Str("context.VPath", context.VPath).
 			Msg("rootBuild_requirementsPrepare.fs_on_match")
@@ -163,14 +164,14 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 
 		requirementsPath := filepath.Join(workspacePath, "dyd", "requirements")
 
-		err := os.RemoveAll(requirementsPath)
+		err := dydfs.RemoveAll(requirementsPath)
 		if err != nil {
 			return err
 		}
 
 		dependenciesPath := filepath.Join(workspacePath, "dyd", "dependencies")
 
-		err = fs2.BFSWalk2(fs2.Walk4Request{
+		err = dydfs.BFSWalk2(dydfs.Walk4Request{
 			BasePath:    dependenciesPath,
 			Path:        dependenciesPath,
 			VPath:       dependenciesPath,

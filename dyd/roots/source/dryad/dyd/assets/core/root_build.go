@@ -1,7 +1,8 @@
 package core
 
 import (
-	fs2 "dryad/filesystem"
+	dydfs "dryad/filesystem"
+
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -294,7 +295,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer os.RemoveAll(workspacePath)
+	defer dydfs.RemoveAll(workspacePath)
 
 	err = rootBuild_stage0(rootPath, workspacePath)
 	if err != nil {
@@ -365,7 +366,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		defer os.RemoveAll(stemBuildPath)
+		defer dydfs.RemoveAll(stemBuildPath)
 
 		stemBuildFingerprint, err = rootBuild_stage5(relRootPath, finalStemPath, stemBuildPath, rootFingerprint)
 		if err != nil {
@@ -389,7 +390,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			err = os.RemoveAll(derivationsPath)
+			err = dydfs.RemoveAll(derivationsPath)
 			if err != nil {
 				return "", err
 			}
@@ -416,7 +417,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	}
 
 	// fmt.Println("[debug] building sprout parent")
-	err = fs2.MkDir(sproutParent, fs.ModePerm)
+	err = dydfs.MkDir(sproutParent, fs.ModePerm)
 	if err != nil {
 		return "", err
 	}

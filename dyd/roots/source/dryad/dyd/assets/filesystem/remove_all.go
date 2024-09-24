@@ -8,6 +8,11 @@ import (
 
 func RemoveAll(path string) error {
 
+	// if the path does not exist, silently return
+	if _, err := os.Lstat(path); os.IsNotExist(err) {
+		return nil
+	}
+
 	// walk through the filesystem and fix any permissions problems,
 	// if you can
 	err := DFSWalk(Walk3Request{

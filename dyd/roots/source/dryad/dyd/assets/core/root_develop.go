@@ -1,6 +1,9 @@
 package core
 
 import (
+
+	dydfs "dryad/filesystem"
+
 	"os"
 	"path/filepath"
 
@@ -360,7 +363,7 @@ func RootDevelop(context BuildContext, rootPath string, editor string, editorArg
 	if err != nil {
 		return "", err
 	}
-	defer os.RemoveAll(workspacePath)
+	defer dydfs.RemoveAll(workspacePath)
 
 	err = rootDevelop_stage0(rootPath, workspacePath)
 	if err != nil {
@@ -387,7 +390,7 @@ func RootDevelop(context BuildContext, rootPath string, editor string, editorArg
 	if err != nil {
 		return "", err
 	}
-	defer os.RemoveAll(stemBuildPath)
+	defer dydfs.RemoveAll(stemBuildPath)
 
 	err = rootDevelop_stage4(workspacePath, stemBuildPath, rootFingerprint, gardenPath, editor, editorArgs, inherit)
 	if err != nil {
