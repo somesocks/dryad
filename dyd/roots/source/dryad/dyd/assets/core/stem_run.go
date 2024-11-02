@@ -127,12 +127,11 @@ func StemRun(request StemRunRequest) error {
 	}
 
 	cmd.Stderr = os.Stderr
-
 	envPath := fmt.Sprintf(
-		"PATH=%s:%s:%s",
-		stemPath+"/dyd/path",
+		"PATH=%s/dyd/commands:%s/dyd/path:%s:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+		stemPath,
+		stemPath,
 		dryadPath,
-		"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 	)
 
 	cmd.Env = append(
