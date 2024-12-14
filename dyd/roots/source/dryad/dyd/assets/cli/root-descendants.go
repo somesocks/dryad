@@ -51,6 +51,12 @@ var rootDescendantsCommand = func() clib.Command {
 				return 1
 			}
 
+			rootPath, err = dryad.RootPath(rootPath)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error while resolving root path")
+				return 1
+			}
+
 			graph, err := dryad.RootsGraph(gardenPath, relative)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while building graph")
