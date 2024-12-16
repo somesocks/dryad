@@ -23,15 +23,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Install nix
+      - name: Install Nix
         uses: cachix/install-nix-action@v22
         with:
           nix_path: nixpkgs=channel:nixos-unstable
 
-      - name: Build bootstrap
+      - name: Build Bootstrap
         working-directory: ${{ github.workspace }}
         run: ./scripts/nix-shell/run.sh ./scripts/tasks/bootstrap-build.sh
 
-      - name: Build garden
+      - name: Build Garden
         working-directory: ${{ github.workspace }}
         run: ./scripts/nix-shell/run.sh ./scripts/tasks/dryad-garden-build.sh
+
+      - name: Run Tests
+        working-directory: ${{ github.workspace }}
+        run: ./scripts/nix-shell/run.sh ./scripts/tasks/dryad-run-tests.sh
