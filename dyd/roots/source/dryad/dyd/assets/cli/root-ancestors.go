@@ -52,7 +52,7 @@ var rootAncestorsCommand = func() clib.Command {
 				return 1
 			}
 
-			rootPath, err = dryad.RootPath(rootPath)
+			rootPath, err = dryad.RootPath(rootPath, "")
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while resolving root path")
 				return 1

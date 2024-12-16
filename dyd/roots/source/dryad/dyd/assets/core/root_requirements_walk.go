@@ -7,7 +7,7 @@ import (
 )
 
 func RootRequirementsWalk(path string, walkFn func(path string, info fs.FileInfo) error) error {
-	path, err := RootPath(path)
+	path, err := RootPath(path, "")
 	if err != nil {
 		return err
 	}

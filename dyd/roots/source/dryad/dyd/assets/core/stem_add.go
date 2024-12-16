@@ -12,7 +12,7 @@ import (
 func StemAdd(rootPath string, fingerprint string, alias string) error {
 	var err error
 
-	rootPath, err = RootPath(rootPath)
+	rootPath, err = RootPath(rootPath, "")
 	if err != nil {
 		return err
 	}

@@ -58,7 +58,7 @@ var _ROOT_COPY_MATCH_EXCLUDE_REGEXP = regexp.MustCompile(`^$`)
 func RootCopy(sourcePath string, destPath string) error {
 
 	// normalize the source path
-	sourcePath, err := RootPath(sourcePath)
+	sourcePath, err := RootPath(sourcePath, "")
 	if err != nil {
 		return err
 	}

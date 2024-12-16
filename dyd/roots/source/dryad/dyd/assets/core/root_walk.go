@@ -38,7 +38,7 @@ func rootWalk(filename string, linkDirname string, walkFn filepath.WalkFunc) err
 }
 
 func RootWalk(path string, walkFn filepath.WalkFunc) error {
-	var stem_path, err = RootPath(path)
+	var stem_path, err = RootPath(path, "")
 	// log.Print("stem_path ", stem_path)
 	rootWalk(stem_path, stem_path, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {

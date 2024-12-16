@@ -25,7 +25,7 @@ var rootPathCommand = func() clib.Command {
 				path = args[0]
 			}
 
-			path, err := dryad.RootPath(path)
+			path, err := dryad.RootPath(path, "")
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while finding root path")
 				return 1

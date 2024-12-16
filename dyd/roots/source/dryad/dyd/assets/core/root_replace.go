@@ -11,13 +11,13 @@ import (
 func RootReplace(sourcePath string, destPath string) error {
 
 	// normalize the source path
-	sourcePath, err := RootPath(sourcePath)
+	sourcePath, err := RootPath(sourcePath, "")
 	if err != nil {
 		return err
 	}
 
 	// normalize the replacement path
-	destPath, err = RootPath(destPath)
+	destPath, err = RootPath(destPath, "")
 	if err != nil {
 		return err
 	}
