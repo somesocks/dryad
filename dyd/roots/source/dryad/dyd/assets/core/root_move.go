@@ -7,7 +7,7 @@ import (
 func RootMove(sourcePath string, destPath string) error {
 
 	// normalize the source path
-	sourcePath, err := RootPath(sourcePath)
+	sourcePath, err := RootPath(sourcePath, "")
 	if err != nil {
 		return err
 	}

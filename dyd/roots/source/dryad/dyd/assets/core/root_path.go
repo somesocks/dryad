@@ -4,21 +4,18 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 
 	zlog "github.com/rs/zerolog/log"
 )
 
-func RootPath(path string) (string, error) {
+func RootPath(path string, limit string) (string, error) {
 	zlog.Trace().
 		Str("path", path).
 		Msg("RootPath")
 
 	var err error
 	path, err = filepath.Abs(path)
-	// zlog.Trace().
-	// 	Str("path", path).
-	// 	Err(err).
-	// 	Msg("RootPath.filepath.Abs")
 	if err != nil {
 		return "", err
 	}
@@ -27,13 +24,7 @@ func RootPath(path string) (string, error) {
 	var flagPath = filepath.Join(workingPath, "dyd", "type")
 	var fileBytes, fileInfoErr = os.ReadFile(flagPath)
 
-	for workingPath != "/" {
-		// zlog.Trace().
-		// 	Str("workingPath", workingPath).
-		// 	Str("flagPath", flagPath).
-		// 	Err(fileInfoErr).
-		// 	Msg("RootPath.workingPath")
-
+	for workingPath != "/" && strings.HasPrefix(workingPath, limit) {
 		if fileInfoErr == nil && string(fileBytes) == "root" {
 
 			zlog.Trace().

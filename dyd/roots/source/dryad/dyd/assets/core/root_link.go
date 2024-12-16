@@ -17,7 +17,7 @@ func RootLink(rootPath string, depPath string, alias string) error {
 		return err
 	}
 
-	depPath, err = RootPath(depPath)
+	depPath, err = RootPath(depPath, "")
 	if err != nil {
 		return err
 	}
@@ -26,7 +26,7 @@ func RootLink(rootPath string, depPath string, alias string) error {
 		alias = filepath.Base(depPath)
 	}
 
-	rootPath, err = RootPath(rootPath)
+	rootPath, err = RootPath(rootPath, "")
 	if err != nil {
 		return err
 	}

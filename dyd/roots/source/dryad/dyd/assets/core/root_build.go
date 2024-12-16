@@ -138,6 +138,12 @@ func rootBuild_stage1(
 
 	for _, dependencyPath := range dependencies {
 
+		// verify that root path is valid for dependency
+		_, err := RootPath(dependencyPath, dependencyPath)
+		if err != nil {
+			return err
+		}
+
 		dependencyFingerprint, err := RootBuild(context, dependencyPath)
 		if err != nil {
 			return err
@@ -253,7 +259,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	// fmt.Println("[trace] RootBuild", context, rootPath)
 
 	// sanitize the root path
-	rootPath, err := RootPath(rootPath)
+	rootPath, err := RootPath(rootPath, "")
 	if err != nil {
 		return "", err
 	}

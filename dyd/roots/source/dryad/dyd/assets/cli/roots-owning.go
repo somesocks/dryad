@@ -65,7 +65,7 @@ var rootsOwningCommand = func() clib.Command {
 						return 1
 					}
 					path = _rootsOwningDependencyCorrection(path)
-					path, err = dryad.RootPath(path)
+					path, err = dryad.RootPath(path, "")
 					if err == nil {
 						rootSet[path] = true
 					}
