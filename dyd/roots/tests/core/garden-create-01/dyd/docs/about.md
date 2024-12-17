@@ -1,4 +1,4 @@
 
 # garden-create-01
 
-This test case tests that `dryad garden create` runs successfully, and creates an empty garden with the right file structure.
+This test case tests that `dryad garden create --help` runs successfully and returns help text.
