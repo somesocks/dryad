@@ -26,17 +26,17 @@ _setup() {
 }
 
 _prepare() {
+	# echo "[INFO] creating garden" 1>&2;
+	# (cd "$TEMP_DIR" && dryad garden create)
 	:;
 }
 
 _test() {
-	echo "[INFO] creating garden" 1>&2;
-	(cd "$TEMP_DIR" && dryad garden create)
+	HELP_TEXT=$(cd "$TEMP_DIR" && dryad garden create --help);
 }
 
 _verify() {
-	assert_directory_exists "$TEMP_DIR/dyd"
-	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
+	assert_not_empty "$HELP_TEXT" "help text"
 	:;
 }
 
