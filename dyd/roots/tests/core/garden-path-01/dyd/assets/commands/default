@@ -26,7 +26,7 @@ _setup() {
 }
 
 _prepare() {
-	echo "[INFO] creating garden" 1>&2;
+	# echo "[INFO] creating garden" 1>&2;
 	# (cd "$TEMP_DIR" && dryad garden create)
 	:;
 }
