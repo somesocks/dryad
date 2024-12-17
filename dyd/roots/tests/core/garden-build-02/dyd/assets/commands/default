@@ -32,11 +32,10 @@ _prepare() {
 }
 
 _test() {
-	HELP_TEXT=$(cd "$TEMP_DIR" && dryad garden build --help);
+	(cd "$TEMP_DIR" && dryad garden build) 1>&2;
 }
 
 _verify() {
-	assert_not_empty "$HELP_TEXT" "help text"
 	:;
 }
 
