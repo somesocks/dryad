@@ -10,7 +10,7 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-var secretsFingerprintCommand = func() clib.Command {
+var rootSecretsFingerprintCommand = func() clib.Command {
 	command := clib.NewCommand("fingerprint", "calculate the fingerprint for the secrets in a stem/root").
 		WithArg(
 			clib.

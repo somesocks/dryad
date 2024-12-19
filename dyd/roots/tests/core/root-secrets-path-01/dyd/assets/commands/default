@@ -32,7 +32,7 @@ _prepare() {
 }
 
 _test() {
-	HELP_TEXT=$(cd "$TEMP_DIR" && dryad secrets fingerprint --help);
+	HELP_TEXT=$(cd "$TEMP_DIR" && dryad root secrets path --help);
 }
 
 _verify() {
