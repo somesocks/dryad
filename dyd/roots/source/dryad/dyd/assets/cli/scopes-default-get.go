@@ -32,7 +32,7 @@ var scopesDefaultGetCommand = func() clib.Command {
 			return 0
 		})
 	command = LoggingCommand(command)
-	command = HelpCommand(command)
+
 
 	return command
 }()

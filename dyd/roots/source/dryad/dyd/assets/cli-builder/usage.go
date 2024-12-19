@@ -78,7 +78,7 @@ func Usage(a App, invocation []string, w io.Writer) error {
 
 	if len(opts) > 0 {
 		for _, opt := range opts {
-			charstr := "    "
+			charstr := ""
 			if opt.CharKey() != rune(0) {
 				charstr = "-" + string(opt.CharKey()) + ", "
 			}

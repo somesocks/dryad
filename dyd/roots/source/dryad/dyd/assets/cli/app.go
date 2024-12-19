@@ -25,7 +25,8 @@ func BuildCLI(
 		WithCommand(stemCommand).
 		WithCommand(stemsCommand).
 		WithCommand(systemCommand).
-		WithCommand(versionCommand(Version, Fingerprint))
+		WithCommand(versionCommand(Version, Fingerprint)).
+		WithOption(clib.NewOption("help", "display help text for this command").WithType(clib.OptionTypeBool))
 
 	return app
 }

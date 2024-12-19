@@ -97,7 +97,7 @@ var scriptRunCommand = func() clib.Command {
 
 	command = ScopedCommand(command)
 	command = LoggingCommand(command)
-	command = HelpCommand(command)
+
 
 	return command
 }()
