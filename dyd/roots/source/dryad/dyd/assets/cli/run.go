@@ -18,7 +18,7 @@ var runCommand = func() clib.Command {
 		WithAction(scriptRunAction)
 
 	command = LoggingCommand(command)
-	command = HelpCommand(command)
+
 
 	return command
 }()
