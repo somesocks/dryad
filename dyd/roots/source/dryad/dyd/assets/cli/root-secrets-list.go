@@ -4,14 +4,15 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"
 )
 
-var secretsPathCommand = func() clib.Command {
-	command := clib.NewCommand("path", "print the path to the secrets for the current package, if it exists").
+var rootSecretsListCommand = func() clib.Command {
+	command := clib.NewCommand("list", "list the secret files in a stem/root").
 		WithArg(
 			clib.
 				NewArg("path", "path to the stem base dir").
@@ -45,15 +46,18 @@ var secretsPathCommand = func() clib.Command {
 				return 1
 			}
 
-			// check if the secrets folder exists
-			exists, err := dryad.SecretsExist(path)
+			err = dryad.SecretsWalk(
+				dryad.SecretsWalkArgs{
+					BasePath: path,
+					OnMatch: func(path string, info fs.FileInfo) error {
+						fmt.Println(path)
+						return nil
+					},
+				},
+			)
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error checking if secrets exist")
+				zlog.Fatal().Err(err).Msg("error while crawling secrets")
 				return 1
-			}
-
-			if exists {
-				fmt.Println(path)
 			}
 
 			return 0
