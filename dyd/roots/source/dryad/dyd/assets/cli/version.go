@@ -19,7 +19,7 @@ var versionCommand = func(
 			return 0
 		})
 
-	command = HelpCommand(command)
+
 
 	return command
 }

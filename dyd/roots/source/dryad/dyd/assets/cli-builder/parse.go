@@ -29,13 +29,21 @@ func Parse(a App, appargs []string) (invocation []string, args []string, opts ma
 	invocation, argsAndOpts, expArgs, accptOpts := evalCommand(a, appargs[1:])
 	invocation = append([]string{appname}, invocation...)
 
-	if args, opts, err = splitArgsAndOpts(argsAndOpts, accptOpts); err == nil {
-		if _, ok := opts["help"]; !ok {
-			if err = assertArgs(expArgs, args); err == nil {
-				err = assertOpts(accptOpts, opts)
-			}
-		}
+	args, opts, err = splitArgsAndOpts(argsAndOpts, accptOpts);
+	if err != nil {
+		return invocation, args, opts, err
 	}
+
+	err = assertArgs(expArgs, args);
+	if err != nil {
+		return invocation, args, opts, err
+	}
+
+	err = assertOpts(accptOpts, opts)
+	if err != nil {
+		return invocation, args, opts, err
+	}
+
 	return invocation, args, opts, err
 }
 
@@ -233,10 +241,6 @@ func splitArgsAndOpts(appargs []string, accptOpts []Option) (args []string, opts
 				case 3:
 					key = matches[1]
 					value = matches[2]
-				}
-
-				if key == helpKey {
-					return nil, map[string]interface{}{helpKey: trueStr}, nil
 				}
 
 				var opt Option

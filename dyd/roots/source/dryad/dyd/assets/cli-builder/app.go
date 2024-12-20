@@ -10,6 +10,7 @@ package cli_builder
 import (
 	"fmt"
 	"io"
+	"strings"
 )
 
 type ActionRequest struct {
@@ -138,7 +139,7 @@ func (a *app) Run(appargs []string, w io.Writer) int {
 	invocation, args, opts, err := a.Parse(appargs)
 	_, help := opts["help"]
 	code := 1
-	if err == nil && help {
+	if help && (err == nil || strings.HasPrefix(err.Error(), "missing required argument ") ) {
 		a.Usage(invocation, w)
 		code = 0
 	} else if err != nil {

@@ -29,7 +29,7 @@ var gardenPruneCommand = func() clib.Command {
 		})
 
 	command = LoggingCommand(command)
-	command = HelpCommand(command)
+
 
 	return command
 }()
