@@ -1,1 +1,1 @@
---include=builds/native --include=tests
+--include=components/dryad-cli/builds/native --include=components/dryad-cli/tests
