@@ -43,14 +43,14 @@ jobs:
 
       - name: Build bootstrap
         working-directory: ${{ github.workspace }}
-        run: ./scripts/nix-shell/run.sh ./scripts/tasks/bootstrap-build.sh
+        run: ./utils/nix-shell/run.sh ./utils/bootstrap-build.sh
 
       - name: Build garden
         working-directory: ${{ github.workspace }}
-        run: ./scripts/nix-shell/run.sh ./scripts/tasks/docs-build.sh
+        run: ./utils/nix-shell/run.sh ./utils/docs-build.sh
 
       - name: Pack Docs
-        run: ./scripts/nix-shell/run.sh ./scripts/tasks/docs-pack.sh
+        run: ./utils/nix-shell/run.sh ./utils/docs-pack.sh
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2

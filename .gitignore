@@ -2,7 +2,6 @@
 # gitignore paths for dryad garden
 /**/dyd/heap/
 /**/dyd/sprouts/
-
 /dyd/shed/scopes/default
 
 /bootstrap/

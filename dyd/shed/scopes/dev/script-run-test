@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+
+dryad sprouts run --include=components/dryad-cli/tests
