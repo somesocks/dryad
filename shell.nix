@@ -6,10 +6,10 @@ in pkgs.mkShell {
 
 	buildInputs = [
 		pkgs.go
-		pkgs.gnumake
 	];
 
-	# shellHook = ''
-	# '';
+	shellHook = ''
+		export PATH="$(cd ./bootstrap/ && pwd):$PATH"
+	'';
 
 }

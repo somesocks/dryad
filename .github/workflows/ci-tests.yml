@@ -30,12 +30,12 @@ jobs:
 
       - name: Build Bootstrap
         working-directory: ${{ github.workspace }}
-        run: ./scripts/nix-shell/run.sh ./scripts/tasks/bootstrap-build.sh
+        run: ./utils/nix-shell/run.sh ./utils/bootstrap-build.sh
 
       - name: Build Garden
         working-directory: ${{ github.workspace }}
-        run: ./scripts/nix-shell/run.sh ./scripts/tasks/dryad-garden-build.sh
+        run: ./utils/nix-shell/run.sh ./utils/dryad-garden-build.sh
 
       - name: Run Tests
         working-directory: ${{ github.workspace }}
-        run: ./scripts/nix-shell/run.sh ./scripts/tasks/dryad-run-tests.sh
+        run: ./utils/nix-shell/run.sh ./utils/dryad-run-tests.sh

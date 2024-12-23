@@ -24,7 +24,7 @@ _MAKE_BUILD_DIR () {
 _BUILD () {
 		rm -rf ./docs
     mkdir -p ./docs
-    cp -r ./dyd/sprouts/docs/dyd/assets/site/. ./docs/
+    cp -r ./dyd/sprouts/components/dryad-docs-site/dyd/assets/site/. ./docs/
     chmod -R 755 ./docs
 }
 
