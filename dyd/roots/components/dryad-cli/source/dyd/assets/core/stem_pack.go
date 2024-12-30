@@ -367,7 +367,7 @@ func StemPack(request StemPackRequest) (string, error) {
 		return "", err
 	}	
 	
-	err = GardenCreate(request.TargetPath)
+	err, _ = GardenCreate(GardenCreateRequest{BasePath: request.TargetPath})
 	if err != nil {
 		return "", err
 	}

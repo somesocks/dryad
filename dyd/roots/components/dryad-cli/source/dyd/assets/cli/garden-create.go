@@ -30,7 +30,7 @@ var gardenCreateCommand = func() clib.Command {
 	}
 
 	var createGarden = func (args ParsedArgs) (error, any) {
-		err := dryad.GardenCreate(args.Path)
+		err, _ := dryad.GardenCreate(dryad.GardenCreateRequest{BasePath: args.Path})
 		return err, nil
 	}
 

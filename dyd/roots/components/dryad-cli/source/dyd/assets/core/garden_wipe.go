@@ -74,7 +74,7 @@ func GardenWipe(gardenPath string) error {
 		return err
 	}
 
-	err = GardenCreate(gardenPath)
+	err, _ = GardenCreate(GardenCreateRequest{BasePath: gardenPath})
 	if err != nil {
 		return err
 	}
