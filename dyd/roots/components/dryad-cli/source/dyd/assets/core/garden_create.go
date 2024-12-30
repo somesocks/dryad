@@ -109,13 +109,18 @@ var GardenCreate = tasks.Series4(
 	gardenPrepareRequest,
 	gardenCreateBase,
 	tasks.Parallel5(
-		tasks.Series6(
+		tasks.Series3(
 			gardenCreateHeap,
-			gardenCreateHeapFiles,
-			gardenCreateHeapStems,
-			gardenCreateHeapDerivations,
-			gardenCreateHeapContexts,
-			gardenCreateHeapSecrets,	
+			tasks.Parallel5(
+				gardenCreateHeapFiles,
+				gardenCreateHeapStems,
+				gardenCreateHeapDerivations,
+				gardenCreateHeapContexts,
+				gardenCreateHeapSecrets,
+			),
+			func (res tasks.Tuple5[GardenCreateRequest, GardenCreateRequest, GardenCreateRequest, GardenCreateRequest, GardenCreateRequest]) (error, GardenCreateRequest) {
+				return nil, res.A
+			},
 		),
 		tasks.Series2(
 			gardenCreateShed,
@@ -123,9 +128,9 @@ var GardenCreate = tasks.Series4(
 		),
 		gardenCreateRoots,
 		gardenCreateSprouts,
-		gardenCreateTypeFile,	
+		gardenCreateTypeFile,
 	),
 	func (res tasks.Tuple5[GardenCreateRequest, GardenCreateRequest, GardenCreateRequest, GardenCreateRequest, GardenCreateRequest]) (error, GardenCreateRequest) {
-		return nil, res.A 
+		return nil, res.A
 	},
 )
