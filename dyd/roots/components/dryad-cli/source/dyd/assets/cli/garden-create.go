@@ -12,11 +12,13 @@ var gardenCreateCommand = func() clib.Command {
 
 	type ParsedArgs struct {
 		Path string
+		Parallel int
 	}	
 
 	var parseArgs = task.From(
 		func(req clib.ActionRequest) (error, ParsedArgs) {
 			var args = req.Args
+			var options = req.Opts
 
 			var path string
 			// var err error
@@ -25,8 +27,17 @@ var gardenCreateCommand = func() clib.Command {
 				path = args[0]
 			}
 
+			var parallel int
+
+			if options["parallel"] != nil {
+				parallel = int(options["parallel"].(int64))
+			} else {
+				parallel = 8
+			}
+	
 			return nil, ParsedArgs{
 				Path: path,
+				Parallel: parallel,
 			}
 		},
 	)
@@ -35,6 +46,13 @@ var gardenCreateCommand = func() clib.Command {
 		err, _ := dryad.GardenCreate(ctx, dryad.GardenCreateRequest{BasePath: args.Path})
 		return err, nil
 	}
+
+	createGarden = task.WithContext(
+		createGarden,
+		func (ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
+			return nil, task.BuildContext(args.Parallel)
+		},
+	)
 
 	var action = task.Return(
 		task.Series2(
@@ -60,6 +78,7 @@ var gardenCreateCommand = func() clib.Command {
 		).
 		WithAction(action)
 
+	command = ParallelCommand(command)
 	command = LoggingCommand(command)
 
 

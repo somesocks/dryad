@@ -44,7 +44,7 @@ var gardenBuildCommand = func() clib.Command {
 		if options["parallel"] != nil {
 			parallel = int(options["parallel"].(int64))
 		} else {
-			parallel = 4
+			parallel = 8
 		}
 
 		includeRoots := dryad.RootIncludeMatcher(includeOpts)
