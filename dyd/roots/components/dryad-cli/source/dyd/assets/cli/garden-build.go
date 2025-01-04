@@ -13,58 +13,70 @@ var gardenBuildCommand = func() clib.Command {
 	type ParsedArgs struct {
 		IncludeRoots func(path string) bool
 		ExcludeRoots func(path string) bool
+		Parallel int
 		Path string
 	}
 
-	var parseArgs = task.From(
-		func(req clib.ActionRequest) (error, ParsedArgs) {
-			// var args = req.Args
-			var options = req.Opts
+	var parseArgs = func (ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+		// var args = req.Args
+		var options = req.Opts
 
-			var path string
-			// var err error
+		var path string
+		// var err error
 
-			var includeOpts []string
-			var excludeOpts []string
+		var includeOpts []string
+		var excludeOpts []string
 
-			if options["exclude"] != nil {
-				excludeOpts = options["exclude"].([]string)
-			}
+		var parallel int
 
-			if options["include"] != nil {
-				includeOpts = options["include"].([]string)
-			}
+		if options["exclude"] != nil {
+			excludeOpts = options["exclude"].([]string)
+		}
 
-			if options["path"] != nil {
-				path = options["path"].(string)
-			}
+		if options["include"] != nil {
+			includeOpts = options["include"].([]string)
+		}
 
+		if options["path"] != nil {
+			path = options["path"].(string)
+		}
 
-			includeRoots := dryad.RootIncludeMatcher(includeOpts)
-			excludeRoots := dryad.RootExcludeMatcher(excludeOpts)
+		if options["parallel"] != nil {
+			parallel = int(options["parallel"].(int64))
+		} else {
+			parallel = 4
+		}
 
-			return nil, ParsedArgs{
-				IncludeRoots: includeRoots,
-				ExcludeRoots: excludeRoots,
-				Path: path,
-			}
-		},
-	)
+		includeRoots := dryad.RootIncludeMatcher(includeOpts)
+		excludeRoots := dryad.RootExcludeMatcher(excludeOpts)
 
-	var buildGarden = task.From(
-		func (args ParsedArgs) (error, any) {
-			err := dryad.GardenBuild(
-				dryad.BuildContext{
-					Fingerprints: map[string]string{},
-				},
-				dryad.GardenBuildRequest{
-					BasePath:     args.Path,
-					IncludeRoots: args.IncludeRoots,
-					ExcludeRoots: args.ExcludeRoots,
-				},
-			)
+		return nil, ParsedArgs{
+			IncludeRoots: includeRoots,
+			ExcludeRoots: excludeRoots,
+			Path: path,
+			Parallel: parallel,
+		}
+	}
 
-			return err, nil
+	var buildGarden = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+		err := dryad.GardenBuild(
+			dryad.BuildContext{
+				Fingerprints: map[string]string{},
+			},
+			dryad.GardenBuildRequest{
+				BasePath:     args.Path,
+				IncludeRoots: args.IncludeRoots,
+				ExcludeRoots: args.ExcludeRoots,
+			},
+		)
+
+		return err, nil
+	}
+
+	buildGarden = task.WithContext(
+		buildGarden,
+		func (ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
+			return nil, task.BuildContext(args.Parallel)
 		},
 	)
 
@@ -93,6 +105,7 @@ var gardenBuildCommand = func() clib.Command {
 		WithOption(clib.NewOption("exclude", "choose which roots are excluded from the build").WithType(clib.OptionTypeMultiString)).
 		WithAction(action)
 
+	command = ParallelCommand(command)
 	command = ScopedCommand(command)
 	command = LoggingCommand(command)
 

@@ -5,7 +5,7 @@ type ExecutionContext struct {
 }
 
 var DEFAULT_CONTEXT = &ExecutionContext{
-	ConcurrencyChannel: make(chan struct{}, 8),
+	ConcurrencyChannel: make(chan struct{}, 7),
 }
 
 func WithContext[A any, B any](
@@ -18,5 +18,13 @@ func WithContext[A any, B any](
 			return err, empty[B]()
 		}
 		return task(ctx2, a);
+	}
+}
+
+func BuildContext (
+	parallel int,
+) *ExecutionContext {
+	return &ExecutionContext{
+		ConcurrencyChannel: make(chan struct{}, parallel - 1),
 	}
 }
