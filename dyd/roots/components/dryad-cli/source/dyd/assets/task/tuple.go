@@ -1,4 +1,4 @@
-package tasks
+package task
 
 
 type Tuple1[A any] struct {

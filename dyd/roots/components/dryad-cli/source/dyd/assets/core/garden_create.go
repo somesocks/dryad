@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	tasks "dryad/tasks"
+	task "dryad/task"
 )
 
 type GardenCreateRequest struct {
@@ -105,32 +105,36 @@ func gardenCreateTypeFile(req GardenCreateRequest) (error, GardenCreateRequest) 
 	return nil, req
 }
 
-var GardenCreate = tasks.Series4(
-	gardenPrepareRequest,
-	gardenCreateBase,
-	tasks.Parallel5(
-		tasks.Series3(
-			gardenCreateHeap,
-			tasks.Parallel5(
-				gardenCreateHeapFiles,
-				gardenCreateHeapStems,
-				gardenCreateHeapDerivations,
-				gardenCreateHeapContexts,
-				gardenCreateHeapSecrets,
+var GardenCreate = task.Series4(
+	task.From(gardenPrepareRequest),
+	task.From(gardenCreateBase),
+	task.Parallel5(
+		task.Series3(
+			task.From(gardenCreateHeap),
+			task.Parallel5(
+				task.From(gardenCreateHeapFiles),
+				task.From(gardenCreateHeapStems),
+				task.From(gardenCreateHeapDerivations),
+				task.From(gardenCreateHeapContexts),
+				task.From(gardenCreateHeapSecrets),
 			),
-			func (res tasks.Tuple5[GardenCreateRequest, GardenCreateRequest, GardenCreateRequest, GardenCreateRequest, GardenCreateRequest]) (error, GardenCreateRequest) {
-				return nil, res.A
-			},
+			task.From(
+				func (res task.Tuple5[GardenCreateRequest, GardenCreateRequest, GardenCreateRequest, GardenCreateRequest, GardenCreateRequest]) (error, GardenCreateRequest) {
+					return nil, res.A
+				},
+			),
 		),
-		tasks.Series2(
-			gardenCreateShed,
-			gardenCreateShedScopes,
+		task.Series2(
+			task.From(gardenCreateShed),
+			task.From(gardenCreateShedScopes),
 		),
-		gardenCreateRoots,
-		gardenCreateSprouts,
-		gardenCreateTypeFile,
+		task.From(gardenCreateRoots),
+		task.From(gardenCreateSprouts),
+		task.From(gardenCreateTypeFile),
 	),
-	func (res tasks.Tuple5[GardenCreateRequest, GardenCreateRequest, GardenCreateRequest, GardenCreateRequest, GardenCreateRequest]) (error, GardenCreateRequest) {
-		return nil, res.A
-	},
+	task.From(
+		func (res task.Tuple5[GardenCreateRequest, GardenCreateRequest, GardenCreateRequest, GardenCreateRequest, GardenCreateRequest]) (error, GardenCreateRequest) {
+			return nil, res.A
+		},
+	),
 )

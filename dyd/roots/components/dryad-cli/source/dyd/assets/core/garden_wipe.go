@@ -2,6 +2,8 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
+	"dryad/task"
+
 	"os"
 	"path/filepath"
 )
@@ -74,7 +76,7 @@ func GardenWipe(gardenPath string) error {
 		return err
 	}
 
-	err, _ = GardenCreate(GardenCreateRequest{BasePath: gardenPath})
+	err, _ = GardenCreate(task.DEFAULT_CONTEXT, GardenCreateRequest{BasePath: gardenPath})
 	if err != nil {
 		return err
 	}

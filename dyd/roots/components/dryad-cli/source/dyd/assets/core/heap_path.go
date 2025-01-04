@@ -3,6 +3,8 @@ package core
 import (
 	"os"
 	"path/filepath"
+
+	"dryad/task"
 )
 
 func HeapPath(path string) (string, error) {
@@ -15,7 +17,10 @@ func HeapPath(path string) (string, error) {
 	heapPath := filepath.Join(gardenPath, "dyd", "heap")
 	_, err = os.Stat(heapPath)
 	if err != nil {
-		err, _ = GardenCreate(GardenCreateRequest{BasePath: gardenPath})
+		err, _ = GardenCreate(
+			task.DEFAULT_CONTEXT,
+			GardenCreateRequest{BasePath: gardenPath},
+		)
 	}
 
 	if err != nil {

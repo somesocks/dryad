@@ -3,7 +3,7 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	tasks "dryad/tasks"
+	task "dryad/task"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -16,56 +16,60 @@ var gardenBuildCommand = func() clib.Command {
 		Path string
 	}
 
-	var parseArgs = func(req clib.ActionRequest) (error, ParsedArgs) {
-		// var args = req.Args
-		var options = req.Opts
+	var parseArgs = task.From(
+		func(req clib.ActionRequest) (error, ParsedArgs) {
+			// var args = req.Args
+			var options = req.Opts
 
-		var path string
-		// var err error
+			var path string
+			// var err error
 
-		var includeOpts []string
-		var excludeOpts []string
+			var includeOpts []string
+			var excludeOpts []string
 
-		if options["exclude"] != nil {
-			excludeOpts = options["exclude"].([]string)
-		}
+			if options["exclude"] != nil {
+				excludeOpts = options["exclude"].([]string)
+			}
 
-		if options["include"] != nil {
-			includeOpts = options["include"].([]string)
-		}
+			if options["include"] != nil {
+				includeOpts = options["include"].([]string)
+			}
 
-		if options["path"] != nil {
-			path = options["path"].(string)
-		}
+			if options["path"] != nil {
+				path = options["path"].(string)
+			}
 
 
-		includeRoots := dryad.RootIncludeMatcher(includeOpts)
-		excludeRoots := dryad.RootExcludeMatcher(excludeOpts)
+			includeRoots := dryad.RootIncludeMatcher(includeOpts)
+			excludeRoots := dryad.RootExcludeMatcher(excludeOpts)
 
-		return nil, ParsedArgs{
-			IncludeRoots: includeRoots,
-			ExcludeRoots: excludeRoots,
-			Path: path,
-		}
-	}
+			return nil, ParsedArgs{
+				IncludeRoots: includeRoots,
+				ExcludeRoots: excludeRoots,
+				Path: path,
+			}
+		},
+	)
 
-	var buildGarden = func (args ParsedArgs) (error, any) {
-		err := dryad.GardenBuild(
-			dryad.BuildContext{
-				Fingerprints: map[string]string{},
-			},
-			dryad.GardenBuildRequest{
-				BasePath:     args.Path,
-				IncludeRoots: args.IncludeRoots,
-				ExcludeRoots: args.ExcludeRoots,
-			},
-		)
+	var buildGarden = task.From(
+		func (args ParsedArgs) (error, any) {
+			err := dryad.GardenBuild(
+				dryad.BuildContext{
+					Fingerprints: map[string]string{},
+				},
+				dryad.GardenBuildRequest{
+					BasePath:     args.Path,
+					IncludeRoots: args.IncludeRoots,
+					ExcludeRoots: args.ExcludeRoots,
+				},
+			)
 
-		return err, nil
-	}
+			return err, nil
+		},
+	)
 
-	var action = tasks.Return(
-		tasks.Series2(
+	var action = task.Return(
+		task.Series2(
 			parseArgs,
 			buildGarden,
 		),

@@ -13,6 +13,8 @@ import (
 	"strings"
 
 	fs2 "dryad/filesystem"
+	"dryad/task"
+
 	zlog "github.com/rs/zerolog/log"
 )
 
@@ -367,7 +369,10 @@ func StemPack(request StemPackRequest) (string, error) {
 		return "", err
 	}	
 	
-	err, _ = GardenCreate(GardenCreateRequest{BasePath: request.TargetPath})
+	err, _ = GardenCreate(
+		task.DEFAULT_CONTEXT,
+		GardenCreateRequest{BasePath: request.TargetPath},
+	)
 	if err != nil {
 		return "", err
 	}
