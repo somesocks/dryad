@@ -20,13 +20,13 @@ _setup() {
 	# make a temporary working directory
 	# this command is linux / osx agnostic
 	# https://unix.stackexchange.com/questions/30091/fix-or-alternative-for-mktemp-in-os-x
-	echo "[INFO] creating temporary working directory" 1>&2;
+	# echo "\[INFO\] creating temporary working directory" 1>&2;
 	TEMP_DIR=''
 	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
 }
 
 _prepare() {
-	echo "[INFO] creating garden" 1>&2;
+	# echo "[INFO] creating garden" 1>&2;
 
 	# copy the sample garden to the working directory
 	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR" 
@@ -55,7 +55,6 @@ _verify() {
 		for i2 in $(seq -w 1 10);
 		do
 			assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/$i1/$i2"
-			ls -al "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/$i1/$i2" >&2
 			for i3 in $(seq -w 1 10);
 			do
 				assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/$i1/$i2/$i3" "$i3"
@@ -67,7 +66,7 @@ _verify() {
 }
 
 _teardown() {
-	echo "[INFO] tearing down fixtures" 1>&2;
+	# echo "\[INFO\] tearing down fixtures" 1>&2;
 	if [ -d "$TEMP_DIR" ]; then
 		chmod -R 755 "$TEMP_DIR"
 		rm -rf "$TEMP_DIR"

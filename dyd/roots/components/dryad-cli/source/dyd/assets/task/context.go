@@ -5,7 +5,7 @@ type ExecutionContext struct {
 }
 
 var DEFAULT_CONTEXT = &ExecutionContext{
-	ConcurrencyChannel: make(chan struct{}, 7),
+	ConcurrencyChannel: make(chan struct{}, 15),
 }
 
 var SERIAL_CONTEXT = &ExecutionContext{

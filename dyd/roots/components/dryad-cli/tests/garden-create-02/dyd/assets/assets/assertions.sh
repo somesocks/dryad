@@ -14,7 +14,7 @@ assert_directory_exists() {
         echo "[ERROR] Fail: directory '$1' does not exist" 1>&2
         return 1
     fi
-    echo "[INFO] Pass: directory '$1' exists" 1>&2
+    # echo "\[INFO\] Pass: directory '\$1' exists" 1>&2
 }
 
 assert_file_exists() {
@@ -22,7 +22,7 @@ assert_file_exists() {
         echo "[ERROR] Fail: file '$1' does not exist or is not a regular file" 1>&2
         return 1
     fi
-    echo "[INFO] Pass: file '$1' exists" 1>&2
+    # echo "[INFO] Pass: file '$1' exists" 1>&2
 }
 
 assert_file_content_equals() {
@@ -42,5 +42,5 @@ assert_file_content_equals() {
         return 1
     fi
 
-    echo "[INFO] Pass: file '$file' content matches the expected content" 1>&2
+    # echo "[INFO] Pass: file '$file' content matches the expected content" 1>&2
 }

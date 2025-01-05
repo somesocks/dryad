@@ -24,6 +24,9 @@ var defaultOnError3 = func(err error, context Walk4Context) error {
 	return err
 }
 
+
+
+
 func _dfsWalk3(ctx *task.ExecutionContext, request Walk4Request) error {
 	var err error
 	var info fs.FileInfo
@@ -168,7 +171,8 @@ func _dfsWalk3(ctx *task.ExecutionContext, request Walk4Request) error {
 					}
 					err, _ = task.ParallelMap(
 						func (ctx *task.ExecutionContext, entry fs.DirEntry) (error, any) {
-							err = _bfsWalk3(
+							var err error
+							err = _dfsWalk3(
 								ctx,
 								Walk4Request{
 									Path:        filepath.Join(request.Path, entry.Name()),
@@ -451,6 +455,7 @@ func _bfsWalk3(ctx *task.ExecutionContext, request Walk4Request) error {
 					}
 					err, _ = task.ParallelMap(
 						func (ctx *task.ExecutionContext, entry fs.DirEntry) (error, any) {
+							var err error
 							err = _bfsWalk3(
 								ctx,
 								Walk4Request{

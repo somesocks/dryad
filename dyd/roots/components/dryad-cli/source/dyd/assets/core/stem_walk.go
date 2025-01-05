@@ -158,8 +158,23 @@ func StemWalk(
 			ShouldCrawl: StemWalkShouldCrawl,
 			ShouldMatch: StemWalkShouldMatch,
 			OnMatch:     args.OnMatch,
+			OnError: func(err error, context fs2.Walk4Context) error {
+				zlog.
+					Trace().
+					Str("path", context.Path).
+					Str("vpath", context.VPath).
+					Err(err).
+					Msg("StemWalk / onError")
+				
+				return err
+			},
 		},
 	)
+
+	zlog.
+		Trace().
+		Err(err).
+		Msg("StemWalk / err")
 
 	return err
 }

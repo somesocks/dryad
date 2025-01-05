@@ -19,14 +19,14 @@ func Parallel1[A any, B any] (
 			wg.Add(1)
 			go func () {
 				err2, res2 := ab(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.A = res2
 				wg.Done()
 				<- ctx.ConcurrencyChannel
 			}()
 		default:
 			err2, res2 := ab(ctx, a)
-			if err2 != nil && err != nil { err = err2 }
+			if err2 != nil && err == nil { err = err2 }
 			res.A = res2
 		}
 		
@@ -52,14 +52,14 @@ func Parallel[A any, B any, C any] (
 			wg.Add(1)
 			go func () {
 				err2, res2 := ab(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.A = res2
 				wg.Done()
 				<- ctx.ConcurrencyChannel
 			}()
 		default:
 			err2, res2 := ab(ctx, a)
-			if err2 != nil && err != nil { err = err2 }
+			if err2 != nil && err == nil { err = err2 }
 			res.A = res2
 		}
 
@@ -69,14 +69,14 @@ func Parallel[A any, B any, C any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ac(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.B = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ac(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.B = res2
 			}
 		}
@@ -103,14 +103,14 @@ func Parallel2[A any, B any, C any] (
 			wg.Add(1)
 			go func () {
 				err2, res2 := ab(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.A = res2
 				wg.Done()
 				<- ctx.ConcurrencyChannel
 			}()
 		default:
 			err2, res2 := ab(ctx, a)
-			if err2 != nil && err != nil { err = err2 }
+			if err2 != nil && err == nil { err = err2 }
 			res.A = res2
 		}
 
@@ -120,14 +120,14 @@ func Parallel2[A any, B any, C any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ac(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.B = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ac(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.B = res2
 			}
 		}
@@ -155,14 +155,14 @@ func Parallel3[A any, B any, C any, D any] (
 			wg.Add(1)
 			go func () {
 				err2, res2 := ab(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.A = res2
 				wg.Done()
 				<- ctx.ConcurrencyChannel
 			}()
 		default:
 			err2, res2 := ab(ctx, a)
-			if err2 != nil && err != nil { err = err2 }
+			if err2 != nil && err == nil { err = err2 }
 			res.A = res2
 		}
 
@@ -172,14 +172,14 @@ func Parallel3[A any, B any, C any, D any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ac(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.B = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ac(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.B = res2
 			}
 		}
@@ -190,14 +190,14 @@ func Parallel3[A any, B any, C any, D any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ad(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.C = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ad(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.C = res2
 			}
 		}
@@ -226,14 +226,14 @@ func Parallel4[A any, B any, C any, D any, E any] (
 			wg.Add(1)
 			go func () {
 				err2, res2 := ab(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.A = res2
 				wg.Done()
 				<- ctx.ConcurrencyChannel
 			}()
 		default:
 			err2, res2 := ab(ctx, a)
-			if err2 != nil && err != nil { err = err2 }
+			if err2 != nil && err == nil { err = err2 }
 			res.A = res2
 		}
 
@@ -243,14 +243,14 @@ func Parallel4[A any, B any, C any, D any, E any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ac(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.B = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ac(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.B = res2
 			}
 		}
@@ -261,14 +261,14 @@ func Parallel4[A any, B any, C any, D any, E any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ad(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.C = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ad(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.C = res2
 			}
 		}
@@ -279,14 +279,14 @@ func Parallel4[A any, B any, C any, D any, E any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ae(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.D = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ae(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.D = res2
 			}
 		}
@@ -316,14 +316,14 @@ func Parallel5[A any, B any, C any, D any, E any, F any] (
 			wg.Add(1)
 			go func () {
 				err2, res2 := ab(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.A = res2
 				wg.Done()
 				<- ctx.ConcurrencyChannel
 			}()
 		default:
 			err2, res2 := ab(ctx, a)
-			if err2 != nil && err != nil { err = err2 }
+			if err2 != nil && err == nil { err = err2 }
 			res.A = res2
 		}
 
@@ -333,14 +333,14 @@ func Parallel5[A any, B any, C any, D any, E any, F any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ac(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.B = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ac(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.B = res2
 			}
 		}
@@ -351,14 +351,14 @@ func Parallel5[A any, B any, C any, D any, E any, F any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ad(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.C = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ad(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.C = res2
 			}
 		}
@@ -369,14 +369,14 @@ func Parallel5[A any, B any, C any, D any, E any, F any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ae(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.D = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ae(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.D = res2
 			}
 		}
@@ -387,14 +387,14 @@ func Parallel5[A any, B any, C any, D any, E any, F any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := af(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.E = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := af(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.E = res2
 			}
 		}
@@ -425,14 +425,14 @@ func Parallel6[A any, B any, C any, D any, E any, F any, G any] (
 			wg.Add(1)
 			go func () {
 				err2, res2 := ab(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.A = res2
 				wg.Done()
 				<- ctx.ConcurrencyChannel
 			}()
 		default:
 			err2, res2 := ab(ctx, a)
-			if err2 != nil && err != nil { err = err2 }
+			if err2 != nil && err == nil { err = err2 }
 			res.A = res2
 		}
 
@@ -442,14 +442,14 @@ func Parallel6[A any, B any, C any, D any, E any, F any, G any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ac(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.B = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ac(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.B = res2
 			}
 		}
@@ -460,14 +460,14 @@ func Parallel6[A any, B any, C any, D any, E any, F any, G any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ad(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.C = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ad(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.C = res2
 			}
 		}
@@ -478,14 +478,14 @@ func Parallel6[A any, B any, C any, D any, E any, F any, G any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ae(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.D = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ae(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.D = res2
 			}
 		}
@@ -496,14 +496,14 @@ func Parallel6[A any, B any, C any, D any, E any, F any, G any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := af(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.E = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := af(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.E = res2
 			}
 		}
@@ -514,14 +514,14 @@ func Parallel6[A any, B any, C any, D any, E any, F any, G any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ag(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.F = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ag(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.F = res2
 			}
 		}
@@ -553,14 +553,14 @@ func Parallel7[A any, B any, C any, D any, E any, F any, G any, H any] (
 			wg.Add(1)
 			go func () {
 				err2, res2 := ab(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.A = res2
 				wg.Done()
 				<- ctx.ConcurrencyChannel
 			}()
 		default:
 			err2, res2 := ab(ctx, a)
-			if err2 != nil && err != nil { err = err2 }
+			if err2 != nil && err == nil { err = err2 }
 			res.A = res2
 		}
 
@@ -570,14 +570,14 @@ func Parallel7[A any, B any, C any, D any, E any, F any, G any, H any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ac(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.B = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ac(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.B = res2
 			}
 		}
@@ -588,14 +588,14 @@ func Parallel7[A any, B any, C any, D any, E any, F any, G any, H any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ad(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.C = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ad(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.C = res2
 			}
 		}
@@ -606,14 +606,14 @@ func Parallel7[A any, B any, C any, D any, E any, F any, G any, H any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ae(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.D = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ae(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.D = res2
 			}
 		}
@@ -624,14 +624,14 @@ func Parallel7[A any, B any, C any, D any, E any, F any, G any, H any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := af(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.E = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := af(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.E = res2
 			}
 		}
@@ -642,14 +642,14 @@ func Parallel7[A any, B any, C any, D any, E any, F any, G any, H any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ag(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.F = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ag(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.F = res2
 			}
 		}
@@ -660,14 +660,14 @@ func Parallel7[A any, B any, C any, D any, E any, F any, G any, H any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ah(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.G = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ah(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.G = res2
 			}
 		}
@@ -700,14 +700,14 @@ func Parallel8[A any, B any, C any, D any, E any, F any, G any, H any, I any] (
 			wg.Add(1)
 			go func () {
 				err2, res2 := ab(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.A = res2
 				wg.Done()
 				<- ctx.ConcurrencyChannel
 			}()
 		default:
 			err2, res2 := ab(ctx, a)
-			if err2 != nil && err != nil { err = err2 }
+			if err2 != nil && err == nil { err = err2 }
 			res.A = res2
 		}
 
@@ -717,14 +717,14 @@ func Parallel8[A any, B any, C any, D any, E any, F any, G any, H any, I any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ac(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.B = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ac(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.B = res2
 			}
 		}
@@ -735,14 +735,14 @@ func Parallel8[A any, B any, C any, D any, E any, F any, G any, H any, I any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ad(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.C = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ad(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.C = res2
 			}
 		}
@@ -753,14 +753,14 @@ func Parallel8[A any, B any, C any, D any, E any, F any, G any, H any, I any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ae(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.D = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ae(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.D = res2
 			}
 		}
@@ -771,14 +771,14 @@ func Parallel8[A any, B any, C any, D any, E any, F any, G any, H any, I any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := af(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.E = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := af(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.E = res2
 			}
 		}
@@ -789,14 +789,14 @@ func Parallel8[A any, B any, C any, D any, E any, F any, G any, H any, I any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ag(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.F = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ag(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.F = res2
 			}
 		}
@@ -807,14 +807,14 @@ func Parallel8[A any, B any, C any, D any, E any, F any, G any, H any, I any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ah(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.G = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ah(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.G = res2
 			}
 		}
@@ -825,14 +825,14 @@ func Parallel8[A any, B any, C any, D any, E any, F any, G any, H any, I any] (
 				wg.Add(1)
 				go func () {
 					err2, res2 := ai(ctx, a)
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res.H = res2
 					wg.Done()
 					<- ctx.ConcurrencyChannel
 				}()
 			default:
 				err2, res2 := ai(ctx, a)
-				if err2 != nil && err != nil { err = err2 }
+				if err2 != nil && err == nil { err = err2 }
 				res.H = res2
 			}
 		}
@@ -860,14 +860,14 @@ func ParallelMap[A any, B any] (
 					wg.Add(1)
 					go func (ii int) {
 						err2, res2 := ab(ctx, a[ii])
-						if err2 != nil && err != nil { err = err2 }
+						if err2 != nil && err == nil { err = err2 }
 						res[ii] = res2
 						wg.Done()
 						<- ctx.ConcurrencyChannel
 					}(i)
 				default:
 					err2, res2 := ab(ctx, a[i])
-					if err2 != nil && err != nil { err = err2 }
+					if err2 != nil && err == nil { err = err2 }
 					res[i] = res2
 				}
 			}	
