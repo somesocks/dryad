@@ -8,6 +8,10 @@ var DEFAULT_CONTEXT = &ExecutionContext{
 	ConcurrencyChannel: make(chan struct{}, 7),
 }
 
+var SERIAL_CONTEXT = &ExecutionContext{
+	ConcurrencyChannel: make(chan struct{}, 0),
+}
+
 func WithContext[A any, B any](
 	task Task[A, B],
 	context Task[A, *ExecutionContext],

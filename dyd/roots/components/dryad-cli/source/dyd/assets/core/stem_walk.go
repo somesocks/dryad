@@ -2,6 +2,8 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
+	"dryad/task"
+
 	"os"
 	"path/filepath"
 	"regexp"
@@ -144,12 +146,17 @@ func StemWalk(args StemWalkRequest) error {
 		return err
 	}
 
-	return fs2.BFSWalk2(fs2.Walk4Request{
-		Path:        path,
-		VPath:       path,
-		BasePath:    path,
-		ShouldCrawl: StemWalkShouldCrawl,
-		ShouldMatch: StemWalkShouldMatch,
-		OnMatch:     args.OnMatch,
-	})
+	err, _ = fs2.BFSWalk3(
+		task.DEFAULT_CONTEXT,
+		fs2.Walk4Request{
+			Path:        path,
+			VPath:       path,
+			BasePath:    path,
+			ShouldCrawl: StemWalkShouldCrawl,
+			ShouldMatch: StemWalkShouldMatch,
+			OnMatch:     args.OnMatch,
+		},
+	)
+
+	return err
 }
