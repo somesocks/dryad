@@ -2,6 +2,8 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
+	"dryad/task"
+
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -205,58 +207,68 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 
 	}
 
-	// now that all files are added, sweep through in a second pass and make directories read-only
-	err = fs2.DFSWalk2(fs2.Walk4Request{
-		Path:        finalStemPath,
-		VPath:       finalStemPath,
-		BasePath:    finalStemPath,
-		ShouldCrawl: func(context fs2.Walk4Context) (bool, error) {
-			isDir := context.Info.IsDir()
 
-			zlog.Trace().
-				Str("path", context.VPath).
-				Bool("shouldCrawl", isDir).
-				Msg("heap add stem - dir ShouldCrawl")
+	var setPermissionsShouldCrawl = func (context fs2.Walk4Context) (bool, error) {
+		isDir := context.Info.IsDir()
 
-			return isDir, nil
-		},
-		ShouldMatch: func(context fs2.Walk4Context) (bool, error) {
-			isDir := context.Info.IsDir()
+		zlog.Trace().
+			Str("path", context.VPath).
+			Bool("shouldCrawl", isDir).
+			Msg("heap add stem - dir ShouldCrawl")
 
-			zlog.Trace().
-				Str("path", context.VPath).
-				Bool("shouldMatch", isDir).
-				Msg("heap add stem - dir ShouldMatch")
+		return isDir, nil
+	}	
 
-			return isDir, nil
-		},
-		OnMatch: func(context fs2.Walk4Context) error {
-			zlog.Trace().
-				Str("path", context.VPath).
-				Msg("heap add stem - dir OnMatch")
-	
-			dirPerms := context.Info.Mode().Perm()
+	var setPermissionsShouldMatch = func(context fs2.Walk4Context) (bool, error) {
+		isDir := context.Info.IsDir()
 
-			// if permissions are already set correctly, do nothing
-			if dirPerms == 0o511 {
-				return nil
-			}
+		zlog.Trace().
+			Str("path", context.VPath).
+			Bool("shouldMatch", isDir).
+			Msg("heap add stem - dir ShouldMatch")
 
-			dir, err := os.Open(context.Path)
-			if err != nil {
-				return err
-			}
-			defer dir.Close()
+		return isDir, nil
+	}
 
-			// heap files should be set to R-X--X--X
-			err = dir.Chmod(0o511)
-			if err != nil {
-				return err
-			}
+	var setPermissionsOnMatch = func(context fs2.Walk4Context) error {
+		zlog.Trace().
+			Str("path", context.VPath).
+			Msg("heap add stem - dir OnMatch")
 
+		dirPerms := context.Info.Mode().Perm()
+
+		// if permissions are already set correctly, do nothing
+		if dirPerms == 0o511 {
 			return nil
+		}
+
+		dir, err := os.Open(context.Path)
+		if err != nil {
+			return err
+		}
+		defer dir.Close()
+
+		// heap files should be set to R-X--X--X
+		err = dir.Chmod(0o511)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	// now that all files are added, sweep through in a second pass and make directories read-only
+	err = fs2.DFSWalk3(
+		task.DEFAULT_CONTEXT,
+		fs2.Walk4Request{
+			Path:        finalStemPath,
+			VPath:       finalStemPath,
+			BasePath:    finalStemPath,
+			ShouldCrawl: setPermissionsShouldCrawl,
+			ShouldMatch: setPermissionsShouldMatch,
+			OnMatch: setPermissionsOnMatch,
 		},
-	})
+	)
 	if err != nil {
 		return "", err
 	}

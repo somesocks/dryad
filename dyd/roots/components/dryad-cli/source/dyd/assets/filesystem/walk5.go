@@ -24,7 +24,7 @@ var defaultOnError3 = func(err error, context Walk4Context) error {
 	return err
 }
 
-func _dfsWalk3(request Walk4Request) error {
+func _dfsWalk3(ctx *task.ExecutionContext, request Walk4Request) error {
 	var err error
 	var info fs.FileInfo
 
@@ -89,7 +89,7 @@ func _dfsWalk3(request Walk4Request) error {
 
 				// crawl through to the real link
 				// update the real path, but not the virtual path
-				err = _dfsWalk3(Walk4Request{
+				err = _dfsWalk3(ctx, Walk4Request{
 					Path:        linkPath,
 					VPath:       request.VPath,
 					BasePath:    request.BasePath,
@@ -166,27 +166,36 @@ func _dfsWalk3(request Walk4Request) error {
 							return err
 						}
 					}
-					for _, entry := range entries {
-						err = _dfsWalk3(Walk4Request{
-							Path:        filepath.Join(request.Path, entry.Name()),
-							VPath:       filepath.Join(request.VPath, entry.Name()),
-							BasePath:    request.BasePath,
-							ShouldCrawl: request.ShouldCrawl,
-							ShouldMatch: request.ShouldMatch,
-							OnMatch:     request.OnMatch,
-							OnError:     request.OnError,
-						})
-						if err != nil {
-							err = request.OnError(err, Walk4Context{
-								Path:     request.Path,
-								VPath:    request.VPath,
-								BasePath: request.BasePath,
-								Info:     info,
-							})
+					err, _ = task.ParallelMap(
+						func (ctx *task.ExecutionContext, entry fs.DirEntry) (error, any) {
+							err = _bfsWalk3(
+								ctx,
+								Walk4Request{
+									Path:        filepath.Join(request.Path, entry.Name()),
+									VPath:       filepath.Join(request.VPath, entry.Name()),
+									BasePath:    request.BasePath,
+									ShouldCrawl: request.ShouldCrawl,
+									ShouldMatch: request.ShouldMatch,
+									OnMatch:     request.OnMatch,
+									OnError:     request.OnError,
+								},
+							)
 							if err != nil {
-								return err
+								err = request.OnError(err, Walk4Context{
+									Path:     request.Path,
+									VPath:    request.VPath,
+									BasePath: request.BasePath,
+									Info:     info,
+								})
+								if err != nil {
+									return err, nil
+								}
 							}
-						}
+							return nil, nil
+						},
+					)(ctx, entries)
+					if err != nil {
+						return err
 					}
 					entries, err = dir.ReadDir(100)
 				}
@@ -235,7 +244,7 @@ func _dfsWalk3(request Walk4Request) error {
 	return nil
 }
 
-func DFSWalk3(request Walk4Request) error {
+func DFSWalk3(ctx *task.ExecutionContext, request Walk4Request) error {
 
 	if request.ShouldCrawl == nil {
 		request.ShouldCrawl = defaultShouldCrawl3
@@ -253,7 +262,7 @@ func DFSWalk3(request Walk4Request) error {
 		request.OnError = defaultOnError3
 	}
 
-	return _dfsWalk3(request)
+	return _dfsWalk3(ctx, request)
 }
 
 func _bfsWalk3(ctx *task.ExecutionContext, request Walk4Request) error {
