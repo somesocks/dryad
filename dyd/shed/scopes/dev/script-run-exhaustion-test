@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+
+# exit on error
+set -eu
+
+for i in $(seq 1 10); do
+    dryad sprouts run --include=components/dryad-cli/tests
+done

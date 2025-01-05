@@ -55,6 +55,7 @@ _verify() {
 		for i2 in $(seq -w 1 10);
 		do
 			assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/$i1/$i2"
+			ls -al "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/$i1/$i2" >&2
 			for i3 in $(seq -w 1 10);
 			do
 				assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/$i1/$i2/$i3" "$i3"

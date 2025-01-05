@@ -132,7 +132,10 @@ type StemWalkRequest struct {
 	OnMatch  func(context fs2.Walk4Context) error
 }
 
-func StemWalk(args StemWalkRequest) error {
+func StemWalk(
+	ctx *task.ExecutionContext,
+	args StemWalkRequest,
+) error {
 	var path string
 	var err error
 
@@ -147,7 +150,7 @@ func StemWalk(args StemWalkRequest) error {
 	}
 
 	err, _ = fs2.BFSWalk3(
-		task.DEFAULT_CONTEXT,
+		ctx,
 		fs2.Walk4Request{
 			Path:        path,
 			VPath:       path,
