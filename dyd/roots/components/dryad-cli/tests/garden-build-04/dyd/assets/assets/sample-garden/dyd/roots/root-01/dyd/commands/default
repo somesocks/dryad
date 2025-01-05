@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+DEST_DIR=$DYD_BUILD
+
+cp -R "$SRC_DIR/dyd/assets/." "$DEST_DIR/dyd/assets/"
+
+for i1 in $(seq -w 1 10);
+do
+    mkdir -p "$DEST_DIR/dyd/assets/$i1"
+    for i2 in $(seq -w 1 10);
+    do
+        mkdir -p "$DEST_DIR/dyd/assets/$i1/$i2"
+        for i3 in $(seq -w 1 10);
+        do
+            printf '%s' "$i3" > "$DEST_DIR/dyd/assets/$i1/$i2/$i3"
+        done
+    done
+done
