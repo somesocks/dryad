@@ -6,34 +6,43 @@ import (
 	"io/fs"
 	"path/filepath"
 
+	"dryad/task"
+
 	zlog "github.com/rs/zerolog/log"
 )
 
-func HeapAddFile(heapPath string, filePath string) (string, error) {
+type HeapAddFileRequest struct {
+	HeapPath string
+	SourcePath string
+}
+
+func HeapAddFile(ctx *task.ExecutionContext, req HeapAddFileRequest) (error, string) {
+	var heapPath string = req.HeapPath
+	var sourcePath string = req.SourcePath
+
 	zlog.
 		Trace().
 		Str("heapPath", heapPath).
-		Str("filePath", filePath).
+		Str("sourcePath", sourcePath).
 		Msg("HeapAddFile")
 
-	// fmt.Println("[trace] HeapAddFile", heapPath, filePath)
 	heapPath, err := HeapPath(heapPath)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
-	fileHashAlgorithm, fileHash, err := fileHash(filePath)
+	sourceHashAlgorithm, sourceHash, err := fileHash(sourcePath)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
-	fingerprint := fileHashAlgorithm + "-" + fileHash
+	fingerprint := sourceHashAlgorithm + "-" + sourceHash
 
 	destPath := filepath.Join(heapPath, "files", fingerprint)
 
-	srcFile, err := os.Open(filePath)
+	srcFile, err := os.Open(sourcePath)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 	defer srcFile.Close()
 
@@ -42,23 +51,23 @@ func HeapAddFile(heapPath string, filePath string) (string, error) {
 	if err != nil {
 		// return a success if the file is already in the heap
 		if errors.Is(err, fs.ErrExist) {
-			return fingerprint, nil
+			return nil, fingerprint
 		} else {
-			return "", err
+			return err, ""
 		}
 	}
 	defer destFile.Close()
 
 	_, err = destFile.ReadFrom(srcFile)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	// heap files should be set to R-X--X--X
 	err = destFile.Chmod(0o511)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
-	return fingerprint, nil
+	return nil, fingerprint
 }

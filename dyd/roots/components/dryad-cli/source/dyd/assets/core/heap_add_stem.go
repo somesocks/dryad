@@ -126,7 +126,13 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 					// 	Str("path", context.Path).
 					// 	Msg("HeapAddStem / onMatch isFile")
 
-					fileFingerprint, err := HeapAddFile(gardenFilesPath, context.Path)
+					err, fileFingerprint := HeapAddFile(
+						task.DEFAULT_CONTEXT,
+						HeapAddFileRequest{
+							HeapPath: gardenFilesPath,
+							SourcePath: context.Path,
+						},
+					)
 					if err != nil {
 						zlog.
 							Trace().
