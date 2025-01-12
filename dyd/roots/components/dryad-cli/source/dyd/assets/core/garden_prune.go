@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"time"
 
+	"dryad/task"
+
 	zlog "github.com/rs/zerolog/log"
 )
 
@@ -72,14 +74,17 @@ func GardenPrune(gardenPath string) error {
 		return nil
 	}
 
-	err = fs2.DFSWalk2(fs2.Walk4Request{
-		Path: sproutsPath,
-		VPath: sproutsPath,
-		BasePath: sproutsPath,
-		ShouldCrawl: markShouldCrawl,
-		ShouldMatch: markShouldMatch,
-		OnMatch: markOnMatch,
-	})
+	err = fs2.DFSWalk3(
+		task.DEFAULT_CONTEXT,
+		fs2.Walk4Request{
+			Path: sproutsPath,
+			VPath: sproutsPath,
+			BasePath: sproutsPath,
+			ShouldCrawl: markShouldCrawl,
+			ShouldMatch: markShouldMatch,
+			OnMatch: markOnMatch,
+		},
+	)
 	if err != nil {
 		return err
 	}
