@@ -30,19 +30,19 @@ var RE_STEM_FINGERPRINT_SHOULD_MATCH = regexp.MustCompile(
 		")$",
 )
 
-func StemFingerprintShouldMatch(node fs2.Walk5Node) (bool, error) {
+func StemFingerprintShouldMatch(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
 	var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
 	if relErr != nil {
-		return false, relErr
+		return relErr, false
 	}
 	matchesPath := RE_STEM_FINGERPRINT_SHOULD_MATCH.Match([]byte(relPath))
 
 	if !matchesPath {
-		return false, nil
+		return nil, false
 	} else if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
 		linkTarget, err := os.Readlink(node.Path)
 		if err != nil {
-			return false, err
+			return err, false
 		}
 
 		// clean up relative links
@@ -52,14 +52,14 @@ func StemFingerprintShouldMatch(node fs2.Walk5Node) (bool, error) {
 
 		isDescendant, err := fileIsDescendant(linkTarget, node.BasePath)
 		if err != nil {
-			return false, err
+			return err, false
 		}
 
-		return isDescendant, nil
+		return nil, isDescendant
 	} else if node.Info.IsDir() {
-		return false, nil
+		return nil, false
 	} else {
-		return true, nil
+		return nil, true
 	}
 
 }

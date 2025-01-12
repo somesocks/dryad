@@ -49,7 +49,7 @@ func GardenPrune(gardenPath string) error {
 		return nil, node.Info.ModTime().Before(currentTime)
 	}
 
-	markShouldMatch := func(node fs2.Walk5Node) (bool, error) {
+	markShouldMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
 		markStatsChecked += 1
 
 		zlog.Trace().
@@ -57,7 +57,7 @@ func GardenPrune(gardenPath string) error {
 			Msg("garden prune - markShouldMatch")
 
 		// match if we haven't marked already
-		return node.Info.ModTime().Before(currentTime), nil
+		return nil, node.Info.ModTime().Before(currentTime)
 	}
 
 	markOnMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {

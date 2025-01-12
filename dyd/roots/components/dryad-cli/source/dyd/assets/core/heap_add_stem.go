@@ -232,7 +232,7 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 		return nil, isDir
 	}	
 
-	var setPermissionsShouldMatch = func(node fs2.Walk5Node) (bool, error) {
+	var setPermissionsShouldMatch = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
 		isDir := node.Info.IsDir()
 
 		zlog.Trace().
@@ -240,7 +240,7 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 			Bool("shouldMatch", isDir).
 			Msg("heap add stem - dir ShouldMatch")
 
-		return isDir, nil
+		return nil, isDir
 	}
 
 	var setPermissionsOnMatch = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {

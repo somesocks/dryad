@@ -111,7 +111,7 @@ var RE_STEM_WALK_SHOULD_MATCH = regexp.MustCompile(
 // - else if the node is a directory then no,
 // - else if the node is a file then yes,
 // - else error?
-func StemWalkShouldMatch(node fs2.Walk5Node) (bool, error) {
+func StemWalkShouldMatch(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
 	zlog.
 		Trace().
 		Str("path", node.Path).
@@ -121,10 +121,10 @@ func StemWalkShouldMatch(node fs2.Walk5Node) (bool, error) {
 
 	var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
 	if relErr != nil {
-		return false, relErr
+		return relErr, false
 	}
 	matchesPath := RE_STEM_WALK_SHOULD_MATCH.Match([]byte(relPath))
-	return matchesPath, nil
+	return nil, matchesPath 
 }
 
 type StemWalkRequest struct {
