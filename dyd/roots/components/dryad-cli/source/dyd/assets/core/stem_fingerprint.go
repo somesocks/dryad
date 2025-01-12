@@ -10,6 +10,9 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
+
+	"dryad/task"
 
 	"golang.org/x/crypto/blake2b"
 )
@@ -27,7 +30,7 @@ var RE_STEM_FINGERPRINT_SHOULD_MATCH = regexp.MustCompile(
 		")$",
 )
 
-func StemFingerprintShouldMatch(context fs2.Walk4Context) (bool, error) {
+func StemFingerprintShouldMatch(context fs2.Walk5Node) (bool, error) {
 	var relPath, relErr = filepath.Rel(context.BasePath, context.VPath)
 	if relErr != nil {
 		return false, relErr
@@ -68,8 +71,9 @@ type StemFingerprintArgs struct {
 
 func StemFingerprint(args StemFingerprintArgs) (string, error) {
 	var checksumMap = make(map[string]string)
+	var checksumMutex sync.Mutex
 
-	var onMatch = func(context fs2.Walk4Context) error {
+	var onMatch = func(context fs2.Walk5Node) error {
 		var relPath, relErr = filepath.Rel(context.BasePath, context.VPath)
 		if relErr != nil {
 			return relErr
@@ -82,7 +86,9 @@ func StemFingerprint(args StemFingerprintArgs) (string, error) {
 				return hashErr
 			}
 
+			checksumMutex.Lock()
 			checksumMap[relPath] = hash
+			checksumMutex.Unlock()
 		} else {
 			var _, hash, hashErr = fileHash(context.VPath)
 
@@ -90,20 +96,25 @@ func StemFingerprint(args StemFingerprintArgs) (string, error) {
 				return hashErr
 			}
 
+			checksumMutex.Lock()
 			checksumMap[relPath] = hash
+			checksumMutex.Unlock()
 		}
 
 		return nil
 	}
 
-	err := fs2.BFSWalk2(fs2.Walk4Request{
-		Path:        args.BasePath,
-		VPath:       args.BasePath,
-		BasePath:    args.BasePath,
-		ShouldCrawl: StemWalkShouldCrawl,
-		ShouldMatch: StemFingerprintShouldMatch,
-		OnMatch:     onMatch,
-	})
+	err, _ := fs2.BFSWalk3(
+		task.DEFAULT_CONTEXT,
+		fs2.Walk5Request{
+			Path:        args.BasePath,
+			VPath:       args.BasePath,
+			BasePath:    args.BasePath,
+			ShouldCrawl: StemWalkShouldCrawl,
+			ShouldMatch: StemFingerprintShouldMatch,
+			OnMatch:     onMatch,
+		},
+	)
 
 	if err != nil {
 		return "", err

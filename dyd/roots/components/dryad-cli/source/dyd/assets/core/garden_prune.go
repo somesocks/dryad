@@ -40,34 +40,34 @@ func GardenPrune(gardenPath string) error {
 	markStatsChecked := 0
 	markStatsMarked := 0
 
-	markShouldCrawl := func(context fs2.Walk4Context) (bool, error) {
+	markShouldCrawl := func(node fs2.Walk5Node) (bool, error) {
 		zlog.Trace().
-			Str("path", context.VPath).
+			Str("path", node.VPath).
 			Msg("garden prune - markShouldCrawl")
 
 			// crawl if we haven't marked already
-		return context.Info.ModTime().Before(currentTime), nil
+		return node.Info.ModTime().Before(currentTime), nil
 	}
 
-	markShouldMatch := func(context fs2.Walk4Context) (bool, error) {
+	markShouldMatch := func(node fs2.Walk5Node) (bool, error) {
 		markStatsChecked += 1
 
 		zlog.Trace().
-			Str("path", context.VPath).
+			Str("path", node.VPath).
 			Msg("garden prune - markShouldMatch")
 
 		// match if we haven't marked already
-		return context.Info.ModTime().Before(currentTime), nil
+		return node.Info.ModTime().Before(currentTime), nil
 	}
 
-	markOnMatch := func(context fs2.Walk4Context) error {
+	markOnMatch := func(node fs2.Walk5Node) error {
 		markStatsMarked += 1
 
 		zlog.Trace().
-			Str("path", context.VPath).
+			Str("path", node.VPath).
 			Msg("garden prune - markOnMatch")
 
-		err = os.Chtimes(context.Path, currentTime, currentTime)
+		err = os.Chtimes(node.Path, currentTime, currentTime)
 		if err != nil {
 			return err
 		}
@@ -76,7 +76,7 @@ func GardenPrune(gardenPath string) error {
 
 	err = fs2.DFSWalk3(
 		task.DEFAULT_CONTEXT,
-		fs2.Walk4Request{
+		fs2.Walk5Request{
 			Path: sproutsPath,
 			VPath: sproutsPath,
 			BasePath: sproutsPath,

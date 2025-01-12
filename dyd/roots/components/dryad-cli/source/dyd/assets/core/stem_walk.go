@@ -39,15 +39,15 @@ var RE_STEM_WALK_SHOULD_CRAWL = regexp.MustCompile(
 // - else if the node is a directory then yes
 // - else if the node is a file then no
 // - else error?
-func StemWalkShouldCrawl(context fs2.Walk4Context) (bool, error) {
+func StemWalkShouldCrawl(node fs2.Walk5Node) (bool, error) {
 	zlog.
 		Trace().
-		Str("path", context.Path).
-		Str("vPath", context.VPath).
-		Str("basePath", context.BasePath).
+		Str("path", node.Path).
+		Str("vPath", node.VPath).
+		Str("basePath", node.BasePath).
 		Msg("StemWalk / shouldCrawl")
 
-	var relPath, relErr = filepath.Rel(context.BasePath, context.VPath)
+	var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
 	if relErr != nil {
 		return false, relErr
 	}
@@ -55,10 +55,10 @@ func StemWalkShouldCrawl(context fs2.Walk4Context) (bool, error) {
 
 	if !matchesPath {
 		return false, nil
-	} else if context.Info.IsDir() {
+	} else if node.Info.IsDir() {
 		return true, nil
-	} else if context.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
-		linkTarget, err := os.Readlink(context.Path)
+	} else if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
+		linkTarget, err := os.Readlink(node.Path)
 		if err != nil {
 			return false, err
 		}
@@ -66,10 +66,10 @@ func StemWalkShouldCrawl(context fs2.Walk4Context) (bool, error) {
 		// clean up relative links
 		absLinkTarget := linkTarget
 		if !filepath.IsAbs(absLinkTarget) {
-			absLinkTarget = filepath.Join(filepath.Dir(context.VPath), linkTarget)
+			absLinkTarget = filepath.Join(filepath.Dir(node.VPath), linkTarget)
 		} 
 
-		isDescendant, err := fileIsDescendant(absLinkTarget, context.BasePath)
+		isDescendant, err := fileIsDescendant(absLinkTarget, node.BasePath)
 
 		if err != nil {
 			return false, err
@@ -111,15 +111,15 @@ var RE_STEM_WALK_SHOULD_MATCH = regexp.MustCompile(
 // - else if the node is a directory then no,
 // - else if the node is a file then yes,
 // - else error?
-func StemWalkShouldMatch(context fs2.Walk4Context) (bool, error) {
+func StemWalkShouldMatch(node fs2.Walk5Node) (bool, error) {
 	zlog.
 		Trace().
-		Str("path", context.Path).
-		Str("vPath", context.VPath).
-		Str("basePath", context.BasePath).
+		Str("path", node.Path).
+		Str("vPath", node.VPath).
+		Str("basePath", node.BasePath).
 		Msg("StemWalk / shouldMatch")
 
-	var relPath, relErr = filepath.Rel(context.BasePath, context.VPath)
+	var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
 	if relErr != nil {
 		return false, relErr
 	}
@@ -129,7 +129,7 @@ func StemWalkShouldMatch(context fs2.Walk4Context) (bool, error) {
 
 type StemWalkRequest struct {
 	BasePath string
-	OnMatch  func(context fs2.Walk4Context) error
+	OnMatch  func(node fs2.Walk5Node) error
 }
 
 func StemWalk(
@@ -151,18 +151,18 @@ func StemWalk(
 
 	err, _ = fs2.BFSWalk3(
 		ctx,
-		fs2.Walk4Request{
+		fs2.Walk5Request{
 			Path:        path,
 			VPath:       path,
 			BasePath:    path,
 			ShouldCrawl: StemWalkShouldCrawl,
 			ShouldMatch: StemWalkShouldMatch,
 			OnMatch:     args.OnMatch,
-			OnError: func(err error, context fs2.Walk4Context) error {
+			OnError: func(err error, node fs2.Walk5Node) error {
 				zlog.
 					Trace().
-					Str("path", context.Path).
-					Str("vpath", context.VPath).
+					Str("path", node.Path).
+					Str("vpath", node.VPath).
 					Err(err).
 					Msg("StemWalk / onError")
 				
