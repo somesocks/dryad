@@ -60,7 +60,7 @@ func GardenPrune(gardenPath string) error {
 		return node.Info.ModTime().Before(currentTime), nil
 	}
 
-	markOnMatch := func(node fs2.Walk5Node) error {
+	markOnMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
 		markStatsMarked += 1
 
 		zlog.Trace().
@@ -69,9 +69,9 @@ func GardenPrune(gardenPath string) error {
 
 		err = os.Chtimes(node.Path, currentTime, currentTime)
 		if err != nil {
-			return err
+			return err, nil
 		}
-		return nil
+		return nil, nil
 	}
 
 	err = fs2.DFSWalk3(

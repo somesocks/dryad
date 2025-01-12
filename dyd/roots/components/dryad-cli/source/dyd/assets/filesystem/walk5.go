@@ -16,8 +16,8 @@ var defaultShouldMatch3 = func(node Walk5Node) (bool, error) {
 	return true, nil
 }
 
-var defaultOnMatch3 = func(node Walk5Node) error {
-	return nil
+var defaultOnMatch3 = func(ctx *task.ExecutionContext, node Walk5Node) (error, any) {
+	return nil, nil
 }
 
 var defaultOnError3 = func(err error, node Walk5Node) error {
@@ -30,7 +30,7 @@ type Walk5Request struct {
 	BasePath    string
 	ShouldCrawl func(node Walk5Node) (bool, error)
 	ShouldMatch func(node Walk5Node) (bool, error)
-	OnMatch     func(node Walk5Node) error
+	OnMatch     func(ctx *task.ExecutionContext, node Walk5Node) (error, any)
 	OnError     func(err error, node Walk5Node) error
 }
 
@@ -241,12 +241,15 @@ func _dfsWalk3(ctx *task.ExecutionContext, request Walk5Request) error {
 	}
 
 	if shouldMatch {
-		err = request.OnMatch(Walk5Node{
-			Path:     request.Path,
-			VPath:    request.VPath,
-			BasePath: request.BasePath,
-			Info:     info,
-		})
+		err, _ = request.OnMatch(
+			ctx,
+			Walk5Node{
+				Path:     request.Path,
+				VPath:    request.VPath,
+				BasePath: request.BasePath,
+				Info:     info,
+			},
+		)
 		if err != nil {
 			err = request.OnError(err, Walk5Node{
 				Path:     request.Path,
@@ -323,12 +326,15 @@ func _bfsWalk3(ctx *task.ExecutionContext, request Walk5Request) error {
 	}
 
 	if shouldMatch {
-		err = request.OnMatch(Walk5Node{
-			Path:     request.Path,
-			VPath:    request.VPath,
-			BasePath: request.BasePath,
-			Info:     info,
-		})
+		err, _ = request.OnMatch(
+			ctx,
+			Walk5Node{
+				Path:     request.Path,
+				VPath:    request.VPath,
+				BasePath: request.BasePath,
+				Info:     info,
+			},
+		)
 		if err != nil {
 			err = request.OnError(err, Walk5Node{
 				Path:     request.Path,

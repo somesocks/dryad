@@ -63,7 +63,7 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 		task.DEFAULT_CONTEXT,
 		StemWalkRequest{
 			BasePath: stemPath,
-			OnMatch: func(node fs2.Walk5Node) error {
+			OnMatch: func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
 				zlog.
 					Trace().
 					Str("path", node.Path).
@@ -72,7 +72,7 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 
 				relPath, err := filepath.Rel(node.BasePath, node.VPath)
 				if err != nil {
-					return err
+					return err, nil
 				}
 
 				destPath := filepath.Join(finalStemPath, relPath)
@@ -80,10 +80,10 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 				// if the file already exists, we hit it on a previous pass through a symlink
 				destExists, err := fileExists(destPath)
 				if err != nil {
-					return err
+					return err, nil
 				}
 				if destExists {
-					return errors.New("heap add stem error - file already exists but should not")
+					return errors.New("heap add stem error - file already exists but should not"), nil
 				}
 
 				if node.Info.IsDir() {
@@ -94,7 +94,7 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 
 					err = os.Mkdir(destPath, os.ModePerm)
 					if err != nil {
-						return err
+						return err, nil
 					}
 				} else if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
 					// zlog.
@@ -104,7 +104,7 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 
 					linkTarget, err := os.Readlink(node.Path)
 					if err != nil {
-						return err
+						return err, nil
 					}
 										
 					absLinkTarget := linkTarget
@@ -117,7 +117,7 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 					if isInternalLink {
 						err = os.Symlink(linkTarget, destPath)
 						if err != nil {
-							return err
+							return err, nil
 						}
 					} 
 				} else {
@@ -140,18 +140,18 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 							Str("vpath", node.VPath).
 							Err(err).
 							Msg("HeapAddStem / onMatch / HeapAddFile error")
-						return err
+						return err, nil
 					}
 
 					fileHeapPath := filepath.Join(gardenFilesPath, fileFingerprint)
 
 					err = os.Link(fileHeapPath, destPath)
 					if err != nil {
-						return err
+						return err, nil
 					}
 				}
 
-				return nil
+				return nil, nil
 			},
 		},
 	)
@@ -243,7 +243,7 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 		return isDir, nil
 	}
 
-	var setPermissionsOnMatch = func(node fs2.Walk5Node) error {
+	var setPermissionsOnMatch = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
 		zlog.Trace().
 			Str("path", node.VPath).
 			Msg("heap add stem - dir OnMatch")
@@ -252,22 +252,22 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 
 		// if permissions are already set correctly, do nothing
 		if dirPerms == 0o511 {
-			return nil
+			return nil, nil
 		}
 
 		dir, err := os.Open(node.Path)
 		if err != nil {
-			return err
+			return err, nil
 		}
 		defer dir.Close()
 
 		// heap files should be set to R-X--X--X
 		err = dir.Chmod(0o511)
 		if err != nil {
-			return err
+			return err, nil
 		}
 
-		return nil
+		return nil, nil
 	}
 
 	// now that all files are added, sweep through in a second pass and make directories read-only

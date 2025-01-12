@@ -129,7 +129,7 @@ func StemWalkShouldMatch(node fs2.Walk5Node) (bool, error) {
 
 type StemWalkRequest struct {
 	BasePath string
-	OnMatch  func(node fs2.Walk5Node) error
+	OnMatch  func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any)
 }
 
 func StemWalk(
