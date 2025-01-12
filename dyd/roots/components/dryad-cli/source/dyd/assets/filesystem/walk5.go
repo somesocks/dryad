@@ -8,8 +8,8 @@ import (
 	"dryad/task"
 )
 
-var defaultShouldCrawl3 = func(node Walk5Node) (bool, error) {
-	return true, nil
+var defaultShouldCrawl3 = func(ctx *task.ExecutionContext, node Walk5Node) (error, bool) {
+	return nil, true
 }
 
 var defaultShouldMatch3 = func(node Walk5Node) (bool, error) {
@@ -28,7 +28,7 @@ type Walk5Request struct {
 	Path        string
 	VPath       string
 	BasePath    string
-	ShouldCrawl func(node Walk5Node) (bool, error)
+	ShouldCrawl func(ctx *task.ExecutionContext, node Walk5Node) (error, bool)
 	ShouldMatch func(node Walk5Node) (bool, error)
 	OnMatch     func(ctx *task.ExecutionContext, node Walk5Node) (error, any)
 	OnError     func(err error, node Walk5Node) error
@@ -68,12 +68,15 @@ func _dfsWalk3(ctx *task.ExecutionContext, request Walk5Request) error {
 		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
 
 			// check if we should crawl through the link
-			shouldCrawl, err := request.ShouldCrawl(Walk5Node{
-				Path:     request.Path,
-				VPath:    request.VPath,
-				BasePath: request.BasePath,
-				Info:     info,
-			})
+			err, shouldCrawl := request.ShouldCrawl(
+				ctx,
+				Walk5Node{
+					Path:     request.Path,
+					VPath:    request.VPath,
+					BasePath: request.BasePath,
+					Info:     info,
+				},
+			)
 			if err != nil {
 				err = request.OnError(err, Walk5Node{
 					Path:     request.Path,
@@ -131,12 +134,15 @@ func _dfsWalk3(ctx *task.ExecutionContext, request Walk5Request) error {
 		} else if info.IsDir() {
 
 			// check if we should crawl through the dir
-			shouldCrawl, err := request.ShouldCrawl(Walk5Node{
-				Path:     request.Path,
-				VPath:    request.VPath,
-				BasePath: request.BasePath,
-				Info:     info,
-			})
+			err, shouldCrawl := request.ShouldCrawl(
+				ctx,
+				Walk5Node{
+					Path:     request.Path,
+					VPath:    request.VPath,
+					BasePath: request.BasePath,
+					Info:     info,
+				},
+			)
 			if err != nil {
 				err = request.OnError(err, Walk5Node{
 					Path:     request.Path,
@@ -355,12 +361,15 @@ func _bfsWalk3(ctx *task.ExecutionContext, request Walk5Request) error {
 		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
 
 			// check if we should crawl through the link
-			shouldCrawl, err := request.ShouldCrawl(Walk5Node{
-				Path:     request.Path,
-				VPath:    request.VPath,
-				BasePath: request.BasePath,
-				Info:     info,
-			})
+			err, shouldCrawl := request.ShouldCrawl(
+				ctx,
+				Walk5Node{
+					Path:     request.Path,
+					VPath:    request.VPath,
+					BasePath: request.BasePath,
+					Info:     info,
+				},
+			)
 			if err != nil {
 				err = request.OnError(err, Walk5Node{
 					Path:     request.Path,
@@ -421,12 +430,15 @@ func _bfsWalk3(ctx *task.ExecutionContext, request Walk5Request) error {
 		} else if info.IsDir() {
 
 			// check if we should crawl through the dir
-			shouldCrawl, err := request.ShouldCrawl(Walk5Node{
-				Path:     request.Path,
-				VPath:    request.VPath,
-				BasePath: request.BasePath,
-				Info:     info,
-			})
+			err, shouldCrawl := request.ShouldCrawl(
+				ctx,
+				Walk5Node{
+					Path:     request.Path,
+					VPath:    request.VPath,
+					BasePath: request.BasePath,
+					Info:     info,
+				},
+			)
 			if err != nil {
 				err = request.OnError(err, Walk5Node{
 					Path:     request.Path,

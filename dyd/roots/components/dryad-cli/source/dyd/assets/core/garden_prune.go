@@ -40,13 +40,13 @@ func GardenPrune(gardenPath string) error {
 	markStatsChecked := 0
 	markStatsMarked := 0
 
-	markShouldCrawl := func(node fs2.Walk5Node) (bool, error) {
+	markShouldCrawl := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
 		zlog.Trace().
 			Str("path", node.VPath).
 			Msg("garden prune - markShouldCrawl")
 
-			// crawl if we haven't marked already
-		return node.Info.ModTime().Before(currentTime), nil
+		// crawl if we haven't marked already
+		return nil, node.Info.ModTime().Before(currentTime)
 	}
 
 	markShouldMatch := func(node fs2.Walk5Node) (bool, error) {

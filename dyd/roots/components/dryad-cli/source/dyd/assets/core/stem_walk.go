@@ -39,7 +39,7 @@ var RE_STEM_WALK_SHOULD_CRAWL = regexp.MustCompile(
 // - else if the node is a directory then yes
 // - else if the node is a file then no
 // - else error?
-func StemWalkShouldCrawl(node fs2.Walk5Node) (bool, error) {
+func StemWalkShouldCrawl(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
 	zlog.
 		Trace().
 		Str("path", node.Path).
@@ -49,18 +49,18 @@ func StemWalkShouldCrawl(node fs2.Walk5Node) (bool, error) {
 
 	var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
 	if relErr != nil {
-		return false, relErr
+		return relErr, false
 	}
 	matchesPath := RE_STEM_WALK_SHOULD_CRAWL.Match([]byte(relPath))
 
 	if !matchesPath {
-		return false, nil
+		return nil, false 
 	} else if node.Info.IsDir() {
-		return true, nil
+		return nil, true
 	} else if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
 		linkTarget, err := os.Readlink(node.Path)
 		if err != nil {
-			return false, err
+			return err, false
 		}
 
 		// clean up relative links
@@ -72,12 +72,12 @@ func StemWalkShouldCrawl(node fs2.Walk5Node) (bool, error) {
 		isDescendant, err := fileIsDescendant(absLinkTarget, node.BasePath)
 
 		if err != nil {
-			return false, err
+			return err, false
 		}
 
-		return !isDescendant, nil
+		return  nil, !isDescendant
 	} else {
-		return false, nil
+		return nil, false 
 	}
 }
 
