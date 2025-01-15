@@ -35,17 +35,12 @@ _prepare() {
 	# run "dryad garden create" to finalize setting up the garden
 	(cd "$TEMP_DIR" && dryad garden create && dryad garden build)
 
-	# set the whole garden to a timestamp in the past
-	find "$TEMP_DIR" \
-		\( -type l -o -type f -o -type d \) \
-		-exec touch --no-dereference --date="2000-01-01 00:00:00" {} +
-
 	:;
 }
 
 _test() {
 	( cd "$TEMP_DIR" && \
-	dryad garden prune --log-level="$DYD_LOG_LEVEL" \
+	dryad sprouts prune --log-level="$DYD_LOG_LEVEL" \
 	) 1>&2;
 }
 
