@@ -70,9 +70,9 @@ var stemAncestorsCommand = func() clib.Command {
 			err = dryad.StemAncestorsWalk(
 				dryad.StemAncestorsWalkRequest{
 					BasePath: path,
-					OnMatch: func(context fs2.Walk4Context) error {
+					OnMatch: func(node fs2.Walk5Node) error {
 						// calculate the relative path to the root from the base of the garden
-						relPath, err := filepath.Rel(gardenPath, context.Path)
+						relPath, err := filepath.Rel(gardenPath, node.Path)
 						if err != nil {
 							return err
 						}
@@ -80,7 +80,7 @@ var stemAncestorsCommand = func() clib.Command {
 						if relative {
 							fmt.Println(relPath)
 						} else {
-							fmt.Println(context.Path)
+							fmt.Println(node.Path)
 						}
 
 						return nil
