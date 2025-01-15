@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"time"
+	"strings"
 
 	"dryad/task"
 
@@ -41,23 +42,39 @@ func GardenPrune(gardenPath string) error {
 	markStatsMarked := 0
 
 	markShouldCrawl := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+		// crawl if we haven't marked already or the timestamp is newer
+		// always crawl the sprouts directory regardless of the timestamp
+		var shouldCrawl bool = node.Info.ModTime().Before(currentTime) ||
+			strings.HasPrefix(node.Path, sproutsPath)
+
 		zlog.Trace().
-			Str("path", node.VPath).
+			Str("path", node.Path).
+			Str("vpath", node.VPath).
+			Bool("shouldCrawl", shouldCrawl).
+			Time("currentTime", currentTime).
+			Time("fileTime", node.Info.ModTime()).
 			Msg("garden prune - markShouldCrawl")
 
-		// crawl if we haven't marked already
-		return nil, node.Info.ModTime().Before(currentTime)
+		return nil, shouldCrawl
 	}
 
 	markShouldMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+		// match if we haven't marked already or the timestamp is newer
+		// always match the sprouts directory regardless of the timestamp
+		var shouldMatch bool = node.Info.ModTime().Before(currentTime) ||
+			strings.HasPrefix(node.Path, sproutsPath)
+
 		markStatsChecked += 1
 
 		zlog.Trace().
 			Str("path", node.VPath).
+			Str("vpath", node.VPath).
+			Bool("shouldMatch", shouldMatch).
+			Time("currentTime", currentTime).
+			Time("fileTime", node.Info.ModTime()).
 			Msg("garden prune - markShouldMatch")
 
-		// match if we haven't marked already
-		return nil, node.Info.ModTime().Before(currentTime)
+		return nil, shouldMatch
 	}
 
 	markOnMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
