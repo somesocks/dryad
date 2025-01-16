@@ -17,7 +17,7 @@ func GardenWipe(gardenPath string) error {
 	}
 
 	sproutsPath := filepath.Join(gardenPath, "dyd", "sprouts")
-	err = fs2.RemoveAll(sproutsPath)
+	err, _ = fs2.RemoveAll(task.SERIAL_CONTEXT, sproutsPath)
 	if err != nil {
 		return err
 	}
@@ -27,7 +27,7 @@ func GardenWipe(gardenPath string) error {
 	}
 
 	derivationsPath := filepath.Join(gardenPath, "dyd", "heap", "derivations")
-	err = fs2.RemoveAll(derivationsPath)
+	err, _ = fs2.RemoveAll(task.SERIAL_CONTEXT, derivationsPath)
 	if err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ func GardenWipe(gardenPath string) error {
 	}
 
 	stemsPath := filepath.Join(gardenPath, "dyd", "heap", "stems")
-	err = fs2.RemoveAll(stemsPath)
+	err, _ = fs2.RemoveAll(task.SERIAL_CONTEXT, stemsPath)
 	if err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func GardenWipe(gardenPath string) error {
 	}
 
 	filesPath := filepath.Join(gardenPath, "dyd", "heap", "files")
-	err = fs2.RemoveAll(filesPath)
+	err, _ = fs2.RemoveAll(task.SERIAL_CONTEXT, filesPath)
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func GardenWipe(gardenPath string) error {
 	}
 
 	secretsPath := filepath.Join(gardenPath, "dyd", "heap", "secrets")
-	err = fs2.RemoveAll(secretsPath)
+	err, _ = fs2.RemoveAll(task.SERIAL_CONTEXT, secretsPath)
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func GardenWipe(gardenPath string) error {
 	}
 
 	contextsPath := filepath.Join(gardenPath, "dyd", "heap", "contexts")
-	err = fs2.RemoveAll(contextsPath)
+	err, _ = fs2.RemoveAll(task.SERIAL_CONTEXT, contextsPath)
 	if err != nil {
 		return err
 	}

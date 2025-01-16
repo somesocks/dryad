@@ -2,6 +2,7 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
+	"dryad/task"
 )
 
 func ScopeDelete(path string, scope string) error {
@@ -10,6 +11,6 @@ func ScopeDelete(path string, scope string) error {
 		return err
 	}
 
-	err = fs2.RemoveAll(scopePath)
+	err, _ = fs2.RemoveAll(task.SERIAL_CONTEXT, scopePath)
 	return err
 }

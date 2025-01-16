@@ -2,6 +2,7 @@ package core
 
 import (
 	dydfs "dryad/filesystem"
+	"dryad/task"
 
 	"errors"
 	"fmt"
@@ -38,7 +39,7 @@ func StemAdd(rootPath string, fingerprint string, alias string) error {
 		return err
 	}
 
-	err = dydfs.RemoveAll(aliasPath)
+	err, _ = dydfs.RemoveAll(task.SERIAL_CONTEXT, aliasPath)
 	if err != nil {
 		return err
 	}

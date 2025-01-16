@@ -2,6 +2,7 @@ package core
 
 import (
 	dydfs "dryad/filesystem"
+	"dryad/task"
 )
 
 func RootMove(sourcePath string, destPath string) error {
@@ -25,6 +26,6 @@ func RootMove(sourcePath string, destPath string) error {
 	}
 
 	// delete the old root
-	err = dydfs.RemoveAll(sourcePath)
+	err, _ = dydfs.RemoveAll(task.SERIAL_CONTEXT, sourcePath)
 	return err
 }

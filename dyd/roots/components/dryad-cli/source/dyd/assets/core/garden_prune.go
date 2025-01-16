@@ -141,7 +141,7 @@ func GardenPrune(gardenPath string) error {
 		sweepStemStatsCheck += 1
 
 		if info.ModTime().Before(currentTime) {
-			err = fs2.RemoveAll(path)
+			err, _ = fs2.RemoveAll(task.SERIAL_CONTEXT, path)
 			if err != nil {
 				return err
 			}

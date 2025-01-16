@@ -4,13 +4,15 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+
+	"dryad/task"
 )
 
-func RemoveAll(path string) error {
+func RemoveAll(ctx *task.ExecutionContext, path string) (error, any) {
 
 	// if the path does not exist, silently return
 	if _, err := os.Lstat(path); os.IsNotExist(err) {
-		return nil
+		return nil, nil
 	}
 
 	// walk through the filesystem and fix any permissions problems,
@@ -54,8 +56,8 @@ func RemoveAll(path string) error {
 		},
 	})
 	if err != nil {
-		return err
+		return err, nil
 	}
 
-	return nil
+	return nil, nil
 }

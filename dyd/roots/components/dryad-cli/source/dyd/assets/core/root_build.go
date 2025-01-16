@@ -2,6 +2,7 @@ package core
 
 import (
 	dydfs "dryad/filesystem"
+	"dryad/task"
 
 	"io/fs"
 	"io/ioutil"
@@ -301,7 +302,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer dydfs.RemoveAll(workspacePath)
+	defer dydfs.RemoveAll(task.SERIAL_CONTEXT, workspacePath)
 
 	err = rootBuild_stage0(rootPath, workspacePath)
 	if err != nil {
@@ -372,7 +373,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		defer dydfs.RemoveAll(stemBuildPath)
+		defer dydfs.RemoveAll(task.SERIAL_CONTEXT, stemBuildPath)
 
 		stemBuildFingerprint, err = rootBuild_stage5(relRootPath, finalStemPath, stemBuildPath, rootFingerprint)
 		if err != nil {
@@ -396,7 +397,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			err = dydfs.RemoveAll(derivationsPath)
+			err, _ = dydfs.RemoveAll(task.SERIAL_CONTEXT, derivationsPath)
 			if err != nil {
 				return "", err
 			}

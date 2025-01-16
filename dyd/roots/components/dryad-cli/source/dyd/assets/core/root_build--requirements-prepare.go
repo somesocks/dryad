@@ -164,7 +164,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 
 		requirementsPath := filepath.Join(workspacePath, "dyd", "requirements")
 
-		err := dydfs.RemoveAll(requirementsPath)
+		err, _ := dydfs.RemoveAll(task.SERIAL_CONTEXT, requirementsPath)
 		if err != nil {
 			return err
 		}

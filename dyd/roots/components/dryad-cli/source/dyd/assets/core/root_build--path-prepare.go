@@ -2,6 +2,7 @@ package core
 
 import (
 	dydfs "dryad/filesystem"
+	"dryad/task"
 
 	"io/fs"
 	"os"
@@ -12,7 +13,7 @@ func rootBuild_pathPrepare(workspacePath string) error {
 
 	pathPath := filepath.Join(workspacePath, "dyd", "path")
 
-	err := dydfs.RemoveAll(pathPath)
+	err, _ := dydfs.RemoveAll(task.SERIAL_CONTEXT, pathPath)
 	if err != nil {
 		return err
 	}

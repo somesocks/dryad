@@ -341,7 +341,7 @@ func stemArchive(request StemPackRequest) (string, error) {
 		}
 
 		// clear the archive directory
-		err = fs2.RemoveAll(request.TargetPath)
+		err, _ = fs2.RemoveAll(task.SERIAL_CONTEXT, request.TargetPath)
 		if err != nil {
 			return "", err
 		}
