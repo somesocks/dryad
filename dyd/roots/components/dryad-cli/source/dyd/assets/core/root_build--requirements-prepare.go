@@ -166,6 +166,9 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 
 		err, _ := dydfs.RemoveAll(task.SERIAL_CONTEXT, requirementsPath)
 		if err != nil {
+			zlog.Trace().
+				Err(err).
+				Msg("rootBuild_requirementsPrepare RemoveAll err")
 			return err
 		}
 
