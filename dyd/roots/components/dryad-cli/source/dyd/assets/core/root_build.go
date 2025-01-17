@@ -424,6 +424,10 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	}
 
 	// fmt.Println("[debug] building sprout parent")
+
+	zlog.Debug().
+		Str("path", sproutParent).
+		Msg("root build - building sprout")
 	err = dydfs.MkDir(sproutParent, fs.ModePerm)
 	if err != nil {
 		return "", err
@@ -436,12 +440,19 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	}
 
 	tmpSproutPath := sproutPath + ".tmp"
+	zlog.Debug().
+		Str("path", tmpSproutPath).
+		Msg("root build - creating temporary sprout")
 	// fmt.Println("[debug] adding temporary sprout link")
 	err = os.Symlink(relSproutLink, tmpSproutPath)
 	if err != nil {
 		return "", err
 	}
 
+	zlog.Debug().
+		Str("tmpSproutPath", tmpSproutPath).
+		Str("sproutPath", sproutPath).
+		Msg("root build - renaming sprout")
 	// fmt.Println("[debug] renaming sprout link", sproutPath)
 	err = os.Rename(tmpSproutPath, sproutPath)
 	if err != nil {
