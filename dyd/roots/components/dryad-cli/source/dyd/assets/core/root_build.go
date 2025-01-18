@@ -261,12 +261,18 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 
 	// sanitize the root path
 	rootPath, err := RootPath(rootPath, "")
+	zlog.Debug().
+		Str("rootPath", rootPath).
+		Msg("RootBuild/rootPath")
 	if err != nil {
 		return "", err
 	}
 	// fmt.Println("[trace] RootBuild rootPath", rootPath)
 
 	absRootPath, err := filepath.EvalSymlinks(rootPath)
+	zlog.Debug().
+		Str("absRootPath", absRootPath).
+		Msg("RootBuild/absRootPath")
 	if err != nil {
 		return "", err
 	}
@@ -274,6 +280,9 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 
 	// check to see if the stem already exists in the garden
 	gardenPath, err := GardenPath(rootPath)
+	zlog.Debug().
+		Str("gardenPath", gardenPath).
+		Msg("RootBuild/gardenPath")
 	if err != nil {
 		return "", err
 	}
@@ -283,6 +292,9 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		filepath.Join(gardenPath, "dyd", "roots"),
 		absRootPath,
 	)
+	zlog.Debug().
+		Str("relRootPath", relRootPath).
+		Msg("RootBuild/relRootPath")
 	if err != nil {
 		return "", err
 	}
