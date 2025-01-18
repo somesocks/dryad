@@ -21,12 +21,12 @@ func rootBuild_stage0(rootPath string, workspacePath string) error {
 
 	// fmt.Println("rootBuild_stage0 ", rootPath, " ", workspacePath)
 
-	rootPath, err := filepath.EvalSymlinks(rootPath)
-	if err != nil {
-		return err
-	}
+	// rootPath, err := filepath.EvalSymlinks(rootPath)
+	// if err != nil {
+	// 	return err
+	// }
 
-	err = os.MkdirAll(
+	err := os.MkdirAll(
 		filepath.Join(workspacePath, "dyd"),
 		os.ModePerm,
 	)
@@ -269,7 +269,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	}
 	// fmt.Println("[trace] RootBuild rootPath", rootPath)
 
-	absRootPath, err := filepath.EvalSymlinks(rootPath)
+	absRootPath, err := filepath.Abs(rootPath)
 	zlog.Debug().
 		Str("absRootPath", absRootPath).
 		Msg("RootBuild/absRootPath")
