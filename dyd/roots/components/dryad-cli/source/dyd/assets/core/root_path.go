@@ -15,10 +15,22 @@ func RootPath(path string, limit string) (string, error) {
 		Msg("RootPath")
 
 	var err error
+
 	path, err = filepath.Abs(path)
 	if err != nil {
 		return "", err
 	}
+	zlog.Trace().
+		Str("path", path).
+		Msg("RootPath/abs")
+
+	path, err = filepath.EvalSymlinks(path)
+	if err != nil {
+		return "", err
+	}
+	zlog.Trace().
+		Str("path", path).
+		Msg("RootPath/evalSym")
 
 	var workingPath = path
 	var flagPath = filepath.Join(workingPath, "dyd", "type")

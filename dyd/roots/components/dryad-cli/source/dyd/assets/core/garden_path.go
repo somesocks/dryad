@@ -4,14 +4,32 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 func GardenPath(path string) (string, error) {
+	zlog.Trace().
+		Str("path", path).
+		Msg("GardenPath")
+
 	var err error
 	path, err = filepath.Abs(path)
 	if err != nil {
 		return "", err
 	}
+
+	zlog.Trace().
+		Str("path", path).
+		Msg("GardenPath/abs")
+
+	path, err = filepath.EvalSymlinks(path)
+	if err != nil {
+		return "", err
+	}
+	zlog.Trace().
+		Str("path", path).
+		Msg("GardenPath/evalSym")
 
 	var workingPath = path
 	var flagPath = filepath.Join(workingPath, "dyd", "type")

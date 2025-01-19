@@ -12,111 +12,6 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-// stage 0 - build a shallow partial clone of the root into a working directory,
-// so we can build it into a stem
-func rootBuild_stage0(rootPath string, workspacePath string) error {
-	zlog.Debug().
-		Str("path", rootPath).
-		Msg("root build - stage0")
-
-	// fmt.Println("rootBuild_stage0 ", rootPath, " ", workspacePath)
-
-	// rootPath, err := filepath.EvalSymlinks(rootPath)
-	// if err != nil {
-	// 	return err
-	// }
-
-	err := os.MkdirAll(
-		filepath.Join(workspacePath, "dyd"),
-		os.ModePerm,
-	)
-	if err != nil {
-		return err
-	}
-
-	exists, err := fileExists(filepath.Join(rootPath, "dyd", "assets"))
-	if err != nil {
-		return err
-	}
-	if exists {
-		err = os.Symlink(
-			filepath.Join(rootPath, "dyd", "assets"),
-			filepath.Join(workspacePath, "dyd", "assets"),
-		)
-		if err != nil {
-			return err
-		}
-	}
-
-	exists, err = fileExists(filepath.Join(rootPath, "dyd", "commands"))
-	if err != nil {
-		return err
-	}
-	if exists {
-		err = os.Symlink(
-			filepath.Join(rootPath, "dyd", "commands"),
-			filepath.Join(workspacePath, "dyd", "commands"),
-		)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = os.MkdirAll(filepath.Join(workspacePath, "dyd", "dependencies"), fs.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	err = os.MkdirAll(filepath.Join(workspacePath, "dyd", "requirements"), fs.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	exists, err = fileExists(filepath.Join(rootPath, "dyd", "secrets"))
-	if err != nil {
-		return err
-	}
-	if exists {
-		err = os.Symlink(
-			filepath.Join(rootPath, "dyd", "secrets"),
-			filepath.Join(workspacePath, "dyd", "secrets"),
-		)
-		if err != nil {
-			return err
-		}
-	}
-
-	exists, err = fileExists(filepath.Join(rootPath, "dyd", "traits"))
-	if err != nil {
-		return err
-	}
-	if exists {
-		err = os.Symlink(
-			filepath.Join(rootPath, "dyd", "traits"),
-			filepath.Join(workspacePath, "dyd", "traits"),
-		)
-		if err != nil {
-			return err
-		}
-	}
-
-	exists, err = fileExists(filepath.Join(rootPath, "dyd", "docs"))
-	if err != nil {
-		return err
-	}
-	if exists {
-		err = os.Symlink(
-			filepath.Join(rootPath, "dyd", "docs"),
-			filepath.Join(workspacePath, "dyd", "docs"),
-		)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // stage 1 - walk through the root dependencies,
 // and add the fingerprint as a dependency
 func rootBuild_stage1(
@@ -140,7 +35,7 @@ func rootBuild_stage1(
 	for _, dependencyPath := range dependencies {
 
 		// verify that root path is valid for dependency
-		_, err := RootPath(dependencyPath, dependencyPath)
+		_, err := RootPath(dependencyPath, "")
 		if err != nil {
 			return err
 		}
@@ -267,16 +162,6 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// fmt.Println("[trace] RootBuild rootPath", rootPath)
-
-	absRootPath, err := filepath.Abs(rootPath)
-	zlog.Debug().
-		Str("absRootPath", absRootPath).
-		Msg("RootBuild/absRootPath")
-	if err != nil {
-		return "", err
-	}
-	// fmt.Println("[trace] RootBuild absRootPath", absRootPath)
 
 	// check to see if the stem already exists in the garden
 	gardenPath, err := GardenPath(rootPath)
@@ -290,7 +175,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 
 	relRootPath, err := filepath.Rel(
 		filepath.Join(gardenPath, "dyd", "roots"),
-		absRootPath,
+		rootPath,
 	)
 	zlog.Debug().
 		Str("relRootPath", relRootPath).
@@ -300,7 +185,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	}
 
 	// check if the root is already present in the context
-	rootFingerprint, contextHasRootFingerprint := context.Fingerprints[absRootPath]
+	rootFingerprint, contextHasRootFingerprint := context.Fingerprints[rootPath]
 	if contextHasRootFingerprint {
 		return rootFingerprint, nil
 	}
@@ -316,7 +201,13 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	}
 	defer dydfs.RemoveAll(task.SERIAL_CONTEXT, workspacePath)
 
-	err = rootBuild_stage0(rootPath, workspacePath)
+	err, _ = rootBuild_stage0(
+		task.SERIAL_CONTEXT,
+		rootBuild_stage0_request{
+			RootPath: rootPath,
+			WorkspacePath: workspacePath,
+		},
+	)
 	if err != nil {
 		return "", err
 	}
@@ -373,7 +264,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		stemBuildFingerprint = derivationsFingerprint
 
 		// add the built fingerprint to the context
-		context.Fingerprints[absRootPath] = derivationsFingerprint
+		context.Fingerprints[rootPath] = derivationsFingerprint
 
 	} else {
 		zlog.Info().
@@ -398,7 +289,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		}
 
 		// add the built fingerprint to the context
-		context.Fingerprints[absRootPath] = stemBuildFingerprint
+		context.Fingerprints[rootPath] = stemBuildFingerprint
 
 		if !isUnstableRoot {
 			// add the derivation link
