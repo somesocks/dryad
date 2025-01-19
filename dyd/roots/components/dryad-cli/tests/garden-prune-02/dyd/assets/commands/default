@@ -39,9 +39,10 @@ _prepare() {
 	)
 
 	# set the whole garden to a timestamp in the past
+	# NOTE: only use shorthand touch flags to keep it mac-compatible
 	find "$TEMP_DIR" \
 		\( -type l -o -type f -o -type d \) \
-		-exec touch --no-dereference --date="2000-01-01 00:00:00" {} +
+		-exec touch -h -d "2000-01-01 00:00:00" {} +
 
 	:;
 }
