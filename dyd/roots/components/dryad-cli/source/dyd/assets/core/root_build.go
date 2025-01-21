@@ -12,144 +12,6 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-// stage 1 - walk through the root dependencies,
-// and add the fingerprint as a dependency
-func rootBuild_stage1(
-	context BuildContext,
-	rootPath string,
-	workspacePath string,
-	gardenPath string,
-) error {
-	zlog.Debug().
-		Str("path", rootPath).
-		Msg("root build - stage1")
-
-	// walk through the dependencies, build them, and add the fingerprint as a dependency
-	rootsPath := filepath.Join(rootPath, "dyd", "requirements")
-
-	dependencies, err := filepath.Glob(filepath.Join(rootsPath, "*"))
-	if err != nil {
-		return err
-	}
-
-	for _, dependencyPath := range dependencies {
-
-		// verify that root path is valid for dependency
-		_, err := RootPath(dependencyPath, "")
-		if err != nil {
-			return err
-		}
-
-		dependencyFingerprint, err := RootBuild(context, dependencyPath)
-		if err != nil {
-			return err
-		}
-
-		dependencyHeapPath := filepath.Join(gardenPath, "dyd", "heap", "stems", dependencyFingerprint)
-
-		dependencyName := filepath.Base(dependencyPath)
-
-		targetDepPath := filepath.Join(workspacePath, "dyd", "dependencies", dependencyName)
-
-		err = os.Symlink(dependencyHeapPath, targetDepPath)
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// stage 2 - generate the artificial links to all executable stems for the path
-func rootBuild_stage2(relRootPath string, workspacePath string) error {
-	zlog.Debug().
-		Str("path", relRootPath).
-		Msg("root build - stage2")
-
-	err := rootBuild_pathPrepare(workspacePath)
-	if err != nil {
-		return err
-	}
-	err = rootBuild_requirementsPrepare(workspacePath)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// stage 3 - finalize the stem by generating fingerprints,
-func rootBuild_stage3(relRootPath string, rootPath string, workspacePath string) (string, error) {
-	zlog.Debug().
-		Str("path", relRootPath).
-		Msg("root build - stage3")
-
-	stemFingerprint, err := stemFinalize(workspacePath)
-	return stemFingerprint, err
-}
-
-// stage 4 - check the garden to see if the stem exists,
-// and add it if it doesn't
-func rootBuild_stage4(relRootPath string, gardenPath string, workspacePath string, rootFingerprint string) (string, error) {
-	zlog.Debug().
-		Str("path", relRootPath).
-		Msg("root build - stage4")
-
-	return HeapAddStem(gardenPath, workspacePath)
-}
-
-// stage 5 - execute the root to build its stem,
-func rootBuild_stage5(relRootPath string, rootStemPath string, stemBuildPath string, rootFingerprint string) (string, error) {
-	zlog.Debug().
-		Str("path", relRootPath).
-		Msg("root build - stage5")
-
-	var err error
-
-	err = StemInit(stemBuildPath)
-	if err != nil {
-		return "", err
-	}
-	err = StemRun(StemRunRequest{
-		StemPath: rootStemPath,
-		Env: map[string]string{
-			"DYD_BUILD": stemBuildPath,
-		},
-		Args:       []string{stemBuildPath},
-		JoinStdout: false,
-	})
-	if err != nil {
-		return "", err
-	}
-
-	// prepare the path
-	err = rootBuild_pathPrepare(stemBuildPath)
-	if err != nil {
-		return "", err
-	}
-
-	// prepare the requirements dir
-	err = rootBuild_requirementsPrepare(stemBuildPath)
-	if err != nil {
-		return "", err
-	}
-
-	stemBuildFingerprint, err := stemFinalize(stemBuildPath)
-	if err != nil {
-		return "", err
-	}
-
-	return stemBuildFingerprint, err
-}
-
-// stage 6 - pack the derived stem into the heap and garden
-func rootBuild_stage6(relRootPath string, gardenPath string, sourcePath string, stemFingerprint string) (string, error) {
-	zlog.Debug().
-		Str("path", relRootPath).
-		Msg("root build - stage6")
-
-	return HeapAddStem(gardenPath, sourcePath)
-}
 
 func RootBuild(context BuildContext, rootPath string) (string, error) {
 	// fmt.Println("[trace] RootBuild", context, rootPath)
@@ -185,7 +47,9 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	}
 
 	// check if the root is already present in the context
+	context.FingerprintsMutex.Lock()
 	rootFingerprint, contextHasRootFingerprint := context.Fingerprints[rootPath]
+	context.FingerprintsMutex.Unlock()
 	if contextHasRootFingerprint {
 		return rootFingerprint, nil
 	}
@@ -212,22 +76,54 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		return "", err
 	}
 
-	err = rootBuild_stage1(context, rootPath, workspacePath, gardenPath)
+	err, _ = rootBuild_stage1(
+		task.SERIAL_CONTEXT,
+		rootBuild_stage1_request{
+			Context: context,
+			RootPath: rootPath,
+			WorkspacePath: workspacePath,
+			GardenPath: gardenPath,
+		},
+	)
 	if err != nil {
 		return "", err
 	}
 
-	err = rootBuild_stage2(relRootPath, workspacePath)
+	err, _ = rootBuild_stage2(
+		task.SERIAL_CONTEXT,
+		rootBuild_stage2_request{
+			Context: context,
+			RootPath: rootPath,
+			WorkspacePath: workspacePath,
+			GardenPath: gardenPath,
+		},
+	)
 	if err != nil {
 		return "", err
 	}
 
-	rootFingerprint, err = rootBuild_stage3(relRootPath, rootPath, workspacePath)
+	err, rootFingerprint = rootBuild_stage3(
+		task.SERIAL_CONTEXT,
+		rootBuild_stage3_request{
+			Context: context,
+			RootPath: rootPath,
+			WorkspacePath: workspacePath,
+			GardenPath: gardenPath,
+		},
+	)
 	if err != nil {
 		return "", err
 	}
 
-	finalStemPath, err := rootBuild_stage4(relRootPath, gardenPath, workspacePath, rootFingerprint)
+	err, finalStemPath := rootBuild_stage4(
+		task.SERIAL_CONTEXT,
+		rootBuild_stage4_request{
+			Context: context,
+			RootPath: rootPath,
+			WorkspacePath: workspacePath,
+			GardenPath: gardenPath,
+		},
+	)
 	if err != nil {
 		return "", err
 	}
@@ -264,7 +160,9 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		stemBuildFingerprint = derivationsFingerprint
 
 		// add the built fingerprint to the context
+		context.FingerprintsMutex.Lock()		
 		context.Fingerprints[rootPath] = derivationsFingerprint
+		context.FingerprintsMutex.Unlock()
 
 	} else {
 		zlog.Info().
@@ -278,18 +176,35 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		}
 		defer dydfs.RemoveAll(task.SERIAL_CONTEXT, stemBuildPath)
 
-		stemBuildFingerprint, err = rootBuild_stage5(relRootPath, finalStemPath, stemBuildPath, rootFingerprint)
+		err, stemBuildFingerprint = rootBuild_stage5(
+			task.SERIAL_CONTEXT,
+			rootBuild_stage5_request{
+				RelRootPath: relRootPath,
+				RootStemPath: finalStemPath,
+				StemBuildPath: stemBuildPath,
+				RootFingerprint: rootFingerprint,
+			},
+		)
 		if err != nil {
 			return "", err
 		}
 
-		finalStemPath, err = rootBuild_stage6(relRootPath, gardenPath, stemBuildPath, stemBuildFingerprint)
+		err, finalStemPath = rootBuild_stage6(
+			task.SERIAL_CONTEXT,
+			rootBuild_stage6_request{
+				RelRootPath: relRootPath,
+				GardenPath: gardenPath,
+				StemBuildPath: stemBuildPath,
+			},
+		)
 		if err != nil {
 			return "", err
 		}
 
 		// add the built fingerprint to the context
+		context.FingerprintsMutex.Lock()
 		context.Fingerprints[rootPath] = stemBuildFingerprint
+		context.FingerprintsMutex.Unlock()
 
 		if !isUnstableRoot {
 			// add the derivation link

@@ -17,6 +17,8 @@ type rootBuild_stage0_request struct {
 	WorkspacePath string
 }
 
+// stage 0 - build a shallow partial clone of the root into a working directory,
+// so we can build it into a stem
 var rootBuild_stage0 = func () (func (ctx *task.ExecutionContext, req rootBuild_stage0_request) (error, any)) {
 
 	var prepReq = func (ctx *task.ExecutionContext, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
@@ -199,74 +201,3 @@ var rootBuild_stage0 = func () (func (ctx *task.ExecutionContext, req rootBuild_
 	return rootBuild_stage0
 
 }()
-
-
-// // stage 0 - build a shallow partial clone of the root into a working directory,
-// // so we can build it into a stem
-// func rootBuild_stage0(rootPath string, workspacePath string) error {
-// 	zlog.Debug().
-// 		Str("path", rootPath).
-// 		Msg("root build - stage0")
-
-// 	// fmt.Println("rootBuild_stage0 ", rootPath, " ", workspacePath)
-
-// 	// rootPath, err := filepath.EvalSymlinks(rootPath)
-// 	// if err != nil {
-// 	// 	return err
-// 	// }
-
-
-// 	err = os.MkdirAll(filepath.Join(workspacePath, "dyd", "dependencies"), fs.ModePerm)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	err = os.MkdirAll(filepath.Join(workspacePath, "dyd", "requirements"), fs.ModePerm)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	exists, err = fileExists(filepath.Join(rootPath, "dyd", "secrets"))
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if exists {
-// 		err = os.Symlink(
-// 			filepath.Join(rootPath, "dyd", "secrets"),
-// 			filepath.Join(workspacePath, "dyd", "secrets"),
-// 		)
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-
-// 	exists, err = fileExists(filepath.Join(rootPath, "dyd", "traits"))
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if exists {
-// 		err = os.Symlink(
-// 			filepath.Join(rootPath, "dyd", "traits"),
-// 			filepath.Join(workspacePath, "dyd", "traits"),
-// 		)
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-
-// 	exists, err = fileExists(filepath.Join(rootPath, "dyd", "docs"))
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if exists {
-// 		err = os.Symlink(
-// 			filepath.Join(rootPath, "dyd", "docs"),
-// 			filepath.Join(workspacePath, "dyd", "docs"),
-// 		)
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-
-// 	return nil
-// }
