@@ -3,6 +3,8 @@ package core
 import (
 	"io/fs"
 	"path/filepath"
+
+	"dryad/task"
 )
 
 type GardenBuildRequest struct {
@@ -57,7 +59,13 @@ func GardenBuild(context BuildContext, request GardenBuildRequest) error {
 
 			// if the root isn't being excluded by a selector, build it
 			if request.IncludeRoots(relPath) && !request.ExcludeRoots(relPath) {
-				_, err = RootBuild(context, path)
+				err, _ = RootBuild(
+					task.SERIAL_CONTEXT,
+					RootBuildRequest{
+						Context: context,
+						RootPath: path,
+					},
+				)
 				return err
 			} else {
 				return nil

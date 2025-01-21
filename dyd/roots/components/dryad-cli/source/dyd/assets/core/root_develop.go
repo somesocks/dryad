@@ -133,7 +133,13 @@ func rootDevelop_stage1(
 			return err
 		}
 
-		_, err = RootBuild(context, dependencyPath)
+		err, _ = RootBuild(
+			task.SERIAL_CONTEXT,
+			RootBuildRequest{
+				Context: context,
+				RootPath: dependencyPath,
+			},
+		)
 		if err != nil {
 			return err
 		}

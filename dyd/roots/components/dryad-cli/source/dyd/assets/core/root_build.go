@@ -12,8 +12,15 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
+type RootBuildRequest struct {
+	Context BuildContext
+	RootPath string
+}
 
-func RootBuild(context BuildContext, rootPath string) (string, error) {
+func RootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string) {
+	var rootPath string = req.RootPath
+	var context BuildContext = req.Context
+
 	// fmt.Println("[trace] RootBuild", context, rootPath)
 
 	// sanitize the root path
@@ -22,7 +29,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		Str("rootPath", rootPath).
 		Msg("RootBuild/rootPath")
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	// check to see if the stem already exists in the garden
@@ -31,7 +38,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		Str("gardenPath", gardenPath).
 		Msg("RootBuild/gardenPath")
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 	// fmt.Println("[trace] RootBuild gardenPath", gardenPath)
 
@@ -43,7 +50,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		Str("relRootPath", relRootPath).
 		Msg("RootBuild/relRootPath")
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	// check if the root is already present in the context
@@ -51,7 +58,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	rootFingerprint, contextHasRootFingerprint := context.Fingerprints[rootPath]
 	context.FingerprintsMutex.Unlock()
 	if contextHasRootFingerprint {
-		return rootFingerprint, nil
+		return nil, rootFingerprint
 	}
 
 	zlog.Info().
@@ -61,23 +68,23 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	// prepare a workspace
 	workspacePath, err := os.MkdirTemp("", "dryad-*")
 	if err != nil {
-		return "", err
+		return err, ""
 	}
-	defer dydfs.RemoveAll(task.SERIAL_CONTEXT, workspacePath)
+	defer dydfs.RemoveAll(ctx, workspacePath)
 
 	err, _ = rootBuild_stage0(
-		task.SERIAL_CONTEXT,
+		ctx,
 		rootBuild_stage0_request{
 			RootPath: rootPath,
 			WorkspacePath: workspacePath,
 		},
 	)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	err, _ = rootBuild_stage1(
-		task.SERIAL_CONTEXT,
+		ctx,
 		rootBuild_stage1_request{
 			Context: context,
 			RootPath: rootPath,
@@ -86,11 +93,11 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		},
 	)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	err, _ = rootBuild_stage2(
-		task.SERIAL_CONTEXT,
+		ctx,
 		rootBuild_stage2_request{
 			Context: context,
 			RootPath: rootPath,
@@ -99,11 +106,11 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		},
 	)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	err, rootFingerprint = rootBuild_stage3(
-		task.SERIAL_CONTEXT,
+		ctx,
 		rootBuild_stage3_request{
 			Context: context,
 			RootPath: rootPath,
@@ -112,11 +119,11 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		},
 	)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	err, finalStemPath := rootBuild_stage4(
-		task.SERIAL_CONTEXT,
+		ctx,
 		rootBuild_stage4_request{
 			Context: context,
 			RootPath: rootPath,
@@ -125,12 +132,12 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		},
 	)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	isUnstableRoot, err := fileExists(filepath.Join(finalStemPath, "dyd", "traits", "unstable"))
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	var stemBuildFingerprint string
@@ -144,7 +151,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		derivationsPath = filepath.Join(gardenPath, "dyd", "heap", "derivations", rootFingerprint)
 		derivationFileExists, err = fileExists(derivationsPath)
 		if err != nil {
-			return "", err
+			return err, ""
 		}
 	}
 
@@ -153,7 +160,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		derivationsFingerprintFile := filepath.Join(derivationsPath, "dyd", "fingerprint")
 		derivationsFingerprintBytes, err := ioutil.ReadFile(derivationsFingerprintFile)
 		if err != nil {
-			return "", err
+			return err, ""
 		}
 		derivationsFingerprint := string(derivationsFingerprintBytes)
 
@@ -172,12 +179,12 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		// otherwise run the root in a build env
 		stemBuildPath, err := os.MkdirTemp("", "dryad-*")
 		if err != nil {
-			return "", err
+			return err, ""
 		}
-		defer dydfs.RemoveAll(task.SERIAL_CONTEXT, stemBuildPath)
+		defer dydfs.RemoveAll(ctx, stemBuildPath)
 
 		err, stemBuildFingerprint = rootBuild_stage5(
-			task.SERIAL_CONTEXT,
+			ctx,
 			rootBuild_stage5_request{
 				RelRootPath: relRootPath,
 				RootStemPath: finalStemPath,
@@ -186,11 +193,11 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 			},
 		)
 		if err != nil {
-			return "", err
+			return err, ""
 		}
 
 		err, finalStemPath = rootBuild_stage6(
-			task.SERIAL_CONTEXT,
+			ctx,
 			rootBuild_stage6_request{
 				RelRootPath: relRootPath,
 				GardenPath: gardenPath,
@@ -198,7 +205,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 			},
 		)
 		if err != nil {
-			return "", err
+			return err, ""
 		}
 
 		// add the built fingerprint to the context
@@ -213,15 +220,15 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 				finalStemPath,
 			)
 			if err != nil {
-				return "", err
+				return err, ""
 			}
-			err, _ = dydfs.RemoveAll(task.SERIAL_CONTEXT, derivationsPath)
+			err, _ = dydfs.RemoveAll(ctx, derivationsPath)
 			if err != nil {
-				return "", err
+				return err, ""
 			}
 			err = os.Symlink(derivationsLinkPath, derivationsPath)
 			if err != nil {
-				return "", err
+				return err, ""
 			}
 		}
 
@@ -238,7 +245,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		sproutHeapPath,
 	)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	// fmt.Println("[debug] building sprout parent")
@@ -248,13 +255,13 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 		Msg("root build - building sprout")
 	err = dydfs.MkDir(sproutParent, fs.ModePerm)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	// fmt.Println("[debug] setting write permission on sprout parent")
 	err = os.Chmod(sproutParent, 0o711)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	tmpSproutPath := sproutPath + ".tmp"
@@ -264,7 +271,7 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	// fmt.Println("[debug] adding temporary sprout link")
 	err = os.Symlink(relSproutLink, tmpSproutPath)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	zlog.Debug().
@@ -274,18 +281,18 @@ func RootBuild(context BuildContext, rootPath string) (string, error) {
 	// fmt.Println("[debug] renaming sprout link", sproutPath)
 	err = os.Rename(tmpSproutPath, sproutPath)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	// fmt.Println("[debug] setting read permissions on sprout parent")
 	err = os.Chmod(sproutParent, 0o511)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	zlog.Info().
 		Str("path", relRootPath).
 		Msg("root build - done verifying root")
 
-	return stemBuildFingerprint, nil
+	return nil, stemBuildFingerprint
 }

@@ -3,6 +3,7 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -38,11 +39,14 @@ var rootBuildCommand = func() clib.Command {
 			}
 
 			var rootFingerprint string
-			rootFingerprint, err := dryad.RootBuild(
-				dryad.BuildContext{
-					Fingerprints: map[string]string{},
+			err, rootFingerprint := dryad.RootBuild(
+				task.SERIAL_CONTEXT,
+				dryad.RootBuildRequest{
+					Context: dryad.BuildContext{
+						Fingerprints: map[string]string{},
+					},
+					RootPath: path,	
 				},
-				path,
 			)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while building root")

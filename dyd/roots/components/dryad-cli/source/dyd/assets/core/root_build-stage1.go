@@ -70,7 +70,13 @@ func init () {
 			return err, ""
 		}
 	
-		dependencyFingerprint, err := RootBuild(req.BaseRequest.Context, req.DependencyPath)
+		err, dependencyFingerprint := RootBuild(
+			ctx,
+			RootBuildRequest{
+				Context: req.BaseRequest.Context,
+				RootPath: req.DependencyPath,
+			},
+		)
 		if err != nil {
 			return err, ""
 		}
