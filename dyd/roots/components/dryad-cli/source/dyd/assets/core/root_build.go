@@ -13,13 +13,13 @@ import (
 )
 
 type RootBuildRequest struct {
-	Context BuildContext
+	Context *BuildContext
 	RootPath string
 }
 
 func RootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string) {
 	var rootPath string = req.RootPath
-	var context BuildContext = req.Context
+	var context *BuildContext = req.Context
 
 	// fmt.Println("[trace] RootBuild", context, rootPath)
 

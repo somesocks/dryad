@@ -59,11 +59,12 @@ var gardenBuildCommand = func() clib.Command {
 	}
 
 	var buildGarden = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
-		err := dryad.GardenBuild(
-			dryad.BuildContext{
-				Fingerprints: map[string]string{},
-			},
+		err, _ := dryad.GardenBuild(
+			ctx,
 			dryad.GardenBuildRequest{
+				Context: &dryad.BuildContext{
+						Fingerprints: map[string]string{},
+					},	
 				BasePath:     args.Path,
 				IncludeRoots: args.IncludeRoots,
 				ExcludeRoots: args.ExcludeRoots,

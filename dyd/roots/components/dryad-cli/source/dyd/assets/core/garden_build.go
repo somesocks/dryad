@@ -1,19 +1,19 @@
 package core
 
 import (
-	"io/fs"
 	"path/filepath"
 
 	"dryad/task"
 )
 
 type GardenBuildRequest struct {
+	Context *BuildContext
 	BasePath     string
 	IncludeRoots func(string) bool
 	ExcludeRoots func(string) bool
 }
 
-func GardenBuild(context BuildContext, request GardenBuildRequest) error {
+func GardenBuild(ctx *task.ExecutionContext, request GardenBuildRequest) (error, any) {
 	// fmt.Println("[trace] GardenBuild", request.BasePath)
 	var err error
 
@@ -22,7 +22,7 @@ func GardenBuild(context BuildContext, request GardenBuildRequest) error {
 	// handle relative garden paths
 	gardenPath, err = filepath.Abs(gardenPath)
 	if err != nil {
-		return err
+		return err, nil
 	}
 
 	// fmt.Println("[trace] GardenBuild gardenPath 1", gardenPath)
@@ -30,49 +30,45 @@ func GardenBuild(context BuildContext, request GardenBuildRequest) error {
 	// make sure it points to the base of the garden path
 	gardenPath, err = GardenPath(gardenPath)
 	if err != nil {
-		return err
+		return err, nil
 	}
 
 	// prune sprouts before build
 	err = SproutsPrune(gardenPath)
 	if err != nil {
-		return err
+		return err, nil
 	}
 
-	// fmt.Println("[trace] GardenBuild gardenPath 2", gardenPath)
+	var buildRoot = func (ctx *task.ExecutionContext, match RootsWalkMatch) (error, any) {
+		// calculate the relative path to the root from the base of the garden
+		relPath, err := filepath.Rel(match.GardenPath, match.RootPath)
+		if err != nil {
+			return err, nil
+		}
 
-	var rootsPath = filepath.Join(gardenPath, "dyd", "roots")
+		// if the root isn't being excluded by a selector, build it
+		if request.IncludeRoots(relPath) && !request.ExcludeRoots(relPath) {
+			err, _ = RootBuild(
+				ctx,
+				RootBuildRequest{
+					Context: request.Context,
+					RootPath: match.RootPath,
+				},
+			)
+			return err, nil
+		} else {
+			return nil, nil
+		}
+	}
 
 	// build each root in the garden
-	err = GardenRootsWalk(
-		rootsPath,
-		func(path string, info fs.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-
-			// calculate the relative path to the root from the base of the garden
-			relPath, err := filepath.Rel(gardenPath, path)
-			if err != nil {
-				return err
-			}
-
-			// if the root isn't being excluded by a selector, build it
-			if request.IncludeRoots(relPath) && !request.ExcludeRoots(relPath) {
-				err, _ = RootBuild(
-					task.SERIAL_CONTEXT,
-					RootBuildRequest{
-						Context: context,
-						RootPath: path,
-					},
-				)
-				return err
-			} else {
-				return nil
-			}
-
+	err, _ = RootsWalk(
+		ctx,
+		RootsWalkRequest{
+			GardenPath: gardenPath,
+			OnRoot: buildRoot,
 		},
 	)
 
-	return err
+	return err, nil
 }

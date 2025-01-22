@@ -110,7 +110,7 @@ func rootDevelop_stage0(rootPath string, workspacePath string) error {
 // stage 1 - walk through the root dependencies,
 // and add the fingerprint as a dependency
 func rootDevelop_stage1(
-	context BuildContext,
+	context *BuildContext,
 	rootPath string,
 	workspacePath string,
 	gardenPath string,
@@ -338,7 +338,7 @@ func rootDevelop_stage5(
 	return "", err
 }
 
-func RootDevelop(context BuildContext, rootPath string, editor string, editorArgs []string, inherit bool) (string, error) {
+func RootDevelop(context *BuildContext, rootPath string, editor string, editorArgs []string, inherit bool) (string, error) {
 	// fmt.Println("[trace] RootBuild", context, rootPath)
 
 	// sanitize the root path
