@@ -3,6 +3,7 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	"fmt"
 	"os"
 	"regexp"
@@ -46,8 +47,9 @@ var stemFingerprintCommand = func() clib.Command {
 				}
 			}
 
-			var fingerprintString, fingerprintErr = dryad.StemFingerprint(
-				dryad.StemFingerprintArgs{
+			var fingerprintErr, fingerprintString = dryad.StemFingerprint(
+				task.SERIAL_CONTEXT,
+				dryad.StemFingerprintRequest{
 					BasePath:  path,
 					MatchDeny: matchExclude,
 				},

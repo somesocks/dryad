@@ -21,15 +21,21 @@ func _readFile(filePath string) (string, error) {
 	return string(bytes), nil
 }
 
+type HeapAddStemRequest struct {
+	HeapPath string
+	StemPath string	
+}
+
 // HeapAddStem takes a stem in a directory, and adds it to the heap.
 // the heap path is normalized before adding
-func HeapAddStem(heapPath string, stemPath string) (string, error) {
-	// // fmt.Println("[trace] HeapAddStem", heapPath, stemPath)
+func HeapAddStem(ctx *task.ExecutionContext, req HeapAddStemRequest) (error, string) {
+	var heapPath = req.HeapPath
+	var stemPath = req.StemPath
 
 	// normalize the heap path
 	heapPath, err := HeapPath(heapPath)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	gardenFilesPath := filepath.Join(heapPath, "files")
@@ -37,7 +43,7 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 
 	stemFingerprint, err := _readFile(filepath.Join(stemPath, "dyd", "fingerprint"))
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	finalStemPath := filepath.Join(gardenStemsPath, stemFingerprint)
@@ -45,22 +51,22 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 	// check to see if the stem already exists in the garden
 	stemExists, err := fileExists(finalStemPath)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	// if stem exists, do nothing
 	if stemExists {
-		return finalStemPath, nil
+		return nil, finalStemPath
 	}
 
 	err = os.MkdirAll(finalStemPath, fs.ModePerm)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	// walk the packed root files and copy them into the garden heap
 	err = StemWalk(
-		task.DEFAULT_CONTEXT,
+		ctx,
 		StemWalkRequest{
 			BasePath: stemPath,
 			OnMatch: func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
@@ -156,7 +162,7 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 		},
 	)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	// walk the requirements and convert them to dependencies
@@ -164,14 +170,14 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 	dependenciesPath := filepath.Join(finalStemPath, "dyd", "dependencies")
 	requirements, err := filepath.Glob(filepath.Join(requirementsPath, "*"))
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	for _, requirementPath := range requirements {
 		targetFingerprintFile := filepath.Join(requirementPath, "dyd", "fingerprint")
 		targetFingerprintBytes, err := ioutil.ReadFile(targetFingerprintFile)
 		if err != nil {
-			return "", err
+			return err, ""
 		}
 		targetFingerprint := string(targetFingerprintBytes)
 
@@ -179,12 +185,12 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 		dependencyGardenPath := filepath.Join(gardenStemsPath, targetFingerprint)
 		relPath, err := filepath.Rel(dependenciesPath, dependencyGardenPath)
 		if err != nil {
-			return "", err
+			return err, ""
 		}
 
 		err = os.Symlink(relPath, dependencyPath)
 		if err != nil {
-			return "", err
+			return err, ""
 		}
 
 	}
@@ -193,13 +199,13 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 
 	hasSecrets, err := fileExists(secretsFingerprintPath)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	if hasSecrets {
 		secretsFingerprint, err := HeapAddSecrets(heapPath, stemPath)
 		if err != nil {
-			return "", err
+			return err, ""
 		}
 
 		secretsMountPoint := filepath.Join(finalStemPath, "dyd", "secrets")
@@ -210,12 +216,12 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 			secretsHeapPath,
 		)
 		if err != nil {
-			return "", err
+			return err, ""
 		}
 
 		err = os.Symlink(relativeLink, secretsMountPoint)
 		if err != nil {
-			return "", err
+			return err, ""
 		}
 
 	}
@@ -272,7 +278,7 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 
 	// now that all files are added, sweep through in a second pass and make directories read-only
 	err = fs2.DFSWalk3(
-		task.DEFAULT_CONTEXT,
+		ctx,
 		fs2.Walk5Request{
 			Path:        finalStemPath,
 			VPath:       finalStemPath,
@@ -283,8 +289,8 @@ func HeapAddStem(heapPath string, stemPath string) (string, error) {
 		},
 	)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
-	return finalStemPath, nil
+	return nil, finalStemPath
 }

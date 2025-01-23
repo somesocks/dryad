@@ -56,7 +56,7 @@ var rootBuild_stage5 func (ctx *task.ExecutionContext, req rootBuild_stage5_requ
 			return err, ""
 		}
 
-		stemBuildFingerprint, err := stemFinalize(req.StemBuildPath)
+		err, stemBuildFingerprint := stemFinalize(ctx, req.StemBuildPath)
 		if err != nil {
 			return err, ""
 		}

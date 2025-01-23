@@ -191,7 +191,7 @@ func rootDevelop_stage2(workspacePath string) error {
 func rootDevelop_stage3(rootPath string, workspacePath string) (string, error) {
 	// fmt.Println("rootDevelop_stage3 ", rootPath)
 
-	stemFingerprint, err := stemFinalize(workspacePath)
+	err, stemFingerprint := stemFinalize(task.SERIAL_CONTEXT, workspacePath)
 	return stemFingerprint, err
 }
 

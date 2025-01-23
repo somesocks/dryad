@@ -35,6 +35,12 @@ var rootBuild_stage4 func (ctx *task.ExecutionContext, req rootBuild_stage4_requ
 			Str("path", relRootPath).
 			Msg("root build - stage4")
 
-		stemPath, err := HeapAddStem(req.GardenPath, req.WorkspacePath)
+		err, stemPath := HeapAddStem(
+			ctx,
+			HeapAddStemRequest{
+				HeapPath: req.GardenPath,
+				StemPath: req.WorkspacePath,
+			},
+		)
 		return err, stemPath
 	}

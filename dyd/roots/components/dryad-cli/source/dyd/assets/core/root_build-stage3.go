@@ -34,6 +34,6 @@ var rootBuild_stage3 func (ctx *task.ExecutionContext, req rootBuild_stage3_requ
 			Str("path", relRootPath).
 			Msg("root build - stage3")
 
-		stemFingerprint, err := stemFinalize(req.WorkspacePath)
+		err, stemFingerprint := stemFinalize(ctx, req.WorkspacePath)
 		return err, stemFingerprint
 	}

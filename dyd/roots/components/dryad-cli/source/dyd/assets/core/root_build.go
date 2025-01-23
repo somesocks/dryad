@@ -258,37 +258,14 @@ func RootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 		return err, ""
 	}
 
-	// fmt.Println("[debug] setting write permission on sprout parent")
-	err = os.Chmod(sproutParent, 0o711)
-	if err != nil {
-		return err, ""
-	}
-
-	tmpSproutPath := sproutPath + ".tmp"
-	zlog.Debug().
-		Str("path", tmpSproutPath).
-		Msg("root build - creating temporary sprout")
-	// fmt.Println("[debug] adding temporary sprout link")
-	err = os.Symlink(relSproutLink, tmpSproutPath)
-	if err != nil {
-		return err, ""
-	}
-
-	zlog.Debug().
-		Str("tmpSproutPath", tmpSproutPath).
-		Str("sproutPath", sproutPath).
-		Msg("root build - renaming sprout")
-	// fmt.Println("[debug] renaming sprout link", sproutPath)
-	err = os.Rename(tmpSproutPath, sproutPath)
-	if err != nil {
-		return err, ""
-	}
-
-	// fmt.Println("[debug] setting read permissions on sprout parent")
-	err = os.Chmod(sproutParent, 0o511)
-	if err != nil {
-		return err, ""
-	}
+	// create the sprout symlink
+	dydfs.Symlink(
+		ctx,
+		dydfs.SymlinkRequest{
+			Target: relSproutLink,
+			Path: sproutPath,
+		},
+	)
 
 	zlog.Info().
 		Str("path", relRootPath).

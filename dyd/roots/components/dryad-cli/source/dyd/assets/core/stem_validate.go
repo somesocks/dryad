@@ -4,6 +4,8 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+
+	"dryad/task"
 )
 
 func StemValidate(stemPath string) (string, error) {
@@ -18,8 +20,9 @@ func StemValidate(stemPath string) (string, error) {
 		stemPath = filepath.Join(wd, stemPath)
 	}
 
-	stemFingerprint, err := StemFingerprint(
-		StemFingerprintArgs{
+	err, stemFingerprint := StemFingerprint(
+		task.SERIAL_CONTEXT,
+		StemFingerprintRequest{
 			BasePath: stemPath,
 		},
 	)

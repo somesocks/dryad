@@ -88,7 +88,13 @@ func stemPack(context BuildContext, request StemPackRequest) (string, error) {
 	}
 
 	var packedStemPath string
-	packedStemPath, err = HeapAddStem(targetPath, stemPath)
+	err, packedStemPath = HeapAddStem(
+		task.SERIAL_CONTEXT,
+		HeapAddStemRequest{
+			HeapPath: targetPath,
+			StemPath: stemPath,
+		},
+	)
 	if err != nil {
 		return "", err
 	}

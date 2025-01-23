@@ -64,12 +64,12 @@ func StemFingerprintShouldMatch(ctx *task.ExecutionContext, node fs2.Walk5Node) 
 
 }
 
-type StemFingerprintArgs struct {
+type StemFingerprintRequest struct {
 	BasePath  string
 	MatchDeny *regexp.Regexp
 }
 
-func StemFingerprint(args StemFingerprintArgs) (string, error) {
+func StemFingerprint(ctx *task.ExecutionContext, args StemFingerprintRequest) (error, string) {
 	var checksumMap = make(map[string]string)
 	var checksumMutex sync.Mutex
 
@@ -105,7 +105,7 @@ func StemFingerprint(args StemFingerprintArgs) (string, error) {
 	}
 
 	err, _ := fs2.BFSWalk3(
-		task.DEFAULT_CONTEXT,
+		ctx,
 		fs2.Walk5Request{
 			Path:        args.BasePath,
 			VPath:       args.BasePath,
@@ -117,7 +117,7 @@ func StemFingerprint(args StemFingerprintArgs) (string, error) {
 	)
 
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	var keys []string
@@ -138,17 +138,17 @@ func StemFingerprint(args StemFingerprintArgs) (string, error) {
 
 	hash, err := blake2b.New(16, []byte{})
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	_, err = io.WriteString(hash, "stem\u0000")
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	_, err = io.WriteString(hash, checksumString)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	var fingerprintHashBytes = hash.Sum([]byte{})
@@ -157,5 +157,5 @@ func StemFingerprint(args StemFingerprintArgs) (string, error) {
 
 	// fmt.Println("StemFingerprint", args.BasePath, fingerprint)
 
-	return fingerprint, nil
+	return nil, fingerprint
 }
