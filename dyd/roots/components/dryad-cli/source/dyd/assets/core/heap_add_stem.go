@@ -133,7 +133,7 @@ func HeapAddStem(ctx *task.ExecutionContext, req HeapAddStemRequest) (error, str
 					// 	Msg("HeapAddStem / onMatch isFile")
 
 					err, fileFingerprint := HeapAddFile(
-						task.DEFAULT_CONTEXT,
+						ctx,
 						HeapAddFileRequest{
 							HeapPath: gardenFilesPath,
 							SourcePath: node.Path,
