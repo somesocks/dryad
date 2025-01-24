@@ -16,16 +16,16 @@ SYSTEM="$DYD_OS-$DYD_ARCH"
 
 case "$SYSTEM" in
 	'darwin-amd64' )
-		BUILD='https://go.dev/dl/go1.20.darwin-amd64.tar.gz'
+		BUILD='https://go.dev/dl/go1.23.5.darwin-amd64.tar.gz'
 		;;
 	'darwin-arm64' )
-		BUILD='https://go.dev/dl/go1.20.darwin-arm64.tar.gz'
+		BUILD='https://go.dev/dl/go1.23.5.darwin-arm64.tar.gz'
 		;;
 	'linux-amd64' )
-		BUILD='https://go.dev/dl/go1.20.linux-amd64.tar.gz'
+		BUILD='https://go.dev/dl/go1.23.5.linux-amd64.tar.gz'
 		;;
 	'linux-arm64' )
-		BUILD='https://go.dev/dl/go1.20.linux-arm64.tar.gz'
+		BUILD='https://go.dev/dl/go1.23.5.linux-arm64.tar.gz'
 		;;
 	* )
 		echo "unsupported system $SYSTEM"

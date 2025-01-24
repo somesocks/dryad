@@ -17,7 +17,7 @@ type RootBuildRequest struct {
 	RootPath string
 }
 
-func RootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string) {
+func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string) {
 	var rootPath string = req.RootPath
 	var context *BuildContext = req.Context
 
@@ -273,3 +273,5 @@ func RootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 
 	return nil, stemBuildFingerprint
 }
+
+var RootBuild = task.Memoize(rootBuild, "RootBuild") 

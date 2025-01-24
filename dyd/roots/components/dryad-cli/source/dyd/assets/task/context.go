@@ -1,7 +1,12 @@
 package task
 
+import (
+	"sync"
+)
+
 type ExecutionContext struct {
 	ConcurrencyChannel chan struct{}
+	ExecutionCache sync.Map
 }
 
 var DEFAULT_CONTEXT = &ExecutionContext{
