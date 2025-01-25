@@ -3,6 +3,8 @@ package task
 import (
 	"sync"
 	"sync/atomic"
+	// zlog "github.com/rs/zerolog/log"
+	// "encoding/json"
 )
 
 type cacheKey[A any] struct {
@@ -50,13 +52,33 @@ func Memoize[A any, B any](
 		var cachedTask any 
 		var hasCachedTask bool
 		cachedTask, hasCachedTask = ctx.ExecutionCache.Load(key)
+		// zlog.Trace().
+		// 	Str("memoGroup", group).
+		// 	Bool("hasCachedTask", hasCachedTask).
+		// 	Str("request", string(jsonReq)).
+		// 	Msg("memogroup load")
 		if !hasCachedTask {
 			cachedTask, hasCachedTask = ctx.ExecutionCache.LoadOrStore(key, onceWrapper(task)) 
+			// zlog.Trace().
+			// 	Str("memoGroup", group).
+			// 	Bool("hasCachedTask", hasCachedTask).
+			// 	Str("request", string(jsonReq)).
+			// 	Msg("memogroup updated")
 		}
 
 		var err error
 		var res B
 		err, res = cachedTask.(Task[A, B])(ctx, req)
+
+		// var jsonReq, _ = json.Marshal(req)
+		// var jsonRes, _ = json.Marshal(res)
+
+		// zlog.Info().
+		// 	Str("memoGroup", group).
+		// 	Bool("hasCachedTask", hasCachedTask).
+		// 	Str("request", string(jsonReq)).
+		// 	Str("result", string(jsonRes)).
+		// 	Msg("memogroup updated")
 		return err, res
 	}
 }

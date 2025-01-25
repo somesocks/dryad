@@ -13,26 +13,12 @@ import (
 )
 
 type RootBuildRequest struct {
-	Context *BuildContext
 	RootPath string
 }
 
 func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string) {
 	var rootPath string = req.RootPath
-	var context *BuildContext = req.Context
 
-	// fmt.Println("[trace] RootBuild", context, rootPath)
-
-	// sanitize the root path
-	rootPath, err := RootPath(rootPath, "")
-	zlog.Debug().
-		Str("rootPath", rootPath).
-		Msg("RootBuild/rootPath")
-	if err != nil {
-		return err, ""
-	}
-
-	// check to see if the stem already exists in the garden
 	gardenPath, err := GardenPath(rootPath)
 	zlog.Debug().
 		Str("gardenPath", gardenPath).
@@ -40,7 +26,6 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 	if err != nil {
 		return err, ""
 	}
-	// fmt.Println("[trace] RootBuild gardenPath", gardenPath)
 
 	relRootPath, err := filepath.Rel(
 		filepath.Join(gardenPath, "dyd", "roots"),
@@ -51,14 +36,6 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 		Msg("RootBuild/relRootPath")
 	if err != nil {
 		return err, ""
-	}
-
-	// check if the root is already present in the context
-	context.FingerprintsMutex.Lock()
-	rootFingerprint, contextHasRootFingerprint := context.Fingerprints[rootPath]
-	context.FingerprintsMutex.Unlock()
-	if contextHasRootFingerprint {
-		return nil, rootFingerprint
 	}
 
 	zlog.Info().
@@ -86,7 +63,6 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 	err, _ = rootBuild_stage1(
 		ctx,
 		rootBuild_stage1_request{
-			Context: context,
 			RootPath: rootPath,
 			WorkspacePath: workspacePath,
 			GardenPath: gardenPath,
@@ -99,7 +75,6 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 	err, _ = rootBuild_stage2(
 		ctx,
 		rootBuild_stage2_request{
-			Context: context,
 			RootPath: rootPath,
 			WorkspacePath: workspacePath,
 			GardenPath: gardenPath,
@@ -109,10 +84,9 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 		return err, ""
 	}
 
-	err, rootFingerprint = rootBuild_stage3(
+	err, rootFingerprint := rootBuild_stage3(
 		ctx,
 		rootBuild_stage3_request{
-			Context: context,
 			RootPath: rootPath,
 			WorkspacePath: workspacePath,
 			GardenPath: gardenPath,
@@ -125,7 +99,6 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 	err, finalStemPath := rootBuild_stage4(
 		ctx,
 		rootBuild_stage4_request{
-			Context: context,
 			RootPath: rootPath,
 			WorkspacePath: workspacePath,
 			GardenPath: gardenPath,
@@ -166,11 +139,6 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 
 		stemBuildFingerprint = derivationsFingerprint
 
-		// add the built fingerprint to the context
-		context.FingerprintsMutex.Lock()		
-		context.Fingerprints[rootPath] = derivationsFingerprint
-		context.FingerprintsMutex.Unlock()
-
 	} else {
 		zlog.Info().
 			Str("path", relRootPath).
@@ -207,11 +175,6 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 		if err != nil {
 			return err, ""
 		}
-
-		// add the built fingerprint to the context
-		context.FingerprintsMutex.Lock()
-		context.Fingerprints[rootPath] = stemBuildFingerprint
-		context.FingerprintsMutex.Unlock()
 
 		if !isUnstableRoot {
 			// add the derivation link
@@ -259,13 +222,20 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 	}
 
 	// create the sprout symlink
-	dydfs.Symlink(
+	zlog.Debug().
+		Str("path", sproutPath).
+		Str("target", relSproutLink).
+		Msg("root build - building sprout symlink")
+	err, _ = dydfs.Symlink(
 		ctx,
 		dydfs.SymlinkRequest{
 			Target: relSproutLink,
 			Path: sproutPath,
 		},
 	)
+	if err != nil {
+		return err, ""
+	}
 
 	zlog.Info().
 		Str("path", relRootPath).
@@ -274,4 +244,21 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 	return nil, stemBuildFingerprint
 }
 
-var RootBuild = task.Memoize(rootBuild, "RootBuild") 
+var memoRootBuild = task.Memoize(rootBuild, "RootBuild") 
+
+var RootBuild = func (ctx *task.ExecutionContext, req RootBuildRequest) (error, string) {
+	var rootPath string = req.RootPath
+
+	// sanitize the root path
+	rootPath, err := RootPath(rootPath, "")
+	zlog.Debug().
+		Str("rootPath", rootPath).
+		Msg("RootBuild/rootPath")
+	if err != nil {
+		return err, ""
+	}
+
+	req.RootPath = rootPath
+	err, res := memoRootBuild(ctx, req)
+	return err, res
+}

@@ -39,8 +39,13 @@ var rootBuild_stage5 func (ctx *task.ExecutionContext, req rootBuild_stage5_requ
 			},
 			Args:       []string{req.StemBuildPath},
 			JoinStdout: false,
+			JoinStderr: false,
 		})
 		if err != nil {
+			zlog.Debug().
+				Str("path", req.RelRootPath).
+				Err(err).
+				Msg("root build - stage5 - error executing root")
 			return err, ""
 		}
 

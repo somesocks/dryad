@@ -51,7 +51,6 @@ func GardenBuild(ctx *task.ExecutionContext, request GardenBuildRequest) (error,
 			err, _ = RootBuild(
 				ctx,
 				RootBuildRequest{
-					Context: request.Context,
 					RootPath: match.RootPath,
 				},
 			)

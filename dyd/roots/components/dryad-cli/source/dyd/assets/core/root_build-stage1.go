@@ -13,7 +13,6 @@ import (
 )
 
 type rootBuild_stage1_request struct {
-	Context *BuildContext
 	RootPath string
 	WorkspacePath string
 	GardenPath string
@@ -73,7 +72,6 @@ func init () {
 		err, dependencyFingerprint := RootBuild(
 			ctx,
 			RootBuildRequest{
-				Context: req.BaseRequest.Context,
 				RootPath: req.DependencyPath,
 			},
 		)

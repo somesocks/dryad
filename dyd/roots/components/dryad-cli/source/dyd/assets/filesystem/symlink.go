@@ -4,6 +4,7 @@ import (
 	// "errors"
 	"io/fs"
 	"os"
+	"errors"
 	"path/filepath"
 
 	"dryad/task"
@@ -14,6 +15,19 @@ type SymlinkRequest struct {
 	Target string
 }
 
+func fileExists(filename string) (error, bool) {
+	_, err := os.Stat(filename)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, false 
+		} else {
+			return err, false
+		}
+	} else {
+		return nil, true
+	}
+}
+
 func Symlink(ctx *task.ExecutionContext, request SymlinkRequest) (error, SymlinkRequest) {
 	var parentPath string = filepath.Dir(request.Path)
 	var parentFile *os.File
@@ -22,10 +36,12 @@ func Symlink(ctx *task.ExecutionContext, request SymlinkRequest) (error, Symlink
 
 	// create a file descriptor to the parent directory,
 	// so that we can grab a lock on it
-	parentFile, err = os.OpenFile(parentPath, os.O_RDONLY|os.O_CREATE, 0644)
+	parentFile, err = os.Open(parentPath)
 	if err != nil {
 		return err, request
-	} 
+	}
+	defer parentFile.Close()
+
 
 	parentLock = newFileLock(parentFile)
 
@@ -45,14 +61,28 @@ func Symlink(ctx *task.ExecutionContext, request SymlinkRequest) (error, Symlink
 
 	// if the parent permissions are not writable by the current user,
 	// temporarily set the permissions to writable
-	var parentMode fs.FileMode = parentInfo.Mode()
-	if (parentMode & 0400) != (parentMode & 0777) {
-		err = os.Chmod(parentPath, parentMode & 0400)
+	var parentPerms = parentInfo.Mode().Perm()
+	if (parentPerms | 0o400) != parentPerms {
+		err = os.Chmod(parentPath, parentPerms | 0o400)
 		if err != nil {
 			return err, request
 		}
-		defer os.Chmod(parentPath, parentMode)
+		defer os.Chmod(parentPath, parentPerms)
 	}
+
+	// check if the symlink already exists
+	err, exists := fileExists(request.Path)
+	if err != nil {
+		return err, request
+	}
+
+	// remove the symlink if it already exists
+	if exists {
+		err = os.Remove(request.Path)
+		if err != nil {
+			return err, request
+		}	
+	}	
 
 	// create the symlink and return
 	err = os.Symlink(request.Target, request.Path)
