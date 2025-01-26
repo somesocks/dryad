@@ -14,7 +14,7 @@ var gardenPruneCommand = func() clib.Command {
 	type ParsedArgs struct {
 		Path string
 		Parallel int
-	}	
+	}
 
 	var parseArgs = task.From(
 		func(req clib.ActionRequest) (error, ParsedArgs) {

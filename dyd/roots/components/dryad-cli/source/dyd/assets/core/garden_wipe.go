@@ -8,78 +8,82 @@ import (
 	"path/filepath"
 )
 
-func GardenWipe(gardenPath string) error {
+type GardenWipeRequest struct {
+	GardenPath string
+}
+
+func GardenWipe(ctx *task.ExecutionContext, req GardenWipeRequest) (error, any) {
 
 	// normalize garden path
-	gardenPath, err := GardenPath(gardenPath)
+	gardenPath, err := GardenPath(req.GardenPath)
 	if err != nil {
-		return err
+		return err, nil
 	}
 
 	sproutsPath := filepath.Join(gardenPath, "dyd", "sprouts")
-	err, _ = fs2.RemoveAll(task.SERIAL_CONTEXT, sproutsPath)
+	err, _ = fs2.RemoveAll(ctx, sproutsPath)
 	if err != nil {
-		return err
+		return err, nil
 	}
 	err = os.MkdirAll(sproutsPath, os.ModePerm)
 	if err != nil {
-		return err
+		return err, nil
 	}
 
 	derivationsPath := filepath.Join(gardenPath, "dyd", "heap", "derivations")
-	err, _ = fs2.RemoveAll(task.SERIAL_CONTEXT, derivationsPath)
+	err, _ = fs2.RemoveAll(ctx, derivationsPath)
 	if err != nil {
-		return err
+		return err, nil
 	}
 	err = os.MkdirAll(derivationsPath, os.ModePerm)
 	if err != nil {
-		return err
+		return err, nil
 	}
 
 	stemsPath := filepath.Join(gardenPath, "dyd", "heap", "stems")
-	err, _ = fs2.RemoveAll(task.SERIAL_CONTEXT, stemsPath)
+	err, _ = fs2.RemoveAll(ctx, stemsPath)
 	if err != nil {
-		return err
+		return err, nil
 	}
 	err = os.MkdirAll(stemsPath, os.ModePerm)
 	if err != nil {
-		return err
+		return err, nil
 	}
 
 	filesPath := filepath.Join(gardenPath, "dyd", "heap", "files")
-	err, _ = fs2.RemoveAll(task.SERIAL_CONTEXT, filesPath)
+	err, _ = fs2.RemoveAll(ctx, filesPath)
 	if err != nil {
-		return err
+		return err, nil
 	}
 	err = os.MkdirAll(filesPath, os.ModePerm)
 	if err != nil {
-		return err
+		return err, nil
 	}
 
 	secretsPath := filepath.Join(gardenPath, "dyd", "heap", "secrets")
-	err, _ = fs2.RemoveAll(task.SERIAL_CONTEXT, secretsPath)
+	err, _ = fs2.RemoveAll(ctx, secretsPath)
 	if err != nil {
-		return err
+		return err, nil
 	}
 	err = os.MkdirAll(secretsPath, os.ModePerm)
 	if err != nil {
-		return err
+		return err, nil
 	}
 
 	contextsPath := filepath.Join(gardenPath, "dyd", "heap", "contexts")
-	err, _ = fs2.RemoveAll(task.SERIAL_CONTEXT, contextsPath)
+	err, _ = fs2.RemoveAll(ctx, contextsPath)
 	if err != nil {
-		return err
+		return err, nil
 	}
 	err = os.MkdirAll(contextsPath, os.ModePerm)
 	if err != nil {
-		return err
+		return err, nil
 	}
 
-	err, _ = GardenCreate(task.DEFAULT_CONTEXT, GardenCreateRequest{BasePath: gardenPath})
+	err, _ = GardenCreate(ctx, GardenCreateRequest{BasePath: gardenPath})
 	if err != nil {
-		return err
+		return err, nil
 	}
 
-	return nil
+	return nil, nil
 }
