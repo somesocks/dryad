@@ -13,7 +13,6 @@ import (
 )
 
 type rootBuild_stage3_request struct {
-	Context *BuildContext
 	RootPath string
 	WorkspacePath string
 	GardenPath string
