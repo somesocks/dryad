@@ -3,33 +3,88 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	"os"
+	"dryad/task"
+	"time"
 
 	zlog "github.com/rs/zerolog/log"
 )
 
 var gardenPruneCommand = func() clib.Command {
-	command := clib.
-		NewCommand("prune", "clear all build artifacts out of the garden not actively linked to a sprout or a root").
-		WithAction(func(req clib.ActionRequest) int {
-			var path, err = os.Getwd()
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while finding working directory")
-				return 1
+
+	type ParsedArgs struct {
+		Path string
+		Parallel int
+	}	
+
+	var parseArgs = task.From(
+		func(req clib.ActionRequest) (error, ParsedArgs) {
+			var args = req.Args
+			var options = req.Opts
+
+			var path string
+			// var err error
+
+			if len(args) > 0 {
+				path = args[0]
 			}
-			err = dryad.GardenPrune(
-				path,
-			)
+
+			var parallel int
+
+			if options["parallel"] != nil {
+				parallel = int(options["parallel"].(int64))
+			} else {
+				parallel = 8
+			}
+	
+			return nil, ParsedArgs{
+				Path: path,
+				Parallel: parallel,
+			}
+		},
+	)
+
+	var pruneGarden = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+		err, _ := dryad.GardenPrune(
+			ctx,
+			dryad.GardenPruneRequest{
+				GardenPath: args.Path,
+				Snapshot: time.Now().Local(),
+			},
+		)
+		return err, nil
+	}
+
+	pruneGarden = task.WithContext(
+		pruneGarden,
+		func (ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
+			return nil, task.NewContext(args.Parallel)
+		},
+	)
+
+	var action = task.Return(
+		task.Series2(
+			parseArgs,
+			pruneGarden,
+		),
+		func (err error, val any) int {
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while pruning garden")
 				return 1
 			}
 
 			return 0
-		})
+		},
+	)
 
+
+	command := clib.
+		NewCommand("prune", "clear all build artifacts out of the garden not actively linked to a sprout or a root").
+		WithAction(action)
+
+	command = ParallelCommand(command)
 	command = LoggingCommand(command)
 
 
 	return command
 }()
+

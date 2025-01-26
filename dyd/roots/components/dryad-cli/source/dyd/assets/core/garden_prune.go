@@ -23,19 +23,31 @@ var REGEX_GARDEN_PRUNE_FIlES_MATCH = regexp.MustCompile(`^(files/.*)$`)
 var REGEX_GARDEN_PRUNE_DERIVATIONS_CRAWL = regexp.MustCompile(`^((\.)|(derivations))$`)
 var REGEX_GARDEN_PRUNE_DERIVATIONS_MATCH = regexp.MustCompile(`^(derivations/.*)$`)
 
-func GardenPrune(gardenPath string) error {
+type GardenPruneRequest struct {
+	GardenPath string
+	Snapshot time.Time
+}
 
-	// truncate the prune operation to a second,
-	// to avoid issues with most filesystems with low-resolution timestamps
-	currentTime := time.Now().Local().Truncate(time.Second)
+var gardenPrune_prepareRequest = func (ctx *task.ExecutionContext, req GardenPruneRequest) (error, GardenPruneRequest) {
+
+	// truncate the snapshot time to a second,
+	// to avoid issues with common filesystems with low-resolution timestamps
+	req.Snapshot = req.Snapshot.Truncate(time.Second)
 
 	// normalize garden path
-	gardenPath, err := GardenPath(gardenPath)
+	gardenPath, err := GardenPath(req.GardenPath)
 	if err != nil {
-		return err
+		return err, req
 	}
 
-	sproutsPath := filepath.Join(gardenPath, "dyd", "sprouts")
+	req.GardenPath = gardenPath
+	
+	return nil, req
+}
+
+var gardenPrune_mark = func (ctx *task.ExecutionContext, req GardenPruneRequest) (error, GardenPruneRequest) {
+
+	sproutsPath := filepath.Join(req.GardenPath, "dyd", "sprouts")
 
 	markStatsChecked := 0
 	markStatsMarked := 0
@@ -43,14 +55,14 @@ func GardenPrune(gardenPath string) error {
 	markShouldCrawl := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
 		// crawl if we haven't marked already or the timestamp is newer
 		// always crawl the sprouts directory regardless of the timestamp
-		var shouldCrawl bool = node.Info.ModTime().Before(currentTime) ||
+		var shouldCrawl bool = node.Info.ModTime().Before(req.Snapshot) ||
 			strings.HasPrefix(node.Path, sproutsPath)
 
 		zlog.Trace().
 			Str("path", node.Path).
 			Str("vpath", node.VPath).
 			Bool("shouldCrawl", shouldCrawl).
-			Time("currentTime", currentTime).
+			Time("snapshotTime", req.Snapshot).
 			Time("fileTime", node.Info.ModTime()).
 			Msg("garden prune - markShouldCrawl")
 
@@ -60,7 +72,7 @@ func GardenPrune(gardenPath string) error {
 	markShouldMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
 		// match if we haven't marked already or the timestamp is newer
 		// always match the sprouts directory regardless of the timestamp
-		var shouldMatch bool = node.Info.ModTime().Before(currentTime) ||
+		var shouldMatch bool = node.Info.ModTime().Before(req.Snapshot) ||
 			strings.HasPrefix(node.Path, sproutsPath)
 
 		markStatsChecked += 1
@@ -69,7 +81,7 @@ func GardenPrune(gardenPath string) error {
 			Str("path", node.VPath).
 			Str("vpath", node.VPath).
 			Bool("shouldMatch", shouldMatch).
-			Time("currentTime", currentTime).
+			Time("snapshotTime", req.Snapshot).
 			Time("fileTime", node.Info.ModTime()).
 			Msg("garden prune - markShouldMatch")
 
@@ -83,15 +95,15 @@ func GardenPrune(gardenPath string) error {
 			Str("path", node.VPath).
 			Msg("garden prune - markOnMatch")
 
-		err = os.Chtimes(node.Path, currentTime, currentTime)
+		var err = os.Chtimes(node.Path, req.Snapshot, req.Snapshot)
 		if err != nil {
 			return err, nil
 		}
 		return nil, nil
 	}
 
-	err = fs2.DFSWalk3(
-		task.DEFAULT_CONTEXT,
+	var err = fs2.DFSWalk3(
+		ctx,
 		fs2.Walk5Request{
 			Path: sproutsPath,
 			VPath: sproutsPath,
@@ -102,7 +114,7 @@ func GardenPrune(gardenPath string) error {
 		},
 	)
 	if err != nil {
-		return err
+		return err, req
 	}
 
 	zlog.Info().
@@ -110,7 +122,12 @@ func GardenPrune(gardenPath string) error {
 		Int("marked", markStatsMarked).
 		Msg("garden prune - files marked")
 
-	heapPath := filepath.Join(gardenPath, "dyd", "heap")
+
+	return nil, req
+}
+
+var gardenPrune_sweepStems = func (ctx *task.ExecutionContext, req GardenPruneRequest) (error, GardenPruneRequest) {
+	heapPath := filepath.Join(req.GardenPath, "dyd", "heap")
 
 	sweepStemShouldCrawl := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
 		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
@@ -152,8 +169,8 @@ func GardenPrune(gardenPath string) error {
 	sweepStem := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
 		sweepStemStatsCheck += 1
 
-		if node.Info.ModTime().Before(currentTime) {
-			err, _ = fs2.RemoveAll(ctx, node.Path)
+		if node.Info.ModTime().Before(req.Snapshot) {
+			var err, _ = fs2.RemoveAll(ctx, node.Path)
 			if err != nil {
 				return err, nil
 			}
@@ -164,8 +181,8 @@ func GardenPrune(gardenPath string) error {
 		return nil, nil
 	}
 
-	err, _ = fs2.BFSWalk3(
-		task.SERIAL_CONTEXT,
+	var err, _ = fs2.BFSWalk3(
+		ctx,
 		fs2.Walk5Request{
 			BasePath: heapPath,
 			Path: heapPath,
@@ -176,7 +193,7 @@ func GardenPrune(gardenPath string) error {
 		},
 	)
 	if err != nil {
-		return err
+		return err, req
 	}
 
 	zlog.Info().
@@ -184,7 +201,11 @@ func GardenPrune(gardenPath string) error {
 		Int("swept", sweepStemStatsCount).
 		Msg("garden prune - stems swept")
 
+	return nil, req
+}
 
+var gardenPrune_sweepDerivations = func (ctx *task.ExecutionContext, req GardenPruneRequest) (error, GardenPruneRequest) {
+	heapPath := filepath.Join(req.GardenPath, "dyd", "heap")
 
 	sweepDerivationStatsCheck := 0
 	sweepDerivationStatsCount := 0	
@@ -224,8 +245,8 @@ func GardenPrune(gardenPath string) error {
 		return os.Remove(node.Path), nil
 	}
 
-	err = fs2.DFSWalk3(
-		task.SERIAL_CONTEXT,
+	var err = fs2.DFSWalk3(
+		ctx,
 		fs2.Walk5Request{
 			Path:    heapPath,
 			VPath:    heapPath,
@@ -236,7 +257,7 @@ func GardenPrune(gardenPath string) error {
 		},
 	)
 	if err != nil {
-		return err
+		return err, req
 	}
 
 	zlog.Info().
@@ -244,8 +265,11 @@ func GardenPrune(gardenPath string) error {
 		Int("swept", sweepDerivationStatsCount).
 		Msg("garden prune - derivations swept")
 
+	return nil, req
+}
 
-
+var gardenPrune_sweepFiles = func (ctx *task.ExecutionContext, req GardenPruneRequest) (error, GardenPruneRequest) {
+	heapPath := filepath.Join(req.GardenPath, "dyd", "heap")
 	sweepFileStatsCheck := 0
 	sweepFileStatsCount := 0	
 		
@@ -272,7 +296,7 @@ func GardenPrune(gardenPath string) error {
 	}
 
 	sweepFile := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
-		if node.Info.ModTime().Before(currentTime) {
+		if node.Info.ModTime().Before(req.Snapshot) {
 			parentPath := filepath.Dir(node.Path)
 			parentInfo, err := os.Lstat(parentPath)
 			if err != nil {
@@ -297,11 +321,11 @@ func GardenPrune(gardenPath string) error {
 		return nil, nil
 	}
 
-	err = fs2.DFSWalk3(
-		task.SERIAL_CONTEXT,	
+	var err = fs2.DFSWalk3(
+		ctx,
 		fs2.Walk5Request{
 			Path:    heapPath,
-			VPath:    heapPath,
+			VPath:    heapPath,	
 			BasePath:    heapPath,
 			ShouldCrawl: sweepFileShouldCrawl,
 			ShouldMatch: sweepFilesShouldMatch,
@@ -309,7 +333,7 @@ func GardenPrune(gardenPath string) error {
 		},
 	)
 	if err != nil {
-		return err
+		return err, req
 	}
 
 	zlog.Info().
@@ -317,5 +341,17 @@ func GardenPrune(gardenPath string) error {
 		Int("swept", sweepFileStatsCount).
 		Msg("garden prune - files swept")
 
-	return nil
+	return nil, req
+
 }
+
+var GardenPrune = task.Series6(
+	gardenPrune_prepareRequest,
+	gardenPrune_mark,
+	gardenPrune_sweepStems,
+	gardenPrune_sweepDerivations,
+	gardenPrune_sweepFiles,
+	func (ctx *task.ExecutionContext, req GardenPruneRequest) (error, any) {
+		return nil, nil
+	},
+)
