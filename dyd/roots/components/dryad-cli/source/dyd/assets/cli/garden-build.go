@@ -59,10 +59,10 @@ var gardenBuildCommand = func() clib.Command {
 	}
 
 	var buildGarden = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
-		err, _ := dryad.GardenBuild(
+		err, _ := dryad.RootsBuild(
 			ctx,
-			dryad.GardenBuildRequest{
-				BasePath:     args.Path,
+			dryad.RootsBuildRequest{
+				GardenPath:     args.Path,
 				IncludeRoots: args.IncludeRoots,
 				ExcludeRoots: args.ExcludeRoots,
 			},

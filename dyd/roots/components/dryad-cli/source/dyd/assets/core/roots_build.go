@@ -6,17 +6,17 @@ import (
 	"dryad/task"
 )
 
-type GardenBuildRequest struct {
-	BasePath     string
+type RootsBuildRequest struct {
+	GardenPath     string
 	IncludeRoots func(string) bool
 	ExcludeRoots func(string) bool
 }
 
-func GardenBuild(ctx *task.ExecutionContext, request GardenBuildRequest) (error, any) {
+func RootsBuild(ctx *task.ExecutionContext, request RootsBuildRequest) (error, any) {
 	// fmt.Println("[trace] GardenBuild", request.BasePath)
 	var err error
 
-	gardenPath := request.BasePath
+	gardenPath := request.GardenPath
 
 	// handle relative garden paths
 	gardenPath, err = filepath.Abs(gardenPath)
