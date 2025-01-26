@@ -7,7 +7,6 @@ import (
 )
 
 type GardenBuildRequest struct {
-	Context *BuildContext
 	BasePath     string
 	IncludeRoots func(string) bool
 	ExcludeRoots func(string) bool
