@@ -75,7 +75,7 @@ var rootsBuildCommand = func() clib.Command {
 	buildGarden = task.WithContext(
 		buildGarden,
 		func (ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.BuildContext(args.Parallel)
+			return nil, task.NewContext(args.Parallel)
 		},
 	)
 

@@ -108,7 +108,7 @@ var rootsListCommand = func() clib.Command {
 	listRoots = task.WithContext(
 		listRoots,
 		func (ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.BuildContext(args.Parallel)
+			return nil, task.NewContext(args.Parallel)
 		},
 	)
 

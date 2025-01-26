@@ -30,7 +30,7 @@ func WithContext[A any, B any](
 	}
 }
 
-func BuildContext (
+func NewContext (
 	parallel int,
 ) *ExecutionContext {
 	return &ExecutionContext{
