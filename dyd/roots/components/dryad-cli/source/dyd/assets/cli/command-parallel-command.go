@@ -25,7 +25,7 @@ var ParallelCommand = func(
 			if parallel < 1 || parallel > 64 {
 				zlog.
 					Fatal().
-					Msg("invalid number of parallel tasks specified, must be between 1 and 64")
+					Msg("invalid number of parallel threads specified, must be between 1 and 64")
 				return 1
 			}
 		}
@@ -37,7 +37,7 @@ var ParallelCommand = func(
 	return command.
 		WithOption(
 			clib.
-			NewOption("parallel", "the number of actions to run in parallel").
+			NewOption("parallel", "set the number of threads used to execute tasks in parallel. set to 1 to execute all tasks serially").
 			WithType(clib.OptionTypeInt),
 		).
 		WithAction(wrapper)
