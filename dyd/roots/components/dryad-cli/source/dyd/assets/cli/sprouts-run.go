@@ -153,6 +153,7 @@ var sproutsRunCommand = func() clib.Command {
 							Env:        env,
 							Args:       extras,
 							JoinStdout: true,
+							JoinStderr: true,
 							Context:    context,
 						})
 						if err != nil {
