@@ -3,6 +3,7 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,15 +12,14 @@ import (
 )
 
 var rootAncestorsCommand = func() clib.Command {
-	command := clib.NewCommand("ancestors", "list all roots the selected root depends on (directly and indirectly)").
-		WithArg(
-			clib.
-				NewArg("root_path", "path to the root").
-				AsOptional().
-				WithAutoComplete(ArgAutoCompletePath),
-		).
-		WithOption(clib.NewOption("relative", "print roots relative to the base garden path. default true").WithType(clib.OptionTypeBool)).
-		WithAction(func(req clib.ActionRequest) int {
+
+	type ParsedArgs struct {
+		RootPath string
+		Relative bool
+	}
+
+	var parseArgs = task.From(
+		func(req clib.ActionRequest) (error, ParsedArgs) {
 			var args = req.Args
 			var options = req.Opts
 
@@ -40,46 +40,84 @@ var rootAncestorsCommand = func() clib.Command {
 			if !filepath.IsAbs(rootPath) {
 				wd, err := os.Getwd()
 				if err != nil {
-					zlog.Fatal().Err(err).Msg("error while finding working directory")
-					return 1
+					return err, ParsedArgs{}
 				}
 				rootPath = filepath.Join(wd, rootPath)
 			}
+	
+			return nil, ParsedArgs{
+				RootPath: rootPath,
+				Relative: relative,
+			}
+		},
+	)
 
-			gardenPath, err := dryad.GardenPath(rootPath)
+	var findAncestors = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+		rootPath := args.RootPath
+		relative := args.Relative
+
+		gardenPath, err := dryad.GardenPath(rootPath)
+		if err != nil {
+			return err, nil
+		}
+
+		rootPath, err = dryad.RootPath(rootPath, "")
+		if err != nil {
+			return err, nil
+		}
+
+		graph, err := dryad.RootsGraph(gardenPath, relative)
+		if err != nil {
+			return err, nil
+		}
+
+		if relative {
+			rootPath, err = filepath.Rel(gardenPath, rootPath)
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while finding garden path")
-				return 1
+				return err, nil
 			}
+		}
 
-			rootPath, err = dryad.RootPath(rootPath, "")
+		ancestors := graph.Descendants(make(dryad.TStringSet), []string{rootPath}).ToArray([]string{})
+
+		for _, v := range ancestors {
+			fmt.Println(v)
+		}
+
+		return nil, nil
+	}
+
+	findAncestors = task.WithContext(
+		findAncestors,
+		func (ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
+			return nil, ctx
+		},
+	)
+
+	var action = task.Return(
+		task.Series2(
+			parseArgs,
+			findAncestors,
+		),
+		func (err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while resolving root path")
+				zlog.Fatal().Err(err).Msg("error while finding root ancestors")
 				return 1
-			}
-
-			graph, err := dryad.RootsGraph(gardenPath, relative)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while building graph")
-				return 1
-			}
-
-			if relative {
-				rootPath, err = filepath.Rel(gardenPath, rootPath)
-				if err != nil {
-					zlog.Fatal().Err(err).Msg("error while making root relative")
-					return 1
-				}
-			}
-
-			ancestors := graph.Descendants(make(dryad.TStringSet), []string{rootPath}).ToArray([]string{})
-
-			for _, v := range ancestors {
-				fmt.Println(v)
 			}
 
 			return 0
-		})
+		},
+	)
+
+	command := clib.NewCommand("ancestors", "list all roots the selected root depends on (directly and indirectly)").
+		WithArg(
+			clib.
+				NewArg("root_path", "path to the root").
+				AsOptional().
+				WithAutoComplete(ArgAutoCompletePath),
+		).
+		WithOption(clib.NewOption("relative", "print roots relative to the base garden path. default true").WithType(clib.OptionTypeBool)).
+		WithAction(action)
 
 	command = LoggingCommand(command)
 
