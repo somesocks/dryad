@@ -10,6 +10,8 @@ type RootsBuildRequest struct {
 	GardenPath     string
 	IncludeRoots func(string) bool
 	ExcludeRoots func(string) bool
+	JoinStdout bool
+	JoinStderr bool
 }
 
 func RootsBuild(ctx *task.ExecutionContext, request RootsBuildRequest) (error, any) {
@@ -51,6 +53,8 @@ func RootsBuild(ctx *task.ExecutionContext, request RootsBuildRequest) (error, a
 				ctx,
 				RootBuildRequest{
 					RootPath: match.RootPath,
+					JoinStdout: request.JoinStdout,
+					JoinStderr: request.JoinStderr,
 				},
 			)
 			return err, nil

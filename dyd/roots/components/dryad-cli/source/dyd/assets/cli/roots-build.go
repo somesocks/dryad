@@ -16,6 +16,8 @@ var rootsBuildCommand = func() clib.Command {
 		ExcludeRoots func(path string) bool
 		Parallel int
 		Path string
+		JoinStdout bool
+		JoinStderr bool
 	}
 
 	var parseArgs = func (ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
@@ -29,6 +31,9 @@ var rootsBuildCommand = func() clib.Command {
 		var excludeOpts []string
 
 		var parallel int
+
+		var joinStdout bool
+		var joinStderr bool
 
 		if options["exclude"] != nil {
 			excludeOpts = options["exclude"].([]string)
@@ -48,6 +53,18 @@ var rootsBuildCommand = func() clib.Command {
 			parallel = 8
 		}
 
+		if options["join-stdout"] != nil {
+			joinStdout = options["join-stdout"].(bool)
+		} else {
+			joinStdout = false
+		}
+
+		if options["join-stderr"] != nil {
+			joinStderr = options["join-stderr"].(bool)
+		} else {
+			joinStderr = false
+		}
+
 		includeRoots := dryad.RootIncludeMatcher(includeOpts)
 		excludeRoots := dryad.RootExcludeMatcher(excludeOpts)
 
@@ -56,6 +73,8 @@ var rootsBuildCommand = func() clib.Command {
 			ExcludeRoots: excludeRoots,
 			Path: path,
 			Parallel: parallel,
+			JoinStdout: joinStdout,
+			JoinStderr: joinStderr,
 		}
 	}
 
@@ -66,6 +85,8 @@ var rootsBuildCommand = func() clib.Command {
 				GardenPath:     args.Path,
 				IncludeRoots: args.IncludeRoots,
 				ExcludeRoots: args.ExcludeRoots,
+				JoinStdout: args.JoinStdout,
+				JoinStderr: args.JoinStderr,
 			},
 		)
 
@@ -102,6 +123,20 @@ var rootsBuildCommand = func() clib.Command {
 		).
 		WithOption(clib.NewOption("include", "choose which roots are included in the build").WithType(clib.OptionTypeMultiString)).
 		WithOption(clib.NewOption("exclude", "choose which roots are excluded from the build").WithType(clib.OptionTypeMultiString)).
+		WithOption(
+			clib.NewOption(
+				"join-stdout",
+				"join the stdout of child processes to the stderr of the parent dryad process. default false",
+			).
+			WithType(clib.OptionTypeBool),
+		).
+		WithOption(
+			clib.NewOption(
+				"join-stderr",
+				"join the stderr of child processes to the stderr of the parent dryad process. default false",
+			).
+			WithType(clib.OptionTypeBool),
+		).
 		WithAction(action)
 
 	command = ParallelCommand(command)
