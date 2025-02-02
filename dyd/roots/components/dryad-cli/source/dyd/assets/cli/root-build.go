@@ -16,6 +16,8 @@ var rootBuildCommand = func() clib.Command {
 	type ParsedArgs struct {
 		RootPath string
 		Parallel int
+		JoinStdout bool
+		JoinStderr bool
 	}
 
 	var parseArgs = task.From(
@@ -24,8 +26,9 @@ var rootBuildCommand = func() clib.Command {
 			var options = req.Opts
 
 			var path string
-
 			var parallel int
+			var joinStdout bool
+			var joinStderr bool
 
 			if len(args) > 0 {
 				path = args[0]
@@ -44,10 +47,24 @@ var rootBuildCommand = func() clib.Command {
 			} else {
 				parallel = 8
 			}
-				
+
+			if options["join-stdout"] != nil {
+				joinStdout = options["join-stdout"].(bool)
+			} else {
+				joinStdout = false
+			}
+
+			if options["join-stderr"] != nil {
+				joinStderr = options["join-stderr"].(bool)
+			} else {
+				joinStderr = false
+			}
+
 			return nil, ParsedArgs{
 				RootPath: path,
 				Parallel: parallel,
+				JoinStdout: joinStdout,
+				JoinStderr: joinStderr,
 			}
 		},
 	)
@@ -57,7 +74,9 @@ var rootBuildCommand = func() clib.Command {
 		err, rootFingerprint := dryad.RootBuild(
 			task.SERIAL_CONTEXT,
 			dryad.RootBuildRequest{
-				RootPath: args.RootPath,	
+				RootPath: args.RootPath,
+				JoinStdout: args.JoinStdout,
+				JoinStderr: args.JoinStderr,
 			},
 		)
 		if err != nil {
@@ -97,6 +116,20 @@ var rootBuildCommand = func() clib.Command {
 				NewArg("path", "path to the root to build").
 				AsOptional().
 				WithAutoComplete(ArgAutoCompletePath),
+		).
+		WithOption(
+			clib.NewOption(
+				"join-stdout",
+				"join the stdout of child processes to the stderr of the parent dryad process. default false",
+			).
+			WithType(clib.OptionTypeBool),
+		).
+		WithOption(
+			clib.NewOption(
+				"join-stderr",
+				"join the stderr of child processes to the stderr of the parent dryad process. default false",
+			).
+			WithType(clib.OptionTypeBool),
 		).
 		WithAction(action)
 

@@ -17,6 +17,8 @@ type rootBuild_stage5_request struct {
 	RootStemPath string
 	StemBuildPath string
 	RootFingerprint string
+	JoinStdout bool
+	JoinStderr bool
 }
 
 // stage 5 - execute the root to build its stem,
@@ -38,8 +40,8 @@ var rootBuild_stage5 func (ctx *task.ExecutionContext, req rootBuild_stage5_requ
 				"DYD_BUILD": req.StemBuildPath,
 			},
 			Args:       []string{req.StemBuildPath},
-			JoinStdout: false,
-			JoinStderr: false,
+			JoinStdout: req.JoinStdout,
+			JoinStderr: req.JoinStderr,
 		})
 		if err != nil {
 			zlog.Debug().

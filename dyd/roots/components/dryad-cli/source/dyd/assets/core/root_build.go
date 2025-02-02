@@ -14,6 +14,8 @@ import (
 
 type RootBuildRequest struct {
 	RootPath string
+	JoinStdout bool
+	JoinStderr bool
 }
 
 func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string) {
@@ -66,6 +68,8 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 			RootPath: rootPath,
 			WorkspacePath: workspacePath,
 			GardenPath: gardenPath,
+			JoinStdout: req.JoinStdout,
+			JoinStderr: req.JoinStderr,
 		},
 	)
 	if err != nil {
@@ -158,6 +162,8 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 				RootStemPath: finalStemPath,
 				StemBuildPath: stemBuildPath,
 				RootFingerprint: rootFingerprint,
+				JoinStdout: req.JoinStdout,
+				JoinStderr: req.JoinStderr,
 			},
 		)
 		if err != nil {
