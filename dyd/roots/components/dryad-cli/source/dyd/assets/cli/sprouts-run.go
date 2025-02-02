@@ -21,6 +21,8 @@ var sproutsRunCommand = func() clib.Command {
 		WithOption(clib.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(clib.OptionTypeBool)).
 		WithOption(clib.NewOption("confirm", "ask for a confirmation string to be entered to execute this command").WithType(clib.OptionTypeString)).
 		WithOption(clib.NewOption("ignore-errors", "continue running even if a sprout returns an error").WithType(clib.OptionTypeBool)).
+		WithOption(clib.NewOption("join-stdout", "join the stdout of child processes to the stderr of the parent dryad process. default false").WithType(clib.OptionTypeBool)).
+		WithOption(clib.NewOption("join-stderr", "join the stderr of child processes to the stderr of the parent dryad process. default false").WithType(clib.OptionTypeBool)).
 		WithArg(clib.NewArg("-- args", "args to pass to each sprout on execution").AsOptional()).
 		WithAction(
 			func(req clib.ActionRequest) int {
@@ -59,7 +61,9 @@ var sproutsRunCommand = func() clib.Command {
 				var inherit bool
 				var ignoreErrors bool
 				var confirm string
-
+				var joinStdout bool
+				var joinStderr bool
+				
 				if options["context"] != nil {
 					context = options["context"].(string)
 				}
@@ -71,6 +75,18 @@ var sproutsRunCommand = func() clib.Command {
 				if options["ignore-errors"] != nil {
 					ignoreErrors = options["ignore-errors"].(bool)
 				}
+
+				if options["join-stdout"] != nil {
+					joinStdout = options["join-stdout"].(bool)
+				} else {
+					joinStdout = false
+				}
+		
+				if options["join-stderr"] != nil {
+					joinStderr = options["join-stderr"].(bool)
+				} else {
+					joinStderr = false
+				}		
 
 				if options["confirm"] != nil {
 					confirm = options["confirm"].(string)
@@ -146,14 +162,14 @@ var sproutsRunCommand = func() clib.Command {
 					if includeSprouts(relPath) && !excludeSprouts(relPath) {
 						zlog.Info().
 							Str("sprout", path).
-							Msg("running sprout")
+							Msg("sprout run starting")
 
 						err := dryad.StemRun(dryad.StemRunRequest{
 							StemPath:   path,
 							Env:        env,
 							Args:       extras,
-							JoinStdout: true,
-							JoinStderr: true,
+							JoinStdout: joinStdout,
+							JoinStderr: joinStderr,
 							Context:    context,
 						})
 						if err != nil {
@@ -164,6 +180,10 @@ var sproutsRunCommand = func() clib.Command {
 							if !ignoreErrors {
 								return err
 							}
+						} else {
+							zlog.Info().
+								Str("sprout", path).
+								Msg("sprout run finished")
 						}
 
 					}
