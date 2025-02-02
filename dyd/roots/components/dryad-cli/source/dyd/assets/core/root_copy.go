@@ -2,6 +2,7 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
+	"dryad/task"
 	"fmt"
 	"io/fs"
 	"os"
@@ -55,36 +56,44 @@ var _ROOT_COPY_MATCH_INCLUDE_REGEXP = regexp.MustCompile(
 
 var _ROOT_COPY_MATCH_EXCLUDE_REGEXP = regexp.MustCompile(`^$`)
 
-func RootCopy(sourcePath string, destPath string) error {
+type RootCopyRequest struct {
+	SourcePath string
+	DestPath string
+}
+
+func RootCopy(ctx *task.ExecutionContext, req RootCopyRequest) (error, any) {
+	var sourcePath string = req.SourcePath
+	var destPath string = req.DestPath
 
 	// normalize the source path
 	sourcePath, err := RootPath(sourcePath, "")
 	if err != nil {
-		return err
+		return err, nil
 	}
 
 	// normalize the destination path
 	destPath, err = filepath.Abs(destPath)
 	if err != nil {
-		return err
+		return err, nil
 	}
 
 	// temporary workaround until RootsPath is more correct
 	gardenPath, err := GardenPath(sourcePath)
 	if err != nil {
-		return err
+		return err, nil
 	}
 	rootsPath, err := RootsPath(gardenPath)
 	if err != nil {
-		return err
+		return err, nil
 	}
 
 	isWithinRoots, err := fileIsDescendant(destPath, rootsPath)
 	if err != nil {
-		return err
+		return err, nil
 	}
+
 	if !isWithinRoots {
-		return fmt.Errorf("destination path %s is outside of roots", destPath)
+		return fmt.Errorf("destination path %s is outside of roots", destPath), nil
 	}
 
 	// gardenPath, err := GardenPath(sourcePath)
@@ -227,5 +236,5 @@ func RootCopy(sourcePath string, destPath string) error {
 		MatchExclude: matchExclude,
 		OnMatch:      onMatch,
 	})
-	return err
+	return err, nil
 }
