@@ -79,7 +79,7 @@ var rootsListCommand = func() clib.Command {
 		
 	var listRoots = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
 		err, _ := dryad.RootsWalk(
-			task.DEFAULT_CONTEXT,
+			ctx,
 			dryad.RootsWalkRequest{
 				GardenPath: args.GardenPath,
 				OnRoot: func (ctx *task.ExecutionContext, match dryad.RootsWalkMatch) (error, any) {
