@@ -2,35 +2,55 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
-	"io/fs"
+	"dryad/task"
 	"os"
 	"path/filepath"
 )
 
-var _isSprout = func(path string, info fs.FileInfo) (bool, error) {
+var sproutsWalk_ShouldCrawl = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+	isSymlink := node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
+	isDir := node.Info.IsDir()
+	return nil, isDir && !isSymlink
+}
 
-	var dydPath = filepath.Join(path, "dyd", "fingerprint")
+var sproutsWalk_ShouldMatch = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+	var dydPath = filepath.Join(node.Path, "dyd", "fingerprint")
 	var _, dydInfoErr = os.Stat(dydPath)
 	var isSprout = dydInfoErr == nil
 
-	return isSprout, nil
+	return nil, isSprout
 }
 
-func SproutsWalk(path string, walkFn func(path string, info fs.FileInfo) error) error {
-	var sproutsPath, err = SproutsPath(path)
+type SproutsWalkRequest struct {
+	GardenPath string
+	OnSprout func(*task.ExecutionContext, string) (error, any)
+}
+
+func SproutsWalk(ctx *task.ExecutionContext, req SproutsWalkRequest) (error, any) {
+	var sproutsPath, err = SproutsPath(req.GardenPath)
 	if err != nil {
-		return err
+		return err, nil
 	}
 
-	err = fs2.Walk(fs2.WalkRequest{
-		BasePath:     sproutsPath,
-		CrawlExclude: _isSprout,
-		MatchInclude: _isSprout,
-		OnMatch:      walkFn,
-	})
-	if err != nil {
-		return err
+	var onMatch = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
+		err, _ := req.OnSprout(ctx, node.Path)
+		return err, nil
 	}
 
-	return nil
+	err, _ = fs2.BFSWalk3(
+		ctx,
+		fs2.Walk5Request{
+			BasePath:     sproutsPath,
+			Path:     sproutsPath,
+			VPath:     sproutsPath,
+			ShouldCrawl: sproutsWalk_ShouldCrawl,
+			ShouldMatch: sproutsWalk_ShouldMatch,
+			OnMatch:      onMatch,
+		},
+	)
+	if err != nil {
+		return err, nil
+	}
+
+	return nil, nil
 }

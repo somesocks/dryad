@@ -10,6 +10,9 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
+
+	"dryad/task"
 
 	"golang.org/x/crypto/blake2b"
 )
@@ -27,86 +30,94 @@ var RE_STEM_FINGERPRINT_SHOULD_MATCH = regexp.MustCompile(
 		")$",
 )
 
-func StemFingerprintShouldMatch(context fs2.Walk4Context) (bool, error) {
-	var relPath, relErr = filepath.Rel(context.BasePath, context.VPath)
+func StemFingerprintShouldMatch(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+	var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
 	if relErr != nil {
-		return false, relErr
+		return relErr, false
 	}
 	matchesPath := RE_STEM_FINGERPRINT_SHOULD_MATCH.Match([]byte(relPath))
 
 	if !matchesPath {
-		return false, nil
-	} else if context.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
-		linkTarget, err := os.Readlink(context.Path)
+		return nil, false
+	} else if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
+		linkTarget, err := os.Readlink(node.Path)
 		if err != nil {
-			return false, err
+			return err, false
 		}
 
 		// clean up relative links
 		if !filepath.IsAbs(linkTarget) {
-			linkTarget = filepath.Clean(filepath.Join(filepath.Dir(context.Path), linkTarget))
+			linkTarget = filepath.Clean(filepath.Join(filepath.Dir(node.Path), linkTarget))
 		}
 
-		isDescendant, err := fileIsDescendant(linkTarget, context.BasePath)
+		isDescendant, err := fileIsDescendant(linkTarget, node.BasePath)
 		if err != nil {
-			return false, err
+			return err, false
 		}
 
-		return isDescendant, nil
-	} else if context.Info.IsDir() {
-		return false, nil
+		return nil, isDescendant
+	} else if node.Info.IsDir() {
+		return nil, false
 	} else {
-		return true, nil
+		return nil, true
 	}
 
 }
 
-type StemFingerprintArgs struct {
+type StemFingerprintRequest struct {
 	BasePath  string
 	MatchDeny *regexp.Regexp
 }
 
-func StemFingerprint(args StemFingerprintArgs) (string, error) {
+func StemFingerprint(ctx *task.ExecutionContext, args StemFingerprintRequest) (error, string) {
 	var checksumMap = make(map[string]string)
+	var checksumMutex sync.Mutex
 
-	var onMatch = func(context fs2.Walk4Context) error {
-		var relPath, relErr = filepath.Rel(context.BasePath, context.VPath)
+	var onMatch = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
+		var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
 		if relErr != nil {
-			return relErr
+			return relErr, nil
 		}
 
-		if context.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
-			var _, hash, hashErr = linkHash(context.VPath)
+		if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
+			var _, hash, hashErr = linkHash(node.VPath)
 
 			if hashErr != nil {
-				return hashErr
+				return hashErr, nil
 			}
 
+			checksumMutex.Lock()
 			checksumMap[relPath] = hash
+			checksumMutex.Unlock()
 		} else {
-			var _, hash, hashErr = fileHash(context.VPath)
+			var _, hash, hashErr = fileHash(node.VPath)
 
 			if hashErr != nil {
-				return hashErr
+				return hashErr, nil
 			}
 
+			checksumMutex.Lock()
 			checksumMap[relPath] = hash
+			checksumMutex.Unlock()
 		}
 
-		return nil
+		return nil, nil
 	}
 
-	err := fs2.BFSWalk2(fs2.Walk4Request{
-		Path:        args.BasePath,
-		VPath:       args.BasePath,
-		BasePath:    args.BasePath,
-		ShouldCrawl: StemWalkShouldCrawl,
-		ShouldMatch: StemFingerprintShouldMatch,
-		OnMatch:     onMatch,
-	})
+	err, _ := fs2.BFSWalk3(
+		ctx,
+		fs2.Walk5Request{
+			Path:        args.BasePath,
+			VPath:       args.BasePath,
+			BasePath:    args.BasePath,
+			ShouldCrawl: StemWalkShouldCrawl,
+			ShouldMatch: StemFingerprintShouldMatch,
+			OnMatch:     onMatch,
+		},
+	)
 
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	var keys []string
@@ -127,17 +138,17 @@ func StemFingerprint(args StemFingerprintArgs) (string, error) {
 
 	hash, err := blake2b.New(16, []byte{})
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	_, err = io.WriteString(hash, "stem\u0000")
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	_, err = io.WriteString(hash, checksumString)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
 
 	var fingerprintHashBytes = hash.Sum([]byte{})
@@ -146,5 +157,5 @@ func StemFingerprint(args StemFingerprintArgs) (string, error) {
 
 	// fmt.Println("StemFingerprint", args.BasePath, fingerprint)
 
-	return fingerprint, nil
+	return nil, fingerprint
 }

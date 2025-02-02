@@ -5,42 +5,44 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"dryad/task"
 )
 
-var defaultShouldCrawl2 = func(context Walk4Context) (bool, error) {
-	return true, nil
+var defaultShouldCrawl3 = func(ctx *task.ExecutionContext, node Walk5Node) (error, bool) {
+	return nil, true
 }
 
-var defaultShouldMatch2 = func(context Walk4Context) (bool, error) {
-	return true, nil
+var defaultShouldMatch3 = func(ctx *task.ExecutionContext, node Walk5Node) (error, bool) {
+	return nil, true
 }
 
-var defaultOnMatch2 = func(context Walk4Context) error {
-	return nil
+var defaultOnMatch3 = func(ctx *task.ExecutionContext, node Walk5Node) (error, any) {
+	return nil, nil
 }
 
-var defaultOnError2 = func(err error, context Walk4Context) error {
+var defaultOnError3 = func(err error, node Walk5Node) error {
 	return err
 }
 
-type Walk4Request struct {
+type Walk5Request struct {
 	Path        string
 	VPath       string
 	BasePath    string
-	ShouldCrawl func(context Walk4Context) (bool, error)
-	ShouldMatch func(context Walk4Context) (bool, error)
-	OnMatch     func(context Walk4Context) error
-	OnError     func(err error, context Walk4Context) error
+	ShouldCrawl func(ctx *task.ExecutionContext, node Walk5Node) (error, bool)
+	ShouldMatch func(ctx *task.ExecutionContext, node Walk5Node) (error, bool)
+	OnMatch     func(ctx *task.ExecutionContext, node Walk5Node) (error, any)
+	OnError     func(err error, node Walk5Node) error
 }
 
-type Walk4Context struct {
+type Walk5Node struct {
 	Path     string
 	VPath    string
 	BasePath string
 	Info     fs.FileInfo
 }
 
-func _dfsWalk2(request Walk4Request) error {
+
+func _dfsWalk3(ctx *task.ExecutionContext, request Walk5Request) error {
 	var err error
 	var info fs.FileInfo
 
@@ -48,7 +50,7 @@ func _dfsWalk2(request Walk4Request) error {
 	// without resolving symlink
 	info, err = os.Lstat(request.Path)
 	if err != nil {
-		err = request.OnError(err, Walk4Context{
+		err = request.OnError(err, Walk5Node{
 			Path:     request.Path,
 			VPath:    request.VPath,
 			BasePath: request.BasePath,
@@ -66,14 +68,17 @@ func _dfsWalk2(request Walk4Request) error {
 		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
 
 			// check if we should crawl through the link
-			shouldCrawl, err := request.ShouldCrawl(Walk4Context{
-				Path:     request.Path,
-				VPath:    request.VPath,
-				BasePath: request.BasePath,
-				Info:     info,
-			})
+			err, shouldCrawl := request.ShouldCrawl(
+				ctx,
+				Walk5Node{
+					Path:     request.Path,
+					VPath:    request.VPath,
+					BasePath: request.BasePath,
+					Info:     info,
+				},
+			)
 			if err != nil {
-				err = request.OnError(err, Walk4Context{
+				err = request.OnError(err, Walk5Node{
 					Path:     request.Path,
 					VPath:    request.VPath,
 					BasePath: request.BasePath,
@@ -88,7 +93,7 @@ func _dfsWalk2(request Walk4Request) error {
 			if shouldCrawl {
 				linkPath, err := os.Readlink(request.Path)
 				if err != nil {
-					err = request.OnError(err, Walk4Context{
+					err = request.OnError(err, Walk5Node{
 						Path:     request.Path,
 						VPath:    request.VPath,
 						BasePath: request.BasePath,
@@ -105,7 +110,7 @@ func _dfsWalk2(request Walk4Request) error {
 
 				// crawl through to the real link
 				// update the real path, but not the virtual path
-				err = _dfsWalk2(Walk4Request{
+				err = _dfsWalk3(ctx, Walk5Request{
 					Path:        linkPath,
 					VPath:       request.VPath,
 					BasePath:    request.BasePath,
@@ -115,7 +120,7 @@ func _dfsWalk2(request Walk4Request) error {
 					OnError:     request.OnError,
 				})
 				if err != nil {
-					err = request.OnError(err, Walk4Context{
+					err = request.OnError(err, Walk5Node{
 						Path:     request.Path,
 						VPath:    request.VPath,
 						BasePath: request.BasePath,
@@ -129,14 +134,17 @@ func _dfsWalk2(request Walk4Request) error {
 		} else if info.IsDir() {
 
 			// check if we should crawl through the dir
-			shouldCrawl, err := request.ShouldCrawl(Walk4Context{
-				Path:     request.Path,
-				VPath:    request.VPath,
-				BasePath: request.BasePath,
-				Info:     info,
-			})
+			err, shouldCrawl := request.ShouldCrawl(
+				ctx,
+				Walk5Node{
+					Path:     request.Path,
+					VPath:    request.VPath,
+					BasePath: request.BasePath,
+					Info:     info,
+				},
+			)
 			if err != nil {
-				err = request.OnError(err, Walk4Context{
+				err = request.OnError(err, Walk5Node{
 					Path:     request.Path,
 					VPath:    request.VPath,
 					BasePath: request.BasePath,
@@ -149,14 +157,14 @@ func _dfsWalk2(request Walk4Request) error {
 
 			if shouldCrawl {
 				dir, err := os.Open(request.Path)
-				err = request.OnError(err, Walk4Context{
+				err = request.OnError(err, Walk5Node{
 					Path:     request.Path,
 					VPath:    request.VPath,
 					BasePath: request.BasePath,
 					Info:     info,
 				})
 				if err != nil && err != io.EOF {
-					err = request.OnError(err, Walk4Context{
+					err = request.OnError(err, Walk5Node{
 						Path:     request.Path,
 						VPath:    request.VPath,
 						BasePath: request.BasePath,
@@ -172,7 +180,7 @@ func _dfsWalk2(request Walk4Request) error {
 				entries, err = dir.ReadDir(100)
 				for err != io.EOF {
 					if err != nil {
-						err = request.OnError(err, Walk4Context{
+						err = request.OnError(err, Walk5Node{
 							Path:     request.Path,
 							VPath:    request.VPath,
 							BasePath: request.BasePath,
@@ -182,27 +190,37 @@ func _dfsWalk2(request Walk4Request) error {
 							return err
 						}
 					}
-					for _, entry := range entries {
-						err = _dfsWalk2(Walk4Request{
-							Path:        filepath.Join(request.Path, entry.Name()),
-							VPath:       filepath.Join(request.VPath, entry.Name()),
-							BasePath:    request.BasePath,
-							ShouldCrawl: request.ShouldCrawl,
-							ShouldMatch: request.ShouldMatch,
-							OnMatch:     request.OnMatch,
-							OnError:     request.OnError,
-						})
-						if err != nil {
-							err = request.OnError(err, Walk4Context{
-								Path:     request.Path,
-								VPath:    request.VPath,
-								BasePath: request.BasePath,
-								Info:     info,
-							})
+					err, _ = task.ParallelMap(
+						func (ctx *task.ExecutionContext, entry fs.DirEntry) (error, any) {
+							var err error
+							err = _dfsWalk3(
+								ctx,
+								Walk5Request{
+									Path:        filepath.Join(request.Path, entry.Name()),
+									VPath:       filepath.Join(request.VPath, entry.Name()),
+									BasePath:    request.BasePath,
+									ShouldCrawl: request.ShouldCrawl,
+									ShouldMatch: request.ShouldMatch,
+									OnMatch:     request.OnMatch,
+									OnError:     request.OnError,
+								},
+							)
 							if err != nil {
-								return err
+								err = request.OnError(err, Walk5Node{
+									Path:     request.Path,
+									VPath:    request.VPath,
+									BasePath: request.BasePath,
+									Info:     info,
+								})
+								if err != nil {
+									return err, nil
+								}
 							}
-						}
+							return nil, nil
+						},
+					)(ctx, entries)
+					if err != nil {
+						return err
 					}
 					entries, err = dir.ReadDir(100)
 				}
@@ -210,14 +228,17 @@ func _dfsWalk2(request Walk4Request) error {
 		}
 	}
 
-	shouldMatch, err := request.ShouldMatch(Walk4Context{
-		Path:     request.Path,
-		VPath:    request.VPath,
-		BasePath: request.BasePath,
-		Info:     info,
-	})
+	err, shouldMatch := request.ShouldMatch(
+		ctx,
+		Walk5Node{
+			Path:     request.Path,
+			VPath:    request.VPath,
+			BasePath: request.BasePath,
+			Info:     info,
+		},
+	)
 	if err != nil {
-		err = request.OnError(err, Walk4Context{
+		err = request.OnError(err, Walk5Node{
 			Path:     request.Path,
 			VPath:    request.VPath,
 			BasePath: request.BasePath,
@@ -229,14 +250,17 @@ func _dfsWalk2(request Walk4Request) error {
 	}
 
 	if shouldMatch {
-		err = request.OnMatch(Walk4Context{
-			Path:     request.Path,
-			VPath:    request.VPath,
-			BasePath: request.BasePath,
-			Info:     info,
-		})
+		err, _ = request.OnMatch(
+			ctx,
+			Walk5Node{
+				Path:     request.Path,
+				VPath:    request.VPath,
+				BasePath: request.BasePath,
+				Info:     info,
+			},
+		)
 		if err != nil {
-			err = request.OnError(err, Walk4Context{
+			err = request.OnError(err, Walk5Node{
 				Path:     request.Path,
 				VPath:    request.VPath,
 				BasePath: request.BasePath,
@@ -251,28 +275,28 @@ func _dfsWalk2(request Walk4Request) error {
 	return nil
 }
 
-func DFSWalk2(request Walk4Request) error {
+func DFSWalk3(ctx *task.ExecutionContext, request Walk5Request) error {
 
 	if request.ShouldCrawl == nil {
-		request.ShouldCrawl = defaultShouldCrawl2
+		request.ShouldCrawl = defaultShouldCrawl3
 	}
 
 	if request.ShouldMatch == nil {
-		request.ShouldMatch = defaultShouldMatch2
+		request.ShouldMatch = defaultShouldMatch3
 	}
 
 	if request.OnMatch == nil {
-		request.OnMatch = defaultOnMatch2
+		request.OnMatch = defaultOnMatch3
 	}
 
 	if request.OnError == nil {
-		request.OnError = defaultOnError2
+		request.OnError = defaultOnError3
 	}
 
-	return _dfsWalk2(request)
+	return _dfsWalk3(ctx, request)
 }
 
-func _bfsWalk2(request Walk4Request) error {
+func _bfsWalk3(ctx *task.ExecutionContext, request Walk5Request) error {
 
 	var err error
 	var info fs.FileInfo
@@ -281,7 +305,7 @@ func _bfsWalk2(request Walk4Request) error {
 	// without resolving symlink
 	info, err = os.Lstat(request.Path)
 	if err != nil {
-		err = request.OnError(err, Walk4Context{
+		err = request.OnError(err, Walk5Node{
 			Path:     request.Path,
 			VPath:    request.VPath,
 			BasePath: request.BasePath,
@@ -292,14 +316,17 @@ func _bfsWalk2(request Walk4Request) error {
 		}
 	}
 
-	shouldMatch, err := request.ShouldMatch(Walk4Context{
-		Path:     request.Path,
-		VPath:    request.VPath,
-		BasePath: request.BasePath,
-		Info:     info,
-	})
+	err, shouldMatch := request.ShouldMatch(
+		ctx,
+		Walk5Node{
+			Path:     request.Path,
+			VPath:    request.VPath,
+			BasePath: request.BasePath,
+			Info:     info,
+		},
+	)
 	if err != nil {
-		err = request.OnError(err, Walk4Context{
+		err = request.OnError(err, Walk5Node{
 			Path:     request.Path,
 			VPath:    request.VPath,
 			BasePath: request.BasePath,
@@ -311,14 +338,17 @@ func _bfsWalk2(request Walk4Request) error {
 	}
 
 	if shouldMatch {
-		err = request.OnMatch(Walk4Context{
-			Path:     request.Path,
-			VPath:    request.VPath,
-			BasePath: request.BasePath,
-			Info:     info,
-		})
+		err, _ = request.OnMatch(
+			ctx,
+			Walk5Node{
+				Path:     request.Path,
+				VPath:    request.VPath,
+				BasePath: request.BasePath,
+				Info:     info,
+			},
+		)
 		if err != nil {
-			err = request.OnError(err, Walk4Context{
+			err = request.OnError(err, Walk5Node{
 				Path:     request.Path,
 				VPath:    request.VPath,
 				BasePath: request.BasePath,
@@ -337,14 +367,17 @@ func _bfsWalk2(request Walk4Request) error {
 		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
 
 			// check if we should crawl through the link
-			shouldCrawl, err := request.ShouldCrawl(Walk4Context{
-				Path:     request.Path,
-				VPath:    request.VPath,
-				BasePath: request.BasePath,
-				Info:     info,
-			})
+			err, shouldCrawl := request.ShouldCrawl(
+				ctx,
+				Walk5Node{
+					Path:     request.Path,
+					VPath:    request.VPath,
+					BasePath: request.BasePath,
+					Info:     info,
+				},
+			)
 			if err != nil {
-				err = request.OnError(err, Walk4Context{
+				err = request.OnError(err, Walk5Node{
 					Path:     request.Path,
 					VPath:    request.VPath,
 					BasePath: request.BasePath,
@@ -359,7 +392,7 @@ func _bfsWalk2(request Walk4Request) error {
 			if shouldCrawl {
 				linkPath, err := os.Readlink(request.Path)
 				if err != nil {
-					err = request.OnError(err, Walk4Context{
+					err = request.OnError(err, Walk5Node{
 						Path:     request.Path,
 						VPath:    request.VPath,
 						BasePath: request.BasePath,
@@ -376,17 +409,20 @@ func _bfsWalk2(request Walk4Request) error {
 
 				// crawl through to the real link
 				// update the real path, but not the virtual path
-				err = _bfsWalk2(Walk4Request{
-					Path:        linkPath,
-					VPath:       request.VPath,
-					BasePath:    request.BasePath,
-					ShouldCrawl: request.ShouldCrawl,
-					ShouldMatch: request.ShouldMatch,
-					OnMatch:     request.OnMatch,
-					OnError:     request.OnError,
-				})
+				err = _bfsWalk3(
+					ctx,
+					Walk5Request{
+						Path:        linkPath,
+						VPath:       request.VPath,
+						BasePath:    request.BasePath,
+						ShouldCrawl: request.ShouldCrawl,
+						ShouldMatch: request.ShouldMatch,
+						OnMatch:     request.OnMatch,
+						OnError:     request.OnError,
+					},
+				)
 				if err != nil {
-					err = request.OnError(err, Walk4Context{
+					err = request.OnError(err, Walk5Node{
 						Path:     request.Path,
 						VPath:    request.VPath,
 						BasePath: request.BasePath,
@@ -400,14 +436,17 @@ func _bfsWalk2(request Walk4Request) error {
 		} else if info.IsDir() {
 
 			// check if we should crawl through the dir
-			shouldCrawl, err := request.ShouldCrawl(Walk4Context{
-				Path:     request.Path,
-				VPath:    request.VPath,
-				BasePath: request.BasePath,
-				Info:     info,
-			})
+			err, shouldCrawl := request.ShouldCrawl(
+				ctx,
+				Walk5Node{
+					Path:     request.Path,
+					VPath:    request.VPath,
+					BasePath: request.BasePath,
+					Info:     info,
+				},
+			)
 			if err != nil {
-				err = request.OnError(err, Walk4Context{
+				err = request.OnError(err, Walk5Node{
 					Path:     request.Path,
 					VPath:    request.VPath,
 					BasePath: request.BasePath,
@@ -420,14 +459,14 @@ func _bfsWalk2(request Walk4Request) error {
 
 			if shouldCrawl {
 				dir, err := os.Open(request.Path)
-				err = request.OnError(err, Walk4Context{
+				err = request.OnError(err, Walk5Node{
 					Path:     request.Path,
 					VPath:    request.VPath,
 					BasePath: request.BasePath,
 					Info:     info,
 				})
 				if err != nil && err != io.EOF {
-					err = request.OnError(err, Walk4Context{
+					err = request.OnError(err, Walk5Node{
 						Path:     request.Path,
 						VPath:    request.VPath,
 						BasePath: request.BasePath,
@@ -443,7 +482,7 @@ func _bfsWalk2(request Walk4Request) error {
 				entries, err = dir.ReadDir(100)
 				for err != io.EOF {
 					if err != nil {
-						err = request.OnError(err, Walk4Context{
+						err = request.OnError(err, Walk5Node{
 							Path:     request.Path,
 							VPath:    request.VPath,
 							BasePath: request.BasePath,
@@ -453,27 +492,37 @@ func _bfsWalk2(request Walk4Request) error {
 							return err
 						}
 					}
-					for _, entry := range entries {
-						err = _bfsWalk2(Walk4Request{
-							Path:        filepath.Join(request.Path, entry.Name()),
-							VPath:       filepath.Join(request.VPath, entry.Name()),
-							BasePath:    request.BasePath,
-							ShouldCrawl: request.ShouldCrawl,
-							ShouldMatch: request.ShouldMatch,
-							OnMatch:     request.OnMatch,
-							OnError:     request.OnError,
-						})
-						if err != nil {
-							err = request.OnError(err, Walk4Context{
-								Path:     request.Path,
-								VPath:    request.VPath,
-								BasePath: request.BasePath,
-								Info:     info,
-							})
+					err, _ = task.ParallelMap(
+						func (ctx *task.ExecutionContext, entry fs.DirEntry) (error, any) {
+							var err error
+							err = _bfsWalk3(
+								ctx,
+								Walk5Request{
+									Path:        filepath.Join(request.Path, entry.Name()),
+									VPath:       filepath.Join(request.VPath, entry.Name()),
+									BasePath:    request.BasePath,
+									ShouldCrawl: request.ShouldCrawl,
+									ShouldMatch: request.ShouldMatch,
+									OnMatch:     request.OnMatch,
+									OnError:     request.OnError,
+								},
+							)
 							if err != nil {
-								return err
+								err = request.OnError(err, Walk5Node{
+									Path:     request.Path,
+									VPath:    request.VPath,
+									BasePath: request.BasePath,
+									Info:     info,
+								})
+								if err != nil {
+									return err, nil
+								}
 							}
-						}
+							return nil, nil
+						},
+					)(ctx, entries)
+					if err != nil {
+						return err
 					}
 					entries, err = dir.ReadDir(100)
 				}
@@ -485,23 +534,23 @@ func _bfsWalk2(request Walk4Request) error {
 	return nil
 }
 
-func BFSWalk2(request Walk4Request) error {
+func BFSWalk3(ctx *task.ExecutionContext, request Walk5Request) (error, any) {
 
 	if request.ShouldCrawl == nil {
-		request.ShouldCrawl = defaultShouldCrawl2
+		request.ShouldCrawl = defaultShouldCrawl3
 	}
 
 	if request.ShouldMatch == nil {
-		request.ShouldMatch = defaultShouldMatch2
+		request.ShouldMatch = defaultShouldMatch3
 	}
 
 	if request.OnMatch == nil {
-		request.OnMatch = defaultOnMatch2
+		request.OnMatch = defaultOnMatch3
 	}
 
 	if request.OnError == nil {
-		request.OnError = defaultOnError2
+		request.OnError = defaultOnError3
 	}
 
-	return _bfsWalk2(request)
+	return _bfsWalk3(ctx, request), nil
 }

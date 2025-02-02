@@ -2,6 +2,8 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
+	"dryad/task"
+
 	"os"
 	"path/filepath"
 	"regexp"
@@ -37,45 +39,45 @@ var RE_STEM_WALK_SHOULD_CRAWL = regexp.MustCompile(
 // - else if the node is a directory then yes
 // - else if the node is a file then no
 // - else error?
-func StemWalkShouldCrawl(context fs2.Walk4Context) (bool, error) {
+func StemWalkShouldCrawl(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
 	zlog.
 		Trace().
-		Str("path", context.Path).
-		Str("vPath", context.VPath).
-		Str("basePath", context.BasePath).
+		Str("path", node.Path).
+		Str("vPath", node.VPath).
+		Str("basePath", node.BasePath).
 		Msg("StemWalk / shouldCrawl")
 
-	var relPath, relErr = filepath.Rel(context.BasePath, context.VPath)
+	var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
 	if relErr != nil {
-		return false, relErr
+		return relErr, false
 	}
 	matchesPath := RE_STEM_WALK_SHOULD_CRAWL.Match([]byte(relPath))
 
 	if !matchesPath {
-		return false, nil
-	} else if context.Info.IsDir() {
-		return true, nil
-	} else if context.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
-		linkTarget, err := os.Readlink(context.Path)
+		return nil, false 
+	} else if node.Info.IsDir() {
+		return nil, true
+	} else if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
+		linkTarget, err := os.Readlink(node.Path)
 		if err != nil {
-			return false, err
+			return err, false
 		}
 
 		// clean up relative links
 		absLinkTarget := linkTarget
 		if !filepath.IsAbs(absLinkTarget) {
-			absLinkTarget = filepath.Join(filepath.Dir(context.VPath), linkTarget)
+			absLinkTarget = filepath.Join(filepath.Dir(node.VPath), linkTarget)
 		} 
 
-		isDescendant, err := fileIsDescendant(absLinkTarget, context.BasePath)
+		isDescendant, err := fileIsDescendant(absLinkTarget, node.BasePath)
 
 		if err != nil {
-			return false, err
+			return err, false
 		}
 
-		return !isDescendant, nil
+		return  nil, !isDescendant
 	} else {
-		return false, nil
+		return nil, false 
 	}
 }
 
@@ -109,28 +111,31 @@ var RE_STEM_WALK_SHOULD_MATCH = regexp.MustCompile(
 // - else if the node is a directory then no,
 // - else if the node is a file then yes,
 // - else error?
-func StemWalkShouldMatch(context fs2.Walk4Context) (bool, error) {
+func StemWalkShouldMatch(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
 	zlog.
 		Trace().
-		Str("path", context.Path).
-		Str("vPath", context.VPath).
-		Str("basePath", context.BasePath).
+		Str("path", node.Path).
+		Str("vPath", node.VPath).
+		Str("basePath", node.BasePath).
 		Msg("StemWalk / shouldMatch")
 
-	var relPath, relErr = filepath.Rel(context.BasePath, context.VPath)
+	var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
 	if relErr != nil {
-		return false, relErr
+		return relErr, false
 	}
 	matchesPath := RE_STEM_WALK_SHOULD_MATCH.Match([]byte(relPath))
-	return matchesPath, nil
+	return nil, matchesPath 
 }
 
 type StemWalkRequest struct {
 	BasePath string
-	OnMatch  func(context fs2.Walk4Context) error
+	OnMatch  func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any)
 }
 
-func StemWalk(args StemWalkRequest) error {
+func StemWalk(
+	ctx *task.ExecutionContext,
+	args StemWalkRequest,
+) error {
 	var path string
 	var err error
 
@@ -144,12 +149,32 @@ func StemWalk(args StemWalkRequest) error {
 		return err
 	}
 
-	return fs2.BFSWalk2(fs2.Walk4Request{
-		Path:        path,
-		VPath:       path,
-		BasePath:    path,
-		ShouldCrawl: StemWalkShouldCrawl,
-		ShouldMatch: StemWalkShouldMatch,
-		OnMatch:     args.OnMatch,
-	})
+	err, _ = fs2.BFSWalk3(
+		ctx,
+		fs2.Walk5Request{
+			Path:        path,
+			VPath:       path,
+			BasePath:    path,
+			ShouldCrawl: StemWalkShouldCrawl,
+			ShouldMatch: StemWalkShouldMatch,
+			OnMatch:     args.OnMatch,
+			OnError: func(err error, node fs2.Walk5Node) error {
+				zlog.
+					Trace().
+					Str("path", node.Path).
+					Str("vpath", node.VPath).
+					Err(err).
+					Msg("StemWalk / onError")
+				
+				return err
+			},
+		},
+	)
+
+	zlog.
+		Trace().
+		Err(err).
+		Msg("StemWalk / err")
+
+	return err
 }

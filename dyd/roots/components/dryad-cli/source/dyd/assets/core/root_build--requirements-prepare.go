@@ -2,6 +2,7 @@ package core
 
 import (
 	dydfs "dryad/filesystem"
+	"dryad/task"
 
 	"os"
 	"path/filepath"
@@ -10,72 +11,71 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-var RE_ROOT_BUILD_REQUIREMENTS_PREPARE_SHOULD_CRAWL = regexp.MustCompile(
-	"^(" +
-		"([^/]*)" +
-		"|([^/]*/dyd)" +
-		"|([^/]*/dyd/traits)" +
-		"|([^/]*/dyd/traits/.*)" +
-		")$",
-)
-
-var RE_ROOT_BUILD_REQUIREMENTS_PREPARE_SHOULD_MATCH = regexp.MustCompile(
-	"^(" +
-		"([^/]*/dyd/fingerprint)" +
-		"|([^/]*/dyd/secrets-fingerprint)" +
-		"|([^/]*/dyd/traits/.*)" +
-		")$",
-)
-
-
 // This function is used to prepare the dyd/requirements for a package,
 // based on the contents of dyd/dependencies.
 var rootBuild_requirementsPrepare = func() func(string) error {
 
+	var RE_ROOT_BUILD_REQUIREMENTS_PREPARE_SHOULD_CRAWL = regexp.MustCompile(
+		"^(" +
+			"([^/]*)" +
+			"|([^/]*/dyd)" +
+			"|([^/]*/dyd/traits)" +
+			"|([^/]*/dyd/traits/.*)" +
+			")$",
+	)
+
 	// crawler used to match files to copy 
-	// context.BasePath should be the path to the package dyd/dependencies 
-	var fs_should_crawl = func(context dydfs.Walk4Context) (bool, error) {
-		var relPath, relErr = filepath.Rel(context.BasePath, context.VPath)
+	// node.BasePath should be the path to the package dyd/dependencies 
+	var fs_should_crawl = func(ctx *task.ExecutionContext, node dydfs.Walk5Node) (error, bool) {
+		var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
 		if relErr != nil {
-			return false, relErr
+			return relErr, false
 		}
 		shouldCrawl := RE_ROOT_BUILD_REQUIREMENTS_PREPARE_SHOULD_CRAWL.MatchString(relPath)
 		zlog.Trace().
-			Str("context.VPath", context.VPath).
+			Str("node.VPath", node.VPath).
 			Bool("shouldCrawl", shouldCrawl).
 			Msg("rootBuild_requirementsPrepare.fs_should_crawl")
-		return shouldCrawl, nil
+		return nil, shouldCrawl
 	}
 
+	var RE_ROOT_BUILD_REQUIREMENTS_PREPARE_SHOULD_MATCH = regexp.MustCompile(
+		"^(" +
+			"([^/]*/dyd/fingerprint)" +
+			"|([^/]*/dyd/secrets-fingerprint)" +
+			"|([^/]*/dyd/traits/.*)" +
+			")$",
+	)
+
 	// matcher used to match files to copy 
-	// context.BasePath should be the path to the package dyd/dependencies 
-	var fs_should_match = func(context dydfs.Walk4Context) (bool, error) {
-		var relPath, relErr = filepath.Rel(context.BasePath, context.VPath)
+	// node.BasePath should be the path to the package dyd/dependencies 
+	var fs_should_match = func(ctx *task.ExecutionContext, node dydfs.Walk5Node) (error, bool) {
+		var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
 		if relErr != nil {
-			return false, relErr
+			return relErr, false
 		}
 		shouldMatch := RE_ROOT_BUILD_REQUIREMENTS_PREPARE_SHOULD_MATCH.MatchString(relPath)
 		zlog.Trace().
-			Str("context.VPath", context.VPath).
+			Str("node.VPath", node.VPath).
 			Bool("shouldMatch", shouldMatch).
 			Msg("rootBuild_requirementsPrepare.fs_should_match")
-		return shouldMatch, nil
+		return nil, shouldMatch
 	}
 
-	var fs_on_match = func(context dydfs.Walk4Context) error {
+	var fs_on_match = func(ctx *task.ExecutionContext, node dydfs.Walk5Node) (error, any) {
 		zlog.Trace().
-			Str("context.VPath", context.VPath).
+			Str("node.VPath", node.VPath).
 			Msg("rootBuild_requirementsPrepare.fs_on_match")
 
-		relPath, err := filepath.Rel(context.BasePath, context.VPath)
+		relPath, err := filepath.Rel(node.BasePath, node.VPath)
 		if err != nil {
-			return err
+			return err, nil
 		}
 		// zlog.Trace().
 		// 	Str("relPath", relPath).
 		// 	Msg("rootBuild_requirementsPrepare.fs_on_match")
 
-		rootPath := filepath.Dir(filepath.Dir(context.BasePath))
+		rootPath := filepath.Dir(filepath.Dir(node.BasePath))
 
 		reqsPath := filepath.Join(rootPath, "dyd", "requirements", relPath)
 		// zlog.Trace().
@@ -85,14 +85,14 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 		reqsParentPath := filepath.Dir(reqsPath)
 		err = os.MkdirAll(reqsParentPath, os.ModePerm)
 		if err != nil {
-			return err
+			return err, nil
 		}
 
 		// zlog.Trace().
 		// 	Str("reqsParentPath", reqsParentPath).
 		// 	Msg("rootBuild_requirementsPrepare.fs_on_match")
 
-		var isSymlink = context.Info.Mode()&os.ModeSymlink == os.ModeSymlink
+		var isSymlink = node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
 		var isInternalLink = false
 		var linkTarget = ""
 
@@ -102,21 +102,21 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 
 		// check if its an package-internal symlink
 		if isSymlink {
-			linkTarget, err = os.Readlink(context.Path)
+			linkTarget, err = os.Readlink(node.Path)
 			if err != nil {
-				return err
+				return err, nil
 			}
 
 			absLinkTarget := linkTarget
 
 			// clean up relative links
 			if !filepath.IsAbs(absLinkTarget) {
-				absLinkTarget = filepath.Clean(filepath.Join(filepath.Dir(context.Path), absLinkTarget))
+				absLinkTarget = filepath.Clean(filepath.Join(filepath.Dir(node.Path), absLinkTarget))
 			}
 
-			isInternalLink, err = fileIsDescendant(absLinkTarget, context.BasePath)
+			isInternalLink, err = fileIsDescendant(absLinkTarget, node.BasePath)
 			if err != nil {
-				return err
+				return err, nil
 			}
 		}
 
@@ -125,36 +125,36 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 		if isInternalLink {
 			err = os.Symlink(linkTarget, reqsPath)
 			if err != nil {
-				return err
+				return err, nil
 			}
 		} else {
-			srcFile, err := os.Open(context.Path)
+			srcFile, err := os.Open(node.Path)
 			if err != nil {
-				return err
+				return err, nil
 			}
 			defer srcFile.Close()
 
 			var destFile *os.File
 			destFile, err = os.Create(reqsPath)
 			if err != nil {
-				return err
+				return err, nil
 			}
 			defer destFile.Close()
 
 			_, err = destFile.ReadFrom(srcFile)
 			if err != nil {
-				return err
+				return err, nil
 			}
 
 			// heap files should be set to R-X--X--X
 			err = destFile.Chmod(0o511)
 			if err != nil {
-				return err
+				return err, nil
 			}
 
 		}
 
-		return nil
+		return nil, nil
 	}
 
 	var action = func(workspacePath string) error {
@@ -164,21 +164,28 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 
 		requirementsPath := filepath.Join(workspacePath, "dyd", "requirements")
 
-		err := dydfs.RemoveAll(requirementsPath)
+		err, _ := dydfs.RemoveAll(task.SERIAL_CONTEXT, requirementsPath)
 		if err != nil {
+			zlog.Trace().
+				Err(err).
+				Msg("rootBuild_requirementsPrepare RemoveAll err")
 			return err
 		}
 
 		dependenciesPath := filepath.Join(workspacePath, "dyd", "dependencies")
 
-		err = dydfs.BFSWalk2(dydfs.Walk4Request{
-			BasePath:    dependenciesPath,
-			Path:        dependenciesPath,
-			VPath:       dependenciesPath,
-			ShouldCrawl: fs_should_crawl,
-			ShouldMatch: fs_should_match,
-			OnMatch:     fs_on_match,
-		})
+		// NOTE: this should use a serial execution context until it has been verified to be
+		// concurrent-safe
+		err, _ = dydfs.BFSWalk3(
+			task.SERIAL_CONTEXT,
+			dydfs.Walk5Request{
+				BasePath:    dependenciesPath,
+				Path:        dependenciesPath,
+				VPath:       dependenciesPath,
+				ShouldCrawl: fs_should_crawl,
+				ShouldMatch: fs_should_match,
+				OnMatch:     fs_on_match,
+			})
 		if err != nil {
 			return err
 		}

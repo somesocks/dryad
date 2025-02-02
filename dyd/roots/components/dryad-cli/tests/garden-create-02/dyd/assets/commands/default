@@ -20,7 +20,7 @@ _setup() {
 	# make a temporary working directory
 	# this command is linux / osx agnostic
 	# https://unix.stackexchange.com/questions/30091/fix-or-alternative-for-mktemp-in-os-x
-	echo "[INFO] creating temporary working directory" 1>&2;
+	# echo "\[INFO\] creating temporary working directory" 1>&2;
 	TEMP_DIR=''
 	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
 }
@@ -30,7 +30,7 @@ _prepare() {
 }
 
 _test() {
-	echo "[INFO] creating garden" 1>&2;
+	# echo "[INFO] creating garden" 1>&2;
 	(cd "$TEMP_DIR" && dryad garden create)
 }
 
@@ -41,7 +41,7 @@ _verify() {
 }
 
 _teardown() {
-	echo "[INFO] tearing down fixtures" 1>&2;
+	# echo "\[INFO\] tearing down fixtures" 1>&2;
 	if [ -d "$TEMP_DIR" ]; then
 		rm -rf $TEMP_DIR
 	fi

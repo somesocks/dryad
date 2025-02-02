@@ -3,4 +3,4 @@
 set -eu
 set -x
 
-dryad sprouts run --scope=none --include=tests
+dryad sprouts run --scope=none --include=tests --log-level=debug

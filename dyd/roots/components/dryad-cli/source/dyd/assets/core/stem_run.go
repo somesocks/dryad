@@ -19,6 +19,7 @@ type StemRunRequest struct {
 	Env          map[string]string
 	Args         []string
 	JoinStdout   bool
+	JoinStderr   bool
 	InheritEnv   bool
 }
 
@@ -126,7 +127,11 @@ func StemRun(request StemRunRequest) error {
 		cmd.Stdout = os.Stdout
 	}
 
-	cmd.Stderr = os.Stderr
+	// optionally pipe the exec stderr to us
+	if request.JoinStderr {
+		cmd.Stderr = os.Stderr
+	}
+
 	envPath := fmt.Sprintf(
 		"PATH=%s/dyd/commands:%s/dyd/path:%s:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		stemPath,

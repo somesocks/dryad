@@ -3,6 +3,7 @@ package core
 import (
 
 	dydfs "dryad/filesystem"
+	"dryad/task"
 
 	"os"
 	"path/filepath"
@@ -109,7 +110,7 @@ func rootDevelop_stage0(rootPath string, workspacePath string) error {
 // stage 1 - walk through the root dependencies,
 // and add the fingerprint as a dependency
 func rootDevelop_stage1(
-	context BuildContext,
+	context *BuildContext,
 	rootPath string,
 	workspacePath string,
 	gardenPath string,
@@ -132,7 +133,12 @@ func rootDevelop_stage1(
 			return err
 		}
 
-		_, err = RootBuild(context, dependencyPath)
+		err, _ = RootBuild(
+			task.SERIAL_CONTEXT,
+			RootBuildRequest{
+				RootPath: dependencyPath,
+			},
+		)
 		if err != nil {
 			return err
 		}
@@ -184,7 +190,7 @@ func rootDevelop_stage2(workspacePath string) error {
 func rootDevelop_stage3(rootPath string, workspacePath string) (string, error) {
 	// fmt.Println("rootDevelop_stage3 ", rootPath)
 
-	stemFingerprint, err := stemFinalize(workspacePath)
+	err, stemFingerprint := stemFinalize(task.SERIAL_CONTEXT, workspacePath)
 	return stemFingerprint, err
 }
 
@@ -331,7 +337,7 @@ func rootDevelop_stage5(
 	return "", err
 }
 
-func RootDevelop(context BuildContext, rootPath string, editor string, editorArgs []string, inherit bool) (string, error) {
+func RootDevelop(context *BuildContext, rootPath string, editor string, editorArgs []string, inherit bool) (string, error) {
 	// fmt.Println("[trace] RootBuild", context, rootPath)
 
 	// sanitize the root path
@@ -369,7 +375,7 @@ func RootDevelop(context BuildContext, rootPath string, editor string, editorArg
 	if err != nil {
 		return "", err
 	}
-	defer dydfs.RemoveAll(workspacePath)
+	defer dydfs.RemoveAll(task.SERIAL_CONTEXT, workspacePath)
 
 	err = rootDevelop_stage0(rootPath, workspacePath)
 	if err != nil {
@@ -396,7 +402,7 @@ func RootDevelop(context BuildContext, rootPath string, editor string, editorArg
 	if err != nil {
 		return "", err
 	}
-	defer dydfs.RemoveAll(stemBuildPath)
+	defer dydfs.RemoveAll(task.SERIAL_CONTEXT, stemBuildPath)
 
 	err = rootDevelop_stage4(workspacePath, stemBuildPath, rootFingerprint, gardenPath, editor, editorArgs, inherit)
 	if err != nil {

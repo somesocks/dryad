@@ -2,8 +2,8 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
+	"dryad/task"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -55,36 +55,44 @@ var _ROOT_COPY_MATCH_INCLUDE_REGEXP = regexp.MustCompile(
 
 var _ROOT_COPY_MATCH_EXCLUDE_REGEXP = regexp.MustCompile(`^$`)
 
-func RootCopy(sourcePath string, destPath string) error {
+type RootCopyRequest struct {
+	SourcePath string
+	DestPath string
+}
+
+func RootCopy(ctx *task.ExecutionContext, req RootCopyRequest) (error, any) {
+	var sourcePath string = req.SourcePath
+	var destPath string = req.DestPath
 
 	// normalize the source path
 	sourcePath, err := RootPath(sourcePath, "")
 	if err != nil {
-		return err
+		return err, nil
 	}
 
 	// normalize the destination path
 	destPath, err = filepath.Abs(destPath)
 	if err != nil {
-		return err
+		return err, nil
 	}
 
 	// temporary workaround until RootsPath is more correct
 	gardenPath, err := GardenPath(sourcePath)
 	if err != nil {
-		return err
+		return err, nil
 	}
 	rootsPath, err := RootsPath(gardenPath)
 	if err != nil {
-		return err
+		return err, nil
 	}
 
 	isWithinRoots, err := fileIsDescendant(destPath, rootsPath)
 	if err != nil {
-		return err
+		return err, nil
 	}
+
 	if !isWithinRoots {
-		return fmt.Errorf("destination path %s is outside of roots", destPath)
+		return fmt.Errorf("destination path %s is outside of roots", destPath), nil
 	}
 
 	// gardenPath, err := GardenPath(sourcePath)
@@ -93,86 +101,62 @@ func RootCopy(sourcePath string, destPath string) error {
 	// }
 
 	// don't crawl symlinks
-	crawlInclude := func(path string, info fs.FileInfo) (bool, error) {
-		var relPath, relErr = filepath.Rel(sourcePath, path)
+	shouldCrawl := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
 		if relErr != nil {
-			return false, relErr
+			return relErr, false
 		}
 
-		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
-			return false, nil
+		if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
+			return nil, false
 		}
 
-		return _ROOT_COPY_CRAWL_INCLUDE_REGEXP.Match([]byte(relPath)), nil
+		return nil, _ROOT_COPY_CRAWL_INCLUDE_REGEXP.Match([]byte(relPath))
 	}
 
-	crawlExclude := func(path string, info fs.FileInfo) (bool, error) {
-		var relPath, relErr = filepath.Rel(sourcePath, path)
+	shouldMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
 		if relErr != nil {
-			return false, relErr
-		}
-
-		return _ROOT_COPY_CRAWL_EXCLUDE_REGEXP.Match([]byte(relPath)), nil
-	}
-
-	matchInclude := func(path string, info fs.FileInfo) (bool, error) {
-		var relPath, relErr = filepath.Rel(sourcePath, path)
-		if relErr != nil {
-			return false, relErr
+			return relErr, false
 		}
 
 		res := _ROOT_COPY_MATCH_INCLUDE_REGEXP.Match([]byte(relPath))
 
-		// fmt.Println("[debug] root copy match include", path, relPath, res)
-		return res, nil
+		return nil, res
 	}
 
-	matchExclude := func(path string, info fs.FileInfo) (bool, error) {
-		var relPath, relErr = filepath.Rel(sourcePath, path)
+	onMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
+		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
 		if relErr != nil {
-			return false, relErr
+			return relErr, nil
 		}
 
-		return _ROOT_COPY_MATCH_EXCLUDE_REGEXP.Match([]byte(relPath)), nil
-	}
-
-	onMatch := func(targetSourcePath string, info fs.FileInfo) error {
-
-		targetRelPath, err := filepath.Rel(sourcePath, targetSourcePath)
-		if err != nil {
-			return err
-		}
-
-		targetDestPath := filepath.Join(destPath, targetRelPath)
+		targetDestPath := filepath.Join(destPath, relPath)
 		targetDestExists, err := fileExists(targetDestPath)
 		if err != nil {
-			return err
+			return err, nil
 		} else if targetDestExists {
-			return fmt.Errorf("error: copy destination %s already exists", targetDestPath)
+			return fmt.Errorf("error: copy destination %s already exists", targetDestPath), nil
 		}
 
-		if info.IsDir() {
-
+		if node.Info.IsDir() {
 			// for a directory, make a new dir
-			// fmt.Println("[debug] root copy dir", targetSourcePath, targetDestPath)
 
-			err = os.MkdirAll(targetDestPath, info.Mode())
-			return err
+			err = os.MkdirAll(targetDestPath, node.Info.Mode())
+			return err, nil
 
-		} else if info.Mode()&os.ModeSymlink == os.ModeSymlink {
-
+		} else if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
 			// for a symlink, make a new link resolving to the target
-			// fmt.Println("[debug] root copy symlink", targetSourcePath, targetDestPath)
 
-			linkPath, err := os.Readlink(targetSourcePath)
+			linkPath, err := os.Readlink(node.Path)
 			if err != nil {
-				return err
+				return err, nil
 			}
 
 			// convert relative links to an absolute path
 			if !filepath.IsAbs(linkPath) {
 				linkPath = filepath.Join(
-					filepath.Dir(targetSourcePath),
+					filepath.Dir(node.Path),
 					linkPath,
 				)
 			}
@@ -181,51 +165,53 @@ func RootCopy(sourcePath string, destPath string) error {
 
 			linkRelPath, err := filepath.Rel(filepath.Dir(targetDestPath), linkPath)
 			if err != nil {
-				return err
+				return err, nil
 			}
 
 			err = os.Symlink(linkRelPath, targetDestPath)
-			return err
+			return err, nil
 
 		} else {
 
 			// for a file, copy contents
-			// fmt.Println("[debug] root copy file", targetSourcePath, targetDestPath)
 
-			srcFile, err := os.Open(targetSourcePath)
+			srcFile, err := os.Open(node.Path)
 			if err != nil {
-				return err
+				return err, nil
 			}
 			defer srcFile.Close()
 
 			var destFile *os.File
 			destFile, err = os.Create(targetDestPath)
 			if err != nil {
-				return err
+				return err, nil
 			}
 			defer destFile.Close()
 
 			_, err = destFile.ReadFrom(srcFile)
 			if err != nil {
-				return err
+				return err, nil
 			}
 
-			err = destFile.Chmod(info.Mode())
+			err = destFile.Chmod(node.Info.Mode())
 			if err != nil {
-				return err
+				return err, nil
 			}
 
-			return nil
+			return nil, nil
 		}
 	}
 
-	err = fs2.Walk2(fs2.Walk2Request{
-		BasePath:     sourcePath,
-		CrawlInclude: crawlInclude,
-		CrawlExclude: crawlExclude,
-		MatchInclude: matchInclude,
-		MatchExclude: matchExclude,
-		OnMatch:      onMatch,
-	})
-	return err
+	err, _ = fs2.BFSWalk3(
+		ctx,
+		fs2.Walk5Request{
+			BasePath:     sourcePath,
+			Path:     sourcePath,
+			VPath:     sourcePath,
+			ShouldCrawl: shouldCrawl,
+			ShouldMatch: shouldMatch,
+			OnMatch:      onMatch,
+		},
+	)
+	return err, nil
 }

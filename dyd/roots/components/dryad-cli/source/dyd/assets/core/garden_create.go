@@ -4,83 +4,178 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	task "dryad/task"
 )
 
-func GardenCreate(path string) error {
-	var err error
-	path, err = filepath.Abs(path)
+type GardenCreateRequest struct {
+	BasePath string
+}
+
+func gardenPrepareRequest(
+	ctx *task.ExecutionContext,
+	req GardenCreateRequest,
+) (error, GardenCreateRequest) {
+	path, err := filepath.Abs(req.BasePath)
 	if err != nil {
-		return err
+		return err, req
 	}
+	req.BasePath = path
+	return nil, req
+}
 
-	gardenPath := filepath.Join(path, "dyd")
-	if err := os.MkdirAll(gardenPath, os.ModePerm); err != nil {
-		return err
-	}
+func gardenCreateBase(
+	ctx *task.ExecutionContext,
+	req GardenCreateRequest,
+) (error, GardenCreateRequest) {
+	path := filepath.Join(req.BasePath, "dyd")
+	err := os.MkdirAll(path, os.ModePerm)
+	return err, req
+}
 
-	heapPath := filepath.Join(gardenPath, "heap")
-	if err := os.MkdirAll(heapPath, os.ModePerm); err != nil {
-		return err
-	}
+func gardenCreateHeap(
+	ctx *task.ExecutionContext,
+	req GardenCreateRequest,
+) (error, GardenCreateRequest) {
+	path := filepath.Join(req.BasePath, "dyd", "heap")
+	err := os.MkdirAll(path, os.ModePerm)
+	return err, req
+}
 
-	heapFilesPath := filepath.Join(heapPath, "files")
-	if err := os.MkdirAll(heapFilesPath, os.ModePerm); err != nil {
-		return err
-	}
+func gardenCreateHeapFiles(
+	ctx *task.ExecutionContext,
+	req GardenCreateRequest,
+) (error, GardenCreateRequest) {
+	path := filepath.Join(req.BasePath, "dyd", "heap", "files")
+	err := os.MkdirAll(path, os.ModePerm)
+	return err, req
+}
 
-	heapStemsPath := filepath.Join(heapPath, "stems")
-	if err := os.MkdirAll(heapStemsPath, os.ModePerm); err != nil {
-		return err
-	}
+func gardenCreateHeapStems(
+	ctx *task.ExecutionContext,
+	req GardenCreateRequest,
+) (error, GardenCreateRequest) {
+	path := filepath.Join(req.BasePath, "dyd", "heap", "stems")
+	err := os.MkdirAll(path, os.ModePerm)
+	return err, req
+}
 
-	derivationsPath := filepath.Join(heapPath, "derivations")
-	if err := os.MkdirAll(derivationsPath, os.ModePerm); err != nil {
-		return err
-	}
+func gardenCreateHeapDerivations(
+	ctx *task.ExecutionContext,
+	req GardenCreateRequest,
+) (error, GardenCreateRequest) {
+	path := filepath.Join(req.BasePath, "dyd", "heap", "derivations")
+	err := os.MkdirAll(path, os.ModePerm)
+	return err, req
+}
 
-	contextsPath := filepath.Join(heapPath, "contexts")
-	if err := os.MkdirAll(contextsPath, os.ModePerm); err != nil {
-		return err
-	}
+func gardenCreateHeapContexts(
+	ctx *task.ExecutionContext,
+	req GardenCreateRequest,
+) (error, GardenCreateRequest) {
+	path := filepath.Join(req.BasePath, "dyd", "heap", "contexts")
+	err := os.MkdirAll(path, os.ModePerm)
+	return err, req
+}
 
-	secretsPath := filepath.Join(heapPath, "secrets")
-	if err := os.MkdirAll(secretsPath, os.ModePerm); err != nil {
-		return err
-	}
+func gardenCreateHeapSecrets(
+	ctx *task.ExecutionContext,
+	req GardenCreateRequest,
+) (error, GardenCreateRequest) {
+	path := filepath.Join(req.BasePath, "dyd", "heap", "secrets")
+	err := os.MkdirAll(path, os.ModePerm)
+	return err, req
+}
 
-	shedPath := filepath.Join(gardenPath, "shed")
-	if err := os.MkdirAll(shedPath, os.ModePerm); err != nil {
-		return err
-	}
+func gardenCreateShed(
+	ctx *task.ExecutionContext,
+	req GardenCreateRequest,
+) (error, GardenCreateRequest) {
+	path := filepath.Join(req.BasePath, "dyd", "shed")
+	err := os.MkdirAll(path, os.ModePerm)
+	return err, req
+}
 
-	scopesPath := filepath.Join(shedPath, "scopes")
-	if err := os.MkdirAll(scopesPath, os.ModePerm); err != nil {
-		return err
-	}
+func gardenCreateShedScopes(
+	ctx *task.ExecutionContext,
+	req GardenCreateRequest,
+) (error, GardenCreateRequest) {
+	path := filepath.Join(req.BasePath, "dyd", "shed", "scopes")
+	err := os.MkdirAll(path, os.ModePerm)
+	return err, req
+}
 
-	rootsPath := filepath.Join(gardenPath, "roots")
-	if err := os.MkdirAll(rootsPath, os.ModePerm); err != nil {
-		return err
-	}
+func gardenCreateRoots(
+	ctx *task.ExecutionContext,
+	req GardenCreateRequest,
+) (error, GardenCreateRequest) {
+	path := filepath.Join(req.BasePath, "dyd", "roots")
+	err := os.MkdirAll(path, os.ModePerm)
+	return err, req
+}
 
-	sproutsPath := filepath.Join(gardenPath, "sprouts")
-	if err := os.MkdirAll(sproutsPath, os.ModePerm); err != nil {
-		return err
-	}
+func gardenCreateSprouts(
+	ctx *task.ExecutionContext,
+	req GardenCreateRequest,
+) (error, GardenCreateRequest) {
+	path := filepath.Join(req.BasePath, "dyd", "sprouts")
+	err := os.MkdirAll(path, os.ModePerm)
+	return err, req
+}
 
+func gardenCreateTypeFile(
+	ctx *task.ExecutionContext,
+	req GardenCreateRequest,
+) (error, GardenCreateRequest) {
 	// write out type file
-	typePath := filepath.Join(gardenPath, "type")
+	typePath := filepath.Join(req.BasePath, "dyd", "type")
 
 	typeFile, err := os.Create(typePath)
 	if err != nil {
-		return err
+		return err, req
 	}
 	defer typeFile.Close()
 
 	_, err = fmt.Fprint(typeFile, "garden")
 	if err != nil {
-		return err
+		return err, req
 	}
 
-	return nil
+	return nil, req
 }
+
+var GardenCreate = task.Series4(
+	gardenPrepareRequest,
+	gardenCreateBase,
+	task.Parallel5(
+		task.Series3(
+			gardenCreateHeap,
+			task.Parallel5(
+				gardenCreateHeapFiles,
+				gardenCreateHeapStems,
+				gardenCreateHeapDerivations,
+				gardenCreateHeapContexts,
+				gardenCreateHeapSecrets,
+			),
+			func (
+				ctx *task.ExecutionContext,
+				res task.Tuple5[GardenCreateRequest, GardenCreateRequest, GardenCreateRequest, GardenCreateRequest, GardenCreateRequest],
+			) (error, GardenCreateRequest) {
+				return nil, res.A
+			},
+		),
+		task.Series2(
+			gardenCreateShed,
+			gardenCreateShedScopes,
+		),
+		gardenCreateRoots,
+		gardenCreateSprouts,
+		gardenCreateTypeFile,
+	),
+	func (
+		ctx *task.ExecutionContext,
+		res task.Tuple5[GardenCreateRequest, GardenCreateRequest, GardenCreateRequest, GardenCreateRequest, GardenCreateRequest],
+	) (error, GardenCreateRequest) {
+		return nil, res.A
+	},
+)

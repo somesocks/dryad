@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+DEST_DIR=$DYD_BUILD
+
+# import assertion functions
+. $SRC_DIR/dyd/assets/assertions.sh
+
+# write files to temp dir
+for i1 in $(seq -w 1 100);
+do
+    printf '%s' "test-file" > "$DEST_DIR/dyd/assets/$i1"
+done
+
+# assert all files are there using a second pass
+for i1 in $(seq -w 1 100);
+do
+    assert_file_content_equals "$DEST_DIR/dyd/assets/$i1" "test-file"
+done

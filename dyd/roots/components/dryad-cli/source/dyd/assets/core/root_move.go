@@ -2,29 +2,43 @@ package core
 
 import (
 	dydfs "dryad/filesystem"
+	"dryad/task"
 )
 
-func RootMove(sourcePath string, destPath string) error {
+type RootMoveRequest struct {
+	SourcePath string
+	DestPath string
+}
+
+func RootMove(ctx *task.ExecutionContext, req RootMoveRequest) (error, any) {
+	var sourcePath string = req.SourcePath
+	var destPath string = req.DestPath
 
 	// normalize the source path
 	sourcePath, err := RootPath(sourcePath, "")
 	if err != nil {
-		return err
+		return err, nil
 	}
 
 	// copy the root to the new path
-	err = RootCopy(sourcePath, destPath)
+	err, _ = RootCopy(
+		ctx,
+		RootCopyRequest{
+			SourcePath: sourcePath,
+			DestPath: destPath,
+		},
+	)
 	if err != nil {
-		return err
+		return err, nil
 	}
 
 	// replace references to the root
 	err = RootReplace(sourcePath, destPath)
 	if err != nil {
-		return err
+		return err, nil
 	}
 
 	// delete the old root
-	err = dydfs.RemoveAll(sourcePath)
-	return err
+	err, _ = dydfs.RemoveAll(task.SERIAL_CONTEXT, sourcePath)
+	return err, nil
 }

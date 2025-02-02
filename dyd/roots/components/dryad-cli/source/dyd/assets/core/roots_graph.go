@@ -3,6 +3,8 @@ package core
 import (
 	"io/fs"
 	"path/filepath"
+
+	"dryad/task"
 )
 
 type TStringSet map[string]bool
@@ -57,42 +59,51 @@ func RootsGraph(gardenPath string, relative bool) (TRootsGraph, error) {
 
 	graph := make(TRootsGraph)
 
-	err = RootsWalk(gardenPath, func(rootPath string, info fs.FileInfo) error {
-		rootPath, err := filepath.EvalSymlinks(rootPath)
-		if err != nil {
-			return err
-		}
-
-		err = RootRequirementsWalk(rootPath, func(requirementPath string, info fs.FileInfo) error {
-			requirementPath, err := filepath.EvalSymlinks(requirementPath)
-			if err != nil {
-				return err
-			}
-
-			if relative {
-				relRootPath, err := filepath.Rel(gardenPath, rootPath)
+	err, _ = RootsWalk(
+		task.SERIAL_CONTEXT,
+		RootsWalkRequest{
+			GardenPath: gardenPath,
+			OnRoot : func (ctx *task.ExecutionContext, match RootsWalkMatch) (error, any) {
+				rootPath, err := filepath.EvalSymlinks(match.RootPath)
 				if err != nil {
-					return err
+					return err, nil
 				}
 
-				relRequirementPath, err := filepath.Rel(gardenPath, requirementPath)
+				err = RootRequirementsWalk(rootPath, func(requirementPath string, info fs.FileInfo) error {
+					requirementPath, err := filepath.EvalSymlinks(requirementPath)
+					if err != nil {
+						return err
+					}
+		
+					if relative {
+						relRootPath, err := filepath.Rel(gardenPath, rootPath)
+						if err != nil {
+							return err
+						}
+		
+						relRequirementPath, err := filepath.Rel(gardenPath, requirementPath)
+						if err != nil {
+							return err
+						}
+		
+						graph.AddEdge(relRootPath, relRequirementPath)
+					} else {
+						graph.AddEdge(rootPath, requirementPath)
+					}
+		
+					return nil
+				})
+
 				if err != nil {
-					return err
+					return err, nil
 				}
+		
+				return nil, nil
+						
 
-				graph.AddEdge(relRootPath, relRequirementPath)
-			} else {
-				graph.AddEdge(rootPath, requirementPath)
-			}
-
-			return nil
-		})
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
+			},
+		},
+	)
 
 	if err != nil {
 		return graph, err

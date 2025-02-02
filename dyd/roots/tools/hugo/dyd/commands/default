@@ -41,7 +41,7 @@ _BUILD_PACKAGE () {
 	# download the binary as the main
 	TEMP_DIR=$(mktemp -d)
 
-	curl "$CURL_LOGS" -L "$BUILD" -o "$TEMP_DIR/hugo.tar.gz"
+	curl $CURL_LOGS -L "$BUILD" -o "$TEMP_DIR/hugo.tar.gz"
 
 	mkdir -p $DEST_PACKAGE/dyd/assets
 	tar -xf $TEMP_DIR/hugo.tar.gz -C $TEMP_DIR

@@ -2,7 +2,7 @@
 
 #
 # turn this on to debug script
-# set -x
+set -x
 
 #
 # abort on error
@@ -38,7 +38,7 @@ _BUILD_PACKAGE () {
 	printf %s "envsubst" > "$DEST_PACKAGE/dyd/traits/name"
 	printf %s "$BUILD" > "$DEST_PACKAGE/dyd/traits/source"
 
-	curl "$CURL_LOGS" -L "$BUILD" -o "$DEST_PACKAGE/dyd/commands/default"
+	curl $CURL_LOGS -L "$BUILD" -o "$DEST_PACKAGE/dyd/commands/default"
 
 }
 

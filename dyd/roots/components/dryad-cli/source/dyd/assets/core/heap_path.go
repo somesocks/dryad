@@ -1,7 +1,6 @@
 package core
 
 import (
-	"os"
 	"path/filepath"
 )
 
@@ -13,14 +12,5 @@ func HeapPath(path string) (string, error) {
 	}
 
 	heapPath := filepath.Join(gardenPath, "dyd", "heap")
-	_, err = os.Stat(heapPath)
-	if err != nil {
-		err = GardenCreate(gardenPath)
-	}
-
-	if err != nil {
-		return "", err
-	}
-
 	return heapPath, nil
 }

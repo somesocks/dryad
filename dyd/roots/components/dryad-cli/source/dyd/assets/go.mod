@@ -1,6 +1,6 @@
 module dryad
 
-go 1.19
+go 1.22.6
 
 require (
 	github.com/mattn/go-colorable v0.1.13 // indirect

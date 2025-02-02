@@ -13,6 +13,8 @@ import (
 	"strings"
 
 	fs2 "dryad/filesystem"
+	"dryad/task"
+
 	zlog "github.com/rs/zerolog/log"
 )
 
@@ -86,7 +88,13 @@ func stemPack(context BuildContext, request StemPackRequest) (string, error) {
 	}
 
 	var packedStemPath string
-	packedStemPath, err = HeapAddStem(targetPath, stemPath)
+	err, packedStemPath = HeapAddStem(
+		task.SERIAL_CONTEXT,
+		HeapAddStemRequest{
+			HeapPath: targetPath,
+			StemPath: stemPath,
+		},
+	)
 	if err != nil {
 		return "", err
 	}
@@ -210,54 +218,54 @@ func stemArchive(request StemPackRequest) (string, error) {
 			defer tarWriter.Close()
 		}
 
-		var shouldCrawl = func(context fs2.Walk4Context) (bool, error) {
+		var shouldCrawl = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
 			// don't crawl symlinks
-			if context.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
-				return false, nil
+			if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
+				return nil, false
 			}
-			return true, nil
+			return nil, true
 		}
 
-		var onMatch = func(context fs2.Walk4Context) error {
+		var onMatch = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
 			zlog.
 				Trace().
-				Str("context.Path", context.Path).
+				Str("node.Path", node.Path).
 				Msg("StemPack/stemArchive/onMatch")
 
-			relativePath, err := filepath.Rel(context.BasePath, context.VPath)
+			relativePath, err := filepath.Rel(node.BasePath, node.VPath)
 			if err != nil {
-				return err
+				return err, nil
 			}
 
 			// remove the name of the base directory
 			relativePath = _stripFirstSegment(relativePath)
 
 
-			if context.Info.IsDir() {
+			if node.Info.IsDir() {
 				// create a new dir/file header
-				header, err := tar.FileInfoHeader(context.Info, relativePath)
+				header, err := tar.FileInfoHeader(node.Info, relativePath)
 				if err != nil {
-					return err
+					return err, nil
 				}
 				header.Name = relativePath
 				header.Typeflag = tar.TypeDir
 	
 				err = tarWriter.WriteHeader(header)
 				if err != nil {
-					return err
+					return err, nil
 				}
 	
-			} else if context.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
+			} else if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
 				// if it's a symlink, read the link target
-				linkPath, err := os.Readlink(context.Path)
+				linkPath, err := os.Readlink(node.Path)
 				if err != nil {
-					return err
+					return err, nil
 				}
 	
 				// create a new dir/file header
-				header, err := tar.FileInfoHeader(context.Info, relativePath)
+				header, err := tar.FileInfoHeader(node.Info, relativePath)
 				if err != nil {
-					return err
+					return err, nil
 				}
 				header.Name = relativePath
 				header.Typeflag = tar.TypeSymlink
@@ -265,21 +273,21 @@ func stemArchive(request StemPackRequest) (string, error) {
 	
 				err = tarWriter.WriteHeader(header)
 				if err != nil {
-					return err
+					return err, nil
 				}
-			} else if context.Info.Mode().IsRegular() {
-				_, hashString, err := fileHash(context.Path)
+			} else if node.Info.Mode().IsRegular() {
+				_, hashString, err := fileHash(node.Path)
 				if err != nil {
-					return err
+					return err, nil
 				}
 
 				existingPath, hasExistingPath := packMap[hashString]
 
 				if hasExistingPath {
 					// create a new hard link header
-					header, err := tar.FileInfoHeader(context.Info, relativePath)
+					header, err := tar.FileInfoHeader(node.Info, relativePath)
 					if err != nil {
-						return err
+						return err, nil
 					}
 					header.Name = relativePath
 					header.Typeflag = tar.TypeLink
@@ -287,55 +295,59 @@ func stemArchive(request StemPackRequest) (string, error) {
 
 					err = tarWriter.WriteHeader(header)
 					if err != nil {
-						return err
+						return err, nil
 					}
 
 				} else {
 				// create a new dir/file header
-					header, err := tar.FileInfoHeader(context.Info, relativePath)
+					header, err := tar.FileInfoHeader(node.Info, relativePath)
 					if err != nil {
-						return err
+						return err, nil
 					}
 					header.Name = relativePath
 					header.Typeflag = tar.TypeReg
 
 					err = tarWriter.WriteHeader(header)
 					if err != nil {
-						return err
+						return err, nil
 					}
 
 					// add path to the packMap
 					packMap[hashString] = relativePath
 
-					file, err := os.Open(context.Path)
+					file, err := os.Open(node.Path)
 					if err != nil {
-						return err
+						return err, nil
 					}
 					defer file.Close()
 
 					_, err = io.Copy(tarWriter, file)
 					if err != nil {
-						return err
+						return err, nil
 					}
 				}				
 			}
 
-			return nil
+			return nil, nil
 		}
 
-		err = fs2.BFSWalk2(fs2.Walk4Request{
-			BasePath:    request.TargetPath,
-			Path:        request.TargetPath,
-			VPath:       request.TargetPath,
-			OnMatch:     onMatch,
-			ShouldCrawl: shouldCrawl,
-		})
+		// NOTE: packing needs to be serial for now
+		err, _ = fs2.BFSWalk3(
+			task.SERIAL_CONTEXT,
+			fs2.Walk5Request{
+				BasePath:    request.TargetPath,
+				Path:        request.TargetPath,
+				VPath:       request.TargetPath,
+				OnMatch:     onMatch,
+				ShouldCrawl: shouldCrawl,
+			},
+		)
 		if err != nil {
 			return "", err
 		}
 
 		// clear the archive directory
-		err = fs2.RemoveAll(request.TargetPath)
+		err, _ = fs2.RemoveAll(task.SERIAL_CONTEXT, request.TargetPath)
 		if err != nil {
 			return "", err
 		}
@@ -367,7 +379,10 @@ func StemPack(request StemPackRequest) (string, error) {
 		return "", err
 	}	
 	
-	err = GardenCreate(request.TargetPath)
+	err, _ = GardenCreate(
+		task.DEFAULT_CONTEXT,
+		GardenCreateRequest{BasePath: request.TargetPath},
+	)
 	if err != nil {
 		return "", err
 	}
