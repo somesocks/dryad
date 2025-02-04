@@ -41,7 +41,7 @@ jobs:
         run: ./utils/nix-shell/run.sh ./utils/docs-pack.sh
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v3
         with:
           # Upload docs assets
           path: './docs'
