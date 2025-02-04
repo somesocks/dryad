@@ -12,4 +12,4 @@ NOTE: The current version is in early alpha stages, so the design and features a
 
 Links:
 - [See the GitHub repo](https://github.com/somesocks/dryad)
-- [Installation instructions](./docs/03-usage/01-installing/)
+- [Installation instructions](./docs/03-usage/01-installing.html)
