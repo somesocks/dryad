@@ -34,15 +34,10 @@ var sproutsRunCommand = func() clib.Command {
 			var args = req.Args
 			var options = req.Opts
 
-			var path string = ""
 			var err error
 
-			if len(args) > 0 {
-				path = args[0]
-			}
-
 			var gardenPath string
-			gardenPath, err = dryad.GardenPath(path)
+			gardenPath, err = dryad.GardenPath("")
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while finding garden path")
 				return err, ParsedArgs{}
