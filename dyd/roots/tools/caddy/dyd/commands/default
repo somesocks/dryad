@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+_SET_GLOBALS () {
+	SRC_PACKAGE=$DYD_STEM
+	DEST_PACKAGE=$1
+
+	PLATFORM="$DYD_OS-$DYD_ARCH"
+
+	case $DYD_LOG_LEVEL in
+		"debug" | "trace" )
+			CURL_LOGS=""
+			set -x
+		;;
+		* )
+			CURL_LOGS="--silent"
+		;;
+	esac
+
+}
+
+_BUILD_PACKAGE () {
+	BUILD="$(cat $SRC_PACKAGE/dyd/assets/$PLATFORM.source)"
+
+	if [ -z "$BUILD" ]; then
+		echo "unsupported platform $PLATFORM"
+		exit 1
+	fi
+
+	printf %s "caddy" > "$DEST_PACKAGE/dyd/traits/name"
+	printf %s "$BUILD" > "$DEST_PACKAGE/dyd/traits/source"
+
+	# download the binary as the main
+	TEMP_DIR=$(mktemp -d)
+
+	curl $CURL_LOGS -L "$BUILD" -o "$TEMP_DIR/caddy.tar.gz"
+
+	mkdir -p $DEST_PACKAGE/dyd/assets
+	tar -xf $TEMP_DIR/caddy.tar.gz -C $TEMP_DIR
+	rm $TEMP_DIR/caddy.tar.gz
+
+	cp -r $TEMP_DIR/. $DEST_PACKAGE/dyd/assets/
+	rm -rf $TEMP_DIR
+
+	ln -s ../assets/caddy $DEST_PACKAGE/dyd/commands/default
+}
+
+_SET_GLOBALS "$@"
+_BUILD_PACKAGE
