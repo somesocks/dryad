@@ -1,12 +1,25 @@
 #!/bin/sh
 set -eu
 
-if command -v open 2>&1 >/dev/null
-then
-    open "$DYD_GARDEN/dyd/sprouts/components/dryad-docs-site/dyd/assets/site/index.html"
-elif command -v xdg-open 2>&1 >/dev/null
-then
-    xdg-open "$DYD_GARDEN/dyd/sprouts/components/dryad-docs-site/dyd/assets/site/index.html"
-else
-    exit 1
-fi
+_OPEN () {
+    if command -v open 2>&1 >/dev/null
+    then
+        open "$1"
+    elif command -v xdg-open 2>&1 >/dev/null
+    then
+        xdg-open "$1"
+    else
+        exit 1
+    fi
+}
+
+
+_OPEN_DOCS () {
+    _OPEN http://localhost:9999
+
+    dryad sprout run "$DYD_GARDEN/dyd/sprouts/tools/caddy" -- file-server \
+        --root "$DYD_GARDEN/dyd/sprouts/components/dryad-docs-site/dyd/assets/site" \
+        --listen :9999
+}
+
+_OPEN_DOCS

@@ -1,1 +1,1 @@
---include=components/dryad-docs-site
+--include=components/dryad-docs-site --include=tools/caddy
