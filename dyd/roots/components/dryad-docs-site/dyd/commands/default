@@ -28,12 +28,17 @@ _BUILD_PACKAGE () {
 	chmod -R +w "$HUGO_BUILD_DIR"
 	echo "[info] done copying assets" 1>&2
 
-	$SRC_PACKAGE/dyd/assets/cli-docs/generate-cli-page.sh "$HUGO_BUILD_DIR/content/docs/03-usage/03-cli-reference.md"
+	# copy themeres and modules into build dir
+	mkdir -p "$HUGO_BUILD_DIR/modules/lotusdocs"
+	cp -R "$SRC_PACKAGE/dyd/dependencies/hugo-theme-lotusdocs/dyd/assets/." "$HUGO_BUILD_DIR/modules/lotusdocs/"
+
+	# auto-generate cli docs page
+	$SRC_PACKAGE/dyd/assets/cli-docs/generate-cli-page.sh "$HUGO_BUILD_DIR/content/docs/03-usage/03-03-cli-reference.md"
 
 	# build hugo site in dest
 	echo "[info] building hugo site" 1>&2
 	cd "$HUGO_BUILD_DIR" && \
-	hugo --debug --verbose \
+	hugo --logLevel debug \
 		--destination="$DEST_PACKAGE/dyd/assets/site" \
 		--noBuildLock 1>&2
 	echo "[info] done building hugo site" 1>&2

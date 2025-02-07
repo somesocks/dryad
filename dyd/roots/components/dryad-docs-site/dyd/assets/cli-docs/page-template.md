@@ -1,12 +1,8 @@
 ---
-title: "03 - CLI Reference"
-weight: 1
-# bookFlatSection: false
-# bookToc: true
-# bookHidden: false
-# bookCollapseSection: true
-# bookComments: false
-# bookSearchExclude: false
+title: "03.03 - CLI Reference"
+description: "A complete reference of all dryad commands."
+type: docs
+layout: single
 ---
 
 # CLI Reference

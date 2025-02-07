@@ -1,7 +1,7 @@
 
 ## $COMMAND
 
-```sh
+```none
 $ $COMMAND --help
 $HELP
 ```
