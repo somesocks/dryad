@@ -32,7 +32,7 @@ var scriptRunAction = func(req clib.ActionRequest) int {
 	} else {
 		var err error
 		scope, err = dryad.ScopeGetDefault(scope)
-		zlog.Info().Msg("loading default scope: " + scope)
+		zlog.Debug().Msg("loading default scope: " + scope)
 		if err != nil {
 			zlog.Fatal().Err(err).Msg("error while finding active scope")
 			return 1
@@ -44,7 +44,7 @@ var scriptRunAction = func(req clib.ActionRequest) int {
 		zlog.Fatal().Msg("no scope set, can't find command")
 		return 1
 	} else {
-		zlog.Info().Msg("using scope: " + scope)
+		zlog.Debug().Msg("using scope: " + scope)
 	}
 
 	var inherit bool
