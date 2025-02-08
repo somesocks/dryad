@@ -14,12 +14,11 @@ type pathStubRequest struct {
 var PATH_STUB_TEMPLATE, _ = template.
 	New("path_stub").
 	Parse(
-		`#!/usr/bin/env sh
+`#!/bin/sh
 set -eu
-STEM_PATH="$(dirname $0)/../dependencies/{{.BaseName}}"
-PATH="$STEM_PATH/dyd/path:$PATH" \
-DYD_STEM="$STEM_PATH" \
-"$STEM_PATH/dyd/commands/{{.CommandName}}" "$@"
+export DYD_STEM="$(dirname $0)/../dependencies/{{.BaseName}}"
+export PATH="$DYD_STEM/dyd/path:$PATH"
+exec "$DYD_STEM/dyd/commands/{{.CommandName}}" "$@"
 `)
 
 func rootBuild_pathStub(baseName string, commandName string) string {
