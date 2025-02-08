@@ -24,7 +24,7 @@ var ScopedCommand = func(
 		} else {
 			var err error
 			scope, err = dryad.ScopeGetDefault(scope)
-			zlog.Info().Msg("loading default scope: " + scope)
+			zlog.Debug().Msg("loading default scope: " + scope)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while loading default scope")
 				return 1
@@ -35,7 +35,7 @@ var ScopedCommand = func(
 		if scope == "" || scope == "none" {
 			return action(req)
 		} else {
-			zlog.Info().Msg("using scope: " + scope)
+			zlog.Debug().Msg("using scope: " + scope)
 		}
 
 		settingName := strings.Join(invocation[1:], "-")
