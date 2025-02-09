@@ -41,9 +41,19 @@ var rootCopyCommand = func() clib.Command {
 	)
 
 	var copyRoot = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
-		err, _ := dryad.RootCopy(
+		unsafeGarden := dryad.UnsafeGardenReference{
+			BasePath: args.SourcePath,
+		}
+		
+		err, garden := unsafeGarden.Resolve(ctx, nil)
+		if err != nil {
+			return err, nil
+		}
+
+		err, _ = dryad.RootCopy(
 			ctx,
 			dryad.RootCopyRequest{
+				Garden: &garden,
 				SourcePath: args.SourcePath,
 				DestPath: args.DestPath,
 			},

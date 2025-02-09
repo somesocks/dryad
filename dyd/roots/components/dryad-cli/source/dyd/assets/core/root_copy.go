@@ -56,6 +56,7 @@ var _ROOT_COPY_MATCH_INCLUDE_REGEXP = regexp.MustCompile(
 var _ROOT_COPY_MATCH_EXCLUDE_REGEXP = regexp.MustCompile(`^$`)
 
 type RootCopyRequest struct {
+	Garden *SafeGardenReference
 	SourcePath string
 	DestPath string
 }
@@ -76,12 +77,7 @@ func RootCopy(ctx *task.ExecutionContext, req RootCopyRequest) (error, any) {
 		return err, nil
 	}
 
-	// temporary workaround until RootsPath is more correct
-	gardenPath, err := GardenPath(sourcePath)
-	if err != nil {
-		return err, nil
-	}
-	rootsPath, err := RootsPath(gardenPath)
+	rootsPath, err := RootsPath(req.Garden.BasePath)
 	if err != nil {
 		return err, nil
 	}
