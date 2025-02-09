@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 )
 
-func ScopePath(path string, scope string) (string, error) {
-	var scopesPath, err = ScopesPath(path)
+func ScopePath(garden *SafeGardenReference, scope string) (string, error) {
+	var scopesPath, err = ScopesPath(garden)
 	if err != nil {
 		return "", err
 	}

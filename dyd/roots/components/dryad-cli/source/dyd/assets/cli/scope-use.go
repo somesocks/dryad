@@ -3,6 +3,7 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	"os"
 
 	zlog "github.com/rs/zerolog/log"
@@ -26,10 +27,19 @@ var scopeUseCommand = func() clib.Command {
 				return 1
 			}
 
+			unsafeGarden := dryad.UnsafeGardenReference{
+				BasePath: path,
+			}
+			
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			if err != nil {
+				return 1
+			}
+
 			if name == "none" {
-				err = dryad.ScopeUnsetDefault(path)
+				err = dryad.ScopeUnsetDefault(&garden)
 			} else {
-				err = dryad.ScopeSetDefault(path, name)
+				err = dryad.ScopeSetDefault(&garden, name)
 			}
 
 			if err != nil {

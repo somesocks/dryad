@@ -3,6 +3,7 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	"fmt"
 	"os"
 
@@ -29,7 +30,16 @@ var scopeSettingGetCommand = func() clib.Command {
 				return 1
 			}
 
-			value, err := dryad.ScopeSettingGet(path, scope, setting)
+			unsafeGarden := dryad.UnsafeGardenReference{
+				BasePath: path,
+			}
+			
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			if err != nil {
+				return 1
+			}
+
+			value, err := dryad.ScopeSettingGet(&garden, scope, setting)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while getting scope setting")
 				return 1

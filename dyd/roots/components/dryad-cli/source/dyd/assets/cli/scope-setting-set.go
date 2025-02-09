@@ -3,6 +3,7 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	"os"
 
 	zlog "github.com/rs/zerolog/log"
@@ -30,7 +31,16 @@ var scopeSettingSetCommand = func() clib.Command {
 				return 1
 			}
 
-			err = dryad.ScopeSettingSet(path, scope, setting, value)
+			unsafeGarden := dryad.UnsafeGardenReference{
+				BasePath: path,
+			}
+			
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			if err != nil {
+				return 1
+			}
+
+			err = dryad.ScopeSettingSet(&garden, scope, setting, value)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while changing scope setting")
 				return 1

@@ -4,8 +4,8 @@ import (
 	"os"
 )
 
-func ScopeCreate(path string, scope string) (string, error) {
-	var scopePath, err = ScopePath(path, scope)
+func ScopeCreate(garden *SafeGardenReference, scope string) (string, error) {
+	var scopePath, err = ScopePath(garden, scope)
 	if err != nil {
 		return "", err
 	}
