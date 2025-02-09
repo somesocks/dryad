@@ -51,11 +51,15 @@ func (g TRootsGraph) Descendants(results TStringSet, roots []string) TStringSet 
 	return results
 }
 
-func RootsGraph(gardenPath string, relative bool) (TRootsGraph, error) {
-	gardenPath, err := GardenPath(gardenPath)
-	if err != nil {
-		return nil, err
-	}
+type RootsGraphRequest struct {
+	Garden *SafeGardenReference
+	Relative bool
+}
+
+func RootsGraph(req RootsGraphRequest) (TRootsGraph, error) {
+	var err error
+	var relative bool = req.Relative
+	var gardenPath string = req.Garden.BasePath
 
 	graph := make(TRootsGraph)
 
