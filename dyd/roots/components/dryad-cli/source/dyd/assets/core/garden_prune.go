@@ -24,7 +24,7 @@ var REGEX_GARDEN_PRUNE_DERIVATIONS_CRAWL = regexp.MustCompile(`^((\.)|(derivatio
 var REGEX_GARDEN_PRUNE_DERIVATIONS_MATCH = regexp.MustCompile(`^(derivations/.*)$`)
 
 type GardenPruneRequest struct {
-	GardenPath string
+	Garden SafeGardenReference
 	Snapshot time.Time
 }
 
@@ -33,21 +33,13 @@ var gardenPrune_prepareRequest = func (ctx *task.ExecutionContext, req GardenPru
 	// truncate the snapshot time to a second,
 	// to avoid issues with common filesystems with low-resolution timestamps
 	req.Snapshot = req.Snapshot.Truncate(time.Second)
-
-	// normalize garden path
-	gardenPath, err := GardenPath(req.GardenPath)
-	if err != nil {
-		return err, req
-	}
-
-	req.GardenPath = gardenPath
 	
 	return nil, req
 }
 
 var gardenPrune_mark = func (ctx *task.ExecutionContext, req GardenPruneRequest) (error, GardenPruneRequest) {
 
-	sproutsPath := filepath.Join(req.GardenPath, "dyd", "sprouts")
+	sproutsPath := filepath.Join(req.Garden.BasePath, "dyd", "sprouts")
 
 	markStatsChecked := 0
 	markStatsMarked := 0
@@ -127,7 +119,7 @@ var gardenPrune_mark = func (ctx *task.ExecutionContext, req GardenPruneRequest)
 }
 
 var gardenPrune_sweepStems = func (ctx *task.ExecutionContext, req GardenPruneRequest) (error, GardenPruneRequest) {
-	heapPath := filepath.Join(req.GardenPath, "dyd", "heap")
+	heapPath := filepath.Join(req.Garden.BasePath, "dyd", "heap")
 
 	sweepStemShouldCrawl := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
 		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
@@ -205,7 +197,7 @@ var gardenPrune_sweepStems = func (ctx *task.ExecutionContext, req GardenPruneRe
 }
 
 var gardenPrune_sweepDerivations = func (ctx *task.ExecutionContext, req GardenPruneRequest) (error, GardenPruneRequest) {
-	heapPath := filepath.Join(req.GardenPath, "dyd", "heap")
+	heapPath := filepath.Join(req.Garden.BasePath, "dyd", "heap")
 
 	sweepDerivationStatsCheck := 0
 	sweepDerivationStatsCount := 0	
@@ -269,7 +261,7 @@ var gardenPrune_sweepDerivations = func (ctx *task.ExecutionContext, req GardenP
 }
 
 var gardenPrune_sweepFiles = func (ctx *task.ExecutionContext, req GardenPruneRequest) (error, GardenPruneRequest) {
-	heapPath := filepath.Join(req.GardenPath, "dyd", "heap")
+	heapPath := filepath.Join(req.Garden.BasePath, "dyd", "heap")
 	sweepFileStatsCheck := 0
 	sweepFileStatsCount := 0	
 		

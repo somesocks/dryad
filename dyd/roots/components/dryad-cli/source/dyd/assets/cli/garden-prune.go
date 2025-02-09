@@ -44,10 +44,19 @@ var gardenPruneCommand = func() clib.Command {
 	)
 
 	var pruneGarden = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
-		err, _ := dryad.GardenPrune(
+		unsafeGarden := dryad.UnsafeGardenReference{
+			BasePath: args.Path,
+		}
+		
+		err, garden := unsafeGarden.Resolve(ctx, nil)
+		if err != nil {
+			return err, nil
+		}
+
+		err, _ = dryad.GardenPrune(
 			ctx,
 			dryad.GardenPruneRequest{
-				GardenPath: args.Path,
+				Garden: garden,
 				Snapshot: time.Now().Local(),
 			},
 		)
