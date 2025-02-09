@@ -13,6 +13,7 @@ import (
 )
 
 type RootBuildRequest struct {
+	Garden *SafeGardenReference
 	RootPath string
 	JoinStdout bool
 	JoinStderr bool
@@ -20,20 +21,16 @@ type RootBuildRequest struct {
 
 func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string) {
 	var rootPath string = req.RootPath
-
-	gardenPath, err := GardenPath(rootPath)
-	zlog.Debug().
-		Str("gardenPath", gardenPath).
-		Msg("RootBuild/gardenPath")
-	if err != nil {
-		return err, ""
-	}
+	var gardenPath string = req.Garden.BasePath
+	var err error
 
 	relRootPath, err := filepath.Rel(
 		filepath.Join(gardenPath, "dyd", "roots"),
 		rootPath,
 	)
 	zlog.Debug().
+		Str("gardenPath", gardenPath).
+		Str("rootPath", rootPath).
 		Str("relRootPath", relRootPath).
 		Msg("RootBuild/relRootPath")
 	if err != nil {
@@ -65,9 +62,9 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 	err, _ = rootBuild_stage1(
 		ctx,
 		rootBuild_stage1_request{
+			Garden: req.Garden,
 			RootPath: rootPath,
 			WorkspacePath: workspacePath,
-			GardenPath: gardenPath,
 			JoinStdout: req.JoinStdout,
 			JoinStderr: req.JoinStderr,
 		},
@@ -259,6 +256,7 @@ var RootBuild = func (ctx *task.ExecutionContext, req RootBuildRequest) (error, 
 	rootPath, err := RootPath(rootPath, "")
 	zlog.Debug().
 		Str("rootPath", rootPath).
+		Str("gardenPath", req.Garden.BasePath).
 		Msg("RootBuild/rootPath")
 	if err != nil {
 		return err, ""

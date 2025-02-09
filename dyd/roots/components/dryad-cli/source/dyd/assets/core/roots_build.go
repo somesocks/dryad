@@ -4,10 +4,13 @@ import (
 	"path/filepath"
 
 	"dryad/task"
+
+	zlog "github.com/rs/zerolog/log"
+
 )
 
 type RootsBuildRequest struct {
-	GardenPath     string
+	Garden *SafeGardenReference
 	IncludeRoots func(string) bool
 	ExcludeRoots func(string) bool
 	JoinStdout bool
@@ -15,24 +18,14 @@ type RootsBuildRequest struct {
 }
 
 func RootsBuild(ctx *task.ExecutionContext, request RootsBuildRequest) (error, any) {
-	// fmt.Println("[trace] GardenBuild", request.BasePath)
 	var err error
+	var gardenPath string
 
-	gardenPath := request.GardenPath
+	zlog.Debug().
+		Str("gardenPath", request.Garden.BasePath).
+		Msg("RootsBuild")
 
-	// handle relative garden paths
-	gardenPath, err = filepath.Abs(gardenPath)
-	if err != nil {
-		return err, nil
-	}
-
-	// fmt.Println("[trace] GardenBuild gardenPath 1", gardenPath)
-
-	// make sure it points to the base of the garden path
-	gardenPath, err = GardenPath(gardenPath)
-	if err != nil {
-		return err, nil
-	}
+	gardenPath = request.Garden.BasePath
 
 	// prune sprouts before build
 	err = SproutsPrune(gardenPath)
@@ -52,6 +45,7 @@ func RootsBuild(ctx *task.ExecutionContext, request RootsBuildRequest) (error, a
 			err, _ = RootBuild(
 				ctx,
 				RootBuildRequest{
+					Garden: request.Garden,
 					RootPath: match.RootPath,
 					JoinStdout: request.JoinStdout,
 					JoinStderr: request.JoinStderr,
