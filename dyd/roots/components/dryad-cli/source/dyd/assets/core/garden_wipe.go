@@ -9,16 +9,12 @@ import (
 )
 
 type GardenWipeRequest struct {
-	GardenPath string
+	Garden SafeGardenReference
 }
 
 func GardenWipe(ctx *task.ExecutionContext, req GardenWipeRequest) (error, any) {
-
-	// normalize garden path
-	gardenPath, err := GardenPath(req.GardenPath)
-	if err != nil {
-		return err, nil
-	}
+	var err error
+	var gardenPath string = req.Garden.BasePath
 
 	sproutsPath := filepath.Join(gardenPath, "dyd", "sprouts")
 	err, _ = fs2.RemoveAll(ctx, sproutsPath)
