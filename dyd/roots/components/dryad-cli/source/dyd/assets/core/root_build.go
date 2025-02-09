@@ -100,9 +100,9 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 	err, finalStemPath := rootBuild_stage4(
 		ctx,
 		rootBuild_stage4_request{
+			Garden: req.Garden,
 			RootPath: rootPath,
 			WorkspacePath: workspacePath,
-			GardenPath: gardenPath,
 		},
 	)
 	if err != nil {
@@ -171,8 +171,8 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 		err, finalStemPath = rootBuild_stage6(
 			ctx,
 			rootBuild_stage6_request{
+				Garden: req.Garden,
 				RelRootPath: relRootPath,
-				GardenPath: gardenPath,
 				StemBuildPath: stemBuildPath,
 			},
 		)
