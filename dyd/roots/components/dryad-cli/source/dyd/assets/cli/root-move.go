@@ -41,9 +41,19 @@ var rootMoveCommand = func() clib.Command {
 	)
 
 	var moveRoot = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
-		err, _ := dryad.RootMove(
+		unsafeGarden := dryad.UnsafeGardenReference{
+			BasePath: args.SourcePath,
+		}
+		
+		err, garden := unsafeGarden.Resolve(ctx, nil)
+		if err != nil {
+			return err, nil
+		}
+
+		err, _ = dryad.RootMove(
 			ctx,
 			dryad.RootMoveRequest{
+				Garden: &garden,
 				SourcePath: args.SourcePath,
 				DestPath: args.DestPath,
 			},

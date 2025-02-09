@@ -8,26 +8,27 @@ import (
 	"path/filepath"
 )
 
-func RootReplace(sourcePath string, destPath string) error {
+type RootReplaceRequest struct {
+	Garden *SafeGardenReference
+	SourcePath string
+	DestPath string
+}
+
+func RootReplace(req RootReplaceRequest) error {
 
 	// normalize the source path
-	sourcePath, err := RootPath(sourcePath, "")
+	sourcePath, err := RootPath(req.SourcePath, "")
 	if err != nil {
 		return err
 	}
 
 	// normalize the replacement path
-	destPath, err = RootPath(destPath, "")
+	destPath, err := RootPath(req.DestPath, "")
 	if err != nil {
 		return err
 	}
 
-	gardenPath, err := GardenPath(sourcePath)
-	if err != nil {
-		return err
-	}
-
-	rootsPath, err := RootsPath(gardenPath)
+	rootsPath, err := RootsPath(req.Garden.BasePath)
 	if err != nil {
 		return err
 	}

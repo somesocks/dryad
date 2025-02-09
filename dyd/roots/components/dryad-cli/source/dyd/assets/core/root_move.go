@@ -6,6 +6,7 @@ import (
 )
 
 type RootMoveRequest struct {
+	Garden *SafeGardenReference
 	SourcePath string
 	DestPath string
 }
@@ -24,6 +25,7 @@ func RootMove(ctx *task.ExecutionContext, req RootMoveRequest) (error, any) {
 	err, _ = RootCopy(
 		ctx,
 		RootCopyRequest{
+			Garden: req.Garden,
 			SourcePath: sourcePath,
 			DestPath: destPath,
 		},
@@ -33,7 +35,13 @@ func RootMove(ctx *task.ExecutionContext, req RootMoveRequest) (error, any) {
 	}
 
 	// replace references to the root
-	err = RootReplace(sourcePath, destPath)
+	err = RootReplace(
+		RootReplaceRequest{
+			Garden: req.Garden,
+			SourcePath: sourcePath,
+			DestPath: destPath,
+		},
+	)
 	if err != nil {
 		return err, nil
 	}
