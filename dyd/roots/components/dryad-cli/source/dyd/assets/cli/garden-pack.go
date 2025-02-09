@@ -96,10 +96,19 @@ var gardenPackCommand = func() clib.Command {
 	)
 
 	var packGarden = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+		unsafeGarden := dryad.UnsafeGardenReference{
+			BasePath: args.GardenPath,
+		}
+		
+		err, garden := unsafeGarden.Resolve(ctx, nil)
+		if err != nil {
+			return err, nil
+		}
+
 		err, targetPath := dryad.GardenPack(
 			ctx, 
 			dryad.GardenPackRequest{
-				GardenPath: args.GardenPath,
+				Garden: garden,
 				TargetPath: args.TargetPath,
 				IncludeRoots: args.IncludeRoots,
 				IncludeHeap: args.IncludeHeap,
