@@ -31,7 +31,7 @@ func SproutsPrune(garden *SafeGardenReference) error {
 		}
 	}
 
-	rootsPath, err := RootsPath(garden.BasePath)
+	rootsPath, err := RootsPath(garden)
 	if err != nil {
 		return err
 	}

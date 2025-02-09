@@ -66,7 +66,7 @@ func RootsGraph(req RootsGraphRequest) (TRootsGraph, error) {
 	err, _ = RootsWalk(
 		task.SERIAL_CONTEXT,
 		RootsWalkRequest{
-			GardenPath: gardenPath,
+			Garden: req.Garden,
 			OnRoot : func (ctx *task.ExecutionContext, match RootsWalkMatch) (error, any) {
 				rootPath, err := filepath.EvalSymlinks(match.RootPath)
 				if err != nil {

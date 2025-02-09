@@ -19,13 +19,10 @@ type RootsBuildRequest struct {
 
 func RootsBuild(ctx *task.ExecutionContext, request RootsBuildRequest) (error, any) {
 	var err error
-	var gardenPath string
 
 	zlog.Debug().
 		Str("gardenPath", request.Garden.BasePath).
 		Msg("RootsBuild")
-
-	gardenPath = request.Garden.BasePath
 
 	// prune sprouts before build
 	err = SproutsPrune(request.Garden)
@@ -61,7 +58,7 @@ func RootsBuild(ctx *task.ExecutionContext, request RootsBuildRequest) (error, a
 	err, _ = RootsWalk(
 		ctx,
 		RootsWalkRequest{
-			GardenPath: gardenPath,
+			Garden: request.Garden,
 			OnRoot: buildRoot,
 		},
 	)

@@ -28,7 +28,7 @@ func RootReplace(req RootReplaceRequest) error {
 		return err
 	}
 
-	rootsPath, err := RootsPath(req.Garden.BasePath)
+	rootsPath, err := RootsPath(req.Garden)
 	if err != nil {
 		return err
 	}

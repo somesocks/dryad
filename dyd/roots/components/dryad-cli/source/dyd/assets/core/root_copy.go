@@ -77,7 +77,7 @@ func RootCopy(ctx *task.ExecutionContext, req RootCopyRequest) (error, any) {
 		return err, nil
 	}
 
-	rootsPath, err := RootsPath(req.Garden.BasePath)
+	rootsPath, err := RootsPath(req.Garden)
 	if err != nil {
 		return err, nil
 	}

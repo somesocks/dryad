@@ -83,7 +83,7 @@ var rootsListCommand = func() clib.Command {
 		err, _ = dryad.RootsWalk(
 			ctx,
 			dryad.RootsWalkRequest{
-				GardenPath: garden.BasePath,
+				Garden: &garden,
 				OnRoot: func (ctx *task.ExecutionContext, match dryad.RootsWalkMatch) (error, any) {
 					// calculate the relative path to the root from the base of the garden
 					relPath, err := filepath.Rel(match.GardenPath, match.RootPath)
