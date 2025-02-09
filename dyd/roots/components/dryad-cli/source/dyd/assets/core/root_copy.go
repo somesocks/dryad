@@ -91,11 +91,6 @@ func RootCopy(ctx *task.ExecutionContext, req RootCopyRequest) (error, any) {
 		return fmt.Errorf("destination path %s is outside of roots", destPath), nil
 	}
 
-	// gardenPath, err := GardenPath(sourcePath)
-	// if err != nil {
-	// 	return err
-	// }
-
 	// don't crawl symlinks
 	shouldCrawl := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
 		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
