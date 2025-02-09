@@ -34,15 +34,6 @@ var sproutsRunCommand = func() clib.Command {
 			var args = req.Args
 			var options = req.Opts
 
-			var err error
-
-			var gardenPath string
-			gardenPath, err = dryad.GardenPath("")
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while finding garden path")
-				return err, ParsedArgs{}
-			}
-
 			var includeOpts []string
 			var excludeOpts []string
 
@@ -102,7 +93,7 @@ var sproutsRunCommand = func() clib.Command {
 			extras := args[0:]
 
 			return nil, ParsedArgs{
-				GardenPath: gardenPath,
+				GardenPath: "",
 				Parallel: parallel,
 				IncludeSprouts: includeSprouts,
 				ExcludeSprouts: excludeSprouts,
@@ -139,7 +130,7 @@ var sproutsRunCommand = func() clib.Command {
 					Garden: &garden,
 					OnSprout: func (ctx *task.ExecutionContext, path string) (error, any) {
 						// calculate the relative path to the root from the base of the garden
-						relPath, err := filepath.Rel(args.GardenPath, path)
+						relPath, err := filepath.Rel(garden.BasePath, path)
 						if err != nil {
 							return err, nil
 						}
@@ -198,7 +189,7 @@ var sproutsRunCommand = func() clib.Command {
 				Garden: &garden,
 				OnSprout: func (ctx *task.ExecutionContext, path string) (error, any) {
 					// calculate the relative path to the root from the base of the garden
-					relPath, err := filepath.Rel(args.GardenPath, path)
+					relPath, err := filepath.Rel(garden.BasePath, path)
 					if err != nil {
 						return err, nil
 					}
