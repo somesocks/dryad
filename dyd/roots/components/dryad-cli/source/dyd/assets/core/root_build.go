@@ -189,11 +189,13 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 			if err != nil {
 				return err, ""
 			}
-			err, _ = dydfs.RemoveAll(ctx, derivationsPath)
-			if err != nil {
-				return err, ""
-			}
-			err = os.Symlink(derivationsLinkPath, derivationsPath)
+			err, _ = dydfs.Symlink(
+				ctx,
+				dydfs.SymlinkRequest{
+					Path: derivationsPath,
+					Target: derivationsLinkPath,
+				},
+			)
 			if err != nil {
 				return err, ""
 			}
