@@ -200,7 +200,7 @@ func rootDevelop_stage4(
 	rootStemPath string,
 	stemBuildPath string,
 	rootFingerprint string,
-	gardenPath string,
+	garden *SafeGardenReference,
 	editor string,
 	editorArgs []string,
 	inherit bool,
@@ -224,10 +224,10 @@ func rootDevelop_stage4(
 	}
 
 	err = StemRun(StemRunRequest{
+		Garden: garden,
 		StemPath:     rootStemPath,
 		WorkingPath:  rootStemPath,
 		MainOverride: onDevelopStartPath,
-		GardenPath:   gardenPath,
 		Env: map[string]string{
 			"DYD_BUILD": stemBuildPath,
 		},
@@ -246,7 +246,7 @@ func rootDevelop_stage6(
 	rootStemPath string,
 	stemBuildPath string,
 	rootFingerprint string,
-	gardenPath string,
+	garden *SafeGardenReference,
 	editor string,
 	editorArgs []string,
 	inherit bool,
@@ -270,10 +270,10 @@ func rootDevelop_stage6(
 	}
 
 	err = StemRun(StemRunRequest{
+		Garden:   garden,
 		StemPath:     rootStemPath,
 		WorkingPath:  rootStemPath,
 		MainOverride: onDevelopStopPath,
-		GardenPath:   gardenPath,
 		Env: map[string]string{
 			"DYD_BUILD": stemBuildPath,
 		},
@@ -292,7 +292,7 @@ func rootDevelop_stage5(
 	rootStemPath string,
 	stemBuildPath string,
 	rootFingerprint string,
-	gardenPath string,
+	garden *SafeGardenReference,
 	editor string,
 	editorArgs []string,
 	inherit bool,
@@ -325,10 +325,10 @@ func rootDevelop_stage5(
 	}
 
 	err = StemRun(StemRunRequest{
+		Garden: garden,
 		StemPath:     rootStemPath,
 		WorkingPath:  rootStemPath,
 		MainOverride: editor,
-		GardenPath:   gardenPath,
 		Env: map[string]string{
 			"DYD_BUILD": stemBuildPath,
 		},
@@ -414,14 +414,37 @@ func RootDevelop(
 	}
 	defer dydfs.RemoveAll(task.SERIAL_CONTEXT, stemBuildPath)
 
-	err = rootDevelop_stage4(workspacePath, stemBuildPath, rootFingerprint, gardenPath, editor, editorArgs, inherit)
+	err = rootDevelop_stage4(
+		workspacePath,
+		stemBuildPath,
+		rootFingerprint, req.Garden,
+		editor,
+		editorArgs,
+		inherit,
+	)
 	if err != nil {
 		return "", err
 	}
 
-	stemBuildFingerprint, onDevelopErr := rootDevelop_stage5(workspacePath, stemBuildPath, rootFingerprint, gardenPath, editor, editorArgs, inherit)
+	stemBuildFingerprint, onDevelopErr := rootDevelop_stage5(
+		workspacePath,
+		stemBuildPath,
+		rootFingerprint,
+		req.Garden,
+		editor,
+		editorArgs,
+		inherit,
+	)
 
-	onStopErr := rootDevelop_stage6(workspacePath, stemBuildPath, rootFingerprint, gardenPath, editor, editorArgs, inherit)
+	onStopErr := rootDevelop_stage6(
+		workspacePath,
+		stemBuildPath,
+		rootFingerprint,
+		req.Garden,
+		editor,
+		editorArgs,
+		inherit,
+	)
 
 	if onDevelopErr != nil {
 		return "", onDevelopErr

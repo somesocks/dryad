@@ -155,6 +155,7 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 		err, stemBuildFingerprint = rootBuild_stage5(
 			ctx,
 			rootBuild_stage5_request{
+				Garden: req.Garden,
 				RelRootPath: relRootPath,
 				RootStemPath: finalStemPath,
 				StemBuildPath: stemBuildPath,

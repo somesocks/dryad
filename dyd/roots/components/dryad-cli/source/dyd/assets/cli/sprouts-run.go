@@ -119,6 +119,15 @@ var sproutsRunCommand = func() clib.Command {
 
 	var runSprouts = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
 
+		unsafeGarden := dryad.UnsafeGardenReference{
+			BasePath: args.GardenPath,
+		}
+		
+		err, garden := unsafeGarden.Resolve(ctx, nil)
+		if err != nil {
+			return err, nil
+		}
+
 		// if confirm is set, we want to print the list
 		// of sprouts to run
 		if args.Confirm != "" {
@@ -183,7 +192,7 @@ var sproutsRunCommand = func() clib.Command {
 			env["TERM"] = os.Getenv("TERM")
 		}
 
-		err, _ := dryad.SproutsWalk(
+		err, _ = dryad.SproutsWalk(
 			ctx,
 			dryad.SproutsWalkRequest{
 				GardenPath: args.GardenPath,
@@ -200,6 +209,7 @@ var sproutsRunCommand = func() clib.Command {
 							Msg("sprout run starting")
 		
 						err := dryad.StemRun(dryad.StemRunRequest{
+							Garden: &garden,
 							StemPath:   path,
 							Env:        env,
 							Args:       args.Extras,
