@@ -70,10 +70,20 @@ var rootBuildCommand = func() clib.Command {
 	)
 
 	var buildRoot = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+		unsafeGarden := dryad.UnsafeGardenReference{
+			BasePath: args.RootPath,
+		}
+		
+		err, garden := unsafeGarden.Resolve(ctx, nil)
+		if err != nil {
+			return err, nil
+		}
+
 		var rootFingerprint string
-		err, rootFingerprint := dryad.RootBuild(
+		err, rootFingerprint = dryad.RootBuild(
 			task.SERIAL_CONTEXT,
 			dryad.RootBuildRequest{
+				Garden: &garden,
 				RootPath: args.RootPath,
 				JoinStdout: args.JoinStdout,
 				JoinStderr: args.JoinStderr,
