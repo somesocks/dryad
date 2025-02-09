@@ -17,7 +17,7 @@ import (
 )
 
 type GardenPackRequest struct {
-	Garden SafeGardenReference
+	Garden *SafeGardenReference
 	TargetPath string
 	IncludeRoots bool
 	IncludeHeap bool

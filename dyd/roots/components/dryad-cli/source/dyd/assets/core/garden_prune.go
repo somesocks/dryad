@@ -24,7 +24,7 @@ var REGEX_GARDEN_PRUNE_DERIVATIONS_CRAWL = regexp.MustCompile(`^((\.)|(derivatio
 var REGEX_GARDEN_PRUNE_DERIVATIONS_MATCH = regexp.MustCompile(`^(derivations/.*)$`)
 
 type GardenPruneRequest struct {
-	Garden SafeGardenReference
+	Garden *SafeGardenReference
 	Snapshot time.Time
 }
 

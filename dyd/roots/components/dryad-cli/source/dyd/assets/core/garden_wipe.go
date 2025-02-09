@@ -9,7 +9,7 @@ import (
 )
 
 type GardenWipeRequest struct {
-	Garden SafeGardenReference
+	Garden *SafeGardenReference
 }
 
 func GardenWipe(ctx *task.ExecutionContext, req GardenWipeRequest) (error, any) {
