@@ -136,7 +136,7 @@ var sproutsRunCommand = func() clib.Command {
 			err, _ := dryad.SproutsWalk(
 				ctx,
 				dryad.SproutsWalkRequest{
-					GardenPath: args.GardenPath,
+					Garden: &garden,
 					OnSprout: func (ctx *task.ExecutionContext, path string) (error, any) {
 						// calculate the relative path to the root from the base of the garden
 						relPath, err := filepath.Rel(args.GardenPath, path)
@@ -195,7 +195,7 @@ var sproutsRunCommand = func() clib.Command {
 		err, _ = dryad.SproutsWalk(
 			ctx,
 			dryad.SproutsWalkRequest{
-				GardenPath: args.GardenPath,
+				Garden: &garden,
 				OnSprout: func (ctx *task.ExecutionContext, path string) (error, any) {
 					// calculate the relative path to the root from the base of the garden
 					relPath, err := filepath.Rel(args.GardenPath, path)

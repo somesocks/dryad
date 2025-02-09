@@ -28,7 +28,7 @@ func RootsBuild(ctx *task.ExecutionContext, request RootsBuildRequest) (error, a
 	gardenPath = request.Garden.BasePath
 
 	// prune sprouts before build
-	err = SproutsPrune(gardenPath)
+	err = SproutsPrune(request.Garden)
 	if err != nil {
 		return err, nil
 	}

@@ -10,10 +10,10 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-func SproutsPrune(path string) error {
+func SproutsPrune(garden *SafeGardenReference) error {
 	zlog.Debug().Msg("pruning sprouts")
 
-	sproutsPath, err := SproutsPath(path)
+	sproutsPath, err := SproutsPath(garden)
 	if err != nil {
 		return err
 	}
@@ -31,7 +31,7 @@ func SproutsPrune(path string) error {
 		}
 	}
 
-	rootsPath, err := RootsPath(path)
+	rootsPath, err := RootsPath(garden.BasePath)
 	if err != nil {
 		return err
 	}
