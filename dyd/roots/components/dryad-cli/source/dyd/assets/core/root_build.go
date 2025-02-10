@@ -250,7 +250,20 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 	return nil, stemBuildFingerprint
 }
 
-var memoRootBuild = task.Memoize(rootBuild, "RootBuild") 
+var memoRootBuild = task.Memoize(
+	rootBuild,
+	func (req RootBuildRequest) any {
+		return struct {
+			Group string
+			GardenPath string
+			RootPath string
+		}{
+			Group: "RootBuild",
+			GardenPath: req.Garden.BasePath,
+			RootPath: req.RootPath,
+		}
+	},
+)
 
 var RootBuild = func (ctx *task.ExecutionContext, req RootBuildRequest) (error, string) {
 	var rootPath string = req.RootPath
