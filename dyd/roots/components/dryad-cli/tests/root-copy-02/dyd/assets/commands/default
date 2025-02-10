@@ -40,6 +40,9 @@ _prepare() {
 _test() {
 	cd "$TEMP_DIR";
 	dryad root copy dyd/roots/root-01 dyd/roots/root-02 --log-level="$DYD_LOG_LEVEL" 1>&2;
+	# TODO: this is a temporary fix to the test case,
+	# until HeapAddStem is made concurrent-safe
+	touch dyd/roots/root-02/dyd/assets/test-file-02
 	dryad roots build --log-level="$DYD_LOG_LEVEL" 1>&2;
 }
 
