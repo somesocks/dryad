@@ -7,11 +7,6 @@ import (
 	// "encoding/json"
 )
 
-type cacheKey[A any] struct {
-	group string
-	request A
-}
-
 func onceWrapper[A any, B any](
 	task Task[A, B],
 ) Task[A, B] {
@@ -41,13 +36,10 @@ func onceWrapper[A any, B any](
 
 func Memoize[A any, B any](
 	task Task[A, B],
-	group string,
+	keyFunc func (req A) any,
 ) Task[A, B] {
 	return func (ctx *ExecutionContext, req A) (error, B) {
-		var key = cacheKey[A]{
-			group: group,
-			request: req,
-		}
+		var key = keyFunc(req)
 
 		var cachedTask any 
 		var hasCachedTask bool

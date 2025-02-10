@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 )
 
-func ScopeSettingGet(basePath string, scope string, setting string) (string, error) {
-	scopePath, err := ScopePath(basePath, scope)
+func ScopeSettingGet(garden *SafeGardenReference, scope string, setting string) (string, error) {
+	scopePath, err := ScopePath(garden, scope)
 	if err != nil {
 		return "", err
 	}

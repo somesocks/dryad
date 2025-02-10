@@ -4,13 +4,7 @@ import (
 	"path/filepath"
 )
 
-func HeapPath(path string) (string, error) {
-	gardenPath, err := GardenPath(path)
-
-	if err != nil {
-		return "", err
-	}
-
-	heapPath := filepath.Join(gardenPath, "dyd", "heap")
+func HeapPath(garden *SafeGardenReference) (string, error) {
+	heapPath := filepath.Join(garden.BasePath, "dyd", "heap")
 	return heapPath, nil
 }

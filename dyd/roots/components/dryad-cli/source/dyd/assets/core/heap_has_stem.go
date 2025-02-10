@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 )
 
-func HeapHasStem(path string, fingerprint string) (string, error) {
+func HeapHasStem(garden *SafeGardenReference, fingerprint string) (string, error) {
 	// fmt.Println("[trace] HeapHasStem ", path, fingerprint)
 
-	var heapPath, heapErr = HeapPath(path)
+	var heapPath, heapErr = HeapPath(garden)
 	// fmt.Println("HeapHasStem heapPath ", heapPath)
 	if heapErr != nil {
 		return "", heapErr

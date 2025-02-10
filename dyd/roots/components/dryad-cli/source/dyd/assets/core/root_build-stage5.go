@@ -13,6 +13,7 @@ import (
 )
 
 type rootBuild_stage5_request struct {
+	Garden *SafeGardenReference
 	RelRootPath string
 	RootStemPath string
 	StemBuildPath string
@@ -35,6 +36,7 @@ var rootBuild_stage5 func (ctx *task.ExecutionContext, req rootBuild_stage5_requ
 			return err, ""
 		}
 		err = StemRun(StemRunRequest{
+			Garden: req.Garden,
 			StemPath: req.RootStemPath,
 			Env: map[string]string{
 				"DYD_BUILD": req.StemBuildPath,

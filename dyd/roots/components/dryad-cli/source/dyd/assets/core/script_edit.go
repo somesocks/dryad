@@ -11,7 +11,7 @@ import (
 )
 
 type ScriptEditRequest struct {
-	BasePath string
+	Garden *SafeGardenReference
 	Scope    string
 	Setting  string
 	Env      map[string]string
@@ -20,7 +20,7 @@ type ScriptEditRequest struct {
 func ScriptEdit(request ScriptEditRequest) error {
 
 	// verify that the scope exists
-	scopeExists, err := ScopeExists(request.BasePath, request.Scope)
+	scopeExists, err := ScopeExists(request.Garden, request.Scope)
 	if err != nil {
 		return err
 	}
@@ -29,7 +29,7 @@ func ScriptEdit(request ScriptEditRequest) error {
 		return fmt.Errorf("scope %s does not exist", request.Scope)
 	}
 
-	scriptPath, err := ScopeSettingPath(request.BasePath, request.Scope, request.Setting)
+	scriptPath, err := ScopeSettingPath(request.Garden, request.Scope, request.Setting)
 	if err != nil {
 		return err
 	}

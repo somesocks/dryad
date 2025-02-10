@@ -22,18 +22,18 @@ func _readFile(filePath string) (string, error) {
 }
 
 type HeapAddStemRequest struct {
-	HeapPath string
+	Garden *SafeGardenReference
 	StemPath string	
 }
 
 // HeapAddStem takes a stem in a directory, and adds it to the heap.
 // the heap path is normalized before adding
 func HeapAddStem(ctx *task.ExecutionContext, req HeapAddStemRequest) (error, string) {
-	var heapPath = req.HeapPath
+	var heapPath string
 	var stemPath = req.StemPath
 
 	// normalize the heap path
-	heapPath, err := HeapPath(heapPath)
+	heapPath, err := HeapPath(req.Garden)
 	if err != nil {
 		return err, ""
 	}
@@ -135,7 +135,7 @@ func HeapAddStem(ctx *task.ExecutionContext, req HeapAddStemRequest) (error, str
 					err, fileFingerprint := HeapAddFile(
 						ctx,
 						HeapAddFileRequest{
-							HeapPath: gardenFilesPath,
+							Garden: req.Garden,
 							SourcePath: node.Path,
 						},
 					)
@@ -203,7 +203,7 @@ func HeapAddStem(ctx *task.ExecutionContext, req HeapAddStemRequest) (error, str
 	}
 
 	if hasSecrets {
-		secretsFingerprint, err := HeapAddSecrets(heapPath, stemPath)
+		secretsFingerprint, err := HeapAddSecrets(req.Garden, stemPath)
 		if err != nil {
 			return err, ""
 		}

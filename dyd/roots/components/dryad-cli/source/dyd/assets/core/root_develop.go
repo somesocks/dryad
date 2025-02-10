@@ -113,7 +113,7 @@ func rootDevelop_stage1(
 	context *BuildContext,
 	rootPath string,
 	workspacePath string,
-	gardenPath string,
+	garden *SafeGardenReference,
 ) error {
 	// fmt.Println("rootDevelop_stage1 ", rootPath, " ", workspacePath)
 
@@ -136,6 +136,7 @@ func rootDevelop_stage1(
 		err, _ = RootBuild(
 			task.SERIAL_CONTEXT,
 			RootBuildRequest{
+				Garden: garden,
 				RootPath: dependencyPath,
 			},
 		)
@@ -153,14 +154,14 @@ func rootDevelop_stage1(
 		}
 
 		relRootPath, err := filepath.Rel(
-			filepath.Join(gardenPath, "dyd", "roots"),
+			filepath.Join(garden.BasePath, "dyd", "roots"),
 			absRootPath,
 		)
 		if err != nil {
 			return err
 		}
 
-		sproutPath := filepath.Join(gardenPath, "dyd", "sprouts", relRootPath)
+		sproutPath := filepath.Join(garden.BasePath, "dyd", "sprouts", relRootPath)
 		targetDepPath := filepath.Join(workspacePath, "dyd", "dependencies", dependencyName)
 
 		err = os.Symlink(sproutPath, targetDepPath)
@@ -199,7 +200,7 @@ func rootDevelop_stage4(
 	rootStemPath string,
 	stemBuildPath string,
 	rootFingerprint string,
-	gardenPath string,
+	garden *SafeGardenReference,
 	editor string,
 	editorArgs []string,
 	inherit bool,
@@ -223,15 +224,16 @@ func rootDevelop_stage4(
 	}
 
 	err = StemRun(StemRunRequest{
+		Garden: garden,
 		StemPath:     rootStemPath,
 		WorkingPath:  rootStemPath,
 		MainOverride: onDevelopStartPath,
-		GardenPath:   gardenPath,
 		Env: map[string]string{
 			"DYD_BUILD": stemBuildPath,
 		},
 		Args:       editorArgs,
 		JoinStdout: true,
+		JoinStderr: true,
 		InheritEnv: inherit,
 	})
 
@@ -244,7 +246,7 @@ func rootDevelop_stage6(
 	rootStemPath string,
 	stemBuildPath string,
 	rootFingerprint string,
-	gardenPath string,
+	garden *SafeGardenReference,
 	editor string,
 	editorArgs []string,
 	inherit bool,
@@ -268,15 +270,16 @@ func rootDevelop_stage6(
 	}
 
 	err = StemRun(StemRunRequest{
+		Garden:   garden,
 		StemPath:     rootStemPath,
 		WorkingPath:  rootStemPath,
 		MainOverride: onDevelopStopPath,
-		GardenPath:   gardenPath,
 		Env: map[string]string{
 			"DYD_BUILD": stemBuildPath,
 		},
 		Args:       editorArgs,
 		JoinStdout: true,
+		JoinStderr: true,
 		InheritEnv: inherit,
 	})
 
@@ -289,7 +292,7 @@ func rootDevelop_stage5(
 	rootStemPath string,
 	stemBuildPath string,
 	rootFingerprint string,
-	gardenPath string,
+	garden *SafeGardenReference,
 	editor string,
 	editorArgs []string,
 	inherit bool,
@@ -322,43 +325,50 @@ func rootDevelop_stage5(
 	}
 
 	err = StemRun(StemRunRequest{
+		Garden: garden,
 		StemPath:     rootStemPath,
 		WorkingPath:  rootStemPath,
 		MainOverride: editor,
-		GardenPath:   gardenPath,
 		Env: map[string]string{
 			"DYD_BUILD": stemBuildPath,
 		},
 		Args:       editorArgs,
 		JoinStdout: true,
+		JoinStderr: true,
 		InheritEnv: inherit,
 	})
 
 	return "", err
 }
 
-func RootDevelop(context *BuildContext, rootPath string, editor string, editorArgs []string, inherit bool) (string, error) {
-	// fmt.Println("[trace] RootBuild", context, rootPath)
+type RootDevelopRequest struct {
+	Garden *SafeGardenReference
+	RootPath string
+	Editor string
+	EditorArgs []string
+	Inherit bool
+}
+
+func RootDevelop(
+	context *BuildContext,
+	req RootDevelopRequest,
+) (string, error) {
+
+	gardenPath := req.Garden.BasePath
+	editor := req.Editor
+	editorArgs := req.EditorArgs
+	inherit := req.Inherit
 
 	// sanitize the root path
-	rootPath, err := RootPath(rootPath, "")
+	rootPath, err := RootPath(req.RootPath, "")
 	if err != nil {
 		return "", err
 	}
-	// fmt.Println("[trace] RootBuild rootPath", rootPath)
 
 	absRootPath, err := filepath.EvalSymlinks(rootPath)
 	if err != nil {
 		return "", err
 	}
-	// fmt.Println("[trace] RootBuild absRootPath", absRootPath)
-
-	// check to see if the stem already exists in the garden
-	gardenPath, err := GardenPath(rootPath)
-	if err != nil {
-		return "", err
-	}
-	// fmt.Println("[trace] RootBuild gardenPath", gardenPath)
 
 	relRootPath, err := filepath.Rel(
 		filepath.Join(gardenPath, "dyd", "roots"),
@@ -382,7 +392,7 @@ func RootDevelop(context *BuildContext, rootPath string, editor string, editorAr
 		return "", err
 	}
 
-	err = rootDevelop_stage1(context, rootPath, workspacePath, gardenPath)
+	err = rootDevelop_stage1(context, rootPath, workspacePath, req.Garden)
 	if err != nil {
 		return "", err
 	}
@@ -404,14 +414,37 @@ func RootDevelop(context *BuildContext, rootPath string, editor string, editorAr
 	}
 	defer dydfs.RemoveAll(task.SERIAL_CONTEXT, stemBuildPath)
 
-	err = rootDevelop_stage4(workspacePath, stemBuildPath, rootFingerprint, gardenPath, editor, editorArgs, inherit)
+	err = rootDevelop_stage4(
+		workspacePath,
+		stemBuildPath,
+		rootFingerprint, req.Garden,
+		editor,
+		editorArgs,
+		inherit,
+	)
 	if err != nil {
 		return "", err
 	}
 
-	stemBuildFingerprint, onDevelopErr := rootDevelop_stage5(workspacePath, stemBuildPath, rootFingerprint, gardenPath, editor, editorArgs, inherit)
+	stemBuildFingerprint, onDevelopErr := rootDevelop_stage5(
+		workspacePath,
+		stemBuildPath,
+		rootFingerprint,
+		req.Garden,
+		editor,
+		editorArgs,
+		inherit,
+	)
 
-	onStopErr := rootDevelop_stage6(workspacePath, stemBuildPath, rootFingerprint, gardenPath, editor, editorArgs, inherit)
+	onStopErr := rootDevelop_stage6(
+		workspacePath,
+		stemBuildPath,
+		rootFingerprint,
+		req.Garden,
+		editor,
+		editorArgs,
+		inherit,
+	)
 
 	if onDevelopErr != nil {
 		return "", onDevelopErr

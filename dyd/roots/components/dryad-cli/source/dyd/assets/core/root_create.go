@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-func RootCreate(path string) error {
+func RootCreate(garden *SafeGardenReference, path string) error {
 	path, err := filepath.Abs(path)
 	if err != nil {
 		return err
@@ -21,7 +21,7 @@ func RootCreate(path string) error {
 	}
 
 	// check to make sure that the destination is within roots dir
-	rootsPath, err := RootsPath(path)
+	rootsPath, err := RootsPath(garden)
 	if err != nil {
 		return err
 	}

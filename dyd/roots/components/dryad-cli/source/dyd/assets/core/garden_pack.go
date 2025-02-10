@@ -17,7 +17,7 @@ import (
 )
 
 type GardenPackRequest struct {
-	GardenPath string
+	Garden *SafeGardenReference
 	TargetPath string
 	IncludeRoots bool
 	IncludeHeap bool
@@ -27,25 +27,10 @@ type GardenPackRequest struct {
 }
 
 func GardenPack(ctx *task.ExecutionContext, req GardenPackRequest) (error, string) {
-	var gardenPath = req.GardenPath
+	var gardenPath = req.Garden.BasePath
 	var targetPath = req.TargetPath
 	var err error
 	
-	// convert relative stem path to absolute
-	if !filepath.IsAbs(gardenPath) {
-		wd, err := os.Getwd()
-		if err != nil {
-			return err, ""
-		}
-		gardenPath = filepath.Join(wd, gardenPath)
-	}
-
-	// normalize garden path
-	gardenPath, err = GardenPath(gardenPath)
-	if err != nil {
-		return err, ""
-	}
-
 	// convert relative target to absolute
 	if !filepath.IsAbs(targetPath) {
 		wd, err := os.Getwd()

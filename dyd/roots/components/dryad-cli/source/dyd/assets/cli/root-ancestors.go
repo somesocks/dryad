@@ -53,10 +53,15 @@ var rootAncestorsCommand = func() clib.Command {
 	)
 
 	var findAncestors = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+
 		rootPath := args.RootPath
 		relative := args.Relative
 
-		gardenPath, err := dryad.GardenPath(rootPath)
+		unsafeGarden := dryad.UnsafeGardenReference{
+			BasePath: args.RootPath,
+		}
+		
+		err, garden := unsafeGarden.Resolve(ctx, nil)
 		if err != nil {
 			return err, nil
 		}
@@ -66,13 +71,18 @@ var rootAncestorsCommand = func() clib.Command {
 			return err, nil
 		}
 
-		graph, err := dryad.RootsGraph(gardenPath, relative)
+		graph, err := dryad.RootsGraph(
+			dryad.RootsGraphRequest{
+				Garden: &garden,
+				Relative: relative,
+			},
+		)
 		if err != nil {
 			return err, nil
 		}
 
 		if relative {
-			rootPath, err = filepath.Rel(gardenPath, rootPath)
+			rootPath, err = filepath.Rel(garden.BasePath, rootPath)
 			if err != nil {
 				return err, nil
 			}

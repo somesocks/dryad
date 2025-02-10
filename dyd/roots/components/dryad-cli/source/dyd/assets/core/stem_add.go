@@ -10,7 +10,12 @@ import (
 	"path/filepath"
 )
 
-func StemAdd(rootPath string, fingerprint string, alias string) error {
+func StemAdd(
+	garden *SafeGardenReference,
+	rootPath string,
+	fingerprint string,
+	alias string,
+) error {
 	var err error
 
 	rootPath, err = RootPath(rootPath, "")
@@ -19,7 +24,7 @@ func StemAdd(rootPath string, fingerprint string, alias string) error {
 	}
 
 	var depPath string
-	depPath, err = HeapHasStem(rootPath, fingerprint)
+	depPath, err = HeapHasStem(garden, fingerprint)
 	if err != nil {
 		return err
 	}

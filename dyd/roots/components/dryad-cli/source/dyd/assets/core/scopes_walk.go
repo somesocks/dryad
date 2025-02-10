@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 )
 
-func ScopesWalk(path string, walkFn func(path string, info fs.FileInfo) error) error {
-	var scopesPath, err = ScopesPath(path)
+func ScopesWalk(garden *SafeGardenReference, walkFn func(path string, info fs.FileInfo) error) error {
+	var scopesPath, err = ScopesPath(garden)
 	if err != nil {
 		return err
 	}

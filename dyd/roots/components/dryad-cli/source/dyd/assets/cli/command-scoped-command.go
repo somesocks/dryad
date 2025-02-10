@@ -3,6 +3,7 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	"os"
 	"strings"
 
@@ -18,12 +19,21 @@ var ScopedCommand = func(
 		invocation := req.Invocation
 		options := req.Opts
 
+		unsafeGarden := dryad.UnsafeGardenReference{
+			BasePath: "",
+		}
+		
+		err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+		if err != nil {
+			return 1
+		}
+	
 		var scope string
 		if options["scope"] != nil {
 			scope = options["scope"].(string)
 		} else {
 			var err error
-			scope, err = dryad.ScopeGetDefault(scope)
+			scope, err = dryad.ScopeGetDefault(&garden)
 			zlog.Debug().Msg("loading default scope: " + scope)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while loading default scope")
@@ -40,13 +50,7 @@ var ScopedCommand = func(
 
 		settingName := strings.Join(invocation[1:], "-")
 
-		path, err := os.Getwd()
-		if err != nil {
-			zlog.Fatal().Err(err).Msg("error while finding working directory")
-			return 1
-		}
-
-		setting, err := dryad.ScopeSettingGet(path, scope, settingName)
+		setting, err := dryad.ScopeSettingGet(&garden, scope, settingName)
 		if err != nil {
 			zlog.Fatal().Err(err).Msg("error while loading setting")
 			return 1

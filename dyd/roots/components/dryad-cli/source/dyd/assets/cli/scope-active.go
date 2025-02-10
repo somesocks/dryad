@@ -3,6 +3,7 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	"fmt"
 	"os"
 
@@ -27,7 +28,16 @@ var scopeActiveCommand = func() clib.Command {
 				return 1
 			}
 
-			scopeName, err := dryad.ScopeGetDefault(path)
+			unsafeGarden := dryad.UnsafeGardenReference{
+				BasePath: path,
+			}
+			
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			if err != nil {
+				return 1
+			}
+		
+			scopeName, err := dryad.ScopeGetDefault(&garden)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while loading active scope")
 				return 1
@@ -39,7 +49,7 @@ var scopeActiveCommand = func() clib.Command {
 
 			var scopeOneline string = ""
 			if oneline {
-				scopeOneline, _ = dryad.ScopeOnelineGet(path, scopeName)
+				scopeOneline, _ = dryad.ScopeOnelineGet(&garden, scopeName)
 			}
 
 			if scopeOneline != "" {

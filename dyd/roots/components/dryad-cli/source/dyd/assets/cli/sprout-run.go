@@ -4,6 +4,7 @@ import (
 	"bufio"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	"fmt"
 	"os"
 	"strings"
@@ -88,7 +89,19 @@ var sproutRunCommand = func() clib.Command {
 
 			path := args[0]
 			extras := args[1:]
-			err := dryad.StemRun(dryad.StemRunRequest{
+
+			unsafeGarden := dryad.UnsafeGardenReference{
+				BasePath: path,
+			}
+			
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error resolving garden")
+				return 1
+			}
+
+			err = dryad.StemRun(dryad.StemRunRequest{
+				Garden: &garden,
 				StemPath:     path,
 				MainOverride: override,
 				Env:          env,

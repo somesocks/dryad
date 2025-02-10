@@ -22,12 +22,12 @@ var sproutsWalk_ShouldMatch = func(ctx *task.ExecutionContext, node fs2.Walk5Nod
 }
 
 type SproutsWalkRequest struct {
-	GardenPath string
+	Garden *SafeGardenReference
 	OnSprout func(*task.ExecutionContext, string) (error, any)
 }
 
 func SproutsWalk(ctx *task.ExecutionContext, req SproutsWalkRequest) (error, any) {
-	var sproutsPath, err = SproutsPath(req.GardenPath)
+	var sproutsPath, err = SproutsPath(req.Garden)
 	if err != nil {
 		return err, nil
 	}

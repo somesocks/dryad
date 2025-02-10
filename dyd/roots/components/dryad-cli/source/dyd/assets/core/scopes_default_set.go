@@ -5,13 +5,13 @@ import (
 	"path/filepath"
 )
 
-func ScopeSetDefault(path string, scope string) error {
-	scopesPath, err := ScopesPath(path)
+func ScopeSetDefault(garden *SafeGardenReference, scope string) error {
+	scopesPath, err := ScopesPath(garden)
 	if err != nil {
 		return err
 	}
 
-	scopePath, err := ScopePath(path, scope)
+	scopePath, err := ScopePath(garden, scope)
 	if err != nil {
 		return err
 	}

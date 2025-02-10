@@ -33,11 +33,16 @@ var gardenPathCommand = func() clib.Command {
 	)
 
 	var printGardenPath = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
-		path, err := dryad.GardenPath(args.GardenPath)
+		unsafeGarden := dryad.UnsafeGardenReference{
+			BasePath: args.GardenPath,
+		}
+		
+		err, garden := unsafeGarden.Resolve(ctx, nil)
 		if err != nil {
 			return err, nil
 		}
-		fmt.Println(path)
+
+		fmt.Println(garden.BasePath)
 		return nil, nil
 	}
 

@@ -3,6 +3,7 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -57,15 +58,28 @@ var rootDevelopCommand = func() clib.Command {
 				path = filepath.Join(wd, path)
 			}
 
+			unsafeGarden := dryad.UnsafeGardenReference{
+				BasePath: path,
+			}
+			
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error resolving garden")
+				return 1
+			}	
+
 			var rootFingerprint string
-			rootFingerprint, err := dryad.RootDevelop(
+			rootFingerprint, err = dryad.RootDevelop(
 				&dryad.BuildContext{
 					Fingerprints: map[string]string{},
 				},
-				path,
-				editor,
-				editorArgs,
-				inherit,
+				dryad.RootDevelopRequest{
+					Garden: &garden,
+					RootPath: path,
+					Editor: editor,
+					EditorArgs: editorArgs,
+					Inherit: inherit,
+				},
 			)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error from root development environment")

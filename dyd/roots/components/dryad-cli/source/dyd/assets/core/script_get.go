@@ -5,7 +5,7 @@ import (
 )
 
 type ScriptGetRequest struct {
-	BasePath string
+	Garden *SafeGardenReference
 	Scope    string
 	Setting  string
 }

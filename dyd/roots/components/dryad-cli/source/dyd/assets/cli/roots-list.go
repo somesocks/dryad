@@ -27,7 +27,6 @@ var rootsListCommand = func() clib.Command {
 
 			var relative bool = true
 			var path string = ""
-			var err error
 
 			if len(args) > 0 {
 				path = args[0]
@@ -37,12 +36,6 @@ var rootsListCommand = func() clib.Command {
 				relative = options["relative"].(bool)
 			} else {
 				relative = true
-			}
-
-			var gardenPath string
-			gardenPath, err = dryad.GardenPath(path)
-			if err != nil {
-				return err, ParsedArgs{}
 			}
 
 			var includeOpts []string
@@ -68,7 +61,7 @@ var rootsListCommand = func() clib.Command {
 			}
 	
 			return nil, ParsedArgs{
-				GardenPath: gardenPath,
+				GardenPath: path,
 				Parallel: parallel,
 				Relative: relative,
 				IncludeRoots: includeRoots,
@@ -78,10 +71,19 @@ var rootsListCommand = func() clib.Command {
 	)
 		
 	var listRoots = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
-		err, _ := dryad.RootsWalk(
+		unsafeGarden := dryad.UnsafeGardenReference{
+			BasePath: args.GardenPath,
+		}
+		
+		err, garden := unsafeGarden.Resolve(ctx, nil)
+		if err != nil {
+			return err, nil
+		}
+
+		err, _ = dryad.RootsWalk(
 			ctx,
 			dryad.RootsWalkRequest{
-				GardenPath: args.GardenPath,
+				Garden: &garden,
 				OnRoot: func (ctx *task.ExecutionContext, match dryad.RootsWalkMatch) (error, any) {
 					// calculate the relative path to the root from the base of the garden
 					relPath, err := filepath.Rel(match.GardenPath, match.RootPath)

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -44,13 +45,16 @@ var rootsOwningCommand = func() clib.Command {
 					relative = true
 				}
 
-				var gardenPath string
-				gardenPath, err := dryad.GardenPath(path)
+				unsafeGarden := dryad.UnsafeGardenReference{
+					BasePath: path,
+				}
+				
+				err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
 				if err != nil {
-					zlog.Fatal().Err(err).Msg("error while finding garden path")
+					zlog.Fatal().Err(err).Msg("error resolving garden")
 					return 1
 				}
-
+	
 				rootSet := make(map[string]bool)
 
 				scanner := bufio.NewScanner(os.Stdin)
@@ -81,7 +85,7 @@ var rootsOwningCommand = func() clib.Command {
 				if relative {
 					for key := range rootSet {
 						// calculate the relative path to the root from the base of the garden
-						relPath, err := filepath.Rel(gardenPath, key)
+						relPath, err := filepath.Rel(garden.BasePath, key)
 						if err != nil {
 							zlog.Fatal().Err(err).Msg("error while finding root")
 							return 1

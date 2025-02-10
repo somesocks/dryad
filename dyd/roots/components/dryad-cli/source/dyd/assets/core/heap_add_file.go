@@ -12,24 +12,25 @@ import (
 )
 
 type HeapAddFileRequest struct {
-	HeapPath string
+	Garden *SafeGardenReference
 	SourcePath string
 }
 
 func HeapAddFile(ctx *task.ExecutionContext, req HeapAddFileRequest) (error, string) {
-	var heapPath string = req.HeapPath
+	var heapPath string
 	var sourcePath string = req.SourcePath
+	var err error
+
+	heapPath, err = HeapPath(req.Garden)
+	if err != nil {
+		return err, ""
+	}
 
 	zlog.
 		Trace().
 		Str("heapPath", heapPath).
 		Str("sourcePath", sourcePath).
 		Msg("HeapAddFile")
-
-	heapPath, err := HeapPath(heapPath)
-	if err != nil {
-		return err, ""
-	}
 
 	sourceHashAlgorithm, sourceHash, err := fileHash(sourcePath)
 	if err != nil {

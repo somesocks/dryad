@@ -3,6 +3,7 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	"os"
 
 	zlog "github.com/rs/zerolog/log"
@@ -28,7 +29,16 @@ var scopeSettingUnsetCommand = func() clib.Command {
 				return 1
 			}
 
-			err = dryad.ScopeSettingUnset(path, scope, setting)
+			unsafeGarden := dryad.UnsafeGardenReference{
+				BasePath: path,
+			}
+			
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			if err != nil {
+				return 1
+			}
+
+			err = dryad.ScopeSettingUnset(&garden, scope, setting)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while removing scope setting")
 				return 1

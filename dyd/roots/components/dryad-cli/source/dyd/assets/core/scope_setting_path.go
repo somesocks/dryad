@@ -4,9 +4,8 @@ import (
 	"path/filepath"
 )
 
-func ScopeSettingPath(basePath string, scope string, setting string) (string, error) {
-	scopePath, err := ScopePath(basePath, scope)
-	// fmt.Println("[debug] scopePath", scopePath, err)
+func ScopeSettingPath(garden *SafeGardenReference, scope string, setting string) (string, error) {
+	scopePath, err := ScopePath(garden, scope)
 	if err != nil {
 		return "", err
 	}

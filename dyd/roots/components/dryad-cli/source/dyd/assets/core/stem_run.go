@@ -11,10 +11,10 @@ import (
 )
 
 type StemRunRequest struct {
+	Garden *SafeGardenReference
 	StemPath     string
 	WorkingPath  string
 	MainOverride string
-	GardenPath   string
 	Context      string
 	Env          map[string]string
 	Args         []string
@@ -24,21 +24,16 @@ type StemRunRequest struct {
 }
 
 func stemRun_prepContext(request StemRunRequest) (string, error) {
-	context := request.Context
+	var gardenPath string
+	var err error
+	var context string
+
+	context = request.Context
 	if context == "" {
 		context = "default"
 	}
 
-	var gardenPath string
-	var err error
-	if request.GardenPath != "" {
-		gardenPath = request.GardenPath
-	} else {
-		gardenPath, err = GardenPath(request.StemPath)
-		if err != nil {
-			return "", err
-		}
-	}
+	gardenPath = request.Garden.BasePath
 
 	contextPath := filepath.Join(gardenPath, "dyd", "heap", "contexts", context)
 	err = os.MkdirAll(contextPath, os.ModePerm)
@@ -54,6 +49,8 @@ func StemRun(request StemRunRequest) error {
 	var stemPath = request.StemPath
 	var env = request.Env
 	var args = request.Args
+	var gardenPath string
+	var err error
 
 	if env == nil {
 		env = make(map[string]string)
@@ -67,16 +64,7 @@ func StemRun(request StemRunRequest) error {
 		stemPath = filepath.Join(cwd, stemPath)
 	}
 
-	var gardenPath string
-	var err error
-	if request.GardenPath != "" {
-		gardenPath = request.GardenPath
-	} else {
-		gardenPath, err = GardenPath(request.StemPath)
-		if err != nil {
-			return err
-		}
-	}
+	gardenPath = request.Garden.BasePath
 
 	contextPath, err := stemRun_prepContext(request)
 	if err != nil {

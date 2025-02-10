@@ -1,14 +1,17 @@
+
 package core
 
 import (
-	"errors"
-	"os"
+	"dryad/task"
+
 	"path/filepath"
+	"os"
+	"errors"
 
 	zlog "github.com/rs/zerolog/log"
 )
 
-func GardenPath(path string) (string, error) {
+func _gardenPath(path string) (string, error) {
 	zlog.Trace().
 		Str("path", path).
 		Msg("GardenPath")
@@ -47,4 +50,16 @@ func GardenPath(path string) (string, error) {
 	}
 
 	return "", errors.New("dyd garden path not found starting from " + path)
+}
+
+func (ug *UnsafeGardenReference) Resolve(ctx * task.ExecutionContext, _ any) (error, SafeGardenReference) {
+	var gardenPath string = ug.BasePath
+	var err error
+
+	zlog.Trace().
+		Str("BasePath", ug.BasePath).
+		Msg("UnsafeGardenReference.Resolve")
+
+	gardenPath, err = _gardenPath(ug.BasePath)
+	return err, SafeGardenReference{ BasePath: gardenPath }
 }

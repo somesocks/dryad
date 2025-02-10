@@ -8,7 +8,7 @@ import (
 )
 
 type RootsWalkRequest struct {
-	GardenPath string
+	Garden *SafeGardenReference
 	OnRoot func (ctx *task.ExecutionContext, match RootsWalkMatch) (error, any)
 }
 
@@ -18,7 +18,7 @@ type RootsWalkMatch struct {
 }
 
 func RootsWalk(ctx *task.ExecutionContext, req RootsWalkRequest) (error, any) {
-	var rootsPath, err = RootsPath(req.GardenPath)
+	var rootsPath, err = RootsPath(req.Garden)
 	if err != nil {
 		return err, nil
 	}
@@ -44,7 +44,7 @@ func RootsWalk(ctx *task.ExecutionContext, req RootsWalkRequest) (error, any) {
 
 	var onMatch = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
 		err, _ := req.OnRoot(ctx, RootsWalkMatch{
-			GardenPath: req.GardenPath,
+			GardenPath: req.Garden.BasePath,
 			RootPath: node.Path,
 		})
 		return err, nil

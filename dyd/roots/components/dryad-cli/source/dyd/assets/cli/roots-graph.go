@@ -3,6 +3,7 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	"fmt"
 	"os"
 
@@ -62,7 +63,22 @@ var rootsGraphCommand = func() clib.Command {
 				return 1
 			}
 
-			graph, err := dryad.RootsGraph(path, relative)
+			unsafeGarden := dryad.UnsafeGardenReference{
+				BasePath: path,
+			}
+			
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error resolving garden")
+				return 1
+			}
+
+			graph, err := dryad.RootsGraph(
+				dryad.RootsGraphRequest{
+					Garden: &garden,
+					Relative: relative,
+				},
+			)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while building roots graph")
 				return 1

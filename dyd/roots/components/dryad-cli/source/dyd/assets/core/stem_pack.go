@@ -19,6 +19,7 @@ import (
 )
 
 type StemPackRequest struct {
+	Garden *SafeGardenReference
 	StemPath string
 	TargetPath string
 	Format string
@@ -91,7 +92,7 @@ func stemPack(context BuildContext, request StemPackRequest) (string, error) {
 	err, packedStemPath = HeapAddStem(
 		task.SERIAL_CONTEXT,
 		HeapAddStemRequest{
-			HeapPath: targetPath,
+			Garden: request.Garden,
 			StemPath: stemPath,
 		},
 	)

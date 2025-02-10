@@ -3,6 +3,7 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	fs2 "dryad/filesystem"
 	"os"
 	"path/filepath"
@@ -60,10 +61,13 @@ var stemAncestorsCommand = func() clib.Command {
 				self = false
 			}
 
-			var gardenPath string
-			gardenPath, err = dryad.GardenPath(path)
+			unsafeGarden := dryad.UnsafeGardenReference{
+				BasePath: path,
+			}
+			
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while finding garden path")
+				zlog.Fatal().Err(err).Msg("error resolving garden")
 				return 1
 			}
 
@@ -72,7 +76,7 @@ var stemAncestorsCommand = func() clib.Command {
 					BasePath: path,
 					OnMatch: func(node fs2.Walk5Node) error {
 						// calculate the relative path to the root from the base of the garden
-						relPath, err := filepath.Rel(gardenPath, node.Path)
+						relPath, err := filepath.Rel(garden.BasePath, node.Path)
 						if err != nil {
 							return err
 						}

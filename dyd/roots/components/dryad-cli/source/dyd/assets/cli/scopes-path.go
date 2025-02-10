@@ -3,6 +3,7 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	"fmt"
 	"os"
 
@@ -17,7 +18,18 @@ var scopesPathCommand = func() clib.Command {
 				zlog.Fatal().Err(err).Msg("error while finding working directory")
 				return 1
 			}
-			path, err = dryad.ScopesPath(path)
+
+			unsafeGarden := dryad.UnsafeGardenReference{
+				BasePath: path,
+			}
+			
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			if err != nil {
+				return 1
+			}
+
+			path, err = dryad.ScopesPath(&garden)
+
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while finding scopes path")
 				return 1

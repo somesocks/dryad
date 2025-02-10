@@ -3,6 +3,7 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -45,19 +46,29 @@ var rootDescendantsCommand = func() clib.Command {
 				rootPath = filepath.Join(wd, rootPath)
 			}
 
-			gardenPath, err := dryad.GardenPath(rootPath)
+
+			unsafeGarden := dryad.UnsafeGardenReference{
+				BasePath: rootPath,
+			}
+			
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while finding garden path")
+				zlog.Fatal().Err(err).Msg("error resolving garden")
 				return 1
 			}
-
+	
 			rootPath, err = dryad.RootPath(rootPath, "")
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while resolving root path")
 				return 1
 			}
 
-			graph, err := dryad.RootsGraph(gardenPath, relative)
+			graph, err := dryad.RootsGraph(
+				dryad.RootsGraphRequest{
+					Garden: &garden,
+					Relative: relative,
+				},
+			)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while building graph")
 				return 1
@@ -66,7 +77,7 @@ var rootDescendantsCommand = func() clib.Command {
 			graph = graph.Transpose()
 
 			if relative {
-				rootPath, err = filepath.Rel(gardenPath, rootPath)
+				rootPath, err = filepath.Rel(garden.BasePath, rootPath)
 				if err != nil {
 					zlog.Fatal().Err(err).Msg("error while making root relative")
 					return 1

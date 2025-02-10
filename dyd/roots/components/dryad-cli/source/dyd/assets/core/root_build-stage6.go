@@ -13,9 +13,9 @@ import (
 )
 
 type rootBuild_stage6_request struct {
+	Garden *SafeGardenReference
 	RelRootPath string
 	StemBuildPath string
-	GardenPath string
 }
 
 // stage 6 - pack the derived stem into the heap and garden
@@ -28,7 +28,7 @@ var rootBuild_stage6 func (ctx *task.ExecutionContext, req rootBuild_stage6_requ
 		err, stemPath := HeapAddStem(
 			ctx,
 			HeapAddStemRequest{
-				HeapPath: req.GardenPath,
+				Garden: req.Garden,
 				StemPath: req.StemBuildPath,
 			},
 		)

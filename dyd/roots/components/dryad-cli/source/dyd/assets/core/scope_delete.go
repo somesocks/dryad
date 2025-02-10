@@ -5,8 +5,8 @@ import (
 	"dryad/task"
 )
 
-func ScopeDelete(path string, scope string) error {
-	var scopePath, err = ScopePath(path, scope)
+func ScopeDelete(garden *SafeGardenReference, scope string) error {
+	var scopePath, err = ScopePath(garden, scope)
 	if err != nil {
 		return err
 	}
