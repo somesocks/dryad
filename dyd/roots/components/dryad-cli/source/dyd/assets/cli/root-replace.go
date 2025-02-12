@@ -36,11 +36,32 @@ var rootReplaceCommand = func() clib.Command {
 				return 1
 			}	
 
+			unsafeSourceRoot := dryad.UnsafeRootReference{
+				BasePath: source,
+				Garden: &garden,
+			}
+	
+			err, safeSourceRoot := unsafeSourceRoot.Resolve(task.SERIAL_CONTEXT, nil)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error while resolving source root")
+				return 1
+			}
+	
+			unsafeDestRoot := dryad.UnsafeRootReference{
+				BasePath: dest,
+				Garden: &garden,
+			}
+	
+			err, safeDestRoot := unsafeDestRoot.Resolve(task.SERIAL_CONTEXT, nil)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error while resolving dest root")
+				return 1
+			}	
+
 			err = dryad.RootReplace(
 				dryad.RootReplaceRequest{
-					Garden: &garden,
-					SourcePath: source,
-					DestPath: dest,
+					Source: &safeSourceRoot,
+					Dest: &safeDestRoot,
 				},
 			)
 

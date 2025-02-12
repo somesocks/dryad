@@ -56,39 +56,18 @@ var _ROOT_COPY_MATCH_INCLUDE_REGEXP = regexp.MustCompile(
 var _ROOT_COPY_MATCH_EXCLUDE_REGEXP = regexp.MustCompile(`^$`)
 
 type RootCopyRequest struct {
-	Garden *SafeGardenReference
-	SourcePath string
-	DestPath string
+	Source *SafeRootReference
+	Dest *UnsafeRootReference
 }
 
-func RootCopy(ctx *task.ExecutionContext, req RootCopyRequest) (error, any) {
-	var sourcePath string = req.SourcePath
-	var destPath string = req.DestPath
+func RootCopy(ctx *task.ExecutionContext, req RootCopyRequest) (error, *SafeRootReference) {
+	var sourcePath string = req.Source.BasePath
+	var destPath string = req.Dest.BasePath
+	var err error
 
-	// normalize the source path
-	sourcePath, err := RootPath(sourcePath, "")
-	if err != nil {
-		return err, nil
-	}
-
-	// normalize the destination path
-	destPath, err = filepath.Abs(destPath)
-	if err != nil {
-		return err, nil
-	}
-
-	rootsPath, err := RootsPath(req.Garden)
-	if err != nil {
-		return err, nil
-	}
-
-	isWithinRoots, err := fileIsDescendant(destPath, rootsPath)
-	if err != nil {
-		return err, nil
-	}
-
-	if !isWithinRoots {
-		return fmt.Errorf("destination path %s is outside of roots", destPath), nil
+	// check that source and destination are within the same garden
+	if req.Source.Garden.BasePath != req.Dest.Garden.BasePath {
+		return fmt.Errorf("source and destination roots are not in same garden"), nil
 	}
 
 	// don't crawl symlinks
@@ -204,5 +183,15 @@ func RootCopy(ctx *task.ExecutionContext, req RootCopyRequest) (error, any) {
 			OnMatch:      onMatch,
 		},
 	)
-	return err, nil
+	if err != nil {
+		return err, nil
+	}
+
+	var newRoot SafeRootReference
+	err, newRoot = req.Dest.Resolve(ctx, nil)
+	if err != nil {
+		return err, nil
+	}
+
+	return nil, &newRoot
 }

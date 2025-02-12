@@ -9,26 +9,21 @@ import (
 )
 
 type RootReplaceRequest struct {
-	Garden *SafeGardenReference
-	SourcePath string
-	DestPath string
+	Source *SafeRootReference
+	Dest *SafeRootReference
 }
 
 func RootReplace(req RootReplaceRequest) error {
+	var sourcePath string = req.Source.BasePath
+	var destPath string = req.Dest.BasePath
+	var err error
 
-	// normalize the source path
-	sourcePath, err := RootPath(req.SourcePath, "")
-	if err != nil {
-		return err
+	// check that source and destination are within the same garden
+	if req.Source.Garden.BasePath != req.Dest.Garden.BasePath {
+		return fmt.Errorf("source and destination roots are not in same garden")
 	}
 
-	// normalize the replacement path
-	destPath, err := RootPath(req.DestPath, "")
-	if err != nil {
-		return err
-	}
-
-	rootsPath, err := RootsPath(req.Garden)
+	rootsPath, err := RootsPath(req.Source.Garden)
 	if err != nil {
 		return err
 	}

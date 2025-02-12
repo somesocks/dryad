@@ -3,31 +3,31 @@ package core
 import (
 	dydfs "dryad/filesystem"
 	"dryad/task"
+	"fmt"
 )
 
 type RootMoveRequest struct {
-	Garden *SafeGardenReference
-	SourcePath string
-	DestPath string
+	Source *SafeRootReference
+	Dest *UnsafeRootReference
 }
 
-func RootMove(ctx *task.ExecutionContext, req RootMoveRequest) (error, any) {
-	var sourcePath string = req.SourcePath
-	var destPath string = req.DestPath
+func RootMove(ctx *task.ExecutionContext, req RootMoveRequest) (error, *SafeRootReference) {
+	var sourcePath string = req.Source.BasePath
+	var err error
 
-	// normalize the source path
-	sourcePath, err := RootPath(sourcePath, "")
-	if err != nil {
-		return err, nil
+	// check that source and destination are within the same garden
+	if req.Source.Garden.BasePath != req.Dest.Garden.BasePath {
+		return fmt.Errorf("source and destination roots are not in same garden"), nil
 	}
 
+	var newRoot *SafeRootReference
+
 	// copy the root to the new path
-	err, _ = RootCopy(
+	err, newRoot = RootCopy(
 		ctx,
 		RootCopyRequest{
-			Garden: req.Garden,
-			SourcePath: sourcePath,
-			DestPath: destPath,
+			Source: req.Source,
+			Dest: req.Dest,
 		},
 	)
 	if err != nil {
@@ -37,9 +37,8 @@ func RootMove(ctx *task.ExecutionContext, req RootMoveRequest) (error, any) {
 	// replace references to the root
 	err = RootReplace(
 		RootReplaceRequest{
-			Garden: req.Garden,
-			SourcePath: sourcePath,
-			DestPath: destPath,
+			Source: req.Source,
+			Dest: newRoot,
 		},
 	)
 	if err != nil {
