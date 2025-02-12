@@ -65,7 +65,10 @@ var rootCopyCommand = func() clib.Command {
 			Garden: &garden,
 		}
 
-		unsafeDestRoot = unsafeDestRoot.Clean()
+		err, unsafeDestRoot = unsafeDestRoot.Clean()
+		if err != nil {
+			return err, nil
+		}
 
 		err, _ = dryad.RootCopy(
 			ctx,

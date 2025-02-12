@@ -35,8 +35,13 @@ var rootCreateCommand = func() clib.Command {
 				BasePath: path,
 				Garden: &garden,
 			}
-			unsafeRoot = unsafeRoot.Clean()
 
+			err, unsafeRoot = unsafeRoot.Clean()
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error resolving destination root location")
+				return 1
+			}
+	
 
 			err, safeRoot := dryad.RootCreate(
 				task.SERIAL_CONTEXT,
