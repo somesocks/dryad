@@ -4,6 +4,7 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/task"
+	"fmt"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -30,13 +31,26 @@ var rootCreateCommand = func() clib.Command {
 				return 1
 			}
 
-			err = dryad.RootCreate(&garden, path)
+			unsafeRoot := dryad.UnsafeRootReference{
+				BasePath: path,
+				Garden: &garden,
+			}
+			unsafeRoot = unsafeRoot.Clean()
+
+
+			err, safeRoot := dryad.RootCreate(
+				task.SERIAL_CONTEXT,
+				dryad.RootCreateRequest{
+					Root: &unsafeRoot,
+				},
+			)
 
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while creating root")
 				return 1
 			}
 
+			fmt.Println(safeRoot.BasePath)
 			return 0
 		})
 
