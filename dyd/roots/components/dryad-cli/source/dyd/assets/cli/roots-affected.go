@@ -4,6 +4,7 @@ import (
 	"bufio"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -57,13 +58,22 @@ var rootsAffectedCommand = func() clib.Command {
 
 			rootList := rootSet.ToArray([]string{})
 
-			gardenPath, err := dryad.GardenPath(wd)
+			unsafeGarden := dryad.UnsafeGardenReference{
+				BasePath: wd,
+			}
+			
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while finding garden path")
+				zlog.Fatal().Err(err).Msg("error resolving garden")
 				return 1
 			}
 
-			graph, err := dryad.RootsGraph(gardenPath, false)
+			graph, err := dryad.RootsGraph(
+				dryad.RootsGraphRequest{
+					Garden: &garden,
+					Relative: false,
+				},
+			)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while building roots graph")
 				return 1
@@ -81,7 +91,7 @@ var rootsAffectedCommand = func() clib.Command {
 			if relative {
 				for key := range rootSet {
 					// calculate the relative path to the root from the base of the garden
-					relPath, err := filepath.Rel(gardenPath, key)
+					relPath, err := filepath.Rel(garden.BasePath, key)
 					if err != nil {
 						zlog.Fatal().Err(err).Msg("error while finding root")
 						return 1

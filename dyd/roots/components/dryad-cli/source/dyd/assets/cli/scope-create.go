@@ -3,6 +3,7 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	"fmt"
 	"os"
 
@@ -23,7 +24,16 @@ var scopeCreateCommand = func() clib.Command {
 				return 1
 			}
 
-			scopePath, err := dryad.ScopeCreate(path, name)
+			unsafeGarden := dryad.UnsafeGardenReference{
+				BasePath: path,
+			}
+			
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			if err != nil {
+				return 1
+			}
+
+			scopePath, err := dryad.ScopeCreate(&garden, name)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while creating scope")
 				return 1

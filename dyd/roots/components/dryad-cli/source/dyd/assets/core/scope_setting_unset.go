@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 )
 
-func ScopeSettingUnset(basePath string, scope string, setting string) error {
-	scopePath, err := ScopePath(basePath, scope)
+func ScopeSettingUnset(garden *SafeGardenReference, scope string, setting string) error {
+	scopePath, err := ScopePath(garden, scope)
 	if err != nil {
 		return err
 	}

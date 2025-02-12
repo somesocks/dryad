@@ -3,6 +3,7 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	"fmt"
 	"io/fs"
 	"path/filepath"
@@ -36,17 +37,23 @@ var rootRequirementsListCommand = func() clib.Command {
 				relative = true
 			}
 
-			var gardenPath string
-			gardenPath, err := dryad.GardenPath(root)
+			unsafeGarden := dryad.UnsafeGardenReference{
+				BasePath: root,
+			}
+			
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while finding garden path")
+				zlog.Fatal().Err(err).Msg("error resolving garden")
 				return 1
 			}
 
 			err = dryad.RootRequirementsWalk(root, func(path string, info fs.FileInfo) error {
+				zlog.Trace().
+					Str("path", path).
+					Msg("root requirements list / onRequirement")				
 				if relative {
 					// calculate the relative path to the root from the base of the garden
-					relPath, err := filepath.Rel(gardenPath, path)
+					relPath, err := filepath.Rel(garden.BasePath, path)
 					if err != nil {
 						return err
 					}

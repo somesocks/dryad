@@ -13,9 +13,9 @@ import (
 )
 
 type rootBuild_stage1_request struct {
+	Garden *SafeGardenReference
 	RootPath string
 	WorkspacePath string
-	GardenPath string
 	JoinStdout bool
 	JoinStderr bool
 }
@@ -30,6 +30,7 @@ func init () {
 	// the initialization for rootBuild_stage1 has to be deferred to init init,
 	// in order to avoid an init cycle with RootBuild
 	type rootBuild_stage1_buildDependencyRequest struct {
+		Garden *SafeGardenReference
 		BaseRequest rootBuild_stage1_request
 		DependencyPath string
 		JoinStdout bool
@@ -57,6 +58,7 @@ func init () {
 	
 		for _, dependencyPath := range dependencies {
 			buildDependencyRequests = append(buildDependencyRequests, rootBuild_stage1_buildDependencyRequest{
+				Garden: req.Garden,
 				BaseRequest: req,
 				DependencyPath: dependencyPath,
 				JoinStdout: req.JoinStdout,
@@ -78,6 +80,7 @@ func init () {
 		err, dependencyFingerprint := RootBuild(
 			ctx,
 			RootBuildRequest{
+				Garden: req.Garden,
 				RootPath: req.DependencyPath,
 				JoinStdout: req.JoinStdout,
 				JoinStderr: req.JoinStderr,
@@ -87,7 +90,7 @@ func init () {
 			return err, ""
 		}
 	
-		dependencyHeapPath := filepath.Join(req.BaseRequest.GardenPath, "dyd", "heap", "stems", dependencyFingerprint)
+		dependencyHeapPath := filepath.Join(req.BaseRequest.Garden.BasePath, "dyd", "heap", "stems", dependencyFingerprint)
 	
 		dependencyName := filepath.Base(req.DependencyPath)
 	

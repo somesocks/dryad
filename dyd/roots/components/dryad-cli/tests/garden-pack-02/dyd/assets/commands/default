@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+# import assertion functions
+. $SRC_DIR/dyd/assets/assertions.sh
+
+_setup() {
+	#
+	# make a temporary working directory
+	# this command is linux / osx agnostic
+	# https://unix.stackexchange.com/questions/30091/fix-or-alternative-for-mktemp-in-os-x
+	# echo "\[INFO\] creating temporary working directory" 1>&2;
+	TEMP_DIR=''
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	# echo "[INFO] creating garden" 1>&2;
+
+	# copy the sample garden to the working directory
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR" 
+	chmod -R 755 "$TEMP_DIR"
+
+	# run "dryad garden create" to finalize setting up the garden
+	(cd "$TEMP_DIR" && dryad garden create)
+	:;
+
+	
+}
+
+_test() {
+	cd "$TEMP_DIR" && dryad garden pack --log-level="$DYD_LOG_LEVEL"
+	FOO=$(ls -al "$TEMP_DIR")
+}
+
+_verify() {
+	TEST_PACK="$TEMP_DIR/$(basename "$TEMP_DIR").tar.gz"
+	assert_file_exists "$TEST_PACK"
+	:;
+}
+
+_teardown() {
+	# echo "\[INFO\] tearing down fixtures" 1>&2;
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

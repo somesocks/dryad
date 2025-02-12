@@ -1,5 +1,5 @@
 package core
 
-func ScopeOnelineSet(basePath string, scope string, value string) error {
-	return ScopeSettingSet(basePath, scope, ".oneline", value)
+func ScopeOnelineSet(garden *SafeGardenReference, scope string, value string) error {
+	return ScopeSettingSet(garden, scope, ".oneline", value)
 }

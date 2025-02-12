@@ -3,6 +3,7 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	"os"
 
 	zlog "github.com/rs/zerolog/log"
@@ -16,7 +17,18 @@ var sproutsPruneCommand = func() clib.Command {
 				zlog.Fatal().Err(err).Msg("error while finding working directory")
 				return 1
 			}
-			err = dryad.SproutsPrune(path)
+
+			unsafeGarden := dryad.UnsafeGardenReference{
+				BasePath: path,
+			}
+			
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error resolving garden")
+				return 1
+			}
+
+			err = dryad.SproutsPrune(&garden)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while pruning sprouts")
 				return 1

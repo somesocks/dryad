@@ -51,18 +51,22 @@ func (g TRootsGraph) Descendants(results TStringSet, roots []string) TStringSet 
 	return results
 }
 
-func RootsGraph(gardenPath string, relative bool) (TRootsGraph, error) {
-	gardenPath, err := GardenPath(gardenPath)
-	if err != nil {
-		return nil, err
-	}
+type RootsGraphRequest struct {
+	Garden *SafeGardenReference
+	Relative bool
+}
+
+func RootsGraph(req RootsGraphRequest) (TRootsGraph, error) {
+	var err error
+	var relative bool = req.Relative
+	var gardenPath string = req.Garden.BasePath
 
 	graph := make(TRootsGraph)
 
 	err, _ = RootsWalk(
 		task.SERIAL_CONTEXT,
 		RootsWalkRequest{
-			GardenPath: gardenPath,
+			Garden: req.Garden,
 			OnRoot : func (ctx *task.ExecutionContext, match RootsWalkMatch) (error, any) {
 				rootPath, err := filepath.EvalSymlinks(match.RootPath)
 				if err != nil {

@@ -1,3 +1,6 @@
 #!/usr/bin/env sh
 
-dryad sprouts run --include=components/dryad-cli/tests --log-level="$DYD_LOG_LEVEL"
+dryad sprouts run \
+    --include=components/dryad-cli/tests \
+    --log-level="$DYD_LOG_LEVEL" \
+    $@

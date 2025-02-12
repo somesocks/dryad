@@ -4,11 +4,6 @@ import (
 	"path/filepath"
 )
 
-func ScopesPath(path string) (string, error) {
-	gardenPath, err := GardenPath(path)
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(gardenPath, "dyd", "shed", "scopes"), nil
+func ScopesPath(garden *SafeGardenReference) (string, error) {
+	return filepath.Join(garden.BasePath, "dyd", "shed", "scopes"), nil
 }

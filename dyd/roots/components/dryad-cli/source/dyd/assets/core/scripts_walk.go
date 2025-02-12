@@ -16,13 +16,13 @@ var _SCRIPTS_WALK_MATCH_INCLUDE, _ = regexp.Compile(`^script-run-.*$`)
 var _SCRIPTS_WALK_MATCH_EXCLUDE, _ = regexp.Compile(`^.*\.oneline$`)
 
 type ScriptsWalkRequest struct {
-	BasePath string
+	Garden *SafeGardenReference
 	Scope    string
 	OnMatch  func(path string, info fs.FileInfo) error
 }
 
 func ScriptsWalk(request ScriptsWalkRequest) error {
-	scopePath, err := ScopePath(request.BasePath, request.Scope)
+	scopePath, err := ScopePath(request.Garden, request.Scope)
 	if err != nil {
 		return err
 	}

@@ -3,6 +3,7 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	"fmt"
 	"io/fs"
 	"os"
@@ -21,12 +22,21 @@ var scriptsListAction = func(req clib.ActionRequest) int {
 		return 1
 	}
 
+	unsafeGarden := dryad.UnsafeGardenReference{
+		BasePath: basePath,
+	}
+	
+	err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+	if err != nil {
+		return 1
+	}
+
 	var scope string
 	if options["scope"] != nil {
 		scope = options["scope"].(string)
 	} else {
 		var err error
-		scope, err = dryad.ScopeGetDefault(scope)
+		scope, err = dryad.ScopeGetDefault(&garden)
 		zlog.Debug().Msg("loading default scope: " + scope)
 		if err != nil {
 			zlog.Fatal().Err(err).Msg("error while finding active scope")
@@ -55,7 +65,7 @@ var scriptsListAction = func(req clib.ActionRequest) int {
 	var scripts []string
 
 	err = dryad.ScriptsWalk(dryad.ScriptsWalkRequest{
-		BasePath: basePath,
+		Garden: &garden,
 		Scope:    scope,
 		OnMatch: func(path string, info fs.FileInfo) error {
 			if showPath {

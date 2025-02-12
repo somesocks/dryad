@@ -43,10 +43,19 @@ var gardenWipeCommand = func() clib.Command {
 	)
 
 	var wipeGarden = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
-		err, _ := dryad.GardenWipe(
+		unsafeGarden := dryad.UnsafeGardenReference{
+			BasePath: args.Path,
+		}
+		
+		err, garden := unsafeGarden.Resolve(ctx, nil)
+		if err != nil {
+			return err, nil
+		}
+
+		err, _ = dryad.GardenWipe(
 			ctx,
 			dryad.GardenWipeRequest{
-				GardenPath: args.Path,
+				Garden: &garden,
 			},
 		)
 		return err, nil

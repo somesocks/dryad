@@ -5,15 +5,13 @@ import (
 	"path/filepath"
 )
 
-func ScopeSettingExists(basePath string, scope string, setting string) (bool, error) {
-	scopePath, err := ScopePath(basePath, scope)
-	// fmt.Println("[debug] scopePath", scopePath, err)
+func ScopeSettingExists(garden *SafeGardenReference, scope string, setting string) (bool, error) {
+	scopePath, err := ScopePath(garden, scope)
 	if err != nil {
 		return false, err
 	}
 
 	scopeExists, err := fileExists(scopePath)
-	// fmt.Println("[debug] scopeExists", scopeExists, err)
 	if err != nil {
 		return false, err
 	}

@@ -2,6 +2,7 @@ package cli
 
 import (
 	dryad "dryad/core"
+	"dryad/task"
 	"io/fs"
 	"os"
 	"strings"
@@ -15,7 +16,16 @@ func ArgAutoCompleteScript(token string) (error, []string) {
 		return err, results
 	}
 
-	activeScope, err := dryad.ScopeGetDefault(wd)
+	unsafeGarden := dryad.UnsafeGardenReference{
+		BasePath: wd,
+	}
+	
+	err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+	if err != nil {
+		return err, results
+	}
+
+	activeScope, err := dryad.ScopeGetDefault(&garden)
 	if err != nil {
 		return err, results
 	}
@@ -25,7 +35,7 @@ func ArgAutoCompleteScript(token string) (error, []string) {
 	}
 
 	err = dryad.ScriptsWalk(dryad.ScriptsWalkRequest{
-		BasePath: wd,
+		Garden: &garden,
 		Scope:    activeScope,
 		OnMatch: func(path string, info fs.FileInfo) error {
 			var name string = info.Name()

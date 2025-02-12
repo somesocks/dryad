@@ -2,6 +2,7 @@ package cli
 
 import (
 	dryad "dryad/core"
+	"dryad/task"
 	"io/fs"
 	"path/filepath"
 	"strings"
@@ -10,7 +11,16 @@ import (
 func ArgAutoCompleteScope(token string) (error, []string) {
 	var results = []string{}
 
-	err := dryad.ScopesWalk("", func(path string, info fs.FileInfo) error {
+	unsafeGarden := dryad.UnsafeGardenReference{
+		BasePath: "",
+	}
+	
+	err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+	if err != nil {
+		return err, results
+	}
+
+	err = dryad.ScopesWalk(&garden, func(path string, info fs.FileInfo) error {
 		var scope = filepath.Base(path)
 
 		if strings.HasPrefix(scope, token) {

@@ -8,26 +8,22 @@ import (
 	"path/filepath"
 )
 
-func RootReplace(sourcePath string, destPath string) error {
+type RootReplaceRequest struct {
+	Source *SafeRootReference
+	Dest *SafeRootReference
+}
 
-	// normalize the source path
-	sourcePath, err := RootPath(sourcePath, "")
-	if err != nil {
-		return err
+func RootReplace(req RootReplaceRequest) error {
+	var sourcePath string = req.Source.BasePath
+	var destPath string = req.Dest.BasePath
+	var err error
+
+	// check that source and destination are within the same garden
+	if req.Source.Garden.BasePath != req.Dest.Garden.BasePath {
+		return fmt.Errorf("source and destination roots are not in same garden")
 	}
 
-	// normalize the replacement path
-	destPath, err = RootPath(destPath, "")
-	if err != nil {
-		return err
-	}
-
-	gardenPath, err := GardenPath(sourcePath)
-	if err != nil {
-		return err
-	}
-
-	rootsPath, err := RootsPath(gardenPath)
+	rootsPath, err := RootsPath(req.Source.Garden)
 	if err != nil {
 		return err
 	}

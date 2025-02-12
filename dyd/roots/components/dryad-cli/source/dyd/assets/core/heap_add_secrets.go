@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 )
 
-func HeapAddSecrets(heapPath string, secretsPath string) (string, error) {
+func HeapAddSecrets(garden *SafeGardenReference, secretsPath string) (string, error) {
 	// fmt.Println("[trace] HeapAddSecrets ", heapPath, secretsPath)
 
 	// normalize the heap path
-	heapPath, err := HeapPath(heapPath)
+	heapPath, err := HeapPath(garden)
 	if err != nil {
 		return "", err
 	}
