@@ -30,9 +30,9 @@ func RootsBuild(ctx *task.ExecutionContext, request RootsBuildRequest) (error, a
 		return err, nil
 	}
 
-	var buildRoot = func (ctx *task.ExecutionContext, match RootsWalkMatch) (error, any) {
+	var buildRoot = func (ctx *task.ExecutionContext, match *SafeRootReference) (error, any) {
 		// calculate the relative path to the root from the base of the garden
-		relPath, err := filepath.Rel(match.GardenPath, match.RootPath)
+		relPath, err := filepath.Rel(match.Garden.BasePath, match.BasePath)
 		if err != nil {
 			return err, nil
 		}
@@ -43,7 +43,7 @@ func RootsBuild(ctx *task.ExecutionContext, request RootsBuildRequest) (error, a
 				ctx,
 				RootBuildRequest{
 					Garden: request.Garden,
-					RootPath: match.RootPath,
+					RootPath: match.BasePath,
 					JoinStdout: request.JoinStdout,
 					JoinStderr: request.JoinStderr,
 				},
@@ -59,7 +59,7 @@ func RootsBuild(ctx *task.ExecutionContext, request RootsBuildRequest) (error, a
 		ctx,
 		RootsWalkRequest{
 			Garden: request.Garden,
-			OnRoot: buildRoot,
+			OnMatch: buildRoot,
 		},
 	)
 

@@ -1,7 +1,6 @@
 package core
 
 import (
-	"io/fs"
 	"path/filepath"
 
 	"dryad/task"
@@ -67,27 +66,27 @@ func RootsGraph(req RootsGraphRequest) (TRootsGraph, error) {
 		task.SERIAL_CONTEXT,
 		RootsWalkRequest{
 			Garden: req.Garden,
-			OnRoot : func (ctx *task.ExecutionContext, match RootsWalkMatch) (error, any) {
-				rootPath, err := filepath.EvalSymlinks(match.RootPath)
+			OnMatch : func (ctx *task.ExecutionContext, match *SafeRootReference) (error, any) {
+				rootPath, err := filepath.EvalSymlinks(match.BasePath)
 				if err != nil {
 					return err, nil
 				}
 
-				err = RootRequirementsWalk(rootPath, func(requirementPath string, info fs.FileInfo) error {
-					requirementPath, err := filepath.EvalSymlinks(requirementPath)
+				var onRequirementMatch = func(ctx *task.ExecutionContext, requirement *SafeRootReference) (error, any) {
+					requirementPath, err := filepath.EvalSymlinks(requirement.BasePath)
 					if err != nil {
-						return err
+						return err, nil
 					}
-		
+
 					if relative {
 						relRootPath, err := filepath.Rel(gardenPath, rootPath)
 						if err != nil {
-							return err
+							return err, nil
 						}
 		
 						relRequirementPath, err := filepath.Rel(gardenPath, requirementPath)
 						if err != nil {
-							return err
+							return err, nil
 						}
 		
 						graph.AddEdge(relRootPath, relRequirementPath)
@@ -95,16 +94,21 @@ func RootsGraph(req RootsGraphRequest) (TRootsGraph, error) {
 						graph.AddEdge(rootPath, requirementPath)
 					}
 		
-					return nil
-				})
+					return nil, nil
+				}
 
+				err, _ = RootRequirementsWalk(
+					ctx,
+					RootRequirementsWalkRequest{
+						Root: match,
+						OnMatch: onRequirementMatch,
+					},
+				)
 				if err != nil {
 					return err, nil
 				}
 		
 				return nil, nil
-						
-
 			},
 		},
 	)

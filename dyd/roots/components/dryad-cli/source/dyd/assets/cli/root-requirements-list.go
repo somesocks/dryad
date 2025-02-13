@@ -5,7 +5,6 @@ import (
 	dryad "dryad/core"
 	"dryad/task"
 	"fmt"
-	"io/fs"
 	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"
@@ -47,22 +46,42 @@ var rootRequirementsListCommand = func() clib.Command {
 				return 1
 			}
 
-			err = dryad.RootRequirementsWalk(root, func(path string, info fs.FileInfo) error {
+			unsafeRoot := dryad.UnsafeRootReference{
+				BasePath: root,
+				Garden: &garden,
+			}
+	
+			err, safeRoot := unsafeRoot.Resolve(task.SERIAL_CONTEXT, nil)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error while resolving root")
+				return 1
+			}
+
+			var onRequirementMatch =func (ctx *task.ExecutionContext, match *dryad.SafeRootReference) (error, any) {
 				zlog.Trace().
-					Str("path", path).
+					Str("path", match.BasePath).
 					Msg("root requirements list / onRequirement")				
+
 				if relative {
 					// calculate the relative path to the root from the base of the garden
-					relPath, err := filepath.Rel(garden.BasePath, path)
+					relPath, err := filepath.Rel(match.Garden.BasePath, match.BasePath)
 					if err != nil {
-						return err
+						return err, nil
 					}
 					fmt.Println(relPath)
 				} else {
-					fmt.Println(path)
+					fmt.Println(match.BasePath)
 				}
-				return nil
-			})
+				return nil, nil
+			}
+
+			err, _ = dryad.RootRequirementsWalk(
+				task.SERIAL_CONTEXT,
+				dryad.RootRequirementsWalkRequest{
+					Root: &safeRoot,
+					OnMatch: onRequirementMatch,
+				},
+			)
 
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while crawling root requirements")
