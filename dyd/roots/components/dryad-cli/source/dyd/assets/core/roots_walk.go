@@ -9,12 +9,7 @@ import (
 
 type RootsWalkRequest struct {
 	Garden *SafeGardenReference
-	OnRoot func (ctx *task.ExecutionContext, match RootsWalkMatch) (error, any)
-}
-
-type RootsWalkMatch struct {
-	RootPath string
-	GardenPath string
+	OnMatch func (ctx *task.ExecutionContext, match *SafeRootReference) (error, any)
 }
 
 func RootsWalk(ctx *task.ExecutionContext, req RootsWalkRequest) (error, any) {
@@ -43,11 +38,24 @@ func RootsWalk(ctx *task.ExecutionContext, req RootsWalkRequest) (error, any) {
 	}
 
 	var onMatch = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
-		err, _ := req.OnRoot(ctx, RootsWalkMatch{
-			GardenPath: req.Garden.BasePath,
-			RootPath: node.Path,
-		})
-		return err, nil
+		var unsafeRequirementRef = UnsafeRootReference{
+			BasePath: node.Path,
+			Garden: req.Garden,
+		}
+		var safeRequirementRef SafeRootReference
+		var err error
+
+		err, safeRequirementRef = unsafeRequirementRef.Resolve(ctx, nil)
+		if err != nil {
+			return err, nil
+		}
+
+		err, _ = req.OnMatch(ctx, &safeRequirementRef)
+		if err != nil {
+			return err, nil
+		}
+
+		return nil, nil
 	}
 
 	err, _ = fs2.BFSWalk3(
@@ -64,23 +72,3 @@ func RootsWalk(ctx *task.ExecutionContext, req RootsWalkRequest) (error, any) {
 
 	return err, nil
 }
-	
-	
-// 	path string, walkFn func(path string, info fs.FileInfo) error) error {
-// 	var rootsPath, err = RootsPath(path)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	err = fs2.Walk(fs2.WalkRequest{
-// 		BasePath:     rootsPath,
-// 		CrawlExclude: _isRoot,
-// 		MatchInclude: _isRoot,
-// 		OnMatch:      walkFn,
-// 	})
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
