@@ -79,12 +79,21 @@ var rootBuildCommand = func() clib.Command {
 			return err, nil
 		}
 
+		unsafeRootRef := dryad.UnsafeRootReference{
+			Garden: &garden,
+			BasePath: args.RootPath,
+		}
+
+		err, safeRootRef := unsafeRootRef.Resolve(ctx, nil)
+		if err != nil {
+			return err, nil
+		}
+
 		var rootFingerprint string
 		err, rootFingerprint = dryad.RootBuild(
-			task.SERIAL_CONTEXT,
+			ctx,
 			dryad.RootBuildRequest{
-				Garden: &garden,
-				RootPath: args.RootPath,
+				Root: &safeRootRef,
 				JoinStdout: args.JoinStdout,
 				JoinStderr: args.JoinStderr,
 			},

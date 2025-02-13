@@ -13,15 +13,14 @@ import (
 )
 
 type RootBuildRequest struct {
-	Garden *SafeGardenReference
-	RootPath string
+	Root *SafeRootReference
 	JoinStdout bool
 	JoinStderr bool
 }
 
 func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string) {
-	var rootPath string = req.RootPath
-	var gardenPath string = req.Garden.BasePath
+	var rootPath string = req.Root.BasePath
+	var gardenPath string = req.Root.Garden.BasePath
 	var err error
 
 	relRootPath, err := filepath.Rel(
@@ -62,7 +61,7 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 	err, _ = rootBuild_stage1(
 		ctx,
 		rootBuild_stage1_request{
-			Garden: req.Garden,
+			Garden: req.Root.Garden,
 			RootPath: rootPath,
 			WorkspacePath: workspacePath,
 			JoinStdout: req.JoinStdout,
@@ -100,7 +99,7 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 	err, finalStemPath := rootBuild_stage4(
 		ctx,
 		rootBuild_stage4_request{
-			Garden: req.Garden,
+			Garden: req.Root.Garden,
 			RootPath: rootPath,
 			WorkspacePath: workspacePath,
 		},
@@ -155,7 +154,7 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 		err, stemBuildFingerprint = rootBuild_stage5(
 			ctx,
 			rootBuild_stage5_request{
-				Garden: req.Garden,
+				Garden: req.Root.Garden,
 				RelRootPath: relRootPath,
 				RootStemPath: finalStemPath,
 				StemBuildPath: stemBuildPath,
@@ -171,7 +170,7 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 		err, finalStemPath = rootBuild_stage6(
 			ctx,
 			rootBuild_stage6_request{
-				Garden: req.Garden,
+				Garden: req.Root.Garden,
 				RelRootPath: relRootPath,
 				StemBuildPath: stemBuildPath,
 			},
@@ -259,26 +258,13 @@ var memoRootBuild = task.Memoize(
 			RootPath string
 		}{
 			Group: "RootBuild",
-			GardenPath: req.Garden.BasePath,
-			RootPath: req.RootPath,
+			GardenPath: req.Root.Garden.BasePath,
+			RootPath: req.Root.BasePath,
 		}
 	},
 )
 
 var RootBuild = func (ctx *task.ExecutionContext, req RootBuildRequest) (error, string) {
-	var rootPath string = req.RootPath
-
-	// sanitize the root path
-	rootPath, err := RootPath(rootPath, "")
-	zlog.Debug().
-		Str("rootPath", rootPath).
-		Str("gardenPath", req.Garden.BasePath).
-		Msg("RootBuild/rootPath")
-	if err != nil {
-		return err, ""
-	}
-
-	req.RootPath = rootPath
 	err, res := memoRootBuild(ctx, req)
 	return err, res
 }

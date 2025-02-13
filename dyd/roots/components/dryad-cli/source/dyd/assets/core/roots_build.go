@@ -42,8 +42,7 @@ func RootsBuild(ctx *task.ExecutionContext, request RootsBuildRequest) (error, a
 			err, _ = RootBuild(
 				ctx,
 				RootBuildRequest{
-					Garden: request.Garden,
-					RootPath: match.BasePath,
+					Root: match,
 					JoinStdout: request.JoinStdout,
 					JoinStderr: request.JoinStderr,
 				},
