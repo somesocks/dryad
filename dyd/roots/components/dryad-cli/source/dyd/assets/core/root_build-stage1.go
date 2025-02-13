@@ -27,7 +27,7 @@ var rootBuild_stage1 func (ctx *task.ExecutionContext, req rootBuild_stage1_requ
 
 func init () {
 
-	// the initialization for rootBuild_stage1 has to be deferred to init init,
+	// the initialization for rootBuild_stage1 has to be deferred in an init block,
 	// in order to avoid an init cycle with RootBuild
 	type rootBuild_stage1_buildDependencyRequest struct {
 		Garden *SafeGardenReference
@@ -71,8 +71,16 @@ func init () {
 	
 	var rootBuild_stage1_buildDependency = func (ctx *task.ExecutionContext, req rootBuild_stage1_buildDependencyRequest) (error, string) {
 	
+		var unsafeDepReference = UnsafeRootReference{
+			Garden: req.Garden,
+			BasePath: req.DependencyPath,
+		}
+
+		var safeDepReference SafeRootReference
+		var err error
+
 		// verify that root path is valid for dependency
-		_, err := RootPath(req.DependencyPath, "")
+		err, safeDepReference = unsafeDepReference.Resolve(ctx, nil)
 		if err != nil {
 			return err, ""
 		}
@@ -80,8 +88,7 @@ func init () {
 		err, dependencyFingerprint := RootBuild(
 			ctx,
 			RootBuildRequest{
-				Garden: req.Garden,
-				RootPath: req.DependencyPath,
+				Root: &safeDepReference,
 				JoinStdout: req.JoinStdout,
 				JoinStderr: req.JoinStderr,
 			},

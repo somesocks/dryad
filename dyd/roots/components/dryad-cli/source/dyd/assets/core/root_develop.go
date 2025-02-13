@@ -110,7 +110,7 @@ func rootDevelop_stage0(rootPath string, workspacePath string) error {
 // stage 1 - walk through the root dependencies,
 // and add the fingerprint as a dependency
 func rootDevelop_stage1(
-	context *BuildContext,
+	ctx *task.ExecutionContext,
 	rootPath string,
 	workspacePath string,
 	garden *SafeGardenReference,
@@ -126,18 +126,22 @@ func rootDevelop_stage1(
 	}
 
 	for _, dependencyPath := range dependencies {
+		var unsafeDepReference = UnsafeRootReference{
+			Garden: garden,
+			BasePath: dependencyPath,
+		}
+		var safeDepReference SafeRootReference
+		var err error
 
-		// verify that root path is valid for dependency
-		_, err := RootPath(dependencyPath, dependencyPath)
+		err, safeDepReference = unsafeDepReference.Resolve(ctx, nil)
 		if err != nil {
 			return err
 		}
 
 		err, _ = RootBuild(
-			task.SERIAL_CONTEXT,
+			ctx,
 			RootBuildRequest{
-				Garden: garden,
-				RootPath: dependencyPath,
+				Root: &safeDepReference,
 			},
 		)
 		if err != nil {
@@ -342,28 +346,23 @@ func rootDevelop_stage5(
 }
 
 type RootDevelopRequest struct {
-	Garden *SafeGardenReference
-	RootPath string
+	Root *SafeRootReference
 	Editor string
 	EditorArgs []string
 	Inherit bool
 }
 
 func RootDevelop(
-	context *BuildContext,
+	ctx *task.ExecutionContext,
 	req RootDevelopRequest,
 ) (string, error) {
 
-	gardenPath := req.Garden.BasePath
+	gardenPath := req.Root.Garden.BasePath
 	editor := req.Editor
 	editorArgs := req.EditorArgs
 	inherit := req.Inherit
 
-	// sanitize the root path
-	rootPath, err := RootPath(req.RootPath, "")
-	if err != nil {
-		return "", err
-	}
+	rootPath := req.Root.BasePath
 
 	absRootPath, err := filepath.EvalSymlinks(rootPath)
 	if err != nil {
@@ -392,7 +391,7 @@ func RootDevelop(
 		return "", err
 	}
 
-	err = rootDevelop_stage1(context, rootPath, workspacePath, req.Garden)
+	err = rootDevelop_stage1(ctx, rootPath, workspacePath, req.Root.Garden)
 	if err != nil {
 		return "", err
 	}
@@ -412,12 +411,13 @@ func RootDevelop(
 	if err != nil {
 		return "", err
 	}
-	defer dydfs.RemoveAll(task.SERIAL_CONTEXT, stemBuildPath)
+	defer dydfs.RemoveAll(ctx, stemBuildPath)
 
 	err = rootDevelop_stage4(
 		workspacePath,
 		stemBuildPath,
-		rootFingerprint, req.Garden,
+		rootFingerprint,
+		req.Root.Garden,
 		editor,
 		editorArgs,
 		inherit,
@@ -430,7 +430,7 @@ func RootDevelop(
 		workspacePath,
 		stemBuildPath,
 		rootFingerprint,
-		req.Garden,
+		req.Root.Garden,
 		editor,
 		editorArgs,
 		inherit,
@@ -440,7 +440,7 @@ func RootDevelop(
 		workspacePath,
 		stemBuildPath,
 		rootFingerprint,
-		req.Garden,
+		req.Root.Garden,
 		editor,
 		editorArgs,
 		inherit,

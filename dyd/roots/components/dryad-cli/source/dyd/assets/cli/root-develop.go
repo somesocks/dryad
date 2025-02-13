@@ -68,14 +68,22 @@ var rootDevelopCommand = func() clib.Command {
 				return 1
 			}	
 
+			unsafeRootRef := dryad.UnsafeRootReference{
+				Garden: &garden,
+				BasePath: path,
+			}
+
+			err, safeRootRef := unsafeRootRef.Resolve(task.SERIAL_CONTEXT, nil)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error resolving root")
+				return 1
+			}	
+
 			var rootFingerprint string
 			rootFingerprint, err = dryad.RootDevelop(
-				&dryad.BuildContext{
-					Fingerprints: map[string]string{},
-				},
+				task.SERIAL_CONTEXT,
 				dryad.RootDevelopRequest{
-					Garden: &garden,
-					RootPath: path,
+					Root: &safeRootRef,
 					Editor: editor,
 					EditorArgs: editorArgs,
 					Inherit: inherit,
