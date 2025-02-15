@@ -86,10 +86,14 @@ var rootsBuildCommand = func() clib.Command {
 			return err, nil
 		}
 
-		err, _ = dryad.RootsBuild(
+		err, roots := garden.Roots().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		err = roots.Build(
 			ctx,
 			dryad.RootsBuildRequest{
-				Garden:     garden,
 				IncludeRoots: args.IncludeRoots,
 				ExcludeRoots: args.ExcludeRoots,
 				JoinStdout: args.JoinStdout,

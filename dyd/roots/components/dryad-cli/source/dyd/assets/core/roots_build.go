@@ -9,23 +9,23 @@ import (
 
 )
 
-type RootsBuildRequest struct {
-	Garden *SafeGardenReference
+type rootsBuildRequest struct {
+	Roots *SafeRootsReference
 	IncludeRoots func(string) bool
 	ExcludeRoots func(string) bool
 	JoinStdout bool
 	JoinStderr bool
 }
 
-func RootsBuild(ctx *task.ExecutionContext, request RootsBuildRequest) (error, any) {
+func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, any) {
 	var err error
 
 	zlog.Debug().
-		Str("gardenPath", request.Garden.BasePath).
+		Str("gardenPath", request.Roots.Garden.BasePath).
 		Msg("RootsBuild")
 
 	// prune sprouts before build
-	err = SproutsPrune(request.Garden)
+	err = SproutsPrune(request.Roots.Garden)
 	if err != nil {
 		return err, nil
 	}
@@ -57,10 +57,32 @@ func RootsBuild(ctx *task.ExecutionContext, request RootsBuildRequest) (error, a
 	err, _ = RootsWalk(
 		ctx,
 		RootsWalkRequest{
-			Garden: request.Garden,
+			Garden: request.Roots.Garden,
 			OnMatch: buildRoot,
 		},
 	)
 
 	return err, nil
+}
+
+type RootsBuildRequest struct {
+	IncludeRoots func(string) bool
+	ExcludeRoots func(string) bool
+	JoinStdout bool
+	JoinStderr bool
+}
+
+func (roots *SafeRootsReference) Build(ctx *task.ExecutionContext, req RootsBuildRequest) (error) {
+	err, _ := rootsBuild(
+		ctx,
+		rootsBuildRequest{
+			Roots: roots,
+			IncludeRoots: req.IncludeRoots,
+			ExcludeRoots: req.ExcludeRoots,
+			JoinStdout: req.JoinStdout,
+			JoinStderr: req.JoinStderr,
+		},
+	)
+
+	return err
 }
