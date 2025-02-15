@@ -62,10 +62,9 @@ var rootCopyCommand = func() clib.Command {
 			return err, nil
 		}
 
-		err, _ = dryad.RootCopy(
+		err, _ = safeSourceRoot.Copy(
 			ctx,
 			dryad.RootCopyRequest{
-				Source: &safeSourceRoot,
 				Dest: &unsafeDestRoot,
 			},
 		)

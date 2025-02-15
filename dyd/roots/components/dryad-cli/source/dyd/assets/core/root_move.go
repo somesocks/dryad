@@ -23,10 +23,9 @@ func RootMove(ctx *task.ExecutionContext, req RootMoveRequest) (error, *SafeRoot
 	var newRoot *SafeRootReference
 
 	// copy the root to the new path
-	err, newRoot = RootCopy(
+	err, newRoot = req.Source.Copy(
 		ctx,
 		RootCopyRequest{
-			Source: req.Source,
 			Dest: req.Dest,
 		},
 	)

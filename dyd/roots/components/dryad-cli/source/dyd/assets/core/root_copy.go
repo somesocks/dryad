@@ -55,12 +55,12 @@ var _ROOT_COPY_MATCH_INCLUDE_REGEXP = regexp.MustCompile(
 
 var _ROOT_COPY_MATCH_EXCLUDE_REGEXP = regexp.MustCompile(`^$`)
 
-type RootCopyRequest struct {
+type rootCopyRequest struct {
 	Source *SafeRootReference
 	Dest *UnsafeRootReference
 }
 
-func RootCopy(ctx *task.ExecutionContext, req RootCopyRequest) (error, *SafeRootReference) {
+func rootCopy(ctx *task.ExecutionContext, req rootCopyRequest) (error, *SafeRootReference) {
 	var sourcePath string = req.Source.BasePath
 	var destPath string = req.Dest.BasePath
 	var err error
@@ -194,4 +194,19 @@ func RootCopy(ctx *task.ExecutionContext, req RootCopyRequest) (error, *SafeRoot
 	}
 
 	return nil, &newRoot
+}
+
+type RootCopyRequest struct {
+	Dest *UnsafeRootReference
+}
+
+func (root *SafeRootReference) Copy(ctx *task.ExecutionContext, req RootCopyRequest) (error, *SafeRootReference) {
+	err, res := rootCopy(
+		ctx,
+		rootCopyRequest{
+			Source: root,
+			Dest: req.Dest,
+		},
+	)
+	return err, res
 }
