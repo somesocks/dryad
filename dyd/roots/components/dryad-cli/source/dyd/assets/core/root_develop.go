@@ -344,16 +344,16 @@ func rootDevelop_stage5(
 	return "", err
 }
 
-type RootDevelopRequest struct {
+type rootDevelopRequest struct {
 	Root *SafeRootReference
 	Editor string
 	EditorArgs []string
 	Inherit bool
 }
 
-func RootDevelop(
+func rootDevelop(
 	ctx *task.ExecutionContext,
-	req RootDevelopRequest,
+	req rootDevelopRequest,
 ) (string, error) {
 
 	gardenPath := req.Root.Roots.Garden.BasePath
@@ -453,4 +453,23 @@ func RootDevelop(
 		return stemBuildFingerprint, nil
 	}
 
+}
+
+type RootDevelopRequest struct {
+	Editor string
+	EditorArgs []string
+	Inherit bool
+}
+
+func (root *SafeRootReference) Develop(ctx *task.ExecutionContext, req RootDevelopRequest) (error, string) {
+	res, err := rootDevelop(
+		ctx,
+		rootDevelopRequest{
+			Root: root,
+			Editor: req.Editor,
+			EditorArgs: req.EditorArgs,
+			Inherit: req.Inherit,
+		},
+	)
+	return err, res
 }

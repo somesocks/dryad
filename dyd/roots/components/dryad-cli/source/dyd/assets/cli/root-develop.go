@@ -77,10 +77,9 @@ var rootDevelopCommand = func() clib.Command {
 			}	
 
 			var rootFingerprint string
-			rootFingerprint, err = dryad.RootDevelop(
+			err, rootFingerprint = safeRootRef.Develop(
 				task.SERIAL_CONTEXT,
 				dryad.RootDevelopRequest{
-					Root: &safeRootRef,
 					Editor: editor,
 					EditorArgs: editorArgs,
 					Inherit: inherit,
