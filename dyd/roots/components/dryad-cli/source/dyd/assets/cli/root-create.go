@@ -39,11 +39,8 @@ var rootCreateCommand = func() clib.Command {
 				return 1
 			}
 	
-			err, safeRoot := dryad.RootCreate(
+			err, safeRoot := unsafeRoot.Create(
 				task.SERIAL_CONTEXT,
-				dryad.RootCreateRequest{
-					Root: &unsafeRoot,
-				},
 			)
 
 			if err != nil {
