@@ -72,7 +72,12 @@ func (sg *SafeGardenReference) Wipe(ctx *task.ExecutionContext) (error) {
 		return err
 	}
 
-	err, _ = GardenCreate(ctx, GardenCreateRequest{BasePath: gardenPath})
+	
+	var unsafeGardenRef = UnsafeGardenReference{
+		BasePath: sg.BasePath,
+	}
+
+	err, _ = unsafeGardenRef.Create(ctx)
 	if err != nil {
 		return err
 	}
