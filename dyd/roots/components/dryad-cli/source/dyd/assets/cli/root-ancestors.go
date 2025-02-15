@@ -57,9 +57,7 @@ var rootAncestorsCommand = func() clib.Command {
 		rootPath := args.RootPath
 		relative := args.Relative
 
-		unsafeGarden := dryad.UnsafeGardenReference{
-			BasePath: args.RootPath,
-		}
+		unsafeGarden := dryad.Garden(args.RootPath)
 		
 		err, garden := unsafeGarden.Resolve(ctx)
 		if err != nil {

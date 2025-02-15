@@ -19,9 +19,7 @@ var ScopedCommand = func(
 		invocation := req.Invocation
 		options := req.Opts
 
-		unsafeGarden := dryad.UnsafeGardenReference{
-			BasePath: "",
-		}
+		unsafeGarden := dryad.Garden("")
 		
 		err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 		if err != nil {

@@ -43,9 +43,7 @@ var gardenCreateCommand = func() clib.Command {
 	)
 
 	var createGarden = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
-		var unsafeGardenRef = dryad.UnsafeGardenReference{
-			BasePath: args.Path,
-		}
+		var unsafeGardenRef = dryad.Garden(args.Path)
 
 		err, _ := unsafeGardenRef.Create(ctx)
 		return err, nil

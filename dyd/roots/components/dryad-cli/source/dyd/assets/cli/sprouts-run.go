@@ -110,9 +110,7 @@ var sproutsRunCommand = func() clib.Command {
 
 	var runSprouts = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
 
-		unsafeGarden := dryad.UnsafeGardenReference{
-			BasePath: args.GardenPath,
-		}
+		unsafeGarden := dryad.Garden(args.GardenPath)
 		
 		err, garden := unsafeGarden.Resolve(ctx)
 		if err != nil {

@@ -11,9 +11,7 @@ import (
 func ArgAutoCompleteScope(token string) (error, []string) {
 	var results = []string{}
 
-	unsafeGarden := dryad.UnsafeGardenReference{
-		BasePath: "",
-	}
+	unsafeGarden := dryad.Garden("")
 	
 	err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 	if err != nil {

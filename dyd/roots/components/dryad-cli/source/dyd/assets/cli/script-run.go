@@ -21,9 +21,7 @@ var scriptRunAction = func(req clib.ActionRequest) int {
 		return 1
 	}
 
-	unsafeGarden := dryad.UnsafeGardenReference{
-		BasePath: basePath,
-	}
+	unsafeGarden := dryad.Garden(basePath)
 	
 	err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 	if err != nil {

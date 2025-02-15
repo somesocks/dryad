@@ -380,9 +380,7 @@ func StemPack(request StemPackRequest) (string, error) {
 		return "", err
 	}	
 	
-	var unsafeTargetGardenRef = UnsafeGardenReference{
-		BasePath: request.TargetPath,
-	}
+	var unsafeTargetGardenRef = Garden(request.TargetPath)
 	// var targetGardenRef *SafeGardenReference
 
 	err, _ = unsafeTargetGardenRef.Create(task.DEFAULT_CONTEXT)

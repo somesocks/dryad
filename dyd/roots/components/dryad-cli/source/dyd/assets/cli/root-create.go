@@ -21,9 +21,7 @@ var rootCreateCommand = func() clib.Command {
 
 			var path string = args[0]
 
-			unsafeGarden := dryad.UnsafeGardenReference{
-				BasePath: "",
-			}
+			unsafeGarden := dryad.Garden("")
 			
 			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
