@@ -47,9 +47,7 @@ var rootDescendantsCommand = func() clib.Command {
 			}
 
 
-			unsafeGarden := dryad.UnsafeGardenReference{
-				BasePath: rootPath,
-			}
+			unsafeGarden := dryad.Garden(rootPath)
 			
 			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 			if err != nil {

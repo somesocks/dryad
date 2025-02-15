@@ -36,9 +36,7 @@ var rootRequirementsListCommand = func() clib.Command {
 				relative = true
 			}
 
-			unsafeGarden := dryad.UnsafeGardenReference{
-				BasePath: root,
-			}
+			unsafeGarden := dryad.Garden(root)
 			
 			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 			if err != nil {

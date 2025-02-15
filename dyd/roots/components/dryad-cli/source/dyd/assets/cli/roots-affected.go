@@ -58,9 +58,7 @@ var rootsAffectedCommand = func() clib.Command {
 
 			rootList := rootSet.ToArray([]string{})
 
-			unsafeGarden := dryad.UnsafeGardenReference{
-				BasePath: wd,
-			}
+			unsafeGarden := dryad.Garden(wd)
 			
 			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 			if err != nil {

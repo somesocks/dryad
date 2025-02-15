@@ -90,9 +90,7 @@ var stemRunCommand = func() clib.Command {
 			path := args[0]
 			extras := args[1:]
 
-			unsafeGarden := dryad.UnsafeGardenReference{
-				BasePath: path,
-			}
+			unsafeGarden := dryad.Garden(path)
 			
 			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 			if err != nil {

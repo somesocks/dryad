@@ -26,9 +26,7 @@ var rootReplaceCommand = func() clib.Command {
 			var source string = args[0]
 			var dest string = args[1]
 
-			unsafeGarden := dryad.UnsafeGardenReference{
-				BasePath: source,
-			}
+			unsafeGarden := dryad.Garden(source)
 			
 			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 			if err != nil {

@@ -33,9 +33,7 @@ var scopesListCommand = func() clib.Command {
 
 			var scopes []string
 
-			unsafeGarden := dryad.UnsafeGardenReference{
-				BasePath: path,
-			}
+			unsafeGarden := dryad.Garden(path)
 			
 			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 			if err != nil {

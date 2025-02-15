@@ -16,9 +16,7 @@ func ArgAutoCompleteScript(token string) (error, []string) {
 		return err, results
 	}
 
-	unsafeGarden := dryad.UnsafeGardenReference{
-		BasePath: wd,
-	}
+	unsafeGarden := dryad.Garden(wd)
 	
 	err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 	if err != nil {
