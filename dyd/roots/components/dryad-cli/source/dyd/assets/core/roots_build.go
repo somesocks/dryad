@@ -32,7 +32,7 @@ func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, a
 
 	var buildRoot = func (ctx *task.ExecutionContext, match *SafeRootReference) (error, any) {
 		// calculate the relative path to the root from the base of the garden
-		relPath, err := filepath.Rel(match.Garden.BasePath, match.BasePath)
+		relPath, err := filepath.Rel(match.Roots.Garden.BasePath, match.BasePath)
 		if err != nil {
 			return err, nil
 		}

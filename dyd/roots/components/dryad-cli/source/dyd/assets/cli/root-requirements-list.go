@@ -36,20 +36,19 @@ var rootRequirementsListCommand = func() clib.Command {
 				relative = true
 			}
 
-			unsafeGarden := dryad.Garden(root)
-			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
+			err, garden := dryad.Garden(root).Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error resolving garden")
 				return 1
 			}
 
-			unsafeRoot := dryad.UnsafeRootReference{
-				BasePath: root,
-				Garden: garden,
+			err, roots := garden.Roots().Resolve(task.SERIAL_CONTEXT)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error resolving garden roots")
+				return 1
 			}
 	
-			err, safeRoot := unsafeRoot.Resolve(task.SERIAL_CONTEXT, nil)
+			err, safeRoot := roots.Root(root).Resolve(task.SERIAL_CONTEXT, nil)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while resolving root")
 				return 1
@@ -62,7 +61,7 @@ var rootRequirementsListCommand = func() clib.Command {
 
 				if relative {
 					// calculate the relative path to the root from the base of the garden
-					relPath, err := filepath.Rel(match.Garden.BasePath, match.BasePath)
+					relPath, err := filepath.Rel(match.Roots.Garden.BasePath, match.BasePath)
 					if err != nil {
 						return err, nil
 					}

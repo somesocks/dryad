@@ -66,7 +66,7 @@ func RootCopy(ctx *task.ExecutionContext, req RootCopyRequest) (error, *SafeRoot
 	var err error
 
 	// check that source and destination are within the same garden
-	if req.Source.Garden.BasePath != req.Dest.Garden.BasePath {
+	if req.Source.Roots.Garden.BasePath != req.Dest.Roots.Garden.BasePath {
 		return fmt.Errorf("source and destination roots are not in same garden"), nil
 	}
 

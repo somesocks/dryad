@@ -19,14 +19,11 @@ func RootReplace(req RootReplaceRequest) error {
 	var err error
 
 	// check that source and destination are within the same garden
-	if req.Source.Garden.BasePath != req.Dest.Garden.BasePath {
+	if req.Source.Roots.Garden.BasePath != req.Dest.Roots.Garden.BasePath {
 		return fmt.Errorf("source and destination roots are not in same garden")
 	}
 
-	rootsPath, err := RootsPath(req.Source.Garden)
-	if err != nil {
-		return err
-	}
+	rootsPath := req.Source.Roots.BasePath
 
 	// don't crawl symlinks
 	crawlInclude := func(path string, info fs.FileInfo) (bool, error) {

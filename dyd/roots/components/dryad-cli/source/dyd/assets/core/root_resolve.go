@@ -11,11 +11,9 @@ import (
 )
 
 func (ur *UnsafeRootReference) Resolve(ctx * task.ExecutionContext, _ any) (error, SafeRootReference) {
-	var gardenPath string = ur.Garden.BasePath
+	var gardenPath string = ur.Roots.Garden.BasePath
 	var basePath string = ur.BasePath
 	var err error
-
-
 
 	// convert root base path to absolute
 	if !filepath.IsAbs(basePath) {
@@ -41,7 +39,7 @@ func (ur *UnsafeRootReference) Resolve(ctx * task.ExecutionContext, _ any) (erro
 	}
 	return nil, SafeRootReference{
 		BasePath: basePath,
-		Garden: ur.Garden,
+		Roots: ur.Roots,
 	}
 }
 
@@ -67,6 +65,6 @@ func (ur *UnsafeRootReference) Clean() (error, UnsafeRootReference) {
 
 	return nil, UnsafeRootReference{
 		BasePath: basePath,
-		Garden: ur.Garden,
+		Roots: ur.Roots,
 	}
 }

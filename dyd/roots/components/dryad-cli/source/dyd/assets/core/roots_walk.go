@@ -38,7 +38,7 @@ func rootsWalk(ctx *task.ExecutionContext, req rootsWalkRequest) (error, any) {
 	var onMatch = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
 		var unsafeRequirementRef = UnsafeRootReference{
 			BasePath: node.Path,
-			Garden: req.Roots.Garden,
+			Roots: req.Roots,
 		}
 		var safeRequirementRef SafeRootReference
 		var err error

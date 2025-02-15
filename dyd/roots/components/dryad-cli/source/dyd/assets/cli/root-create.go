@@ -20,27 +20,25 @@ var rootCreateCommand = func() clib.Command {
 			var args = req.Args
 
 			var path string = args[0]
-
-			unsafeGarden := dryad.Garden("")
 			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
+			err, garden := dryad.Garden("").Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error resolving garden")
 				return 1
 			}
 
-			unsafeRoot := dryad.UnsafeRootReference{
-				BasePath: path,
-				Garden: garden,
+			err, roots := garden.Roots().Resolve(task.SERIAL_CONTEXT)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error resolving garden roots")
+				return 1
 			}
 
-			err, unsafeRoot = unsafeRoot.Clean()
+			err, unsafeRoot := roots.Root(path).Clean()
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error resolving destination root location")
 				return 1
 			}
 	
-
 			err, safeRoot := dryad.RootCreate(
 				task.SERIAL_CONTEXT,
 				dryad.RootCreateRequest{

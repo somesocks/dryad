@@ -25,10 +25,7 @@ func RootCreate(ctx *task.ExecutionContext, req RootCreateRequest) (error, *Safe
 	}
 
 	// check to make sure that the destination is within roots dir
-	rootsPath, err := RootsPath(req.Root.Garden)
-	if err != nil {
-		return err, nil
-	}
+	rootsPath := req.Root.Roots.BasePath
 
 	isInRootsDir, err := fileIsDescendant(path, rootsPath)
 	if err != nil {

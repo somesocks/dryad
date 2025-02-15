@@ -58,20 +58,19 @@ var rootDevelopCommand = func() clib.Command {
 				path = filepath.Join(wd, path)
 			}
 
-			unsafeGarden := dryad.Garden(path)
-			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
+			err, garden := dryad.Garden(path).Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error resolving garden")
 				return 1
 			}	
 
-			unsafeRootRef := dryad.UnsafeRootReference{
-				Garden: garden,
-				BasePath: path,
+			err, roots := garden.Roots().Resolve(task.SERIAL_CONTEXT)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error resolving garden roots")
+				return 1
 			}
 
-			err, safeRootRef := unsafeRootRef.Resolve(task.SERIAL_CONTEXT, nil)
+			err, safeRootRef := roots.Root(path).Resolve(task.SERIAL_CONTEXT, nil)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error resolving root")
 				return 1

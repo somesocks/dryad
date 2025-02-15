@@ -113,7 +113,7 @@ func rootDevelop_stage1(
 	ctx *task.ExecutionContext,
 	rootPath string,
 	workspacePath string,
-	garden *SafeGardenReference,
+	roots *SafeRootsReference,
 ) error {
 	// fmt.Println("rootDevelop_stage1 ", rootPath, " ", workspacePath)
 
@@ -127,7 +127,7 @@ func rootDevelop_stage1(
 
 	for _, dependencyPath := range dependencies {
 		var unsafeDepReference = UnsafeRootReference{
-			Garden: garden,
+			Roots: roots,
 			BasePath: dependencyPath,
 		}
 		var safeDepReference SafeRootReference
@@ -158,14 +158,14 @@ func rootDevelop_stage1(
 		}
 
 		relRootPath, err := filepath.Rel(
-			filepath.Join(garden.BasePath, "dyd", "roots"),
+			roots.BasePath,
 			absRootPath,
 		)
 		if err != nil {
 			return err
 		}
 
-		sproutPath := filepath.Join(garden.BasePath, "dyd", "sprouts", relRootPath)
+		sproutPath := filepath.Join(roots.Garden.BasePath, "dyd", "sprouts", relRootPath)
 		targetDepPath := filepath.Join(workspacePath, "dyd", "dependencies", dependencyName)
 
 		err = os.Symlink(sproutPath, targetDepPath)
@@ -357,7 +357,7 @@ func RootDevelop(
 	req RootDevelopRequest,
 ) (string, error) {
 
-	gardenPath := req.Root.Garden.BasePath
+	gardenPath := req.Root.Roots.Garden.BasePath
 	editor := req.Editor
 	editorArgs := req.EditorArgs
 	inherit := req.Inherit
@@ -391,7 +391,7 @@ func RootDevelop(
 		return "", err
 	}
 
-	err = rootDevelop_stage1(ctx, rootPath, workspacePath, req.Root.Garden)
+	err = rootDevelop_stage1(ctx, rootPath, workspacePath, req.Root.Roots)
 	if err != nil {
 		return "", err
 	}
@@ -417,7 +417,7 @@ func RootDevelop(
 		workspacePath,
 		stemBuildPath,
 		rootFingerprint,
-		req.Root.Garden,
+		req.Root.Roots.Garden,
 		editor,
 		editorArgs,
 		inherit,
@@ -430,7 +430,7 @@ func RootDevelop(
 		workspacePath,
 		stemBuildPath,
 		rootFingerprint,
-		req.Root.Garden,
+		req.Root.Roots.Garden,
 		editor,
 		editorArgs,
 		inherit,
@@ -440,7 +440,7 @@ func RootDevelop(
 		workspacePath,
 		stemBuildPath,
 		rootFingerprint,
-		req.Root.Garden,
+		req.Root.Roots.Garden,
 		editor,
 		editorArgs,
 		inherit,

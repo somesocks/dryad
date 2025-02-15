@@ -70,19 +70,18 @@ var rootBuildCommand = func() clib.Command {
 	)
 
 	var buildRoot = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
-		unsafeGarden := dryad.Garden(args.RootPath)
 		
-		err, garden := unsafeGarden.Resolve(ctx)
+		err, garden := dryad.Garden(args.RootPath).Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}
 
-		unsafeRootRef := dryad.UnsafeRootReference{
-			Garden: garden,
-			BasePath: args.RootPath,
+		err, roots := garden.Roots().Resolve(ctx)
+		if err != nil {
+			return err, nil
 		}
 
-		err, safeRootRef := unsafeRootRef.Resolve(ctx, nil)
+		err, safeRootRef := roots.Root(args.RootPath).Resolve(ctx, nil)
 		if err != nil {
 			return err, nil
 		}

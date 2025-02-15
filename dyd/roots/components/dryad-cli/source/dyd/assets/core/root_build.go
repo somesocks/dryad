@@ -20,11 +20,11 @@ type RootBuildRequest struct {
 
 func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string) {
 	var rootPath string = req.Root.BasePath
-	var gardenPath string = req.Root.Garden.BasePath
+	var gardenPath string = req.Root.Roots.Garden.BasePath
 	var err error
 
 	relRootPath, err := filepath.Rel(
-		filepath.Join(gardenPath, "dyd", "roots"),
+		req.Root.Roots.BasePath,
 		rootPath,
 	)
 	zlog.Debug().
@@ -61,7 +61,7 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 	err, _ = rootBuild_stage1(
 		ctx,
 		rootBuild_stage1_request{
-			Garden: req.Root.Garden,
+			Roots: req.Root.Roots,
 			RootPath: rootPath,
 			WorkspacePath: workspacePath,
 			JoinStdout: req.JoinStdout,
@@ -99,7 +99,7 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 	err, finalStemPath := rootBuild_stage4(
 		ctx,
 		rootBuild_stage4_request{
-			Garden: req.Root.Garden,
+			Garden: req.Root.Roots.Garden,
 			RootPath: rootPath,
 			WorkspacePath: workspacePath,
 		},
@@ -154,7 +154,7 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 		err, stemBuildFingerprint = rootBuild_stage5(
 			ctx,
 			rootBuild_stage5_request{
-				Garden: req.Root.Garden,
+				Garden: req.Root.Roots.Garden,
 				RelRootPath: relRootPath,
 				RootStemPath: finalStemPath,
 				StemBuildPath: stemBuildPath,
@@ -170,7 +170,7 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 		err, finalStemPath = rootBuild_stage6(
 			ctx,
 			rootBuild_stage6_request{
-				Garden: req.Root.Garden,
+				Garden: req.Root.Roots.Garden,
 				RelRootPath: relRootPath,
 				StemBuildPath: stemBuildPath,
 			},
@@ -258,7 +258,7 @@ var memoRootBuild = task.Memoize(
 			RootPath string
 		}{
 			Group: "RootBuild",
-			GardenPath: req.Root.Garden.BasePath,
+			GardenPath: req.Root.Roots.Garden.BasePath,
 			RootPath: req.Root.BasePath,
 		}
 	},
