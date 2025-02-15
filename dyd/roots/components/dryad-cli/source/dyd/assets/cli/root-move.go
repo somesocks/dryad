@@ -45,14 +45,14 @@ var rootMoveCommand = func() clib.Command {
 			BasePath: args.SourcePath,
 		}
 		
-		err, garden := unsafeGarden.Resolve(ctx, nil)
+		err, garden := unsafeGarden.Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}
 
 		unsafeSourceRoot := dryad.UnsafeRootReference{
 			BasePath: args.SourcePath,
-			Garden: &garden,
+			Garden: garden,
 		}
 
 		err, safeSourceRoot := unsafeSourceRoot.Resolve(ctx, nil)
@@ -62,7 +62,7 @@ var rootMoveCommand = func() clib.Command {
 
 		unsafeDestRoot := dryad.UnsafeRootReference{
 			BasePath: args.DestPath,
-			Garden: &garden,
+			Garden: garden,
 		}
 
 		err, unsafeDestRoot = unsafeDestRoot.Clean()

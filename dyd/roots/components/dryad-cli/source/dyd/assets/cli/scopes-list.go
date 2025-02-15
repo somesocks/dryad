@@ -37,17 +37,17 @@ var scopesListCommand = func() clib.Command {
 				BasePath: path,
 			}
 			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				return 1
 			}
 
-			err = dryad.ScopesWalk(&garden, func(path string, info fs.FileInfo) error {
+			err = dryad.ScopesWalk(garden, func(path string, info fs.FileInfo) error {
 				scope := filepath.Base(path)
 
 				// fetch the oneline if enabled
 				if oneline {
-					scopeOneline, _ := dryad.ScopeOnelineGet(&garden, scope)
+					scopeOneline, _ := dryad.ScopeOnelineGet(garden, scope)
 					if scopeOneline != "" {
 						scope = scope + " - " + scopeOneline
 					}

@@ -74,13 +74,13 @@ var rootBuildCommand = func() clib.Command {
 			BasePath: args.RootPath,
 		}
 		
-		err, garden := unsafeGarden.Resolve(ctx, nil)
+		err, garden := unsafeGarden.Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}
 
 		unsafeRootRef := dryad.UnsafeRootReference{
-			Garden: &garden,
+			Garden: garden,
 			BasePath: args.RootPath,
 		}
 

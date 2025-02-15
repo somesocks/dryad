@@ -47,7 +47,7 @@ var gardenWipeCommand = func() clib.Command {
 			BasePath: args.Path,
 		}
 		
-		err, garden := unsafeGarden.Resolve(ctx, nil)
+		err, garden := unsafeGarden.Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}
@@ -55,7 +55,7 @@ var gardenWipeCommand = func() clib.Command {
 		err, _ = dryad.GardenWipe(
 			ctx,
 			dryad.GardenWipeRequest{
-				Garden: &garden,
+				Garden: garden,
 			},
 		)
 		return err, nil

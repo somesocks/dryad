@@ -52,14 +52,21 @@ func _gardenPath(path string) (string, error) {
 	return "", errors.New("dyd garden path not found starting from " + path)
 }
 
-func (ug *UnsafeGardenReference) Resolve(ctx * task.ExecutionContext, _ any) (error, SafeGardenReference) {
-	var gardenPath string = ug.BasePath
-	var err error
-
+func (ug *UnsafeGardenReference) Resolve(ctx * task.ExecutionContext) (error, *SafeGardenReference) {
 	zlog.Trace().
 		Str("BasePath", ug.BasePath).
 		Msg("UnsafeGardenReference.Resolve")
 
+	var gardenPath string = ug.BasePath
+	var safeRef SafeGardenReference
+	var err error
+
 	gardenPath, err = _gardenPath(ug.BasePath)
-	return err, SafeGardenReference{ BasePath: gardenPath }
+	if err != nil {
+		return err, nil
+	}
+
+	safeRef = SafeGardenReference{ BasePath: gardenPath }
+
+	return nil, &safeRef 
 }

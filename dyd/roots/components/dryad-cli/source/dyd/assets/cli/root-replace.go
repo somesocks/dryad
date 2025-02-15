@@ -30,7 +30,7 @@ var rootReplaceCommand = func() clib.Command {
 				BasePath: source,
 			}
 			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while resolving garden")
 				return 1
@@ -38,7 +38,7 @@ var rootReplaceCommand = func() clib.Command {
 
 			unsafeSourceRoot := dryad.UnsafeRootReference{
 				BasePath: source,
-				Garden: &garden,
+				Garden: garden,
 			}
 	
 			err, safeSourceRoot := unsafeSourceRoot.Resolve(task.SERIAL_CONTEXT, nil)
@@ -49,7 +49,7 @@ var rootReplaceCommand = func() clib.Command {
 	
 			unsafeDestRoot := dryad.UnsafeRootReference{
 				BasePath: dest,
-				Garden: &garden,
+				Garden: garden,
 			}
 	
 			err, safeDestRoot := unsafeDestRoot.Resolve(task.SERIAL_CONTEXT, nil)

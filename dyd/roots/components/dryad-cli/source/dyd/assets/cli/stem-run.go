@@ -94,14 +94,14 @@ var stemRunCommand = func() clib.Command {
 				BasePath: path,
 			}
 			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error resolving garden")
 				return 1
 			}
 
 			err = dryad.StemRun(dryad.StemRunRequest{
-				Garden: &garden,
+				Garden: garden,
 				StemPath:     path,
 				MainOverride: override,
 				Env:          env,

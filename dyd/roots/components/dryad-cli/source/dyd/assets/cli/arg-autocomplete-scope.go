@@ -15,12 +15,12 @@ func ArgAutoCompleteScope(token string) (error, []string) {
 		BasePath: "",
 	}
 	
-	err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+	err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 	if err != nil {
 		return err, results
 	}
 
-	err = dryad.ScopesWalk(&garden, func(path string, info fs.FileInfo) error {
+	err = dryad.ScopesWalk(garden, func(path string, info fs.FileInfo) error {
 		var scope = filepath.Base(path)
 
 		if strings.HasPrefix(scope, token) {

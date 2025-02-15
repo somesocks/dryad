@@ -28,12 +28,12 @@ var scopeCreateCommand = func() clib.Command {
 				BasePath: path,
 			}
 			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				return 1
 			}
 
-			scopePath, err := dryad.ScopeCreate(&garden, name)
+			scopePath, err := dryad.ScopeCreate(garden, name)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while creating scope")
 				return 1

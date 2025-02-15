@@ -31,12 +31,12 @@ var scopesDefaultSetCommand = func() clib.Command {
 				BasePath: path,
 			}
 			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				return 1
 			}
 
-			err = dryad.ScopeSetDefault(&garden, name)
+			err = dryad.ScopeSetDefault(garden, name)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while setting active scope")
 				return 1

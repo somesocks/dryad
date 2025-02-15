@@ -31,15 +31,15 @@ var scopeUseCommand = func() clib.Command {
 				BasePath: path,
 			}
 			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				return 1
 			}
 
 			if name == "none" {
-				err = dryad.ScopeUnsetDefault(&garden)
+				err = dryad.ScopeUnsetDefault(garden)
 			} else {
-				err = dryad.ScopeSetDefault(&garden, name)
+				err = dryad.ScopeSetDefault(garden, name)
 			}
 
 			if err != nil {

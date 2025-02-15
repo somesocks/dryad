@@ -31,12 +31,12 @@ var scopeDeleteCommand = func() clib.Command {
 				BasePath: path,
 			}
 			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				return 1
 			}
 
-			err = dryad.ScopeDelete(&garden, name)
+			err = dryad.ScopeDelete(garden, name)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while deleting scope")
 				return 1

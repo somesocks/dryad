@@ -61,7 +61,7 @@ var rootAncestorsCommand = func() clib.Command {
 			BasePath: args.RootPath,
 		}
 		
-		err, garden := unsafeGarden.Resolve(ctx, nil)
+		err, garden := unsafeGarden.Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}
@@ -73,7 +73,7 @@ var rootAncestorsCommand = func() clib.Command {
 
 		graph, err := dryad.RootsGraph(
 			dryad.RootsGraphRequest{
-				Garden: &garden,
+				Garden: garden,
 				Relative: relative,
 			},
 		)
