@@ -105,10 +105,9 @@ var gardenPackCommand = func() clib.Command {
 			return err, nil
 		}
 
-		err, targetPath := dryad.GardenPack(
-			ctx, 
+		err, targetPath := garden.Pack(
+			ctx,
 			dryad.GardenPackRequest{
-				Garden: garden,
 				TargetPath: args.TargetPath,
 				IncludeRoots: args.IncludeRoots,
 				IncludeHeap: args.IncludeHeap,
