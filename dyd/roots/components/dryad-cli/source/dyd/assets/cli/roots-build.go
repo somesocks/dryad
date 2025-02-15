@@ -83,7 +83,7 @@ var rootsBuildCommand = func() clib.Command {
 			BasePath: args.Path,
 		}
 		
-		err, garden := unsafeGarden.Resolve(ctx, nil)
+		err, garden := unsafeGarden.Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}
@@ -91,7 +91,7 @@ var rootsBuildCommand = func() clib.Command {
 		err, _ = dryad.RootsBuild(
 			ctx,
 			dryad.RootsBuildRequest{
-				Garden:     &garden,
+				Garden:     garden,
 				IncludeRoots: args.IncludeRoots,
 				ExcludeRoots: args.ExcludeRoots,
 				JoinStdout: args.JoinStdout,

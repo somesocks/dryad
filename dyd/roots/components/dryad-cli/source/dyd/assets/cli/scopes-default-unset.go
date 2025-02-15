@@ -22,12 +22,12 @@ var scopesDefaultUnsetCommand = func() clib.Command {
 				BasePath: path,
 			}
 			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				return 1
 			}
 
-			err = dryad.ScopeUnsetDefault(&garden)
+			err = dryad.ScopeUnsetDefault(garden)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while removing active scope")
 				return 1

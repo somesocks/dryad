@@ -75,7 +75,7 @@ var sproutsListCommand = func() clib.Command {
 			BasePath: args.GardenPath,
 		}
 		
-		err, garden := unsafeGarden.Resolve(ctx, nil)
+		err, garden := unsafeGarden.Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}
@@ -83,7 +83,7 @@ var sproutsListCommand = func() clib.Command {
 		err, _ = dryad.SproutsWalk(
 			ctx,
 			dryad.SproutsWalkRequest{
-				Garden: &garden,
+				Garden: garden,
 				OnSprout: func (ctx *task.ExecutionContext, path string) (error, any) {
 					// calculate the relative path to the root from the base of the garden
 					relPath, err := filepath.Rel(garden.BasePath, path)

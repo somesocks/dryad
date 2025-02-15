@@ -20,12 +20,12 @@ func ArgAutoCompleteScript(token string) (error, []string) {
 		BasePath: wd,
 	}
 	
-	err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+	err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 	if err != nil {
 		return err, results
 	}
 
-	activeScope, err := dryad.ScopeGetDefault(&garden)
+	activeScope, err := dryad.ScopeGetDefault(garden)
 	if err != nil {
 		return err, results
 	}
@@ -35,8 +35,8 @@ func ArgAutoCompleteScript(token string) (error, []string) {
 	}
 
 	err = dryad.ScriptsWalk(dryad.ScriptsWalkRequest{
-		Garden: &garden,
-		Scope:    activeScope,
+		Garden: garden,
+		Scope: activeScope,
 		OnMatch: func(path string, info fs.FileInfo) error {
 			var name string = info.Name()
 			var script string = strings.TrimPrefix(name, "script-run-")

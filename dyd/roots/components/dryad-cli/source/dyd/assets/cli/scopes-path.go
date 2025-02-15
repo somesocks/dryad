@@ -23,12 +23,12 @@ var scopesPathCommand = func() clib.Command {
 				BasePath: path,
 			}
 			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				return 1
 			}
 
-			path, err = dryad.ScopesPath(&garden)
+			path, err = dryad.ScopesPath(garden)
 
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while finding scopes path")

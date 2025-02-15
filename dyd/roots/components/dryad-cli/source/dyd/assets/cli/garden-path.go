@@ -37,7 +37,7 @@ var gardenPathCommand = func() clib.Command {
 			BasePath: args.GardenPath,
 		}
 		
-		err, garden := unsafeGarden.Resolve(ctx, nil)
+		err, garden := unsafeGarden.Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}

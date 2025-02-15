@@ -48,7 +48,7 @@ var gardenPruneCommand = func() clib.Command {
 			BasePath: args.Path,
 		}
 		
-		err, garden := unsafeGarden.Resolve(ctx, nil)
+		err, garden := unsafeGarden.Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}
@@ -56,7 +56,7 @@ var gardenPruneCommand = func() clib.Command {
 		err, _ = dryad.GardenPrune(
 			ctx,
 			dryad.GardenPruneRequest{
-				Garden: &garden,
+				Garden: garden,
 				Snapshot: time.Now().Local(),
 			},
 		)

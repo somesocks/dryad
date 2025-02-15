@@ -100,7 +100,7 @@ var gardenPackCommand = func() clib.Command {
 			BasePath: args.GardenPath,
 		}
 		
-		err, garden := unsafeGarden.Resolve(ctx, nil)
+		err, garden := unsafeGarden.Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}
@@ -108,7 +108,7 @@ var gardenPackCommand = func() clib.Command {
 		err, targetPath := dryad.GardenPack(
 			ctx, 
 			dryad.GardenPackRequest{
-				Garden: &garden,
+				Garden: garden,
 				TargetPath: args.TargetPath,
 				IncludeRoots: args.IncludeRoots,
 				IncludeHeap: args.IncludeHeap,

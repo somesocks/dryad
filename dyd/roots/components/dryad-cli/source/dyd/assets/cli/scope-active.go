@@ -32,12 +32,12 @@ var scopeActiveCommand = func() clib.Command {
 				BasePath: path,
 			}
 			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				return 1
 			}
 		
-			scopeName, err := dryad.ScopeGetDefault(&garden)
+			scopeName, err := dryad.ScopeGetDefault(garden)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while loading active scope")
 				return 1
@@ -49,7 +49,7 @@ var scopeActiveCommand = func() clib.Command {
 
 			var scopeOneline string = ""
 			if oneline {
-				scopeOneline, _ = dryad.ScopeOnelineGet(&garden, scopeName)
+				scopeOneline, _ = dryad.ScopeOnelineGet(garden, scopeName)
 			}
 
 			if scopeOneline != "" {

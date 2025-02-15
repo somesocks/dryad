@@ -33,12 +33,12 @@ var scopeSettingUnsetCommand = func() clib.Command {
 				BasePath: path,
 			}
 			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				return 1
 			}
 
-			err = dryad.ScopeSettingUnset(&garden, scope, setting)
+			err = dryad.ScopeSettingUnset(garden, scope, setting)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while removing scope setting")
 				return 1

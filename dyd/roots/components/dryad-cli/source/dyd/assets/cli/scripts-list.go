@@ -26,7 +26,7 @@ var scriptsListAction = func(req clib.ActionRequest) int {
 		BasePath: basePath,
 	}
 	
-	err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+	err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 	if err != nil {
 		return 1
 	}
@@ -36,7 +36,7 @@ var scriptsListAction = func(req clib.ActionRequest) int {
 		scope = options["scope"].(string)
 	} else {
 		var err error
-		scope, err = dryad.ScopeGetDefault(&garden)
+		scope, err = dryad.ScopeGetDefault(garden)
 		zlog.Debug().Msg("loading default scope: " + scope)
 		if err != nil {
 			zlog.Fatal().Err(err).Msg("error while finding active scope")
@@ -65,7 +65,7 @@ var scriptsListAction = func(req clib.ActionRequest) int {
 	var scripts []string
 
 	err = dryad.ScriptsWalk(dryad.ScriptsWalkRequest{
-		Garden: &garden,
+		Garden: garden,
 		Scope:    scope,
 		OnMatch: func(path string, info fs.FileInfo) error {
 			if showPath {

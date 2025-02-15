@@ -40,7 +40,7 @@ var rootRequirementsListCommand = func() clib.Command {
 				BasePath: root,
 			}
 			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error resolving garden")
 				return 1
@@ -48,7 +48,7 @@ var rootRequirementsListCommand = func() clib.Command {
 
 			unsafeRoot := dryad.UnsafeRootReference{
 				BasePath: root,
-				Garden: &garden,
+				Garden: garden,
 			}
 	
 			err, safeRoot := unsafeRoot.Resolve(task.SERIAL_CONTEXT, nil)

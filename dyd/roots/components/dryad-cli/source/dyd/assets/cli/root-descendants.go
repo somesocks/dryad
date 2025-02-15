@@ -51,7 +51,7 @@ var rootDescendantsCommand = func() clib.Command {
 				BasePath: rootPath,
 			}
 			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error resolving garden")
 				return 1
@@ -65,7 +65,7 @@ var rootDescendantsCommand = func() clib.Command {
 
 			graph, err := dryad.RootsGraph(
 				dryad.RootsGraphRequest{
-					Garden: &garden,
+					Garden: garden,
 					Relative: relative,
 				},
 			)

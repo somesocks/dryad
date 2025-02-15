@@ -34,12 +34,12 @@ var scopeSettingGetCommand = func() clib.Command {
 				BasePath: path,
 			}
 			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT, nil)
+			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				return 1
 			}
 
-			value, err := dryad.ScopeSettingGet(&garden, scope, setting)
+			value, err := dryad.ScopeSettingGet(garden, scope, setting)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while getting scope setting")
 				return 1
