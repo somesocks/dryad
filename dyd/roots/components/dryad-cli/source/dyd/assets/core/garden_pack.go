@@ -16,7 +16,7 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-type GardenPackRequest struct {
+type gardenPackRequest struct {
 	Garden *SafeGardenReference
 	TargetPath string
 	IncludeRoots bool
@@ -26,7 +26,7 @@ type GardenPackRequest struct {
 	IncludeShed bool
 }
 
-func GardenPack(ctx *task.ExecutionContext, req GardenPackRequest) (error, string) {
+func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, string) {
 	var gardenPath = req.Garden.BasePath
 	var targetPath = req.TargetPath
 	var err error
@@ -330,4 +330,30 @@ func GardenPack(ctx *task.ExecutionContext, req GardenPackRequest) (error, strin
 	}
 
 	return err, targetPath
+}
+
+type GardenPackRequest struct {
+	TargetPath string
+	IncludeRoots bool
+	IncludeHeap bool
+	IncludeContexts bool
+	IncludeSprouts bool
+	IncludeShed bool
+}
+
+func (sg *SafeGardenReference) Pack(ctx *task.ExecutionContext, req GardenPackRequest) (error, string) {
+	err, res := gardenPack(
+		ctx,
+		gardenPackRequest{
+			Garden: sg,
+			TargetPath: req.TargetPath,
+			IncludeRoots: req.IncludeRoots,
+			IncludeHeap: req.IncludeHeap,
+			IncludeContexts: req.IncludeContexts,
+			IncludeSprouts: req.IncludeSprouts,
+			IncludeShed: req.IncludeShed,
+		},
+	)
+
+	return err, res
 }
