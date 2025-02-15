@@ -53,10 +53,9 @@ var gardenPruneCommand = func() clib.Command {
 			return err, nil
 		}
 
-		err, _ = dryad.GardenPrune(
+		err = garden.Prune(
 			ctx,
 			dryad.GardenPruneRequest{
-				Garden: garden,
 				Snapshot: time.Now().Local(),
 			},
 		)
