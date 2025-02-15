@@ -64,14 +64,16 @@ var rootAncestorsCommand = func() clib.Command {
 			return err, nil
 		}
 
+		err, roots := garden.Roots().Resolve(ctx)
+
 		rootPath, err = dryad.RootPath(rootPath, "")
 		if err != nil {
-			return err, nil
+				return err, nil
 		}
 
-		graph, err := dryad.RootsGraph(
+		err, graph := roots.Graph(
+			task.SERIAL_CONTEXT,
 			dryad.RootsGraphRequest{
-				Garden: garden,
 				Relative: relative,
 			},
 		)
@@ -85,6 +87,11 @@ var rootAncestorsCommand = func() clib.Command {
 				return err, nil
 			}
 		}
+
+		zlog.Trace().
+			Str("rootPath", rootPath).
+			Msg("rootPath")
+
 
 		ancestors := graph.Descendants(make(dryad.TStringSet), []string{rootPath}).ToArray([]string{})
 

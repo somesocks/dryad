@@ -54,10 +54,9 @@ func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, a
 	}
 
 	// build each root in the garden
-	err, _ = RootsWalk(
+	err = request.Roots.Walk(
 		ctx,
 		RootsWalkRequest{
-			Garden: request.Roots.Garden,
 			OnMatch: buildRoot,
 		},
 	)
