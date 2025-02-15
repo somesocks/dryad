@@ -39,10 +39,9 @@ func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, a
 
 		// if the root isn't being excluded by a selector, build it
 		if request.IncludeRoots(relPath) && !request.ExcludeRoots(relPath) {
-			err, _ = RootBuild(
+			err, _ = match.Build(
 				ctx,
 				RootBuildRequest{
-					Root: match,
 					JoinStdout: request.JoinStdout,
 					JoinStderr: request.JoinStderr,
 				},

@@ -138,10 +138,9 @@ func rootDevelop_stage1(
 			return err
 		}
 
-		err, _ = RootBuild(
+		err, _ = safeDepReference.Build(
 			ctx,
 			RootBuildRequest{
-				Root: &safeDepReference,
 			},
 		)
 		if err != nil {

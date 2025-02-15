@@ -87,10 +87,9 @@ var rootBuildCommand = func() clib.Command {
 		}
 
 		var rootFingerprint string
-		err, rootFingerprint = dryad.RootBuild(
+		err, rootFingerprint = safeRootRef.Build(
 			ctx,
 			dryad.RootBuildRequest{
-				Root: &safeRootRef,
 				JoinStdout: args.JoinStdout,
 				JoinStderr: args.JoinStderr,
 			},

@@ -85,10 +85,9 @@ func init () {
 			return err, ""
 		}
 	
-		err, dependencyFingerprint := RootBuild(
+		err, dependencyFingerprint := safeDepReference.Build(
 			ctx,
 			RootBuildRequest{
-				Root: &safeDepReference,
 				JoinStdout: req.JoinStdout,
 				JoinStderr: req.JoinStderr,
 			},

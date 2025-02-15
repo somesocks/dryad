@@ -12,13 +12,13 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-type RootBuildRequest struct {
+type rootBuildRequest struct {
 	Root *SafeRootReference
 	JoinStdout bool
 	JoinStderr bool
 }
 
-func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string) {
+func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string) {
 	var rootPath string = req.Root.BasePath
 	var gardenPath string = req.Root.Roots.Garden.BasePath
 	var err error
@@ -251,7 +251,7 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 
 var memoRootBuild = task.Memoize(
 	rootBuild,
-	func (req RootBuildRequest) any {
+	func (req rootBuildRequest) any {
 		return struct {
 			Group string
 			GardenPath string
@@ -264,7 +264,25 @@ var memoRootBuild = task.Memoize(
 	},
 )
 
-var RootBuild = func (ctx *task.ExecutionContext, req RootBuildRequest) (error, string) {
+var rootBuildWrapper = func (ctx *task.ExecutionContext, req rootBuildRequest) (error, string) {
 	err, res := memoRootBuild(ctx, req)
+	return err, res
+}
+
+
+type RootBuildRequest struct {
+	JoinStdout bool
+	JoinStderr bool
+}
+
+func (root *SafeRootReference) Build(ctx *task.ExecutionContext, req RootBuildRequest) (error, string) {
+	err, res := rootBuildWrapper(
+		ctx,
+		rootBuildRequest{
+			Root: root,
+			JoinStdout: req.JoinStdout,
+			JoinStderr: req.JoinStderr,	
+		},
+	)
 	return err, res
 }
