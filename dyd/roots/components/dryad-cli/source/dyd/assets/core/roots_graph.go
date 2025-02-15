@@ -50,72 +50,91 @@ func (g TRootsGraph) Descendants(results TStringSet, roots []string) TStringSet 
 	return results
 }
 
-type RootsGraphRequest struct {
-	Garden *SafeGardenReference
+type rootsGraphRequest struct {
+	Roots *SafeRootsReference
 	Relative bool
 }
 
-func RootsGraph(req RootsGraphRequest) (TRootsGraph, error) {
+func rootsGraph(
+	ctx *task.ExecutionContext,
+	req rootsGraphRequest,
+) (error, TRootsGraph) {
 	var err error
 	var relative bool = req.Relative
-	var gardenPath string = req.Garden.BasePath
+	var gardenPath string = req.Roots.Garden.BasePath
 
 	graph := make(TRootsGraph)
 
-	err, _ = RootsWalk(
+	var onRoot = func (ctx *task.ExecutionContext, match *SafeRootReference) (error, any) {
+		rootPath, err := filepath.EvalSymlinks(match.BasePath)
+		if err != nil {
+			return err, nil
+		}
+
+		var onRequirementMatch = func(ctx *task.ExecutionContext, requirement *SafeRootReference) (error, any) {
+			requirementPath, err := filepath.EvalSymlinks(requirement.BasePath)
+			if err != nil {
+				return err, nil
+			}
+
+			if relative {
+				relRootPath, err := filepath.Rel(gardenPath, rootPath)
+				if err != nil {
+					return err, nil
+				}
+
+				relRequirementPath, err := filepath.Rel(gardenPath, requirementPath)
+				if err != nil {
+					return err, nil
+				}
+
+				graph.AddEdge(relRootPath, relRequirementPath)
+			} else {
+				graph.AddEdge(rootPath, requirementPath)
+			}
+
+			return nil, nil
+		}
+
+		err, _ = RootRequirementsWalk(
+			ctx,
+			RootRequirementsWalkRequest{
+				Root: match,
+				OnMatch: onRequirementMatch,
+			},
+		)
+		if err != nil {
+			return err, nil
+		}
+
+		return nil, nil
+	}
+
+	err = req.Roots.Walk(
 		task.SERIAL_CONTEXT,
 		RootsWalkRequest{
-			Garden: req.Garden,
-			OnMatch : func (ctx *task.ExecutionContext, match *SafeRootReference) (error, any) {
-				rootPath, err := filepath.EvalSymlinks(match.BasePath)
-				if err != nil {
-					return err, nil
-				}
-
-				var onRequirementMatch = func(ctx *task.ExecutionContext, requirement *SafeRootReference) (error, any) {
-					requirementPath, err := filepath.EvalSymlinks(requirement.BasePath)
-					if err != nil {
-						return err, nil
-					}
-
-					if relative {
-						relRootPath, err := filepath.Rel(gardenPath, rootPath)
-						if err != nil {
-							return err, nil
-						}
-		
-						relRequirementPath, err := filepath.Rel(gardenPath, requirementPath)
-						if err != nil {
-							return err, nil
-						}
-		
-						graph.AddEdge(relRootPath, relRequirementPath)
-					} else {
-						graph.AddEdge(rootPath, requirementPath)
-					}
-		
-					return nil, nil
-				}
-
-				err, _ = RootRequirementsWalk(
-					ctx,
-					RootRequirementsWalkRequest{
-						Root: match,
-						OnMatch: onRequirementMatch,
-					},
-				)
-				if err != nil {
-					return err, nil
-				}
-		
-				return nil, nil
-			},
+			OnMatch: onRoot,
 		},
 	)
 
 	if err != nil {
-		return graph, err
+		return err, graph
 	}
 
-	return graph, nil
+	return nil, graph
+}
+
+type RootsGraphRequest struct {
+	Relative bool
+}
+
+func (roots *SafeRootsReference) Graph(ctx *task.ExecutionContext, req RootsGraphRequest) (error, TRootsGraph) {
+	err, graph := rootsGraph(
+		ctx,
+		rootsGraphRequest{
+			Roots: roots,
+			Relative: req.Relative,
+		},
+	)
+	return err, graph
 }

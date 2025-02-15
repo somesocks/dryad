@@ -26,39 +26,33 @@ var rootReplaceCommand = func() clib.Command {
 			var source string = args[0]
 			var dest string = args[1]
 
-			unsafeGarden := dryad.Garden(source)
-			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
+			err, garden := dryad.Garden(source).Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while resolving garden")
 				return 1
 			}	
 
-			unsafeSourceRoot := dryad.UnsafeRootReference{
-				BasePath: source,
-				Garden: garden,
+			err, roots := garden.Roots().Resolve(task.SERIAL_CONTEXT)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error resolving garden roots")
+				return 1
 			}
-	
-			err, safeSourceRoot := unsafeSourceRoot.Resolve(task.SERIAL_CONTEXT, nil)
+
+			err, safeSourceRoot := roots.Root(source).Resolve(task.SERIAL_CONTEXT, nil)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while resolving source root")
 				return 1
 			}
 	
-			unsafeDestRoot := dryad.UnsafeRootReference{
-				BasePath: dest,
-				Garden: garden,
-			}
-	
-			err, safeDestRoot := unsafeDestRoot.Resolve(task.SERIAL_CONTEXT, nil)
+			err, safeDestRoot := roots.Root(dest).Resolve(task.SERIAL_CONTEXT, nil)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while resolving dest root")
 				return 1
 			}	
 
-			err = dryad.RootReplace(
+			err = safeSourceRoot.Replace(
+				task.SERIAL_CONTEXT,
 				dryad.RootReplaceRequest{
-					Source: &safeSourceRoot,
 					Dest: &safeDestRoot,
 				},
 			)

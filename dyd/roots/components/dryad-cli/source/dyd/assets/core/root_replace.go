@@ -2,31 +2,29 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
+	"dryad/task"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 )
 
-type RootReplaceRequest struct {
+type rootReplaceRequest struct {
 	Source *SafeRootReference
 	Dest *SafeRootReference
 }
 
-func RootReplace(req RootReplaceRequest) error {
+func rootReplace(req rootReplaceRequest) error {
 	var sourcePath string = req.Source.BasePath
 	var destPath string = req.Dest.BasePath
 	var err error
 
 	// check that source and destination are within the same garden
-	if req.Source.Garden.BasePath != req.Dest.Garden.BasePath {
+	if req.Source.Roots.Garden.BasePath != req.Dest.Roots.Garden.BasePath {
 		return fmt.Errorf("source and destination roots are not in same garden")
 	}
 
-	rootsPath, err := RootsPath(req.Source.Garden)
-	if err != nil {
-		return err
-	}
+	rootsPath := req.Source.Roots.BasePath
 
 	// don't crawl symlinks
 	crawlInclude := func(path string, info fs.FileInfo) (bool, error) {
@@ -100,5 +98,19 @@ func RootReplace(req RootReplaceRequest) error {
 		MatchExclude: matchExclude,
 		OnMatch:      onMatch,
 	})
+	return err
+}
+
+type RootReplaceRequest struct {
+	Dest *SafeRootReference
+}
+
+func (root *SafeRootReference) Replace(ctx *task.ExecutionContext, req RootReplaceRequest) (error) {
+	err := rootReplace(
+		rootReplaceRequest{
+			Source: root,
+			Dest: req.Dest,
+		},
+	)
 	return err
 }

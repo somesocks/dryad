@@ -71,9 +71,15 @@ var rootsGraphCommand = func() clib.Command {
 				return 1
 			}
 
-			graph, err := dryad.RootsGraph(
+			err, roots := garden.Roots().Resolve(task.SERIAL_CONTEXT)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error resolving garden roots")
+				return 1
+			}
+
+			err, graph := roots.Graph(
+				task.SERIAL_CONTEXT,
 				dryad.RootsGraphRequest{
-					Garden: garden,
 					Relative: relative,
 				},
 			)

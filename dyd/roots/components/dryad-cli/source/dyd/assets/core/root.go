@@ -4,11 +4,11 @@ package core
 
 type UnsafeRootReference struct {
 	BasePath string
-	Garden *SafeGardenReference
+	Roots *SafeRootsReference
 }
 
 type SafeRootReference struct {
 	BasePath string
-	Garden *SafeGardenReference
+	Roots *SafeRootsReference
 }
 

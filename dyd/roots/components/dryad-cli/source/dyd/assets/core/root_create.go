@@ -8,12 +8,12 @@ import (
 	"dryad/task"
 )
 
-type RootCreateRequest struct {
+type rootCreateRequest struct {
 	Root *UnsafeRootReference
 }
 
 
-func RootCreate(ctx *task.ExecutionContext, req RootCreateRequest) (error, *SafeRootReference) {
+func rootCreate(ctx *task.ExecutionContext, req rootCreateRequest) (error, *SafeRootReference) {
 	var path string = req.Root.BasePath
 
 	// check to make sure the destination doesn't already exist
@@ -25,10 +25,7 @@ func RootCreate(ctx *task.ExecutionContext, req RootCreateRequest) (error, *Safe
 	}
 
 	// check to make sure that the destination is within roots dir
-	rootsPath, err := RootsPath(req.Root.Garden)
-	if err != nil {
-		return err, nil
-	}
+	rootsPath := req.Root.Roots.BasePath
 
 	isInRootsDir, err := fileIsDescendant(path, rootsPath)
 	if err != nil {
@@ -103,4 +100,9 @@ func RootCreate(ctx *task.ExecutionContext, req RootCreateRequest) (error, *Safe
 	}
 
 	return nil, &safeRoot
+}
+
+func (root *UnsafeRootReference) Create(ctx *task.ExecutionContext) (error, *SafeRootReference) {
+	err, res := rootCreate(ctx, rootCreateRequest{ Root: root })
+	return err, res
 }

@@ -12,19 +12,19 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-type RootBuildRequest struct {
+type rootBuildRequest struct {
 	Root *SafeRootReference
 	JoinStdout bool
 	JoinStderr bool
 }
 
-func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string) {
+func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string) {
 	var rootPath string = req.Root.BasePath
-	var gardenPath string = req.Root.Garden.BasePath
+	var gardenPath string = req.Root.Roots.Garden.BasePath
 	var err error
 
 	relRootPath, err := filepath.Rel(
-		filepath.Join(gardenPath, "dyd", "roots"),
+		req.Root.Roots.BasePath,
 		rootPath,
 	)
 	zlog.Debug().
@@ -61,7 +61,7 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 	err, _ = rootBuild_stage1(
 		ctx,
 		rootBuild_stage1_request{
-			Garden: req.Root.Garden,
+			Roots: req.Root.Roots,
 			RootPath: rootPath,
 			WorkspacePath: workspacePath,
 			JoinStdout: req.JoinStdout,
@@ -99,7 +99,7 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 	err, finalStemPath := rootBuild_stage4(
 		ctx,
 		rootBuild_stage4_request{
-			Garden: req.Root.Garden,
+			Garden: req.Root.Roots.Garden,
 			RootPath: rootPath,
 			WorkspacePath: workspacePath,
 		},
@@ -154,7 +154,7 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 		err, stemBuildFingerprint = rootBuild_stage5(
 			ctx,
 			rootBuild_stage5_request{
-				Garden: req.Root.Garden,
+				Garden: req.Root.Roots.Garden,
 				RelRootPath: relRootPath,
 				RootStemPath: finalStemPath,
 				StemBuildPath: stemBuildPath,
@@ -170,7 +170,7 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 		err, finalStemPath = rootBuild_stage6(
 			ctx,
 			rootBuild_stage6_request{
-				Garden: req.Root.Garden,
+				Garden: req.Root.Roots.Garden,
 				RelRootPath: relRootPath,
 				StemBuildPath: stemBuildPath,
 			},
@@ -251,20 +251,38 @@ func rootBuild(ctx *task.ExecutionContext, req RootBuildRequest) (error, string)
 
 var memoRootBuild = task.Memoize(
 	rootBuild,
-	func (req RootBuildRequest) any {
+	func (req rootBuildRequest) any {
 		return struct {
 			Group string
 			GardenPath string
 			RootPath string
 		}{
 			Group: "RootBuild",
-			GardenPath: req.Root.Garden.BasePath,
+			GardenPath: req.Root.Roots.Garden.BasePath,
 			RootPath: req.Root.BasePath,
 		}
 	},
 )
 
-var RootBuild = func (ctx *task.ExecutionContext, req RootBuildRequest) (error, string) {
+var rootBuildWrapper = func (ctx *task.ExecutionContext, req rootBuildRequest) (error, string) {
 	err, res := memoRootBuild(ctx, req)
+	return err, res
+}
+
+
+type RootBuildRequest struct {
+	JoinStdout bool
+	JoinStderr bool
+}
+
+func (root *SafeRootReference) Build(ctx *task.ExecutionContext, req RootBuildRequest) (error, string) {
+	err, res := rootBuildWrapper(
+		ctx,
+		rootBuildRequest{
+			Root: root,
+			JoinStdout: req.JoinStdout,
+			JoinStderr: req.JoinStderr,	
+		},
+	)
 	return err, res
 }

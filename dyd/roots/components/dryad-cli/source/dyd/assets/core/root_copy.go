@@ -55,18 +55,18 @@ var _ROOT_COPY_MATCH_INCLUDE_REGEXP = regexp.MustCompile(
 
 var _ROOT_COPY_MATCH_EXCLUDE_REGEXP = regexp.MustCompile(`^$`)
 
-type RootCopyRequest struct {
+type rootCopyRequest struct {
 	Source *SafeRootReference
 	Dest *UnsafeRootReference
 }
 
-func RootCopy(ctx *task.ExecutionContext, req RootCopyRequest) (error, *SafeRootReference) {
+func rootCopy(ctx *task.ExecutionContext, req rootCopyRequest) (error, *SafeRootReference) {
 	var sourcePath string = req.Source.BasePath
 	var destPath string = req.Dest.BasePath
 	var err error
 
 	// check that source and destination are within the same garden
-	if req.Source.Garden.BasePath != req.Dest.Garden.BasePath {
+	if req.Source.Roots.Garden.BasePath != req.Dest.Roots.Garden.BasePath {
 		return fmt.Errorf("source and destination roots are not in same garden"), nil
 	}
 
@@ -194,4 +194,19 @@ func RootCopy(ctx *task.ExecutionContext, req RootCopyRequest) (error, *SafeRoot
 	}
 
 	return nil, &newRoot
+}
+
+type RootCopyRequest struct {
+	Dest *UnsafeRootReference
+}
+
+func (root *SafeRootReference) Copy(ctx *task.ExecutionContext, req RootCopyRequest) (error, *SafeRootReference) {
+	err, res := rootCopy(
+		ctx,
+		rootCopyRequest{
+			Source: root,
+			Dest: req.Dest,
+		},
+	)
+	return err, res
 }
