@@ -62,10 +62,9 @@ var rootMoveCommand = func() clib.Command {
 			return err, nil
 		}
 
-		err, _ = dryad.RootMove(
+		err = safeSourceRoot.Move(
 			ctx,
 			dryad.RootMoveRequest{
-				Source: &safeSourceRoot,
 				Dest: &unsafeDestRoot,
 			},
 		)

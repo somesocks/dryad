@@ -6,12 +6,12 @@ import (
 	"fmt"
 )
 
-type RootMoveRequest struct {
+type rootMoveRequest struct {
 	Source *SafeRootReference
 	Dest *UnsafeRootReference
 }
 
-func RootMove(ctx *task.ExecutionContext, req RootMoveRequest) (error, *SafeRootReference) {
+func rootMove(ctx *task.ExecutionContext, req rootMoveRequest) (error, *SafeRootReference) {
 	var sourcePath string = req.Source.BasePath
 	var err error
 
@@ -47,4 +47,19 @@ func RootMove(ctx *task.ExecutionContext, req RootMoveRequest) (error, *SafeRoot
 	// delete the old root
 	err, _ = dydfs.RemoveAll(task.SERIAL_CONTEXT, sourcePath)
 	return err, nil
+}
+
+type RootMoveRequest struct {
+	Dest *UnsafeRootReference
+}
+
+func (root *SafeRootReference) Move(ctx *task.ExecutionContext, req RootMoveRequest) (error) {
+	err, _ := rootMove(
+		ctx,
+		rootMoveRequest{
+			Source: root,
+			Dest: req.Dest,
+		},
+	)
+	return err
 }
