@@ -2,18 +2,19 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
+	"dryad/task"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 )
 
-type RootReplaceRequest struct {
+type rootReplaceRequest struct {
 	Source *SafeRootReference
 	Dest *SafeRootReference
 }
 
-func RootReplace(req RootReplaceRequest) error {
+func rootReplace(req rootReplaceRequest) error {
 	var sourcePath string = req.Source.BasePath
 	var destPath string = req.Dest.BasePath
 	var err error
@@ -97,5 +98,19 @@ func RootReplace(req RootReplaceRequest) error {
 		MatchExclude: matchExclude,
 		OnMatch:      onMatch,
 	})
+	return err
+}
+
+type RootReplaceRequest struct {
+	Dest *SafeRootReference
+}
+
+func (root *SafeRootReference) Replace(ctx *task.ExecutionContext, req RootReplaceRequest) (error) {
+	err := rootReplace(
+		rootReplaceRequest{
+			Source: root,
+			Dest: req.Dest,
+		},
+	)
 	return err
 }

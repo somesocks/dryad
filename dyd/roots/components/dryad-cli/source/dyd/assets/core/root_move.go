@@ -34,9 +34,9 @@ func rootMove(ctx *task.ExecutionContext, req rootMoveRequest) (error, *SafeRoot
 	}
 
 	// replace references to the root
-	err = RootReplace(
+	err = req.Source.Replace(
+		ctx,
 		RootReplaceRequest{
-			Source: req.Source,
 			Dest: newRoot,
 		},
 	)

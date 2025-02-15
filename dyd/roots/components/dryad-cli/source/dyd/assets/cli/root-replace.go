@@ -50,9 +50,9 @@ var rootReplaceCommand = func() clib.Command {
 				return 1
 			}	
 
-			err = dryad.RootReplace(
+			err = safeSourceRoot.Replace(
+				task.SERIAL_CONTEXT,
 				dryad.RootReplaceRequest{
-					Source: &safeSourceRoot,
 					Dest: &safeDestRoot,
 				},
 			)
