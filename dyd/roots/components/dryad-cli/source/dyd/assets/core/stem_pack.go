@@ -107,7 +107,7 @@ func stemPack(
 		return "", err
 	}
 
-	return filepath.Base(packedStem.BasePath), nil
+	return packedStem.BasePath, nil
 }
 
 func finalizeSproutPath(targetPath string, packedStemPath string) (string, error) {
