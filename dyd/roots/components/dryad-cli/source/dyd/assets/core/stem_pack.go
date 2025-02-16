@@ -110,19 +110,14 @@ func stemPack(
 	return packedStem.BasePath, nil
 }
 
-func finalizeSproutPath(targetPath string, packedStemPath string) (string, error) {
+func finalizeSproutPath(targetGarden *SafeGardenReference, packedStemPath string) (string, error) {
 	zlog.
 		Debug().
-		Str("targetPath", targetPath).
+		Str("targetPath", targetGarden.BasePath).
 		Str("stemPath", packedStemPath).
 		Msg("StemPack / finalizeSproutPath")
 
-	targetPath, err := filepath.Abs(targetPath)
-	if err != nil {
-		return "", err
-	}
-
-	sproutPath := filepath.Join(targetPath, "dyd", "sprouts", "main")
+	sproutPath := filepath.Join(targetGarden.BasePath, "dyd", "sprouts", "main")
 	sproutParent := filepath.Dir(sproutPath)
 	sproutHeapPath := packedStemPath
 	relSproutLink, err := filepath.Rel(
@@ -417,7 +412,7 @@ func StemPack(
 		return "", err
 	}
 
-	_, err = finalizeSproutPath(request.TargetPath, packedStemPath)
+	_, err = finalizeSproutPath(safeTargetGardenRef, packedStemPath)
 	if err != nil {
 		return "", err
 	}
