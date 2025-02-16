@@ -8,7 +8,7 @@ import (
 )
 
 
-func (stems *SafeHeapStemsReference) Stems(fingerprint string) (*UnsafeHeapStemReference) {
+func (stems *SafeHeapStemsReference) Stem(fingerprint string) (*UnsafeHeapStemReference) {
 	var heapStemRef = UnsafeHeapStemReference{
 		BasePath: filepath.Join(stems.BasePath, fingerprint),
 		Stems: stems,
