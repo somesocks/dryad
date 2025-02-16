@@ -96,7 +96,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		return err, ""
 	}
 
-	err, finalStemPath := rootBuild_stage4(
+	err, rootStem := rootBuild_stage4(
 		ctx,
 		rootBuild_stage4_request{
 			Garden: req.Root.Roots.Garden,
@@ -108,7 +108,8 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		return err, ""
 	}
 
-	isUnstableRoot, err := fileExists(filepath.Join(finalStemPath, "dyd", "traits", "unstable"))
+	isUnstableRoot, err := fileExists(
+		filepath.Join(rootStem.BasePath, "dyd", "traits", "unstable"))
 	if err != nil {
 		return err, ""
 	}
@@ -156,7 +157,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 			rootBuild_stage5_request{
 				Garden: req.Root.Roots.Garden,
 				RelRootPath: relRootPath,
-				RootStemPath: finalStemPath,
+				RootStemPath: rootStem.BasePath,
 				StemBuildPath: stemBuildPath,
 				RootFingerprint: rootFingerprint,
 				JoinStdout: req.JoinStdout,
@@ -167,7 +168,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 			return err, ""
 		}
 
-		err, finalStemPath = rootBuild_stage6(
+		err, finalStem := rootBuild_stage6(
 			ctx,
 			rootBuild_stage6_request{
 				Garden: req.Root.Roots.Garden,
@@ -183,7 +184,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 			// add the derivation link
 			derivationsLinkPath, err := filepath.Rel(
 				filepath.Dir(derivationsPath),
-				finalStemPath,
+				finalStem.BasePath,
 			)
 			if err != nil {
 				return err, ""

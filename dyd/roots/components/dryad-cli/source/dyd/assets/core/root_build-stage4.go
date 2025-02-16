@@ -20,26 +20,35 @@ type rootBuild_stage4_request struct {
 
 // stage 4 - check the garden to see if the stem exists,
 // and add it if it doesn't
-var rootBuild_stage4 func (ctx *task.ExecutionContext, req rootBuild_stage4_request) (error, string) =
-	func (ctx *task.ExecutionContext, req rootBuild_stage4_request) (error, string) {
+var rootBuild_stage4 func (ctx *task.ExecutionContext, req rootBuild_stage4_request) (error, *SafeHeapStemReference) =
+	func (ctx *task.ExecutionContext, req rootBuild_stage4_request) (error, *SafeHeapStemReference) {
 		relRootPath, err := filepath.Rel(
 			filepath.Join(req.Garden.BasePath, "dyd", "roots"),
 			req.RootPath,
 		)
 		if err != nil {
-			return err, ""
+			return err, nil
+		}
+
+		err, heap := req.Garden.Heap().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		err, stems := heap.Stems().Resolve(ctx)
+		if err != nil {
+			return err, nil
 		}
 
 		zlog.Debug().
 			Str("path", relRootPath).
 			Msg("root build - stage4")
 
-		err, stemPath := HeapAddStem(
+		err, stem := stems.AddStem(
 			ctx,
 			HeapAddStemRequest{
-				Garden : req.Garden,
 				StemPath: req.WorkspacePath,
 			},
 		)
-		return err, stemPath
+		return err, stem
 	}

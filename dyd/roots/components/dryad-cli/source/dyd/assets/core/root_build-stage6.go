@@ -19,18 +19,28 @@ type rootBuild_stage6_request struct {
 }
 
 // stage 6 - pack the derived stem into the heap and garden
-var rootBuild_stage6 func (ctx *task.ExecutionContext, req rootBuild_stage6_request) (error, string) =
-	func (ctx *task.ExecutionContext, req rootBuild_stage6_request) (error, string) {
+var rootBuild_stage6 func (ctx *task.ExecutionContext, req rootBuild_stage6_request) (error, *SafeHeapStemReference) =
+	func (ctx *task.ExecutionContext, req rootBuild_stage6_request) (error, *SafeHeapStemReference) {
 		zlog.Debug().
 			Str("path", req.RelRootPath).
 			Msg("root build - stage6")
 
-		err, stemPath := HeapAddStem(
+		err, heap := req.Garden.Heap().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		err, stems := heap.Stems().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+	
+
+		err, stem := stems.AddStem(
 			ctx,
 			HeapAddStemRequest{
-				Garden: req.Garden,
 				StemPath: req.StemBuildPath,
 			},
 		)
-		return err, stemPath
+		return err, stem
 	}

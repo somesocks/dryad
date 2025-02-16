@@ -18,22 +18,24 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-type StemPackRequest struct {
-	Garden *SafeGardenReference
-	StemPath string
-	TargetPath string
-	Format string
+type stemPackRequest struct {
+	SourceStemPath string
+	TargetGarden *SafeGardenReference
 }
 
-func stemPack(context BuildContext, request StemPackRequest) (string, error) {	
-	var stemPath = request.StemPath
-	var targetPath = request.TargetPath
+func stemPack(
+	ctx *task.ExecutionContext,
+	context BuildContext,
+	request stemPackRequest,
+) (string, error) {	
+
+	var stemPath = request.SourceStemPath
 	var err error
 
 	zlog.
 		Debug().
 		Str("stemPath", stemPath).
-		Str("targetPath", targetPath).
+		Str("targetPath", request.TargetGarden.BasePath).
 		Msg("StemPack packing stem")
 
 	// convert relative stem path to absolute
@@ -44,12 +46,6 @@ func stemPack(context BuildContext, request StemPackRequest) (string, error) {
 
 	// resolve the dir to the root of the stem
 	stemPath, err = StemPath(stemPath)
-	if err != nil {
-		return "", err
-	}
-
-	// convert relative target to absolute
-	targetPath, err = filepath.Abs(targetPath) 
 	if err != nil {
 		return "", err
 	}
@@ -81,18 +77,29 @@ func stemPack(context BuildContext, request StemPackRequest) (string, error) {
 			return "", err
 		}
 
-		stemPack(context, StemPackRequest{
-			StemPath: dependencyPath,
-			TargetPath: targetPath,
-			Format: request.Format,
-		})
+		stemPack(
+			ctx,
+			context,
+			stemPackRequest{
+				SourceStemPath: dependencyPath,
+				TargetGarden: request.TargetGarden,
+			},
+		)
 	}
 
-	var packedStemPath string
-	err, packedStemPath = HeapAddStem(
+	err, targetHeap := request.TargetGarden.Heap().Resolve(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	err, targetStems := targetHeap.Stems().Resolve(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	err, packedStem := targetStems.AddStem(
 		task.SERIAL_CONTEXT,
 		HeapAddStemRequest{
-			Garden: request.Garden,
 			StemPath: stemPath,
 		},
 	)
@@ -100,7 +107,7 @@ func stemPack(context BuildContext, request StemPackRequest) (string, error) {
 		return "", err
 	}
 
-	return packedStemPath, nil
+	return filepath.Base(packedStem.BasePath), nil
 }
 
 func finalizeSproutPath(targetPath string, packedStemPath string) (string, error) {
@@ -178,7 +185,7 @@ func _stripFirstSegment(path string) string {
 func stemArchive(request StemPackRequest) (string, error) {
 	zlog.
 		Debug().
-		Str("stemPath", request.StemPath).
+		Str("stemPath", request.SourceStemPath).
 		Str("targetPath", request.TargetPath).
 		Str("format", request.Format).
 		Msg("StemPack / stemArchive")
@@ -363,10 +370,20 @@ func stemArchive(request StemPackRequest) (string, error) {
 
 }
 
-func StemPack(request StemPackRequest) (string, error) {
+type StemPackRequest struct {
+	SourceGarden *SafeGardenReference
+	SourceStemPath string
+	TargetPath string
+	Format string
+}
+
+func StemPack(
+	ctx *task.ExecutionContext,
+	request StemPackRequest,
+) (string, error) {
 	zlog.
 		Debug().
-		Str("stemPath", request.StemPath).
+		Str("stemPath", request.SourceStemPath).
 		Str("targetPath", request.TargetPath).
 		Str("format", request.Format).
 		Msg("StemPack")
@@ -383,12 +400,19 @@ func StemPack(request StemPackRequest) (string, error) {
 	var unsafeTargetGardenRef = Garden(request.TargetPath)
 	// var targetGardenRef *SafeGardenReference
 
-	err, _ = unsafeTargetGardenRef.Create(task.DEFAULT_CONTEXT)
+	err, safeTargetGardenRef := unsafeTargetGardenRef.Create(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	packedStemPath, err := stemPack(buildContext, request)
+	packedStemPath, err := stemPack(
+		ctx,
+		buildContext,
+		stemPackRequest{
+			TargetGarden: safeTargetGardenRef,
+			SourceStemPath: request.SourceStemPath,
+		},
+	)
 	if err != nil {
 		return "", err
 	}

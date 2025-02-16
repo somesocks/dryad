@@ -11,24 +11,19 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-type HeapAddFileRequest struct {
-	Garden *SafeGardenReference
+type heapAddFileRequest struct {
+	HeapFiles *SafeHeapFilesReference
 	SourcePath string
 }
 
-func HeapAddFile(ctx *task.ExecutionContext, req HeapAddFileRequest) (error, string) {
-	var heapPath string
+func heapAddFile(ctx *task.ExecutionContext, req heapAddFileRequest) (error, string) {
+	var heapFilesPath string = req.HeapFiles.BasePath
 	var sourcePath string = req.SourcePath
 	var err error
 
-	heapPath, err = HeapPath(req.Garden)
-	if err != nil {
-		return err, ""
-	}
-
 	zlog.
 		Trace().
-		Str("heapPath", heapPath).
+		Str("heapFilesPath", heapFilesPath).
 		Str("sourcePath", sourcePath).
 		Msg("HeapAddFile")
 
@@ -39,7 +34,7 @@ func HeapAddFile(ctx *task.ExecutionContext, req HeapAddFileRequest) (error, str
 
 	fingerprint := sourceHashAlgorithm + "-" + sourceHash
 
-	destPath := filepath.Join(heapPath, "files", fingerprint)
+	destPath := filepath.Join(heapFilesPath, fingerprint)
 
 	srcFile, err := os.Open(sourcePath)
 	if err != nil {
@@ -71,4 +66,18 @@ func HeapAddFile(ctx *task.ExecutionContext, req HeapAddFileRequest) (error, str
 	}
 
 	return nil, fingerprint
+}
+
+func (heapFiles *SafeHeapFilesReference) AddFile(
+	ctx *task.ExecutionContext,
+	sourcePath string,
+) (error, string) {
+	err, res := heapAddFile(
+		ctx,
+		heapAddFileRequest{
+			HeapFiles: heapFiles,
+			SourcePath: sourcePath,
+		},
+	)
+	return err, res
 }
