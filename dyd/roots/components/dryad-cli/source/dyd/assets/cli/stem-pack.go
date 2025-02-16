@@ -3,6 +3,7 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
 	"fmt"
 
 	zlog "github.com/rs/zerolog/log"
@@ -39,11 +40,14 @@ var stemPackCommand = func() clib.Command {
 				format = "tar.gz"
 			}
 
-			targetPath, err := dryad.StemPack(dryad.StemPackRequest{
-				StemPath : stemPath,
-				TargetPath: targetPath,	
-				Format: format,			
-			})
+			targetPath, err := dryad.StemPack(
+				task.SERIAL_CONTEXT,
+				dryad.StemPackRequest{
+					SourceStemPath : stemPath,
+					TargetPath: targetPath,	
+					Format: format,			
+				},
+			)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while packing stem")
 				return 1

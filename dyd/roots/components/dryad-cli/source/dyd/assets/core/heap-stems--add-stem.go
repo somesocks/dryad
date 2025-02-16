@@ -21,47 +21,46 @@ func _readFile(filePath string) (string, error) {
 	return string(bytes), nil
 }
 
-type HeapAddStemRequest struct {
-	Garden *SafeGardenReference
+type heapAddStemRequest struct {
+	HeapStems *SafeHeapStemsReference
+	HeapFiles *SafeHeapFilesReference
 	StemPath string	
 }
 
-// HeapAddStem takes a stem in a directory, and adds it to the heap.
+// heapAddStem takes a stem in a directory, and adds it to the heap.
 // the heap path is normalized before adding
-func HeapAddStem(ctx *task.ExecutionContext, req HeapAddStemRequest) (error, string) {
-	var heapPath string
+func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *SafeHeapStemReference) {
 	var stemPath = req.StemPath
 
-	// normalize the heap path
-	heapPath, err := HeapPath(req.Garden)
-	if err != nil {
-		return err, ""
-	}
-
-	gardenFilesPath := filepath.Join(heapPath, "files")
-	gardenStemsPath := filepath.Join(heapPath, "stems")
+	heapFilesPath := req.HeapFiles.BasePath
+	heapStemsPath := req.HeapStems.BasePath
 
 	stemFingerprint, err := _readFile(filepath.Join(stemPath, "dyd", "fingerprint"))
 	if err != nil {
-		return err, ""
+		return err, nil
 	}
 
-	finalStemPath := filepath.Join(gardenStemsPath, stemFingerprint)
+	finalStemPath := filepath.Join(heapStemsPath, stemFingerprint)
 
 	// check to see if the stem already exists in the garden
 	stemExists, err := fileExists(finalStemPath)
 	if err != nil {
-		return err, ""
+		return err, nil
 	}
 
 	// if stem exists, do nothing
 	if stemExists {
-		return nil, finalStemPath
+		stemRef := SafeHeapStemReference{
+			BasePath: finalStemPath,
+			Stems: req.HeapStems,
+		}
+		
+		return nil, &stemRef
 	}
 
 	err = os.MkdirAll(finalStemPath, fs.ModePerm)
 	if err != nil {
-		return err, ""
+		return err, nil
 	}
 
 	// walk the packed root files and copy them into the garden heap
@@ -74,7 +73,7 @@ func HeapAddStem(ctx *task.ExecutionContext, req HeapAddStemRequest) (error, str
 					Trace().
 					Str("path", node.Path).
 					Str("vpath", node.VPath).
-					Msg("HeapAddStem / onMatch")
+					Msg("heapAddStem / onMatch")
 
 				relPath, err := filepath.Rel(node.BasePath, node.VPath)
 				if err != nil {
@@ -96,7 +95,7 @@ func HeapAddStem(ctx *task.ExecutionContext, req HeapAddStemRequest) (error, str
 					// zlog.
 					// 	Trace().
 					// 	Str("path", node.Path).
-					// 	Msg("HeapAddStem / onMatch isDir")
+					// 	Msg("heapAddStem / onMatch isDir")
 
 					err = os.Mkdir(destPath, os.ModePerm)
 					if err != nil {
@@ -106,7 +105,7 @@ func HeapAddStem(ctx *task.ExecutionContext, req HeapAddStemRequest) (error, str
 					// zlog.
 					// 	Trace().
 					// 	Str("path", node.Path).
-					// 	Msg("HeapAddStem / onMatch isSymlink")
+					// 	Msg("heapAddStem / onMatch isSymlink")
 
 					linkTarget, err := os.Readlink(node.Path)
 					if err != nil {
@@ -130,14 +129,11 @@ func HeapAddStem(ctx *task.ExecutionContext, req HeapAddStemRequest) (error, str
 					// zlog.
 					// 	Trace().
 					// 	Str("path", node.Path).
-					// 	Msg("HeapAddStem / onMatch isFile")
+					// 	Msg("heapAddStem / onMatch isFile")
 
-					err, fileFingerprint := HeapAddFile(
+					err, fileFingerprint := req.HeapFiles.AddFile(
 						ctx,
-						HeapAddFileRequest{
-							Garden: req.Garden,
-							SourcePath: node.Path,
-						},
+						node.Path,
 					)
 					if err != nil {
 						zlog.
@@ -145,11 +141,11 @@ func HeapAddStem(ctx *task.ExecutionContext, req HeapAddStemRequest) (error, str
 							Str("path", node.Path).
 							Str("vpath", node.VPath).
 							Err(err).
-							Msg("HeapAddStem / onMatch / HeapAddFile error")
+							Msg("heapAddStem / onMatch / HeapAddFile error")
 						return err, nil
 					}
 
-					fileHeapPath := filepath.Join(gardenFilesPath, fileFingerprint)
+					fileHeapPath := filepath.Join(heapFilesPath, fileFingerprint)
 
 					err = os.Link(fileHeapPath, destPath)
 					if err != nil {
@@ -162,7 +158,7 @@ func HeapAddStem(ctx *task.ExecutionContext, req HeapAddStemRequest) (error, str
 		},
 	)
 	if err != nil {
-		return err, ""
+		return err, nil
 	}
 
 	// walk the requirements and convert them to dependencies
@@ -170,27 +166,27 @@ func HeapAddStem(ctx *task.ExecutionContext, req HeapAddStemRequest) (error, str
 	dependenciesPath := filepath.Join(finalStemPath, "dyd", "dependencies")
 	requirements, err := filepath.Glob(filepath.Join(requirementsPath, "*"))
 	if err != nil {
-		return err, ""
+		return err, nil
 	}
 
 	for _, requirementPath := range requirements {
 		targetFingerprintFile := filepath.Join(requirementPath, "dyd", "fingerprint")
 		targetFingerprintBytes, err := ioutil.ReadFile(targetFingerprintFile)
 		if err != nil {
-			return err, ""
+			return err, nil
 		}
 		targetFingerprint := string(targetFingerprintBytes)
 
 		dependencyPath := filepath.Join(dependenciesPath, filepath.Base(requirementPath))
-		dependencyGardenPath := filepath.Join(gardenStemsPath, targetFingerprint)
+		dependencyGardenPath := filepath.Join(heapStemsPath, targetFingerprint)
 		relPath, err := filepath.Rel(dependenciesPath, dependencyGardenPath)
 		if err != nil {
-			return err, ""
+			return err, nil
 		}
 
 		err = os.Symlink(relPath, dependencyPath)
 		if err != nil {
-			return err, ""
+			return err, nil
 		}
 
 	}
@@ -199,29 +195,36 @@ func HeapAddStem(ctx *task.ExecutionContext, req HeapAddStemRequest) (error, str
 
 	hasSecrets, err := fileExists(secretsFingerprintPath)
 	if err != nil {
-		return err, ""
+		return err, nil
 	}
 
 	if hasSecrets {
-		secretsFingerprint, err := HeapAddSecrets(req.Garden, stemPath)
+		secretsPath := filepath.Join(stemPath, "dyd", "secrets")
+
+		err, secretsRef := req.HeapStems.Heap.Secrets().Resolve(ctx)
 		if err != nil {
-			return err, ""
+			return err, nil
+		}
+
+		err, secretRef := secretsRef.AddSecret(ctx, secretsPath)
+		if err != nil {
+			return err, nil
 		}
 
 		secretsMountPoint := filepath.Join(finalStemPath, "dyd", "secrets")
-		secretsHeapPath := filepath.Join(heapPath, "secrets", secretsFingerprint)
+		secretsHeapPath := secretRef.BasePath
 
 		relativeLink, err := filepath.Rel(
 			filepath.Dir(secretsMountPoint),
 			secretsHeapPath,
 		)
 		if err != nil {
-			return err, ""
+			return err, nil
 		}
 
 		err = os.Symlink(relativeLink, secretsMountPoint)
 		if err != nil {
-			return err, ""
+			return err, nil
 		}
 
 	}
@@ -289,8 +292,38 @@ func HeapAddStem(ctx *task.ExecutionContext, req HeapAddStemRequest) (error, str
 		},
 	)
 	if err != nil {
-		return err, ""
+		return err, nil
 	}
 
-	return nil, finalStemPath
+	stemRef := SafeHeapStemReference{
+		BasePath: finalStemPath,
+		Stems: req.HeapStems,
+	}
+
+	return nil, &stemRef
+}
+
+type HeapAddStemRequest struct {
+	StemPath string	
+}
+
+func (heapStems *SafeHeapStemsReference) AddStem(
+	ctx *task.ExecutionContext,
+	req HeapAddStemRequest,
+) (error, *SafeHeapStemReference) {
+	err, heapFiles := heapStems.Heap.Files().Resolve(ctx)
+	if err != nil {
+		return err, nil
+	}
+
+	err, res := heapAddStem(
+		ctx,
+		heapAddStemRequest{
+			HeapStems: heapStems,
+			HeapFiles: heapFiles,
+			StemPath: req.StemPath,
+		},
+	)
+
+	return err, res
 }
