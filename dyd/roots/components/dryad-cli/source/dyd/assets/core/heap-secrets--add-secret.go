@@ -2,22 +2,17 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
+	"dryad/task"
 	"io/fs"
 	"os"
 	"path/filepath"
 )
 
-func HeapAddSecrets(garden *SafeGardenReference, secretsPath string) (string, error) {
-	// fmt.Println("[trace] HeapAddSecrets ", heapPath, secretsPath)
+func heapAddSecrets(garden *SafeGardenReference, secretsPath string) (string, error) {
+	// fmt.Println("[trace] heapAddSecrets ", heapPath, secretsPath)
 
 	// normalize the heap path
 	heapPath, err := HeapPath(garden)
-	if err != nil {
-		return "", err
-	}
-
-	// normalize the secrets path
-	secretsPath, err = SecretsPath(secretsPath)
 	if err != nil {
 		return "", err
 	}
@@ -130,4 +125,25 @@ func HeapAddSecrets(garden *SafeGardenReference, secretsPath string) (string, er
 	}
 
 	return secretsFingerprint, nil
+}
+
+func (secrets *SafeHeapSecretsReference) AddSecret(
+	ctx *task.ExecutionContext,
+	sourcePath string,
+) (error, *SafeHeapSecretReference) {
+	fingerprint, err := heapAddSecrets(
+		secrets.Heap.Garden,
+		sourcePath,
+	)
+	if err != nil {
+		return err, nil
+	}
+
+	ref := SafeHeapSecretReference{
+		BasePath: filepath.Join(secrets.BasePath, fingerprint),
+		Fingerprint: fingerprint,
+		Secrets: secrets,
+	}
+
+	return nil, &ref
 }

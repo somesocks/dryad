@@ -34,7 +34,6 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 
 	heapFilesPath := req.HeapFiles.BasePath
 	heapStemsPath := req.HeapStems.BasePath
-	heapPath := req.HeapStems.Heap.BasePath
 
 	stemFingerprint, err := _readFile(filepath.Join(stemPath, "dyd", "fingerprint"))
 	if err != nil {
@@ -200,13 +199,20 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 	}
 
 	if hasSecrets {
-		secretsFingerprint, err := HeapAddSecrets(req.HeapStems.Heap.Garden, stemPath)
+		secretsPath := filepath.Join(stemPath, "dyd", "secrets")
+
+		err, secretsRef := req.HeapStems.Heap.Secrets().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		err, secretRef := secretsRef.AddSecret(ctx, secretsPath)
 		if err != nil {
 			return err, nil
 		}
 
 		secretsMountPoint := filepath.Join(finalStemPath, "dyd", "secrets")
-		secretsHeapPath := filepath.Join(heapPath, "secrets", secretsFingerprint)
+		secretsHeapPath := secretRef.BasePath
 
 		relativeLink, err := filepath.Rel(
 			filepath.Dir(secretsMountPoint),
