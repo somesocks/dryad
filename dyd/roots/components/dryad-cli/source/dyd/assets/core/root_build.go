@@ -5,7 +5,6 @@ import (
 	"dryad/task"
 
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -116,27 +115,34 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 
 	var stemBuildFingerprint string
 
-	var derivationsPath string = ""
-	var derivationFileExists bool = false
+	err, heap := req.Root.Roots.Garden.Heap().Resolve(ctx)
+	if err != nil {
+		return err, ""
+	}
+
+	err, heapDerivations := heap.Derivations().Resolve(ctx)
+	if err != nil {
+		return err, ""
+	}
+
+	unsafeDerivationRef := heapDerivations.Derivation(rootFingerprint)
+	var derivationExists bool
 
 	if !isUnstableRoot {
-		// if the derivation link already exists,
-		// then return it directly
-		derivationsPath = filepath.Join(gardenPath, "dyd", "heap", "derivations", rootFingerprint)
-		derivationFileExists, err = fileExists(derivationsPath)
+		err, derivationExists = unsafeDerivationRef.Exists(ctx)
 		if err != nil {
 			return err, ""
 		}
 	}
 
-	if derivationFileExists {
-		// fmt.Println("[trace] derivationFileExists " + derivationsPath)
-		derivationsFingerprintFile := filepath.Join(derivationsPath, "dyd", "fingerprint")
-		derivationsFingerprintBytes, err := ioutil.ReadFile(derivationsFingerprintFile)
+	if derivationExists {
+
+		err, safeDerivationRef := unsafeDerivationRef.Resolve(ctx)
 		if err != nil {
 			return err, ""
 		}
-		derivationsFingerprint := string(derivationsFingerprintBytes)
+
+		derivationsFingerprint := filepath.Base(safeDerivationRef.Result.BasePath)
 
 		stemBuildFingerprint = derivationsFingerprint
 
@@ -168,7 +174,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 			return err, ""
 		}
 
-		err, finalStem := rootBuild_stage6(
+		err, _ = rootBuild_stage6(
 			ctx,
 			rootBuild_stage6_request{
 				Garden: req.Root.Roots.Garden,
@@ -182,19 +188,10 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 
 		if !isUnstableRoot {
 			// add the derivation link
-			derivationsLinkPath, err := filepath.Rel(
-				filepath.Dir(derivationsPath),
-				finalStem.BasePath,
-			)
-			if err != nil {
-				return err, ""
-			}
-			err, _ = dydfs.Symlink(
+			err, _ := heapDerivations.Add(
 				ctx,
-				dydfs.SymlinkRequest{
-					Path: derivationsPath,
-					Target: derivationsLinkPath,
-				},
+				rootFingerprint,
+				stemBuildFingerprint,
 			)
 			if err != nil {
 				return err, ""
