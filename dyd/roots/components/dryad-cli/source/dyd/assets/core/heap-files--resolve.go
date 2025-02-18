@@ -2,6 +2,7 @@
 package core
 
 import (
+	fs2 "dryad/filesystem"
 	"dryad/task"
 
 	"os"
@@ -21,7 +22,14 @@ func (heapFiles *UnsafeHeapFilesReference) Resolve(ctx * task.ExecutionContext) 
 	}
 
 	if !heapFilesExists {
-		err = os.Mkdir(heapFiles.BasePath, os.ModePerm)
+		// err = os.Mkdir(heapFiles.BasePath, os.ModePerm)
+		err, _ := fs2.Mkdir2(
+			ctx,
+			fs2.MkdirRequest{
+				Path: heapFiles.BasePath,
+				Permissions: os.ModePerm,
+			},
+		)
 		if err != nil {
 			return err, nil
 		}
