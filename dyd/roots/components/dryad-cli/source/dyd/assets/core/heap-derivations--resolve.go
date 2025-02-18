@@ -2,6 +2,7 @@
 package core
 
 import (
+	fs2 "dryad/filesystem"
 	"dryad/task"
 
 	"os"
@@ -21,7 +22,14 @@ func (heapDerivations *UnsafeHeapDerivationsReference) Resolve(ctx * task.Execut
 	}
 
 	if !heapDerivationsExists {
-		err = os.Mkdir(heapDerivations.BasePath, os.ModePerm)
+		// err = os.Mkdir(heapDerivations.BasePath, os.ModePerm)
+		err, _ := fs2.Mkdir2(
+			ctx,
+			fs2.MkdirRequest{
+				Path: heapDerivations.BasePath,
+				Permissions: os.ModePerm,
+			},
+		)
 		if err != nil {
 			return err, nil
 		}
