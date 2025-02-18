@@ -249,8 +249,8 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 
 var memoRootBuild = task.Memoize(
 	rootBuild,
-	func (req rootBuildRequest) any {
-		return struct {
+	func (ctx * task.ExecutionContext, req rootBuildRequest) (error, any) {
+		var res = struct {
 			Group string
 			GardenPath string
 			RootPath string
@@ -259,6 +259,7 @@ var memoRootBuild = task.Memoize(
 			GardenPath: req.Root.Roots.Garden.BasePath,
 			RootPath: req.Root.BasePath,
 		}
+		return nil, res
 	},
 )
 
