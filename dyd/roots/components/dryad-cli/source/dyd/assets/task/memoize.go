@@ -36,10 +36,17 @@ func onceWrapper[A any, B any](
 
 func Memoize[A any, B any](
 	task Task[A, B],
-	keyFunc func (req A) any,
+	keyFunc Task[A, any],
 ) Task[A, B] {
 	return func (ctx *ExecutionContext, req A) (error, B) {
-		var key = keyFunc(req)
+		var err error
+		var key any
+		var res B
+		
+		err, key = keyFunc(ctx, req)
+		if err != nil {
+			return err, res
+		}
 
 		var cachedTask any 
 		var hasCachedTask bool
@@ -58,8 +65,6 @@ func Memoize[A any, B any](
 			// 	Msg("memogroup updated")
 		}
 
-		var err error
-		var res B
 		err, res = cachedTask.(Task[A, B])(ctx, req)
 
 		// var jsonReq, _ = json.Marshal(req)

@@ -303,6 +303,33 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 	return nil, &stemRef
 }
 
+var memoHeapAddStem = task.Memoize(
+	heapAddStem,
+	func (ctx * task.ExecutionContext, req heapAddStemRequest) (error, any) {
+		type Key struct {
+			Group string
+			Fingerprint string
+		}
+		var res Key
+		var fingerprint string
+		var err error
+
+		fingerprint, err = _readFile(
+			filepath.Join(req.StemPath, "dyd", "fingerprint"),
+		)
+		if err != nil {
+			return err, res
+		}
+		
+		res = Key{
+			Group: "HeapStems.AddStem",
+			Fingerprint: fingerprint,
+		}
+
+		return nil, res
+	},
+)
+
 type HeapAddStemRequest struct {
 	StemPath string	
 }
@@ -316,7 +343,7 @@ func (heapStems *SafeHeapStemsReference) AddStem(
 		return err, nil
 	}
 
-	err, res := heapAddStem(
+	err, res := memoHeapAddStem(
 		ctx,
 		heapAddStemRequest{
 			HeapStems: heapStems,
