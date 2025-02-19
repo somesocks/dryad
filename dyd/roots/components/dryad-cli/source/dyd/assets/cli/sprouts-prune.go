@@ -18,15 +18,19 @@ var sproutsPruneCommand = func() clib.Command {
 				return 1
 			}
 
-			unsafeGarden := dryad.Garden(path)
-			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
+			err, garden := dryad.Garden(path).Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error resolving garden")
 				return 1
 			}
 
-			err = dryad.SproutsPrune(garden)
+			err, sprouts := garden.Sprouts().Resolve(task.SERIAL_CONTEXT)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error resolving sprouts")
+				return 1
+			}
+
+			err = sprouts.Prune(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while pruning sprouts")
 				return 1

@@ -19,13 +19,20 @@ type rootsBuildRequest struct {
 
 func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, any) {
 	var err error
+	var sprouts *SafeSproutsReference
 
 	zlog.Debug().
 		Str("gardenPath", request.Roots.Garden.BasePath).
 		Msg("RootsBuild")
 
+	
+	err, sprouts = request.Roots.Garden.Sprouts().Resolve(ctx)
+	if err != nil {
+		return err, nil
+	}
+
 	// prune sprouts before build
-	err = SproutsPrune(request.Roots.Garden)
+	err = sprouts.Prune(ctx)
 	if err != nil {
 		return err, nil
 	}

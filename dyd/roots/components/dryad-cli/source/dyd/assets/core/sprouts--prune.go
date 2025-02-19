@@ -10,28 +10,11 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-func SproutsPrune(garden *SafeGardenReference) error {
-	zlog.Debug().Msg("pruning sprouts")
+func sproutsPrune(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) error {
+	var roots *SafeRootsReference
+	var err error 
 
-	sproutsPath, err := SproutsPath(garden)
-	if err != nil {
-		return err
-	}
-
-	// add a safety check to make sure the sprouts path exists
-	// it may not be tracked in a git repo, f.ex.
-	sproutsExists, err := fileExists(sproutsPath)
-	if err != nil {
-		return err
-	}
-	if !sproutsExists {
-		err = os.MkdirAll(sproutsPath, os.ModePerm)
-		if err != nil {
-			return err
-		}
-	}
-
-	rootsPath, err := RootsPath(garden)
+	err, roots = sprouts.Garden.Roots().Resolve(ctx)
 	if err != nil {
 		return err
 	}
@@ -59,7 +42,7 @@ func SproutsPrune(garden *SafeGardenReference) error {
 			return err, false
 		}
 
-		rootsEquivalentPath := filepath.Join(rootsPath, relPath)
+		rootsEquivalentPath := filepath.Join(roots.BasePath, relPath)
 
 		// if the roots path does not exist, then we should wipe the sprouts path
 		rootsPathExists, err := fileExists(rootsEquivalentPath)
@@ -106,9 +89,9 @@ func SproutsPrune(garden *SafeGardenReference) error {
 	err = fs2.DFSWalk3(
 		task.SERIAL_CONTEXT,
 		fs2.Walk5Request{
-			Path:        sproutsPath,
-			VPath:       sproutsPath,
-			BasePath:    sproutsPath,
+			Path:        sprouts.BasePath,
+			VPath:       sprouts.BasePath,
+			BasePath:    sprouts.BasePath,
 			ShouldCrawl: shouldCrawl,
 			ShouldMatch: shouldMatch,
 			OnMatch:     onMatch,
@@ -119,4 +102,14 @@ func SproutsPrune(garden *SafeGardenReference) error {
 	}
 
 	return nil
+}
+
+func (sprouts *SafeSproutsReference) Prune(
+	ctx *task.ExecutionContext,
+) (error) {
+	err := sproutsPrune(
+		ctx,
+		sprouts,
+	)
+	return err
 }
