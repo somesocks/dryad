@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -90,24 +91,41 @@ var sproutRunCommand = func() clib.Command {
 			path := args[0]
 			extras := args[1:]
 
-			unsafeGarden := dryad.Garden(path)
+			path, err := filepath.Abs(path)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error resolving path")
+				return 1
+			}
 			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
+			err, garden := dryad.Garden(path).Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error resolving garden")
 				return 1
 			}
 
-			err = dryad.StemRun(dryad.StemRunRequest{
-				Garden: garden,
-				StemPath:     path,
-				MainOverride: override,
-				Env:          env,
-				Args:         extras,
-				JoinStdout:   true,
-				JoinStderr:   true,
-				Context:      context,
-			})
+			err, sprouts := garden.Sprouts().Resolve(task.SERIAL_CONTEXT)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error resolving sprouts")
+				return 1
+			}
+
+			err, sprout := sprouts.Sprout(path).Resolve(task.SERIAL_CONTEXT)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error resolving sprouts")
+				return 1
+			}
+
+			err = sprout.Run(
+				task.SERIAL_CONTEXT,
+				dryad.SproutRunRequest{
+					MainOverride: override,
+					Env:          env,
+					Args:         extras,
+					JoinStdout:   true,
+					JoinStderr:   true,
+					Context:      context,
+				},
+			)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error executing stem")
 				return 1

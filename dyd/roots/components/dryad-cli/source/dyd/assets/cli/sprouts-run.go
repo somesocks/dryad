@@ -202,15 +202,16 @@ var sproutsRunCommand = func() clib.Command {
 							Str("sprout", sprout.BasePath).
 							Msg("sprout run starting")
 		
-						err := dryad.StemRun(dryad.StemRunRequest{
-							Garden: garden,
-							StemPath:   sprout.BasePath,
-							Env:        env,
-							Args:       args.Extras,
-							JoinStdout: args.JoinStdout,
-							JoinStderr: args.JoinStderr,
-							Context:    args.Context,
-						})
+						err := sprout.Run(
+							ctx,
+							dryad.SproutRunRequest{
+								Env:        env,
+								Args:       args.Extras,
+								JoinStdout: args.JoinStdout,
+								JoinStderr: args.JoinStderr,
+								Context:    args.Context,
+							},
+						)
 						if err != nil {
 							zlog.Warn().
 								Str("sprout", sprout.BasePath).
