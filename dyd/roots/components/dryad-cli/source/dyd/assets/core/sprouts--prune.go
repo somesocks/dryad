@@ -1,7 +1,7 @@
 package core
 
 import (
-	fs2 "dryad/filesystem"
+	dydfs "dryad/filesystem"
 	"os"
 	"path/filepath"
 
@@ -20,7 +20,7 @@ func sproutsPrune(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) err
 	}
 
 	// crawl everything that isn't a symlink
-	shouldCrawl := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+	shouldCrawl := func(ctx *task.ExecutionContext, node dydfs.Walk5Node) (error, bool) {
 		var shouldCrawl bool = node.Info.Mode()&os.ModeSymlink != os.ModeSymlink
 
 		zlog.Trace().
@@ -31,7 +31,7 @@ func sproutsPrune(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) err
 	}
 
 	// match any path that we should delete
-	shouldMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+	shouldMatch := func(ctx *task.ExecutionContext, node dydfs.Walk5Node) (error, bool) {
 
 		zlog.Trace().
 			Str("path", node.Path).
@@ -58,25 +58,12 @@ func sproutsPrune(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) err
 		return nil, false
 	}
 
-	onMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
+	onMatch := func(ctx *task.ExecutionContext, node dydfs.Walk5Node) (error, any) {
 		zlog.Trace().
 			Str("path", node.Path).
 			Msg("SproutsPrune.onMatch")
-		parentPath := filepath.Dir(node.Path)
 
-		// set parent to RWX--X--X temporarily
-		err = os.Chmod(parentPath, 0o711)
-		if err != nil {
-			return err, nil
-		}
-
-		err = os.Remove(node.Path)
-		if err != nil {
-			return err, nil
-		}
-
-		// set parent back to R-X--X--X temporarily
-		err = os.Chmod(parentPath, 0o511)
+		err, _ = dydfs.Remove(ctx, node.Path)
 		if err != nil {
 			return err, nil
 		}
@@ -86,9 +73,9 @@ func sproutsPrune(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) err
 
 	// NOTE: this needs to run serially until we fix the concurrency issue
 	// with parent permissions in onMatch
-	err = fs2.DFSWalk3(
+	err = dydfs.DFSWalk3(
 		task.SERIAL_CONTEXT,
-		fs2.Walk5Request{
+		dydfs.Walk5Request{
 			Path:        sprouts.BasePath,
 			VPath:       sprouts.BasePath,
 			BasePath:    sprouts.BasePath,

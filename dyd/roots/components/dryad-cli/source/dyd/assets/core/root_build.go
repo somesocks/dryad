@@ -4,7 +4,6 @@ import (
 	dydfs "dryad/filesystem"
 	"dryad/task"
 
-	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -214,13 +213,21 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		return err, ""
 	}
 
-	// fmt.Println("[debug] building sprout parent")
-
 	zlog.Debug().
 		Str("path", sproutParent).
 		Msg("root build - building sprout")
-	err = dydfs.MkDir(sproutParent, fs.ModePerm)
+	err, _ = dydfs.Mkdir2(
+		ctx,
+		dydfs.MkdirRequest{
+			Path: sproutParent,
+			Permissions: 0o551,
+		},
+	)
 	if err != nil {
+		zlog.Error().
+			Str("sproutParent", sproutParent).
+			Err(err).
+			Msg("root build - building sprout parent")
 		return err, ""
 	}
 
@@ -237,6 +244,10 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		},
 	)
 	if err != nil {
+		zlog.Error().
+			Str("sproutPath", sproutPath).
+			Err(err).
+			Msg("root build - building sprout symlink")
 		return err, ""
 	}
 
