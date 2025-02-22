@@ -31,7 +31,7 @@ func (sprouts *UnsafeSproutsReference) Resolve(ctx *task.ExecutionContext) (erro
 			ctx,
 			fs2.MkdirRequest{
 				Path: sprouts.BasePath,
-				Permissions: 0o551,
+				Mode: 0o551,
 			},
 		)
 		if err != nil {

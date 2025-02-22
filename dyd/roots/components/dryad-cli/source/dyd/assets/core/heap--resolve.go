@@ -31,7 +31,7 @@ func (heap *UnsafeHeapReference) Resolve(ctx *task.ExecutionContext) (error, *Sa
 			ctx,
 			fs2.MkdirRequest{
 				Path: heap.BasePath,
-				Permissions: os.ModePerm,
+				Mode: os.ModePerm,
 			},
 		)
 		if err != nil {

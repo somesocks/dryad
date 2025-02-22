@@ -27,7 +27,7 @@ func (heapSecrets *UnsafeHeapSecretsReference) Resolve(ctx * task.ExecutionConte
 			ctx,
 			fs2.MkdirRequest{
 				Path: heapSecrets.BasePath,
-				Permissions: os.ModePerm,
+				Mode: os.ModePerm,
 			},
 		)
 		if err != nil {

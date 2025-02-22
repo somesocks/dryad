@@ -220,7 +220,8 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		ctx,
 		dydfs.MkdirRequest{
 			Path: sproutParent,
-			Permissions: 0o551,
+			Mode: 0o551,
+			Recursive: true,
 		},
 	)
 	if err != nil {

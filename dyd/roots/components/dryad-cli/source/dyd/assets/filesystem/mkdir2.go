@@ -13,7 +13,8 @@ import (
 
 type MkdirRequest struct {
 	Path string
-	Permissions fs.FileMode
+	Mode fs.FileMode
+	Recursive bool
 }
 
 type MkdirResult = MkdirRequest
@@ -23,7 +24,7 @@ var Mkdir2 = func () task.Task[MkdirRequest, *MkdirResult] {
 	var mkdir2 = func(ctx *task.ExecutionContext, req MkdirRequest) (error, *MkdirResult) {
 		var res = MkdirResult{
 			Path: req.Path,
-			Permissions: req.Permissions,
+			Mode: req.Mode,
 		}
 		var err error
 	
@@ -75,7 +76,7 @@ var Mkdir2 = func () task.Task[MkdirRequest, *MkdirResult] {
 			)
 		}
 	
-		err = os.Mkdir(req.Path, req.Permissions)
+		err = os.Mkdir(req.Path, req.Mode)
 		if err == nil {
 			return nil, &res
 		} else if errors.Is(err, fs.ErrExist) {
@@ -90,7 +91,7 @@ var Mkdir2 = func () task.Task[MkdirRequest, *MkdirResult] {
 			}
 		
 			if info.IsDir() {
-				newMode := (info.Mode() & 0xFFFFFE00) | req.Permissions
+				newMode := (info.Mode() & 0xFFFFFE00) | req.Mode
 				zlog.Trace().
 					Str("orig_perms", info.Mode().String()).
 					Str("new_perms", newMode.String()).
@@ -125,8 +126,36 @@ var Mkdir2 = func () task.Task[MkdirRequest, *MkdirResult] {
 		func (ctx *task.ExecutionContext, req MkdirRequest) (error, MkdirRequest) {
 			zlog.Trace().
 				Str("path", req.Path).
-				Str("mode", req.Permissions.String()).
+				Str("mode", req.Mode.String()).
 				Msg("dydfs.mkdir2")
+			return nil, req
+		},
+		mkdir2,
+	)
+
+	mkdir2 = task.Series2(
+		func (ctx *task.ExecutionContext, req MkdirRequest) (error, MkdirRequest) {
+			if req.Recursive {
+				var parentPath string = filepath.Dir(req.Path)
+				var err error
+
+				_, err = os.Lstat(parentPath)
+				if err == nil {
+					return nil, req
+				} else if errors.Is(err, fs.ErrNotExist) {
+					err, _ = mkdir2(ctx, MkdirRequest{
+						Path: parentPath,
+						Mode: req.Mode,
+						Recursive: true,
+					})
+					if err != nil {
+						return err, req
+					}
+					return nil, req
+				} else {
+					return err, req
+				}
+			}
 			return nil, req
 		},
 		mkdir2,

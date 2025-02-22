@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	// "fmt"
 
-	"runtime/debug"
 	zlog "github.com/rs/zerolog/log"
 )
 
@@ -44,7 +43,6 @@ func WithFileLock[A any, B any] (
 					Str("path", path).
 					Err(err).
 					Msg("dydfs.WithFileLock - get file descriptor")
-				debug.PrintStack()
 
 				var parentPath = filepath.Dir(path)
 
