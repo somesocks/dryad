@@ -78,23 +78,26 @@ var sproutsListCommand = func() clib.Command {
 			return err, nil
 		}
 
-		err, _ = dryad.SproutsWalk(
+		err, sprouts := garden.Sprouts().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		err = sprouts.Walk(
 			ctx,
 			dryad.SproutsWalkRequest{
-				Garden: garden,
-				OnSprout: func (ctx *task.ExecutionContext, path string) (error, any) {
+				OnSprout: func (ctx *task.ExecutionContext, sprout *dryad.SafeSproutReference) (error, any) {
 					// calculate the relative path to the root from the base of the garden
-					relPath, err := filepath.Rel(garden.BasePath, path)
+					relPath, err := filepath.Rel(sprout.Sprouts.Garden.BasePath, sprout.BasePath)
 					if err != nil {
 						return err, nil
 					}
-
 
 					if args.IncludeSprouts(relPath) && !args.ExcludeSprouts(relPath) {
 						if args.Relative {
 							fmt.Println(relPath)
 						} else {
-							fmt.Println(path)
+							fmt.Println(sprout.BasePath)
 						}
 					}
 

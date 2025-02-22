@@ -27,7 +27,7 @@ func (heapDerivations *UnsafeHeapDerivationsReference) Resolve(ctx * task.Execut
 			ctx,
 			fs2.MkdirRequest{
 				Path: heapDerivations.BasePath,
-				Permissions: os.ModePerm,
+				Mode: os.ModePerm,
 			},
 		)
 		if err != nil {

@@ -27,7 +27,7 @@ func (heapStems *UnsafeHeapStemsReference) Resolve(ctx * task.ExecutionContext) 
 			ctx,
 			fs2.MkdirRequest{
 				Path: heapStems.BasePath,
-				Permissions: os.ModePerm,
+				Mode: os.ModePerm,
 			},
 		)
 		if err != nil {

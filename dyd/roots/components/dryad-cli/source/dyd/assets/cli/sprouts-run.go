@@ -117,24 +117,28 @@ var sproutsRunCommand = func() clib.Command {
 			return err, nil
 		}
 
+		err, sprouts := garden.Sprouts().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
 		// if confirm is set, we want to print the list
 		// of sprouts to run
 		if args.Confirm != "" {
 			fmt.Println("dryad sprouts exec will execute these sprouts:")
 
-			err, _ := dryad.SproutsWalk(
+			err := sprouts.Walk(
 				ctx,
 				dryad.SproutsWalkRequest{
-					Garden: garden,
-					OnSprout: func (ctx *task.ExecutionContext, path string) (error, any) {
+					OnSprout: func (ctx *task.ExecutionContext, sprout *dryad.SafeSproutReference) (error, any) {
 						// calculate the relative path to the root from the base of the garden
-						relPath, err := filepath.Rel(garden.BasePath, path)
+						relPath, err := filepath.Rel(sprout.Sprouts.Garden.BasePath, sprout.BasePath)
 						if err != nil {
 							return err, nil
 						}
 
 						if args.IncludeSprouts(relPath) && !args.ExcludeSprouts(relPath) {
-							fmt.Println(" - " + path)
+							fmt.Println(" - " + relPath)
 						}
 
 						return nil, nil
@@ -181,34 +185,36 @@ var sproutsRunCommand = func() clib.Command {
 			env["TERM"] = os.Getenv("TERM")
 		}
 
-		err, _ = dryad.SproutsWalk(
+		err = sprouts.Walk(
 			ctx,
 			dryad.SproutsWalkRequest{
-				Garden: garden,
-				OnSprout: func (ctx *task.ExecutionContext, path string) (error, any) {
+				OnSprout: func (ctx *task.ExecutionContext, sprout *dryad.SafeSproutReference) (error, any) {
+					var garden = sprout.Sprouts.Garden
+
 					// calculate the relative path to the root from the base of the garden
-					relPath, err := filepath.Rel(garden.BasePath, path)
+					relPath, err := filepath.Rel(garden.BasePath, sprout.BasePath)
 					if err != nil {
 						return err, nil
 					}
 
 					if args.IncludeSprouts(relPath) && !args.ExcludeSprouts(relPath) {
 						zlog.Info().
-							Str("sprout", path).
+							Str("sprout", sprout.BasePath).
 							Msg("sprout run starting")
 		
-						err := dryad.StemRun(dryad.StemRunRequest{
-							Garden: garden,
-							StemPath:   path,
-							Env:        env,
-							Args:       args.Extras,
-							JoinStdout: args.JoinStdout,
-							JoinStderr: args.JoinStderr,
-							Context:    args.Context,
-						})
+						err := sprout.Run(
+							ctx,
+							dryad.SproutRunRequest{
+								Env:        env,
+								Args:       args.Extras,
+								JoinStdout: args.JoinStdout,
+								JoinStderr: args.JoinStderr,
+								Context:    args.Context,
+							},
+						)
 						if err != nil {
 							zlog.Warn().
-								Str("sprout", path).
+								Str("sprout", sprout.BasePath).
 								Err(err).
 								Msg("sprout threw error during execution")
 							if !args.IgnoreErrors {
@@ -216,7 +222,7 @@ var sproutsRunCommand = func() clib.Command {
 							}
 						} else {
 							zlog.Info().
-								Str("sprout", path).
+								Str("sprout", sprout.BasePath).
 								Msg("sprout run finished")
 						}
 		

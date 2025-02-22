@@ -19,20 +19,19 @@ var sproutsPathCommand = func() clib.Command {
 				return 1
 			}
 
-			unsafeGarden := dryad.Garden(path)
-			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
+			err, garden := dryad.Garden(path).Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error resolving garden")
 				return 1
 			}
 
-			path, err = dryad.SproutsPath(garden)
+			err, sprouts := garden.Sprouts().Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while finding sprouts path")
+				zlog.Fatal().Err(err).Msg("error resolving sprouts")
 				return 1
 			}
-			fmt.Println(path)
+
+			fmt.Println(sprouts.BasePath)
 
 			return 0
 		})
