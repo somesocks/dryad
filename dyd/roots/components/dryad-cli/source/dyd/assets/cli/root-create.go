@@ -70,6 +70,9 @@ var rootCreateCommand = func() clib.Command {
 			err, safeRoot := unsafeRoot.Create(
 				ctx,
 			)
+			if err != nil {
+				return err, nil
+			}
 
 			fmt.Println(safeRoot.BasePath)
 
