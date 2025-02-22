@@ -4,12 +4,15 @@ import (
 	// "errors"
 	"io/fs"
 	"os"
-	"errors"
+	// "errors"
 	"path/filepath"
 
 	"dryad/task"
 
 	zlog "github.com/rs/zerolog/log"
+
+	"math/rand"
+	"fmt"
 )
 
 type SymlinkRequest struct {
@@ -20,18 +23,18 @@ type SymlinkRequest struct {
 
 var Symlink task.Task[SymlinkRequest, SymlinkRequest] = func () task.Task[SymlinkRequest, SymlinkRequest] {
 
-	var fileExists = func (filename string) (error, bool) {
-		_, err := os.Stat(filename)
-		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				return nil, false 
-			} else {
-				return err, false
-			}
-		} else {
-			return nil, true
-		}
-	}
+	// var fileExists = func (filename string) (error, bool) {
+	// 	_, err := os.Stat(filename)
+	// 	if err != nil {
+	// 		if errors.Is(err, fs.ErrNotExist) {
+	// 			return nil, false 
+	// 		} else {
+	// 			return err, false
+	// 		}
+	// 	} else {
+	// 		return nil, true
+	// 	}
+	// }
 
 	var symlink = func (ctx *task.ExecutionContext, request SymlinkRequest) (error, SymlinkRequest) {
 		var parentPath string = filepath.Dir(request.Path)
@@ -77,38 +80,34 @@ var Symlink task.Task[SymlinkRequest, SymlinkRequest] = func () task.Task[Symlin
 			)
 		}
 	
-		// check if the symlink already exists
-		err, exists := fileExists(request.Path)
+		var tempPath string = fmt.Sprintf(
+			"%s.tmp.%x",
+			request.Path,
+			rand.Int63(),
+		)
+	
+		err = os.Symlink(request.Target, tempPath)
 		if err != nil {
 			zlog.Error().
 				Str("path", request.Path).
+				Str("tempPath", tempPath).
 				Err(err).
-				Msg("dydfs.symlink - file exists")
+				Msg("dydfs.symlink - create temporary symlink")
 			return err, request
 		}
-	
-		// remove the symlink if it already exists
-		if exists {
-			err = os.Remove(request.Path)
-			if err != nil {
-				zlog.Error().
-					Str("path", request.Path).
-					Err(err).
-					Msg("dydfs.symlink - remove existing symlink")
-				return err, request
-			}	
-		}	
-	
-		// create the symlink and return
-		err = os.Symlink(request.Target, request.Path)
+
+		err = os.Rename(tempPath, request.Path)
 		if err != nil {
 			zlog.Error().
 				Str("path", request.Path).
+				Str("tempPath", tempPath).
 				Err(err).
-				Msg("dydfs.symlink - create new symlink")		
+				Msg("dydfs.symlink - move temporary symlink")
+			defer os.Remove(tempPath)
+			return err, request
 		}
-	
-		return err, request
+
+		return nil, request
 	}
 	
 	symlink = WithFileLock(
