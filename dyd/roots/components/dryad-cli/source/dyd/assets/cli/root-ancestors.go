@@ -5,7 +5,6 @@ import (
 	dryad "dryad/core"
 	"dryad/task"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"
@@ -16,12 +15,14 @@ var rootAncestorsCommand = func() clib.Command {
 	type ParsedArgs struct {
 		RootPath string
 		Relative bool
+		Parallel int
 	}
 
-	var parseArgs = task.From(
-		func(req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = 
+		func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
 			var args = req.Args
 			var options = req.Opts
+			var err error 
 
 			var rootPath string
 
@@ -37,42 +38,48 @@ var rootAncestorsCommand = func() clib.Command {
 				relative = true
 			}
 
-			if !filepath.IsAbs(rootPath) {
-				wd, err := os.Getwd()
-				if err != nil {
-					return err, ParsedArgs{}
-				}
-				rootPath = filepath.Join(wd, rootPath)
+			var parallel int
+
+			if options["parallel"] != nil {
+				parallel = int(options["parallel"].(int64))
+			} else {
+				parallel = 8
+			}
+
+			rootPath, err = filepath.Abs(rootPath)
+			if err != nil {
+				return err, ParsedArgs{}
 			}
 	
 			return nil, ParsedArgs{
 				RootPath: rootPath,
 				Relative: relative,
+				Parallel: parallel,
 			}
-		},
-	)
+		}
 
 	var findAncestors = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
-
-		rootPath := args.RootPath
-		relative := args.Relative
-
-		unsafeGarden := dryad.Garden(args.RootPath)
+		var rootPath string = args.RootPath
+		var relative bool = args.Relative
 		
-		err, garden := unsafeGarden.Resolve(ctx)
+		err, garden := dryad.Garden(args.RootPath).Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}
 
 		err, roots := garden.Roots().Resolve(ctx)
-
-		rootPath, err = dryad.RootPath(rootPath, "")
 		if err != nil {
-				return err, nil
+			return err, nil
 		}
 
+		err, root := roots.Root(rootPath).Resolve(ctx, nil)
+		if err != nil {
+			return err, nil
+		}
+		rootPath = root.BasePath
+
 		err, graph := roots.Graph(
-			task.SERIAL_CONTEXT,
+			ctx,
 			dryad.RootsGraphRequest{
 				Relative: relative,
 			},
@@ -88,11 +95,6 @@ var rootAncestorsCommand = func() clib.Command {
 			}
 		}
 
-		zlog.Trace().
-			Str("rootPath", rootPath).
-			Msg("rootPath")
-
-
 		ancestors := graph.Descendants(make(dryad.TStringSet), []string{rootPath}).ToArray([]string{})
 
 		for _, v := range ancestors {
@@ -105,7 +107,7 @@ var rootAncestorsCommand = func() clib.Command {
 	findAncestors = task.WithContext(
 		findAncestors,
 		func (ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, ctx
+			return nil, task.NewContext(args.Parallel)
 		},
 	)
 
@@ -134,8 +136,8 @@ var rootAncestorsCommand = func() clib.Command {
 		WithOption(clib.NewOption("relative", "print roots relative to the base garden path. default true").WithType(clib.OptionTypeBool)).
 		WithAction(action)
 
+	command = ParallelCommand(command)
 	command = LoggingCommand(command)
-
 
 	return command
 }()
