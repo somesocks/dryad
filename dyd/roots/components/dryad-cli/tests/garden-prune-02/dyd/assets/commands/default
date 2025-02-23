@@ -32,9 +32,7 @@ _prepare() {
 	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR" 
 	chmod -R 755 "$TEMP_DIR"
 
-	# run "dryad garden create" to finalize setting up the garden
 	(cd "$TEMP_DIR" \
-		&& dryad garden create --log-level="$DYD_LOG_LEVEL" \
 		&& dryad garden build --log-level="$DYD_LOG_LEVEL" \
 	)
 
