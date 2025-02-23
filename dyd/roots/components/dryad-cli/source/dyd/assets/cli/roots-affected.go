@@ -33,9 +33,7 @@ var rootsAffectedCommand = func() clib.Command {
 				return 1
 			}
 
-			unsafeGarden := dryad.Garden(wd)
-			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
+			err, garden := dryad.Garden(wd).Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error resolving garden")
 				return 1
