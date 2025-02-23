@@ -62,10 +62,7 @@ var rootCreateCommand = func() clib.Command {
 				return err, nil
 			}
 
-			err, unsafeRoot := roots.Root(args.RootPath).Clean()
-			if err != nil {
-				return err, nil
-			}
+			unsafeRoot := roots.Root(args.RootPath)
 	
 			err, safeRoot := unsafeRoot.Create(
 				ctx,
