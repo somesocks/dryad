@@ -45,14 +45,18 @@ var rootsOwningCommand = func() clib.Command {
 					relative = true
 				}
 
-				unsafeGarden := dryad.Garden(path)
-				
-				err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
+				err, garden := dryad.Garden(path).Resolve(task.SERIAL_CONTEXT)
 				if err != nil {
 					zlog.Fatal().Err(err).Msg("error resolving garden")
 					return 1
 				}
-	
+
+				err, roots := garden.Roots().Resolve(task.SERIAL_CONTEXT)
+				if err != nil {
+					zlog.Fatal().Err(err).Msg("error resolving garden roots")
+					return 1
+				}
+					
 				rootSet := make(map[string]bool)
 
 				scanner := bufio.NewScanner(os.Stdin)
@@ -67,9 +71,9 @@ var rootsOwningCommand = func() clib.Command {
 						return 1
 					}
 					path = _rootsOwningDependencyCorrection(path)
-					path, err = dryad.RootPath(path, "")
+					err, root := roots.Root(path).Resolve(task.SERIAL_CONTEXT, nil)
 					if err == nil {
-						rootSet[path] = true
+						rootSet[root.BasePath] = true
 					}
 				}
 
