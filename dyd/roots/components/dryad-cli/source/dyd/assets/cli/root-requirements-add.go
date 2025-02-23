@@ -57,13 +57,13 @@ var rootRequirementsAddCommand = func() clib.Command {
 				return 1
 			}
 
-			err, root := roots.Root(rootPath).Resolve(task.SERIAL_CONTEXT, nil)
+			err, root := roots.Root(rootPath).Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while resolving root")
 				return 1
 			}
 
-			err, dep := roots.Root(depPath).Resolve(task.SERIAL_CONTEXT, nil)
+			err, dep := roots.Root(depPath).Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while resolving dependency")
 				return 1

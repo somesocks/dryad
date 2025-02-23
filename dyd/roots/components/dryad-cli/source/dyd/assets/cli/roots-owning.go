@@ -71,7 +71,7 @@ var rootsOwningCommand = func() clib.Command {
 						return 1
 					}
 					path = _rootsOwningDependencyCorrection(path)
-					err, root := roots.Root(path).Resolve(task.SERIAL_CONTEXT, nil)
+					err, root := roots.Root(path).Resolve(task.SERIAL_CONTEXT)
 					if err == nil {
 						rootSet[root.BasePath] = true
 					}

@@ -73,7 +73,7 @@ var rootAncestorsCommand = func() clib.Command {
 			return err, nil
 		}
 
-		err, root := roots.Root(rootPath).Resolve(ctx, nil)
+		err, root := roots.Root(rootPath).Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}

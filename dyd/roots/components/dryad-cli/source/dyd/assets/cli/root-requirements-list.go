@@ -56,7 +56,7 @@ var rootRequirementsListCommand = func() clib.Command {
 				return 1
 			}
 	
-			err, safeRoot := roots.Root(rootPath).Resolve(task.SERIAL_CONTEXT, nil)
+			err, safeRoot := roots.Root(rootPath).Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while resolving root")
 				return 1

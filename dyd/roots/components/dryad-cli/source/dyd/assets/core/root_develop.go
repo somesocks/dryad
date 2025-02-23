@@ -133,7 +133,7 @@ func rootDevelop_stage1(
 		var safeDepReference SafeRootReference
 		var err error
 
-		err, safeDepReference = unsafeDepReference.Resolve(ctx, nil)
+		err, safeDepReference = unsafeDepReference.Resolve(ctx)
 		if err != nil {
 			return err
 		}

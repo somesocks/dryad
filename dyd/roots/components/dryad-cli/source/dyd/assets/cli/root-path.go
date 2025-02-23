@@ -46,7 +46,7 @@ var rootPathCommand = func() clib.Command {
 				return 1
 			}
 
-			err, root := roots.Root(path).Resolve(task.SERIAL_CONTEXT, nil)
+			err, root := roots.Root(path).Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while resolving root")
 				return 1

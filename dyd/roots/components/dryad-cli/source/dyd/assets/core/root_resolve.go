@@ -60,7 +60,7 @@ func rootPath(path string, limit string) (string, error) {
 	return "", errors.New("dyd root path not found starting from " + path)
 }
 
-func (ur *UnsafeRootReference) Resolve(ctx * task.ExecutionContext, _ any) (error, SafeRootReference) {
+func (ur *UnsafeRootReference) Resolve(ctx * task.ExecutionContext) (error, SafeRootReference) {
 	var gardenPath string = ur.Roots.Garden.BasePath
 	var basePath string = ur.BasePath
 	var err error

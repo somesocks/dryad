@@ -78,7 +78,7 @@ var rootBuildCommand = func() clib.Command {
 			return err, nil
 		}
 
-		err, safeRootRef := roots.Root(args.RootPath).Resolve(ctx, nil)
+		err, safeRootRef := roots.Root(args.RootPath).Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}

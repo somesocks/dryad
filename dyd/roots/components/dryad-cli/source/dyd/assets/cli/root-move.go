@@ -63,7 +63,7 @@ var rootMoveCommand = func() clib.Command {
 			return err, nil
 		}
 
-		err, safeSourceRoot := roots.Root(args.SourcePath).Resolve(ctx, nil)
+		err, safeSourceRoot := roots.Root(args.SourcePath).Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}
