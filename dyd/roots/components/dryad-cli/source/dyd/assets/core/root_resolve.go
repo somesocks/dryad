@@ -38,20 +38,31 @@ func rootPath(path string, limit string) (string, error) {
 	var workingPath = path
 	var flagPath = filepath.Join(workingPath, "dyd", "type")
 	var fileBytes, fileInfoErr = os.ReadFile(flagPath)
+	var sentinel Sentinel = SentinelFromString(string(fileBytes))
 
 	for workingPath != "/" && strings.HasPrefix(workingPath, limit) {
-		if fileInfoErr == nil && string(fileBytes) == "root" {
-
-			zlog.Trace().
+		if fileInfoErr == nil {
+			if sentinel == SentinelRoot {
+				zlog.Trace().
 				Str("result", workingPath).
 				Msg("RootPath success")
 
-			return workingPath, nil
+				return workingPath, nil
+			} else {
+				zlog.Error().
+					Str("type", sentinel.String()).
+					Str("typeFile", flagPath).
+					Str("typeFileContent", string(fileBytes)).
+					Str("typeExpected", SentinelRoot.String()).
+					Msg("malformed type file, or root search started inside non-root resource")
+				return "", errors.New("malformed type file, or root search started inside non-root resource")
+			}
 		}
 
 		workingPath = filepath.Dir(workingPath)
 		flagPath = filepath.Join(workingPath, "dyd", "type")
 		fileBytes, fileInfoErr = os.ReadFile(flagPath)
+		sentinel = SentinelFromString(string(fileBytes))
 	}
 
 	zlog.Trace().
