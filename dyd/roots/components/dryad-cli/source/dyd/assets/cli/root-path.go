@@ -3,6 +3,8 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/task"
+	dydfs "dryad/filesystem"
 	"fmt"
 
 	zlog "github.com/rs/zerolog/log"
@@ -19,18 +21,38 @@ var rootPathCommand = func() clib.Command {
 		WithAction(func(req clib.ActionRequest) int {
 			var args = req.Args
 
-			var path string = ""
+			var path string
+			var err error
 
 			if len(args) > 0 {
 				path = args[0]
 			}
 
-			path, err := dryad.RootPath(path, "")
+			err, path = dydfs.PartialEvalSymlinks(task.SERIAL_CONTEXT, path)
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while finding root path")
+				zlog.Fatal().Err(err).Msg("error while cleaning root path")
 				return 1
 			}
-			fmt.Println(path)
+
+			err, garden := dryad.Garden(path).Resolve(task.SERIAL_CONTEXT)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error while resolving garden")
+				return 1
+			}
+
+			err, roots := garden.Roots().Resolve(task.SERIAL_CONTEXT)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error while resolving roots")
+				return 1
+			}
+
+			err, root := roots.Root(path).Resolve(task.SERIAL_CONTEXT, nil)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error while resolving root")
+				return 1
+			}
+
+			fmt.Println(root.BasePath)
 
 			return 0
 		})
