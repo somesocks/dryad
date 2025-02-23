@@ -4,6 +4,7 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/task"
+	dydfs "dryad/filesystem"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -25,6 +26,19 @@ var rootReplaceCommand = func() clib.Command {
 
 			var source string = args[0]
 			var dest string = args[1]
+			var err error
+
+			err, source = dydfs.PartialEvalSymlinks(task.SERIAL_CONTEXT, source)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error while source root path")
+				return 1
+			}
+
+			err, dest = dydfs.PartialEvalSymlinks(task.SERIAL_CONTEXT, dest)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error while dest root path")
+				return 1
+			}
 
 			err, garden := dryad.Garden(source).Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
