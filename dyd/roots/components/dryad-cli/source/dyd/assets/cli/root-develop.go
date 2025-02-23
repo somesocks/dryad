@@ -4,9 +4,8 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/task"
+	dydfs "dryad/filesystem"
 	"fmt"
-	"os"
-	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -30,6 +29,7 @@ var rootDevelopCommand = func() clib.Command {
 			var editor string
 			var editorArgs []string
 			var inherit bool
+			var err error
 
 			if len(args) > 0 {
 				path = args[0]
@@ -49,13 +49,10 @@ var rootDevelopCommand = func() clib.Command {
 				inherit = opts["inherit"].(bool)
 			}
 
-			if !filepath.IsAbs(path) {
-				wd, err := os.Getwd()
-				if err != nil {
-					zlog.Fatal().Err(err).Msg("error while finding working directory")
-					return 1
-				}
-				path = filepath.Join(wd, path)
+			err, path = dydfs.PartialEvalSymlinks(task.SERIAL_CONTEXT, path)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error while resolving root path")
+				return 1
 			}
 
 			err, garden := dryad.Garden(path).Resolve(task.SERIAL_CONTEXT)

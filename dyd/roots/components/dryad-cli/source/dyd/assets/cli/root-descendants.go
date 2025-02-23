@@ -4,8 +4,8 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/task"
+	dydfs "dryad/filesystem"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"
@@ -18,12 +18,13 @@ var rootDescendantsCommand = func() clib.Command {
 		Relative bool
 	}
 
-	var parseArgs = task.From(
-		func(req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs = 
+		func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
 			var args = req.Args
 			var options = req.Opts
 
 			var rootPath string
+			var err error
 
 			if len(args) > 0 {
 				rootPath = args[0]
@@ -37,39 +38,37 @@ var rootDescendantsCommand = func() clib.Command {
 				relative = true
 			}
 
-			if !filepath.IsAbs(rootPath) {
-				wd, err := os.Getwd()
-				if err != nil {
-					return err, ParsedArgs{}
-				}
-				rootPath = filepath.Join(wd, rootPath)
+			err, rootPath = dydfs.PartialEvalSymlinks(ctx, rootPath)
+			if err != nil {
+				return err, ParsedArgs{}
 			}
 	
 			return nil, ParsedArgs{
 				RootPath: rootPath,
 				Relative: relative,
 			}
-		},
-	)
+		}
 
 	var findDescendants = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
 
 		rootPath := args.RootPath
 		relative := args.Relative
-
-		unsafeGarden := dryad.Garden(args.RootPath)
 		
-		err, garden := unsafeGarden.Resolve(ctx)
+		err, garden := dryad.Garden(args.RootPath).Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}
 
 		err, roots := garden.Roots().Resolve(ctx)
-
-		rootPath, err = dryad.RootPath(rootPath, "")
 		if err != nil {
-				return err, nil
+			return err, nil
 		}
+
+		err, root := roots.Root(rootPath).Resolve(ctx, nil)
+		if err != nil {
+			return err, nil
+		}
+		rootPath = root.BasePath
 
 		err, graph := roots.Graph(
 			task.SERIAL_CONTEXT,

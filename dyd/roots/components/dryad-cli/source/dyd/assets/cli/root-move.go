@@ -4,6 +4,7 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/task"
+	dydfs "dryad/filesystem"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -16,13 +17,14 @@ var rootMoveCommand = func() clib.Command {
 		Parallel int
 	}	
 
-	var parseArgs = task.From(
-		func(req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs =
+		func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
 			var args = req.Args
 			var options = req.Opts
 
 			var source string = args[0]
 			var dest string = args[1]
+			var err error
 
 			var parallel int
 
@@ -31,14 +33,23 @@ var rootMoveCommand = func() clib.Command {
 			} else {
 				parallel = 8
 			}
-	
+
+			err, source = dydfs.PartialEvalSymlinks(ctx, source)
+			if err != nil {
+				return err, ParsedArgs{}
+			}			
+
+			err, dest = dydfs.PartialEvalSymlinks(ctx, dest)
+			if err != nil {
+				return err, ParsedArgs{}
+			}
+			
 			return nil, ParsedArgs{
 				SourcePath: source,
 				DestPath: dest,
 				Parallel: parallel,
 			}
-		},
-	)
+		}
 
 	var moveRoot = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
 		
@@ -57,15 +68,12 @@ var rootMoveCommand = func() clib.Command {
 			return err, nil
 		}
 
-		err, unsafeDestRoot := roots.Root(args.DestPath).Clean()
-		if err != nil {
-			return err, nil
-		}
+		unsafeDestRoot := roots.Root(args.DestPath)
 
 		err = safeSourceRoot.Move(
 			ctx,
 			dryad.RootMoveRequest{
-				Dest: &unsafeDestRoot,
+				Dest: unsafeDestRoot,
 			},
 		)
 		return err, nil
