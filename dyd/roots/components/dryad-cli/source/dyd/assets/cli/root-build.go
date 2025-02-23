@@ -4,9 +4,8 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/task"
+	dydfs "dryad/filesystem"
 	"fmt"
-	"os"
-	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -20,8 +19,8 @@ var rootBuildCommand = func() clib.Command {
 		JoinStderr bool
 	}
 
-	var parseArgs = task.From(
-		func(req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs = 
+		func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
 			var args = req.Args
 			var options = req.Opts
 
@@ -30,16 +29,10 @@ var rootBuildCommand = func() clib.Command {
 			var joinStdout bool
 			var joinStderr bool
 
+			var err error
+
 			if len(args) > 0 {
 				path = args[0]
-			}
-
-			if !filepath.IsAbs(path) {
-				wd, err := os.Getwd()
-				if err != nil {
-					return err, ParsedArgs{}
-				}
-				path = filepath.Join(wd, path)
 			}
 
 			if options["parallel"] != nil {
@@ -60,14 +53,18 @@ var rootBuildCommand = func() clib.Command {
 				joinStderr = false
 			}
 
+			err, path = dydfs.PartialEvalSymlinks(ctx, path)
+			if err != nil {
+				return err, ParsedArgs{}
+			}
+
 			return nil, ParsedArgs{
 				RootPath: path,
 				Parallel: parallel,
 				JoinStdout: joinStdout,
 				JoinStderr: joinStderr,
 			}
-		},
-	)
+		}
 
 	var buildRoot = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
 		
