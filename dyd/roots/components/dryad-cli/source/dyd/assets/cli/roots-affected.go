@@ -5,6 +5,7 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/task"
+	// dydfs "dryad/filesystem"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -32,6 +33,18 @@ var rootsAffectedCommand = func() clib.Command {
 				return 1
 			}
 
+			err, garden := dryad.Garden(wd).Resolve(task.SERIAL_CONTEXT)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error resolving garden")
+				return 1
+			}
+
+			err, roots := garden.Roots().Resolve(task.SERIAL_CONTEXT)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error resolving garden roots")
+				return 1
+			}
+
 			rootSet := make(dryad.TStringSet)
 
 			scanner := bufio.NewScanner(os.Stdin)
@@ -44,9 +57,9 @@ var rootsAffectedCommand = func() clib.Command {
 					return 1
 				}
 				path = _rootsOwningDependencyCorrection(path)
-				path, err = dryad.RootPath(path, "")
+				err, root := roots.Root(path).Resolve(task.SERIAL_CONTEXT)
 				if err == nil {
-					rootSet[path] = true
+					rootSet[root.BasePath] = true
 				}
 			}
 
@@ -58,19 +71,6 @@ var rootsAffectedCommand = func() clib.Command {
 
 			rootList := rootSet.ToArray([]string{})
 
-			unsafeGarden := dryad.Garden(wd)
-			
-			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error resolving garden")
-				return 1
-			}
-
-			err, roots := garden.Roots().Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error resolving garden roots")
-				return 1
-			}
 
 			err, graph := roots.Graph(
 				task.SERIAL_CONTEXT,

@@ -80,7 +80,7 @@ func init () {
 		var err error
 
 		// verify that root path is valid for dependency
-		err, safeDepReference = unsafeDepReference.Resolve(ctx, nil)
+		err, safeDepReference = unsafeDepReference.Resolve(ctx)
 		if err != nil {
 			return err, ""
 		}

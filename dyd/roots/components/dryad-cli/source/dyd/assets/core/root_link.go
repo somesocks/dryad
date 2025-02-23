@@ -1,47 +1,37 @@
 package core
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
+	"dryad/task"
 )
 
-func RootLink(rootPath string, depPath string, alias string) error {
+
+type RootLinkRequest struct {
+	Dependency *SafeRootReference
+	Alias string
+}
+
+func (root *SafeRootReference) Link(ctx *task.ExecutionContext, req RootLinkRequest) (error) {
+	var alias string = req.Alias
+	var depBasePath string = req.Dependency.BasePath
 	var err error
-	if depPath == "" {
-		return errors.New("missing path to dependency root")
-	}
-
-	depPath, err = filepath.Abs(depPath)
-	if err != nil {
-		return err
-	}
-
-	depPath, err = RootPath(depPath, "")
-	if err != nil {
-		return err
-	}
 
 	if alias == "" {
-		alias = filepath.Base(depPath)
+		alias = filepath.Base(depBasePath)
 	}
 
-	rootPath, err = RootPath(rootPath, "")
-	if err != nil {
-		return err
-	}
-
-	var rootsPath = filepath.Join(rootPath, "dyd", "requirements")
-	var aliasPath = filepath.Join(rootsPath, alias)
+	var requirementsPath = filepath.Join(root.BasePath, "dyd", "requirements")
+	var aliasPath = filepath.Join(requirementsPath, alias)
 
 	// make sure the roots path exists before trying to link
-	err = os.MkdirAll(rootsPath, os.ModePerm)
+	err = os.MkdirAll(requirementsPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
 	var linkPath string
-	linkPath, err = filepath.Rel(rootsPath, depPath)
+	linkPath, err = filepath.Rel(requirementsPath, depBasePath)
 	if err != nil {
 		return err
 	}

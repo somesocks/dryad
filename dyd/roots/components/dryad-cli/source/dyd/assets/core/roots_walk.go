@@ -43,7 +43,7 @@ func rootsWalk(ctx *task.ExecutionContext, req rootsWalkRequest) (error, any) {
 		var safeRequirementRef SafeRootReference
 		var err error
 
-		err, safeRequirementRef = unsafeRequirementRef.Resolve(ctx, nil)
+		err, safeRequirementRef = unsafeRequirementRef.Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}

@@ -52,13 +52,13 @@ var rootReplaceCommand = func() clib.Command {
 				return 1
 			}
 
-			err, safeSourceRoot := roots.Root(source).Resolve(task.SERIAL_CONTEXT, nil)
+			err, safeSourceRoot := roots.Root(source).Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while resolving source root")
 				return 1
 			}
 	
-			err, safeDestRoot := roots.Root(dest).Resolve(task.SERIAL_CONTEXT, nil)
+			err, safeDestRoot := roots.Root(dest).Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while resolving dest root")
 				return 1

@@ -94,7 +94,7 @@ func rootCreate(ctx *task.ExecutionContext, req rootCreateRequest) (error, *Safe
 
 	var safeRoot SafeRootReference
 
-	err, safeRoot = req.Root.Resolve(ctx, nil)
+	err, safeRoot = req.Root.Resolve(ctx)
 	if err != nil {
 		return err, nil
 	}

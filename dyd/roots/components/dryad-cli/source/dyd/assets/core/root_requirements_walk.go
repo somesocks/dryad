@@ -45,7 +45,7 @@ func RootRequirementsWalk(
 		var safeRequirementRef SafeRootReference
 		var err error
 
-		err, safeRequirementRef = unsafeRequirementRef.Resolve(ctx, nil)
+		err, safeRequirementRef = unsafeRequirementRef.Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}

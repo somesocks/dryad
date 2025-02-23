@@ -188,7 +188,7 @@ func rootCopy(ctx *task.ExecutionContext, req rootCopyRequest) (error, *SafeRoot
 	}
 
 	var newRoot SafeRootReference
-	err, newRoot = req.Dest.Resolve(ctx, nil)
+	err, newRoot = req.Dest.Resolve(ctx)
 	if err != nil {
 		return err, nil
 	}
