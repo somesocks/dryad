@@ -5,6 +5,7 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/task"
+	// dydfs "dryad/filesystem"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -32,32 +33,6 @@ var rootsAffectedCommand = func() clib.Command {
 				return 1
 			}
 
-			rootSet := make(dryad.TStringSet)
-
-			scanner := bufio.NewScanner(os.Stdin)
-
-			for scanner.Scan() {
-				path := scanner.Text()
-				path, err := filepath.Abs(path)
-				if err != nil {
-					zlog.Fatal().Err(err).Msg("error while reading from stdin")
-					return 1
-				}
-				path = _rootsOwningDependencyCorrection(path)
-				path, err = dryad.RootPath(path, "")
-				if err == nil {
-					rootSet[path] = true
-				}
-			}
-
-			// Check for any errors during scanning
-			if err := scanner.Err(); err != nil {
-				zlog.Fatal().Err(err).Msg("error after reading from stdin")
-				return 1
-			}
-
-			rootList := rootSet.ToArray([]string{})
-
 			unsafeGarden := dryad.Garden(wd)
 			
 			err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
@@ -71,6 +46,33 @@ var rootsAffectedCommand = func() clib.Command {
 				zlog.Fatal().Err(err).Msg("error resolving garden roots")
 				return 1
 			}
+
+			rootSet := make(dryad.TStringSet)
+
+			scanner := bufio.NewScanner(os.Stdin)
+
+			for scanner.Scan() {
+				path := scanner.Text()
+				path, err := filepath.Abs(path)
+				if err != nil {
+					zlog.Fatal().Err(err).Msg("error while reading from stdin")
+					return 1
+				}
+				path = _rootsOwningDependencyCorrection(path)
+				err, root := roots.Root(path).Resolve(task.SERIAL_CONTEXT, nil)
+				if err == nil {
+					rootSet[root.BasePath] = true
+				}
+			}
+
+			// Check for any errors during scanning
+			if err := scanner.Err(); err != nil {
+				zlog.Fatal().Err(err).Msg("error after reading from stdin")
+				return 1
+			}
+
+			rootList := rootSet.ToArray([]string{})
+
 
 			err, graph := roots.Graph(
 				task.SERIAL_CONTEXT,
