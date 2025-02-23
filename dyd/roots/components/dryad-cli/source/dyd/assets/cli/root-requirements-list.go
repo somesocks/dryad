@@ -4,6 +4,7 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/task"
+	dydfs "dryad/filesystem"
 	"fmt"
 	"path/filepath"
 
@@ -22,10 +23,11 @@ var rootRequirementsListCommand = func() clib.Command {
 		WithAction(func(req clib.ActionRequest) int {
 			var args = req.Args
 			var options = req.Opts
-			var root string
+			var rootPath string
+			var err error
 
 			if len(args) > 0 {
-				root = args[0]
+				rootPath = args[0]
 			}
 
 			var relative bool = true
@@ -36,7 +38,13 @@ var rootRequirementsListCommand = func() clib.Command {
 				relative = true
 			}
 
-			err, garden := dryad.Garden(root).Resolve(task.SERIAL_CONTEXT)
+			err, rootPath = dydfs.PartialEvalSymlinks(task.SERIAL_CONTEXT, rootPath)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error resolving root path")
+				return 1
+			}
+
+			err, garden := dryad.Garden(rootPath).Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error resolving garden")
 				return 1
@@ -48,7 +56,7 @@ var rootRequirementsListCommand = func() clib.Command {
 				return 1
 			}
 	
-			err, safeRoot := roots.Root(root).Resolve(task.SERIAL_CONTEXT, nil)
+			err, safeRoot := roots.Root(rootPath).Resolve(task.SERIAL_CONTEXT, nil)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while resolving root")
 				return 1
