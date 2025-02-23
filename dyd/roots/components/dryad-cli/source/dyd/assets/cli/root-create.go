@@ -4,9 +4,9 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/task"
-	"fmt"
+	dydfs "dryad/filesystem"
 
-	"path/filepath"
+	"fmt"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -38,7 +38,7 @@ var rootCreateCommand = func() clib.Command {
 				parallel = 8
 			}
 
-			rootPath, err = filepath.Abs(rootPath)
+			err, rootPath = dydfs.PartialEvalSymlinks(ctx, rootPath)
 			if err != nil {
 				return err, ParsedArgs{}
 			}
