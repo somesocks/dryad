@@ -4,6 +4,7 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/task"
+	dydfs "dryad/filesystem"
 	"fmt"
 	"path/filepath"
 
@@ -46,7 +47,7 @@ var rootAncestorsCommand = func() clib.Command {
 				parallel = 8
 			}
 
-			rootPath, err = filepath.Abs(rootPath)
+			err, rootPath = dydfs.PartialEvalSymlinks(ctx, rootPath)
 			if err != nil {
 				return err, ParsedArgs{}
 			}
