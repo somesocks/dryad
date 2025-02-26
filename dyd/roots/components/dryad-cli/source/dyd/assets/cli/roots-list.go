@@ -18,6 +18,7 @@ var rootsListCommand = func() clib.Command {
 		Parallel int
 		IncludeRoots func(path string) bool
 		ExcludeRoots func(path string) bool
+		Filter string
 	}	
 
 	var parseArgs = task.From(
@@ -27,6 +28,7 @@ var rootsListCommand = func() clib.Command {
 
 			var relative bool = true
 			var path string = ""
+			var filter string = ""
 
 			if len(args) > 0 {
 				path = args[0]
@@ -49,6 +51,10 @@ var rootsListCommand = func() clib.Command {
 				includeOpts = options["include"].([]string)
 			}
 
+			if options["filter"] != nil {
+				filter = options["filter"].(string)
+			}
+
 			includeRoots := dryad.RootIncludeMatcher(includeOpts)
 			excludeRoots := dryad.RootExcludeMatcher(excludeOpts)
 
@@ -66,6 +72,7 @@ var rootsListCommand = func() clib.Command {
 				Relative: relative,
 				IncludeRoots: includeRoots,
 				ExcludeRoots: excludeRoots,
+				Filter: filter,
 			}
 		},
 	)
@@ -86,19 +93,41 @@ var rootsListCommand = func() clib.Command {
 		err = roots.Walk(
 			ctx,
 			dryad.RootsWalkRequest{
-				OnMatch: func (ctx *task.ExecutionContext, match *dryad.SafeRootReference) (error, any) {
+				OnMatch: func (ctx *task.ExecutionContext, root *dryad.SafeRootReference) (error, any) {
+					var err error
+					var matchesFilter = true
+
+
+					if (args.Filter != "") {
+						err, matchesFilter = root.Filter(
+							ctx,
+							dryad.RootFilterRequest{
+								Expression: args.Filter,
+							},
+						)
+						if err != nil {
+							return err, nil
+						}
+					}
+
 					// calculate the relative path to the root from the base of the garden
-					relPath, err := filepath.Rel(match.Roots.Garden.BasePath, match.BasePath)
+					relPath, err := filepath.Rel(root.Roots.Garden.BasePath, root.BasePath)
 					if err != nil {
 						return err, nil
 					}
 
+					// zlog.Info().
+					// 	Str("root", root.BasePath).
+					// 	Bool("matchesFilter", matchesFilter).
+					// 	Bool("args.IncludeRoots(relPath)", args.IncludeRoots(relPath)).
+					// 	Bool("!args.ExcludeRoots(relPath)", !args.ExcludeRoots(relPath)).
+					// 	Msg("roots list matchesFilter")
 
-					if args.IncludeRoots(relPath) && !args.ExcludeRoots(relPath) {
+					if args.IncludeRoots(relPath) && !args.ExcludeRoots(relPath) && matchesFilter {
 						if args.Relative {
 							fmt.Println(relPath)
 						} else {
-							fmt.Println(match.BasePath)
+							fmt.Println(root.BasePath)
 						}
 					}
 
@@ -142,6 +171,7 @@ var rootsListCommand = func() clib.Command {
 		WithOption(clib.NewOption("relative", "print roots relative to the base garden path. default true").WithType(clib.OptionTypeBool)).
 		WithOption(clib.NewOption("include", "choose which roots are included in the list").WithType(clib.OptionTypeMultiString)).
 		WithOption(clib.NewOption("exclude", "choose which roots are excluded from the list").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("filter", "choose which roots are included in the list").WithType(clib.OptionTypeString)).
 		WithAction(action)
 
 	command = ParallelCommand(command)
