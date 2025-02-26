@@ -21,22 +21,51 @@ func (root *SafeRootReference) Filter(
 	req RootFilterRequest,
 ) (error, bool) {
 
-	var trait_fun = cel.Function(
-		"trait",
-		cel.Overload(
-			"trait_string",
-			[]*cel.Type{cel.StringType},
+	var root_path_fun = cel.Function(
+		"path",
+		cel.MemberOverload(
+			"Root_path",
+			[]*cel.Type{cel.ObjectType("Root")},
 			cel.StringType,
 			cel.UnaryBinding(
 				func (arg ref.Val) ref.Val {		
-					path := arg.Value().(string)
+					wrapper, ok := arg.Value().(RootCelWrapper)
+
+					if !ok {
+						return types.NewErr("invalid type for path method")
+					}					
+
+					return wrapper.Path()
+				},
+			),
+		),
+	)
+
+	var trait_fun = cel.Function(
+		"trait",
+		cel.MemberOverload(
+			"Root_trait",
+			[]*cel.Type{cel.ObjectType("Root"), cel.StringType},
+			cel.StringType,
+			cel.BinaryBinding(
+				func (wrapperRef ref.Val, traitRef ref.Val) ref.Val {		
+					wrapper, ok := wrapperRef.Value().(RootCelWrapper)
+
+					if !ok {
+						return types.NewErr("invalid type for root")
+					}					
+
+					path, ok := traitRef.Value().(string)
+					if !ok {
+						return types.NewErr("invalid type for trait path")
+					}					
 
 					zlog.Trace().
-						Str("root", root.BasePath).
+						Str("root", wrapper.root.BasePath).
 						Str("trait", path).
 						Msg("CEL calling trait")
 
-					err, traits := root.Traits().Resolve(ctx)
+					err, traits := wrapper.root.Traits().Resolve(ctx)
 					if err != nil {
 						if errors.Is(err, ErrorNoTraits) {
 							return types.String("")
@@ -67,7 +96,7 @@ func (root *SafeRootReference) Filter(
 					}
 
 					zlog.Trace().
-						Str("root", root.BasePath).
+						Str("root", wrapper.root.BasePath).
 						Str("trait", path).
 						Str("value", value).
 						Msg("CEL trait value")
@@ -79,7 +108,10 @@ func (root *SafeRootReference) Filter(
 	)
 
 	env, err := cel.NewEnv(
+		cel.Types(cel.ObjectType("Root")),
 		trait_fun,
+		root_path_fun,
+		cel.Variable("root", cel.ObjectType("Root")),
 	)
 	if err != nil {
 		zlog.Error().
@@ -107,7 +139,13 @@ func (root *SafeRootReference) Filter(
 	}	
 
 	// Evaluate with the given directory context
-	result, _, err := prg.Eval(map[string]interface{}{})
+	wrapper := RootCelWrapper{
+		root: root,
+	}
+
+	result, _, err := prg.Eval(map[string]any{
+		"root": &wrapper,
+	})
 	if err != nil {
 		zlog.Error().
 			Err(err).
