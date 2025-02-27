@@ -16,9 +16,8 @@ var rootsListCommand = func() clib.Command {
 		GardenPath string
 		Relative bool
 		Parallel int
-		IncludeRoots func(path string) bool
-		ExcludeRoots func(path string) bool
-		Filter string
+		Include []string
+		Exclude []string
 	}	
 
 	var parseArgs = task.From(
@@ -28,7 +27,6 @@ var rootsListCommand = func() clib.Command {
 
 			var relative bool = true
 			var path string = ""
-			var filter string = ""
 
 			if len(args) > 0 {
 				path = args[0]
@@ -51,13 +49,6 @@ var rootsListCommand = func() clib.Command {
 				includeOpts = options["include"].([]string)
 			}
 
-			if options["filter"] != nil {
-				filter = options["filter"].(string)
-			}
-
-			includeRoots := dryad.RootIncludeMatcher(includeOpts)
-			excludeRoots := dryad.RootExcludeMatcher(excludeOpts)
-
 			var parallel int
 
 			if options["parallel"] != nil {
@@ -70,13 +61,12 @@ var rootsListCommand = func() clib.Command {
 				GardenPath: path,
 				Parallel: parallel,
 				Relative: relative,
-				IncludeRoots: includeRoots,
-				ExcludeRoots: excludeRoots,
-				Filter: filter,
+				Include: includeOpts,
+				Exclude: excludeOpts,
 			}
 		},
 	)
-		
+
 	var listRoots = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
 		unsafeGarden := dryad.Garden(args.GardenPath)
 		
@@ -95,18 +85,42 @@ var rootsListCommand = func() clib.Command {
 			dryad.RootsWalkRequest{
 				OnMatch: func (ctx *task.ExecutionContext, root *dryad.SafeRootReference) (error, any) {
 					var err error
-					var matchesFilter = true
+					var matchesInclude = false
+					var matchesExclude = false
 
+					if len(args.Include) == 0 { matchesInclude = true }
 
-					if (args.Filter != "") {
+					for _, include := range args.Include {
+						var matchesFilter bool
 						err, matchesFilter = root.Filter(
 							ctx,
 							dryad.RootFilterRequest{
-								Expression: args.Filter,
+								Expression: include,
 							},
 						)
 						if err != nil {
 							return err, nil
+						}
+						matchesInclude = matchesInclude || matchesFilter
+						if matchesInclude {
+							break
+						}
+					}
+
+					for _, exclude := range args.Exclude {
+						var matchesFilter bool
+						err, matchesFilter = root.Filter(
+							ctx,
+							dryad.RootFilterRequest{
+								Expression: exclude,
+							},
+						)
+						if err != nil {
+							return err, nil
+						}
+						matchesExclude = matchesExclude || matchesFilter
+						if matchesExclude {
+							break
 						}
 					}
 
@@ -119,11 +133,11 @@ var rootsListCommand = func() clib.Command {
 					// zlog.Info().
 					// 	Str("root", root.BasePath).
 					// 	Bool("matchesFilter", matchesFilter).
-					// 	Bool("args.IncludeRoots(relPath)", args.IncludeRoots(relPath)).
-					// 	Bool("!args.ExcludeRoots(relPath)", !args.ExcludeRoots(relPath)).
+					// 	Bool("args.Include(relPath)", args.Include(relPath)).
+					// 	Bool("!args.Exclude(relPath)", !args.Exclude(relPath)).
 					// 	Msg("roots list matchesFilter")
 
-					if args.IncludeRoots(relPath) && !args.ExcludeRoots(relPath) && matchesFilter {
+					if matchesInclude && !matchesExclude {
 						if args.Relative {
 							fmt.Println(relPath)
 						} else {
@@ -169,9 +183,8 @@ var rootsListCommand = func() clib.Command {
 				WithAutoComplete(ArgAutoCompletePath),
 		).
 		WithOption(clib.NewOption("relative", "print roots relative to the base garden path. default true").WithType(clib.OptionTypeBool)).
-		WithOption(clib.NewOption("include", "choose which roots are included in the list").WithType(clib.OptionTypeMultiString)).
-		WithOption(clib.NewOption("exclude", "choose which roots are excluded from the list").WithType(clib.OptionTypeMultiString)).
-		WithOption(clib.NewOption("filter", "choose which roots are included in the list").WithType(clib.OptionTypeString)).
+		WithOption(clib.NewOption("include", "choose which roots are included in the list. the include filter is a CEL expression with access to a 'root' object that can be used to filter on properties of the root.").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("exclude", "choose which roots are excluded from the list.  the exclude filter is a CEL expression with access to a 'root' object that can be used to filter on properties of the root.").WithType(clib.OptionTypeMultiString)).
 		WithAction(action)
 
 	command = ParallelCommand(command)
