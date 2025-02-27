@@ -16,10 +16,8 @@ type RootFilterRequest struct {
 	Expression string
 }
 
-func (root *SafeRootReference) Filter(
-	ctx *task.ExecutionContext,
-	req RootFilterRequest,
-) (error, bool) {
+
+var RootFilterCelEnv = func () *cel.Env {
 
 	var root_path_fun = cel.Function(
 		"path",
@@ -65,7 +63,7 @@ func (root *SafeRootReference) Filter(
 						Str("trait", path).
 						Msg("CEL calling trait")
 
-					err, traits := wrapper.root.Traits().Resolve(ctx)
+					err, traits := wrapper.root.Traits().Resolve(wrapper.ctx)
 					if err != nil {
 						if errors.Is(err, ErrorNoTraits) {
 							return types.String("")
@@ -76,7 +74,7 @@ func (root *SafeRootReference) Filter(
 						return types.NullValue						
 					}
 
-					err, trait := traits.Trait(path).Resolve(ctx)
+					err, trait := traits.Trait(path).Resolve(wrapper.ctx)
 					if err != nil {
 						if errors.Is(err, ErrorNoTrait) {
 							return types.String("")
@@ -87,7 +85,7 @@ func (root *SafeRootReference) Filter(
 						return types.NullValue
 					}
 
-					err, value := trait.Get(ctx)
+					err, value := trait.Get(wrapper.ctx)
 					if err != nil {
 						zlog.Error().
 							Err(err).
@@ -113,15 +111,27 @@ func (root *SafeRootReference) Filter(
 		root_path_fun,
 		cel.Variable("root", cel.ObjectType("Root")),
 	)
+
 	if err != nil {
 		zlog.Error().
 			Err(err).
 			Msg("error generating CEL environment")
-		return err, false
+		panic(err)
+		// return err, false
 	}	
 
+
+	return env
+}();
+
+func (root *SafeRootReference) Filter(
+	ctx *task.ExecutionContext,
+	req RootFilterRequest,
+) (error, bool) {
+	var err error
+
 	// compile CEL expression
-	ast, issues := env.Compile(req.Expression)
+	ast, issues := RootFilterCelEnv.Compile(req.Expression)
 	if issues != nil && issues.Err() != nil {
 		zlog.Error().
 			Err(err).
@@ -130,7 +140,7 @@ func (root *SafeRootReference) Filter(
 	}
 
 	// create CEL program
-	prg, err := env.Program(ast)
+	prg, err := RootFilterCelEnv.Program(ast)
 	if err != nil {
 		zlog.Error().
 			Err(err).
@@ -141,6 +151,7 @@ func (root *SafeRootReference) Filter(
 	// Evaluate with the given directory context
 	wrapper := RootCelWrapper{
 		root: root,
+		ctx: ctx,
 	}
 
 	result, _, err := prg.Eval(map[string]any{

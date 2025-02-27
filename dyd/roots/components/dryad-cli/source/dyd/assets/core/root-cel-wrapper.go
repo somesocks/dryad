@@ -1,7 +1,7 @@
 package core
 
 import (
-	// "dryad/task"
+	"dryad/task"
 
 	"path/filepath"
 	"fmt"
@@ -15,6 +15,7 @@ import (
 
 type RootCelWrapper struct {
 	root *SafeRootReference
+	ctx *task.ExecutionContext
 }
 
 func (wrapper *RootCelWrapper) ConvertToNative(typeDesc reflect.Type) (any, error) {
