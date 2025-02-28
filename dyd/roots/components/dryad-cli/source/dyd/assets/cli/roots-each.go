@@ -63,7 +63,7 @@ var rootsEachCommand = func() clib.Command {
 	
 			var shell string
 			if options["shell"] != nil {
-				includeOpts = options["shell"].([]string)
+				shell = options["shell"].(string)
 			}
 			if shell == "" {
 				shell = os.Getenv("SHELL")
@@ -243,6 +243,13 @@ var rootsEachCommand = func() clib.Command {
 				"join the stderr of child processes to the stderr of the parent dryad process. default false",
 			).
 			WithType(clib.OptionTypeBool),
+		).
+		WithOption(
+			clib.NewOption(
+				"shell",
+				"override the shell used to run the command in each root",
+			).
+			WithType(clib.OptionTypeString),
 		).
 		WithArg(clib.NewArg("-- command", "command to run once for each root").AsOptional()).
 		WithAction(action)
