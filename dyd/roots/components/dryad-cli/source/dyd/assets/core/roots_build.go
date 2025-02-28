@@ -1,7 +1,7 @@
 package core
 
 import (
-	"path/filepath"
+	// "path/filepath"
 
 	"dryad/task"
 
@@ -11,8 +11,8 @@ import (
 
 type rootsBuildRequest struct {
 	Roots *SafeRootsReference
-	IncludeRoots func(string) bool
-	ExcludeRoots func(string) bool
+	IncludeRoots []string
+	ExcludeRoots []string
 	JoinStdout bool
 	JoinStderr bool
 }
@@ -37,16 +37,50 @@ func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, a
 		return err, nil
 	}
 
-	var buildRoot = func (ctx *task.ExecutionContext, match *SafeRootReference) (error, any) {
-		// calculate the relative path to the root from the base of the garden
-		relPath, err := filepath.Rel(match.Roots.Garden.BasePath, match.BasePath)
-		if err != nil {
-			return err, nil
+	var buildRoot = func (ctx *task.ExecutionContext, root *SafeRootReference) (error, any) {
+
+		var matchesInclude = false
+		var matchesExclude = false
+
+		if len(request.IncludeRoots) == 0 { matchesInclude = true }
+
+		for _, include := range request.IncludeRoots {
+			var matchesFilter bool
+			err, matchesFilter = root.Filter(
+				ctx,
+				RootFilterRequest{
+					Expression: include,
+				},
+			)
+			if err != nil {
+				return err, nil
+			}
+			matchesInclude = matchesInclude || matchesFilter
+			if matchesInclude {
+				break
+			}
+		}
+
+		for _, exclude := range request.ExcludeRoots {
+			var matchesFilter bool
+			err, matchesFilter = root.Filter(
+				ctx,
+				RootFilterRequest{
+					Expression: exclude,
+				},
+			)
+			if err != nil {
+				return err, nil
+			}
+			matchesExclude = matchesExclude || matchesFilter
+			if matchesExclude {
+				break
+			}
 		}
 
 		// if the root isn't being excluded by a selector, build it
-		if request.IncludeRoots(relPath) && !request.ExcludeRoots(relPath) {
-			err, _ = match.Build(
+		if matchesInclude && !matchesExclude {
+			err, _ = root.Build(
 				ctx,
 				RootBuildRequest{
 					JoinStdout: request.JoinStdout,
@@ -71,8 +105,8 @@ func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, a
 }
 
 type RootsBuildRequest struct {
-	IncludeRoots func(string) bool
-	ExcludeRoots func(string) bool
+	IncludeRoots []string
+	ExcludeRoots []string
 	JoinStdout bool
 	JoinStderr bool
 }
