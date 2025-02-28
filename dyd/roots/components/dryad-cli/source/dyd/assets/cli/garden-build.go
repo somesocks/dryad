@@ -11,8 +11,8 @@ import (
 var gardenBuildCommand = func() clib.Command {
 
 	type ParsedArgs struct {
-		IncludeRoots func(path string) bool
-		ExcludeRoots func(path string) bool
+		IncludeRoots []string
+		ExcludeRoots []string
 		Parallel int
 		Path string
 		JoinStdout bool
@@ -64,12 +64,9 @@ var gardenBuildCommand = func() clib.Command {
 			joinStderr = false
 		}
 
-		includeRoots := dryad.RootIncludeMatcher(includeOpts)
-		excludeRoots := dryad.RootExcludeMatcher(excludeOpts)
-
 		return nil, ParsedArgs{
-			IncludeRoots: includeRoots,
-			ExcludeRoots: excludeRoots,
+			IncludeRoots: includeOpts,
+			ExcludeRoots: excludeOpts,
 			Path: path,
 			Parallel: parallel,
 			JoinStdout: joinStdout,
@@ -131,8 +128,8 @@ var gardenBuildCommand = func() clib.Command {
 				NewOption("path", "the target path for the garden to build").
 				WithType(clib.OptionTypeString),
 		).
-		WithOption(clib.NewOption("include", "choose which roots are included in the build").WithType(clib.OptionTypeMultiString)).
-		WithOption(clib.NewOption("exclude", "choose which roots are excluded from the build").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("include", "choose which roots are included in the build. the include filter is a CEL expression with access to a 'root' object that can be used to filter on properties of the root.").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("exclude", "choose which roots are excluded from the build.  the exclude filter is a CEL expression with access to a 'root' object that can be used to filter on properties of the root.").WithType(clib.OptionTypeMultiString)).
 		WithOption(
 			clib.NewOption(
 				"join-stdout",
