@@ -19,8 +19,7 @@ import (
 var rootsEachCommand = func() clib.Command {
 
 	type ParsedArgs struct {
-		Include []string
-		Exclude []string
+		Filter func (*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
 		Shell string
 		Command string
 		GardenPath string
@@ -51,6 +50,17 @@ var rootsEachCommand = func() clib.Command {
 
 			if options["include"] != nil {
 				includeOpts = options["include"].([]string)
+			}
+
+
+			err, rootFilter := dryad.RootCelFilter(
+				dryad.RootCelFilterRequest{
+					Include: includeOpts,
+					Exclude: excludeOpts,
+				},
+			)
+			if err != nil {
+				return err, ParsedArgs{}
 			}
 
 			var parallel int
@@ -97,8 +107,7 @@ var rootsEachCommand = func() clib.Command {
 				Parallel: parallel,
 				Shell: shell,
 				Command: command,
-				Include: includeOpts,
-				Exclude: excludeOpts,
+				Filter: rootFilter,
 				JoinStdout: joinStdout,
 				JoinStderr: joinStderr,
 				IgnoreErrors: ignoreErrors,
@@ -124,46 +133,14 @@ var rootsEachCommand = func() clib.Command {
 			dryad.RootsWalkRequest{
 				OnMatch: func (ctx *task.ExecutionContext, root *dryad.SafeRootReference) (error, any) {
 					var err error
-					var matchesInclude = false
-					var matchesExclude = false
+					var shouldMatch bool
 
-					if len(args.Include) == 0 { matchesInclude = true }
-
-					for _, include := range args.Include {
-						var matchesFilter bool
-						err, matchesFilter = root.Filter(
-							ctx,
-							dryad.RootFilterRequest{
-								Expression: include,
-							},
-						)
-						if err != nil {
-							return err, nil
-						}
-						matchesInclude = matchesInclude || matchesFilter
-						if matchesInclude {
-							break
-						}
+					err, shouldMatch = args.Filter(ctx, root)
+					if err != nil {
+						return err, nil
 					}
 
-					for _, exclude := range args.Exclude {
-						var matchesFilter bool
-						err, matchesFilter = root.Filter(
-							ctx,
-							dryad.RootFilterRequest{
-								Expression: exclude,
-							},
-						)
-						if err != nil {
-							return err, nil
-						}
-						matchesExclude = matchesExclude || matchesFilter
-						if matchesExclude {
-							break
-						}
-					}
-
-					if matchesInclude && !matchesExclude {
+					if shouldMatch {
 
 						cmd := exec.Command(
 							args.Shell,
