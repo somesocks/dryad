@@ -183,9 +183,6 @@ func RootCelFilter(request RootCelFilterRequest) (error, func(ctx *task.Executio
 
 	for k, v := range request.Include {
 		// compile CEL expression
-		zlog.Info().
-			Str("expression", v).
-			Msg("compiling CEL expression")
 		ast, issues := rootFilterCelEnv.Compile(v)
 		if issues != nil && issues.Err() != nil {
 			zlog.Error().
