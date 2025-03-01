@@ -16,12 +16,12 @@ var sproutsListCommand = func() clib.Command {
 		GardenPath string
 		Relative bool
 		Parallel int
-		IncludeSprouts func(path string) bool
-		ExcludeSprouts func(path string) bool
+		Filter func (*task.ExecutionContext, *dryad.SafeSproutReference) (error, bool)
 	}	
 
 	var parseArgs = task.From(
 		func(req clib.ActionRequest) (error, ParsedArgs) {
+			var err error
 			var args = req.Args
 			var options = req.Opts
 
@@ -49,8 +49,17 @@ var sproutsListCommand = func() clib.Command {
 				includeOpts = options["include"].([]string)
 			}
 
-			includeSprouts := dryad.RootIncludeMatcher(includeOpts)
-			excludeSprouts := dryad.RootExcludeMatcher(excludeOpts)
+			
+			err, sproutFilter := dryad.SproutCelFilter(
+				dryad.SproutCelFilterRequest{
+					Include: includeOpts,
+					Exclude: excludeOpts,
+				},
+			)
+			if err != nil {
+				return err, ParsedArgs{}
+			}
+
 
 			var parallel int
 
@@ -64,8 +73,7 @@ var sproutsListCommand = func() clib.Command {
 				GardenPath: path,
 				Parallel: parallel,
 				Relative: relative,
-				IncludeSprouts: includeSprouts,
-				ExcludeSprouts: excludeSprouts,
+				Filter: sproutFilter,
 			}
 		},
 	)
@@ -93,7 +101,12 @@ var sproutsListCommand = func() clib.Command {
 						return err, nil
 					}
 
-					if args.IncludeSprouts(relPath) && !args.ExcludeSprouts(relPath) {
+					err, shouldMatch := args.Filter(ctx, sprout)
+					if err != nil {
+						return err, nil
+					}
+
+					if shouldMatch {
 						if args.Relative {
 							fmt.Println(relPath)
 						} else {
