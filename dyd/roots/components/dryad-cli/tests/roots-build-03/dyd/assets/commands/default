@@ -32,23 +32,11 @@ _prepare() {
 	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR" 
 	chmod -R 755 "$TEMP_DIR"
 
-	(cd "$TEMP_DIR" \
-		&& dryad roots build --log-level="$DYD_LOG_LEVEL" \
-	)
-
-	# set the whole garden to a timestamp in the past
-	# NOTE: only use shorthand touch flags to keep it mac-compatible
-	find "$TEMP_DIR" \
-		\( -type l -o -type f -o -type d \) \
-		-exec touch -h -d "2000-01-01 00:00:00" {} +
-
 	:;
 }
 
 _test() {
-	( cd "$TEMP_DIR" && \
-	dryad garden prune --log-level="$DYD_LOG_LEVEL" \
-	) 1>&2;
+	(cd "$TEMP_DIR" && dryad roots build --log-level="$DYD_LOG_LEVEL") 1>&2;
 }
 
 _verify() {

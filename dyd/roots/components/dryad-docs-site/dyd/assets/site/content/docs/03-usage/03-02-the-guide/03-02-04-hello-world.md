@@ -78,5 +78,5 @@ go build \
 
 ```
 
-With these in place, `dryad garden build` should build successfully, and `dryad sprouts run --include=server` should start our server.  We can visit `localhost:8080` in the browser to confirm.
+With these in place, `dryad roots build` should build successfully, and `dryad sprouts run --include=server` should start our server.  We can visit `localhost:8080` in the browser to confirm.
 

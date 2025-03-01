@@ -23,20 +23,20 @@ Right now, we can leave it to be an empty shell script:
 
 ```
 
-After adding this line we can run `dryad garden build` and see output on the command line like so:
+After adding this line we can run `dryad roots build` and see output on the command line like so:
 
 ```
-$:~/work/dryad/tutorial$ dryad garden build
+$:~/work/dryad/tutorial$ dryad roots build
 [info] loading default scope: 
 [info] dryad checking root server
 [info] dryad building root server
 [info] dryad done building root server
 ```
 
-Note that running `dryad garden build` a second time does not trigger a new build of the root, since the build cache already has a record of a build for a root with those contents.
+Note that running `dryad roots build` a second time does not trigger a new build of the root, since the build cache already has a record of a build for a root with those contents.
 
 ```
-$:~/work/dryad/tutorial$ dryad garden build
+$:~/work/dryad/tutorial$ dryad roots build
 [info] loading default scope: 
 [info] dryad checking root server
 ```
