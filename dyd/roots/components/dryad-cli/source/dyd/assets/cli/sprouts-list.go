@@ -146,8 +146,8 @@ var sproutsListCommand = func() clib.Command {
 
 	command := clib.NewCommand("list", "list all sprouts of the current garden").
 		WithOption(clib.NewOption("relative", "print sprouts relative to the base garden path. default true").WithType(clib.OptionTypeBool)).
-		WithOption(clib.NewOption("include", "choose which sprouts are included in the list").WithType(clib.OptionTypeMultiString)).
-		WithOption(clib.NewOption("exclude", "choose which sprouts are excluded from the list").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("include", "choose which sprouts are included in the list. the include filter is a CEL expression with access to a 'sprout' object that can be used to filter on properties of each sprout.").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("exclude", "choose which sprouts are excluded from the list.  the exclude filter is a CEL expression with access to a 'sprout' object that can be used to filter on properties of each sprout.").WithType(clib.OptionTypeMultiString)).
 		WithAction(action)
 
 	command = ParallelCommand(command)
