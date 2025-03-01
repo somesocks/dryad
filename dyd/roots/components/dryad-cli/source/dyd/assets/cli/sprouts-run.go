@@ -18,8 +18,7 @@ var sproutsRunCommand = func() clib.Command {
 	type ParsedArgs struct {
 		GardenPath string
 		Parallel int
-		IncludeSprouts func(path string) bool
-		ExcludeSprouts func(path string) bool
+		SproutFilter func (*task.ExecutionContext, *dryad.SafeSproutReference) (error, bool)
 		Confirm string
 		Context string
 		Inherit bool
@@ -44,9 +43,6 @@ var sproutsRunCommand = func() clib.Command {
 			if options["include"] != nil {
 				includeOpts = options["include"].([]string)
 			}
-
-			includeSprouts := dryad.RootIncludeMatcher(includeOpts)
-			excludeSprouts := dryad.RootExcludeMatcher(excludeOpts)
 
 			var context string
 			var inherit bool
@@ -90,13 +86,22 @@ var sproutsRunCommand = func() clib.Command {
 				confirm = options["confirm"].(string)
 			}
 
+			err, sproutFilter := dryad.SproutCelFilter(
+				dryad.SproutCelFilterRequest{
+					Include: includeOpts,
+					Exclude: excludeOpts,
+				},
+			)
+			if err != nil {
+				return err, ParsedArgs{}
+			}
+
 			extras := args[0:]
 
 			return nil, ParsedArgs{
 				GardenPath: "",
 				Parallel: parallel,
-				IncludeSprouts: includeSprouts,
-				ExcludeSprouts: excludeSprouts,
+				SproutFilter: sproutFilter,
 				Confirm: confirm,
 				Context: context,
 				Inherit: inherit,
@@ -131,15 +136,23 @@ var sproutsRunCommand = func() clib.Command {
 				ctx,
 				dryad.SproutsWalkRequest{
 					OnSprout: func (ctx *task.ExecutionContext, sprout *dryad.SafeSproutReference) (error, any) {
-						// calculate the relative path to the root from the base of the garden
-						relPath, err := filepath.Rel(sprout.Sprouts.Garden.BasePath, sprout.BasePath)
+						
+						err, shouldMatch := args.SproutFilter(ctx, sprout)
 						if err != nil {
 							return err, nil
 						}
 
-						if args.IncludeSprouts(relPath) && !args.ExcludeSprouts(relPath) {
-							fmt.Println(" - " + relPath)
+						if !shouldMatch {
+							return nil, nil
 						}
+						
+						// calculate the relative path to the root from the base of the garden
+						relPath, err := filepath.Rel(sprout.Sprouts.Garden.BasePath, sprout.BasePath)
+						if err != nil {
+							return err, nil
+						}	
+
+						fmt.Println(" - " + relPath)
 
 						return nil, nil
 					},
@@ -189,15 +202,13 @@ var sproutsRunCommand = func() clib.Command {
 			ctx,
 			dryad.SproutsWalkRequest{
 				OnSprout: func (ctx *task.ExecutionContext, sprout *dryad.SafeSproutReference) (error, any) {
-					var garden = sprout.Sprouts.Garden
 
-					// calculate the relative path to the root from the base of the garden
-					relPath, err := filepath.Rel(garden.BasePath, sprout.BasePath)
+					err, shouldMatch := args.SproutFilter(ctx, sprout)
 					if err != nil {
 						return err, nil
 					}
 
-					if args.IncludeSprouts(relPath) && !args.ExcludeSprouts(relPath) {
+					if shouldMatch {
 						zlog.Info().
 							Str("sprout", sprout.BasePath).
 							Msg("sprout run starting")
@@ -264,8 +275,8 @@ var sproutsRunCommand = func() clib.Command {
 	)
 
 	command := clib.NewCommand("run", "run each sprout in the current garden").
-		WithOption(clib.NewOption("include", "choose which sprouts are included").WithType(clib.OptionTypeMultiString)).
-		WithOption(clib.NewOption("exclude", "choose which sprouts are excluded").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("include", "choose which sprouts are included. the include filter is a CEL expression with access to a 'sprout' object that can be used to filter on properties of each sprout.").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("exclude", "choose which sprouts are excluded.  the exclude filter is a CEL expression with access to a 'sprout' object that can be used to filter on properties of each sprout.").WithType(clib.OptionTypeMultiString)).
 		WithOption(clib.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
 		WithOption(clib.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(clib.OptionTypeBool)).
 		WithOption(clib.NewOption("confirm", "ask for a confirmation string to be entered to execute this command").WithType(clib.OptionTypeString)).
