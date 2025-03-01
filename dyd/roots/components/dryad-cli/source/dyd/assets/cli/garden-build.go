@@ -11,8 +11,7 @@ import (
 var gardenBuildCommand = func() clib.Command {
 
 	type ParsedArgs struct {
-		IncludeRoots []string
-		ExcludeRoots []string
+		Filter func (*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
 		Parallel int
 		Path string
 		JoinStdout bool
@@ -64,9 +63,18 @@ var gardenBuildCommand = func() clib.Command {
 			joinStderr = false
 		}
 
+		err, rootFilter := dryad.RootCelFilter(
+			dryad.RootCelFilterRequest{
+				Include: includeOpts,
+				Exclude: excludeOpts,
+			},
+		)
+		if err != nil {
+			return err, ParsedArgs{}
+		}
+
 		return nil, ParsedArgs{
-			IncludeRoots: includeOpts,
-			ExcludeRoots: excludeOpts,
+			Filter: rootFilter,
 			Path: path,
 			Parallel: parallel,
 			JoinStdout: joinStdout,
@@ -90,8 +98,7 @@ var gardenBuildCommand = func() clib.Command {
 		err = roots.Build(
 			ctx,
 			dryad.RootsBuildRequest{
-				IncludeRoots: args.IncludeRoots,
-				ExcludeRoots: args.ExcludeRoots,
+				Filter: args.Filter,
 				JoinStdout: args.JoinStdout,
 				JoinStderr: args.JoinStderr,
 			},

@@ -52,7 +52,6 @@ var rootsEachCommand = func() clib.Command {
 				includeOpts = options["include"].([]string)
 			}
 
-
 			err, rootFilter := dryad.RootCelFilter(
 				dryad.RootCelFilterRequest{
 					Include: includeOpts,
