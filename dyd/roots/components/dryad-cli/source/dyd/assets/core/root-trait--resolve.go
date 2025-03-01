@@ -12,7 +12,7 @@ import (
 	// zlog "github.com/rs/zerolog/log"
 )
 
-var ErrorNoTrait = errors.New("root does not have trait")
+var ErrorNoRootTrait = errors.New("root does not have trait")
 
 func (rootTrait *UnsafeRootTraitReference) Resolve(ctx * task.ExecutionContext) (error, *SafeRootTraitReference) {
 	var rootTraitExists bool
@@ -25,7 +25,7 @@ func (rootTrait *UnsafeRootTraitReference) Resolve(ctx * task.ExecutionContext) 
 	}
 
 	if !rootTraitExists {
-		return ErrorNoTrait, nil
+		return ErrorNoRootTrait, nil
 	}
 
 	safeRef = SafeRootTraitReference{

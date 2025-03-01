@@ -65,7 +65,7 @@ var RootFilterCelEnv = func () *cel.Env {
 
 					err, traits := wrapper.root.Traits().Resolve(wrapper.ctx)
 					if err != nil {
-						if errors.Is(err, ErrorNoTraits) {
+						if errors.Is(err, ErrorNoRootTraits) {
 							return types.String("")
 						}
 						zlog.Error().
@@ -76,7 +76,7 @@ var RootFilterCelEnv = func () *cel.Env {
 
 					err, trait := traits.Trait(path).Resolve(wrapper.ctx)
 					if err != nil {
-						if errors.Is(err, ErrorNoTrait) {
+						if errors.Is(err, ErrorNoRootTrait) {
 							return types.String("")
 						}
 						zlog.Error().
