@@ -86,7 +86,7 @@ var sproutsRunCommand = func() clib.Command {
 				confirm = options["confirm"].(string)
 			}
 
-			err, sproutFilter := dryad.SproutFilterFromCel(
+			err, includeExcludeFilter := dryad.SproutFilterFromCel(
 				dryad.SproutFilterFromCelRequest{
 					Include: includeOpts,
 					Exclude: excludeOpts,
@@ -96,12 +96,20 @@ var sproutsRunCommand = func() clib.Command {
 				return err, ParsedArgs{}
 			}
 
+			err, fromStdinFilter := ArgSproutFilterFromStdin(task.SERIAL_CONTEXT, req)
+			if err != nil {
+				return err, ParsedArgs{}
+			}
+
 			extras := args[0:]
 
 			return nil, ParsedArgs{
 				GardenPath: "",
 				Parallel: parallel,
-				SproutFilter: sproutFilter,
+				SproutFilter: dryad.SproutFiltersCompose(
+					fromStdinFilter,
+					includeExcludeFilter,
+				),
 				Confirm: confirm,
 				Context: context,
 				Inherit: inherit,
@@ -275,6 +283,13 @@ var sproutsRunCommand = func() clib.Command {
 	)
 
 	command := clib.NewCommand("run", "run each sprout in the current garden").
+		WithOption(
+			clib.NewOption(
+				"from-stdin", 
+				"if set, read a list of sprouts from stdin to use as a base list to run, instead of all sprouts. include and exclude filters are applied to this list. default false",
+			).
+			WithType(clib.OptionTypeBool),
+		).
 		WithOption(clib.NewOption("include", "choose which sprouts are included. the include filter is a CEL expression with access to a 'sprout' object that can be used to filter on properties of each sprout.").WithType(clib.OptionTypeMultiString)).
 		WithOption(clib.NewOption("exclude", "choose which sprouts are excluded.  the exclude filter is a CEL expression with access to a 'sprout' object that can be used to filter on properties of each sprout.").WithType(clib.OptionTypeMultiString)).
 		WithOption(clib.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
