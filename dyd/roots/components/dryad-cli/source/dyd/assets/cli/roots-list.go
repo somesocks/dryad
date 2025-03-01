@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"bufio"
+	"os"
+
 	zlog "github.com/rs/zerolog/log"
 )
 
@@ -16,8 +19,89 @@ var rootsListCommand = func() clib.Command {
 		GardenPath string
 		Relative bool
 		Parallel int
-		Filter func (*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
-	}	
+		FromStdinFilter func (*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
+		IncludeExcludeFilter func (*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
+	}
+
+
+	var buildStdinFilter = func (
+		ctx *task.ExecutionContext,
+		req clib.ActionRequest,
+	) (error, func (*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)) {
+		var options = req.Opts
+
+		var fromStdin bool
+		var fromStdinFilter func (*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
+
+		var path = ""
+
+		if options["from-stdin"] != nil {
+			fromStdin = options["from-stdin"].(bool)
+		} else {
+			fromStdin = true
+		}
+
+		if fromStdin {
+			unsafeGarden := dryad.Garden(path)
+	
+			err, garden := unsafeGarden.Resolve(ctx)
+			if err != nil {
+				return err, fromStdinFilter
+			}
+	
+			err, roots := garden.Roots().Resolve(ctx)
+			if err != nil {
+				return err, fromStdinFilter
+			}
+
+			var rootSet = make(map[string]bool)
+			var scanner = bufio.NewScanner(os.Stdin)
+
+			for scanner.Scan() {
+				var path = scanner.Text()
+				var err error 
+				var root dryad.SafeRootReference
+
+				path, err = filepath.Abs(path)
+				if err != nil {
+					zlog.Error().
+						Err(err).
+						Msg("error reading path from stdin")
+					return err, fromStdinFilter
+				}
+
+				path = _rootsOwningDependencyCorrection(path)
+				err, root = roots.Root(path).Resolve(ctx)
+				if err != nil {
+					zlog.Error().
+						Str("path", path).
+						Err(err).
+						Msg("error resolving root from path")
+					return err, fromStdinFilter
+				}
+
+				rootSet[root.BasePath] = true
+			}
+
+			// Check for any errors during scanning
+			if err := scanner.Err(); err != nil {
+				zlog.Error().Err(err).Msg("error reading stdin")
+				return err, fromStdinFilter
+			}
+
+			fromStdinFilter = func (ctx *task.ExecutionContext, root *dryad.SafeRootReference) (error, bool) {
+				_, ok := rootSet[root.BasePath]
+				return nil, ok
+			}
+
+		} else {
+			fromStdinFilter = func (ctx *task.ExecutionContext, root *dryad.SafeRootReference) (error, bool) {
+				return nil, true
+			}
+		}
+
+		return nil, fromStdinFilter
+	}
 
 	var parseArgs = task.From(
 		func(req clib.ActionRequest) (error, ParsedArgs) {
@@ -66,12 +150,18 @@ var rootsListCommand = func() clib.Command {
 			} else {
 				parallel = 8
 			}
+
+			err, fromStdinFilter := buildStdinFilter(task.SERIAL_CONTEXT, req)
+			if err != nil {
+				return err, ParsedArgs{}
+			}
 	
 			return nil, ParsedArgs{
 				GardenPath: path,
 				Parallel: parallel,
 				Relative: relative,
-				Filter: rootFilter,
+				FromStdinFilter: fromStdinFilter,
+				IncludeExcludeFilter: rootFilter,
 			}
 		},
 	)
@@ -96,12 +186,17 @@ var rootsListCommand = func() clib.Command {
 					var err error
 					var shouldMatch bool
 
-					err, shouldMatch = args.Filter(ctx, root)
+					err, shouldMatch = args.FromStdinFilter(ctx, root)
 					if err != nil {
 						return err, nil
+					} else if !shouldMatch {
+						return nil, nil
 					}
 
-					if !shouldMatch {
+					err, shouldMatch = args.IncludeExcludeFilter(ctx, root)
+					if err != nil {
+						return err, nil
+					} else if !shouldMatch {
 						return nil, nil
 					}
 
@@ -152,11 +247,24 @@ var rootsListCommand = func() clib.Command {
 	command := clib.NewCommand("list", "list all roots that are dependencies for the current root (or roots of the current garden, if the path is not a root)").
 		WithArg(
 			clib.
-				NewArg("path", "path to the base root (or garden) to list roots in").
+				NewArg("path", "path to the base garden to list roots in").
 				AsOptional().
 				WithAutoComplete(ArgAutoCompletePath),
 		).
-		WithOption(clib.NewOption("relative", "print roots relative to the base garden path. default true").WithType(clib.OptionTypeBool)).
+		WithOption(
+			clib.NewOption(
+				"relative", 
+				"print roots relative to the base garden path. default true",
+			).
+			WithType(clib.OptionTypeBool),
+		).
+		WithOption(
+			clib.NewOption(
+				"from-stdin", 
+				"if set, read a list of roots from stdin to use as a base list to print, instead of all roots. include and exclude filters will be applied to this list. default false",
+			).
+			WithType(clib.OptionTypeBool),
+		).
 		WithOption(clib.NewOption("include", "choose which roots are included in the list. the include filter is a CEL expression with access to a 'root' object that can be used to filter on properties of the root.").WithType(clib.OptionTypeMultiString)).
 		WithOption(clib.NewOption("exclude", "choose which roots are excluded from the list.  the exclude filter is a CEL expression with access to a 'root' object that can be used to filter on properties of the root.").WithType(clib.OptionTypeMultiString)).
 		WithAction(action)
