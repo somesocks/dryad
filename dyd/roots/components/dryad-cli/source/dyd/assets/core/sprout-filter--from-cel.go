@@ -171,12 +171,12 @@ var sproutFilterCelEnv = func () *cel.Env {
 }();
 
 
-type SproutCelFilterRequest struct {
+type SproutFilterFromCelRequest struct {
 	Include []string
 	Exclude [] string
 }
 
-func SproutCelFilter(request SproutCelFilterRequest) (error, func(ctx *task.ExecutionContext, ref *SafeSproutReference) (error, bool)) {
+func SproutFilterFromCel(request SproutFilterFromCelRequest) (error, SproutFilter) {
 	var includeFilters []cel.Program = make([]cel.Program, len(request.Include))
 	var excludeFilters []cel.Program = make([]cel.Program, len(request.Exclude))
 	var filter func(ctx *task.ExecutionContext, ref *SafeSproutReference) (error, bool)

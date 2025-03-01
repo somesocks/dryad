@@ -86,8 +86,8 @@ var sproutsRunCommand = func() clib.Command {
 				confirm = options["confirm"].(string)
 			}
 
-			err, sproutFilter := dryad.SproutCelFilter(
-				dryad.SproutCelFilterRequest{
+			err, sproutFilter := dryad.SproutFilterFromCel(
+				dryad.SproutFilterFromCelRequest{
 					Include: includeOpts,
 					Exclude: excludeOpts,
 				},
