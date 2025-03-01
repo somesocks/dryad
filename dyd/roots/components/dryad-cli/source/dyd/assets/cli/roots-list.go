@@ -38,7 +38,7 @@ var rootsListCommand = func() clib.Command {
 		if options["from-stdin"] != nil {
 			fromStdin = options["from-stdin"].(bool)
 		} else {
-			fromStdin = true
+			fromStdin = false
 		}
 
 		if fromStdin {
