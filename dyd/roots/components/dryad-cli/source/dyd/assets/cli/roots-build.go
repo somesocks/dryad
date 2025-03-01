@@ -12,8 +12,7 @@ import (
 var rootsBuildCommand = func() clib.Command {
 
 	type ParsedArgs struct {
-		Include []string
-		Exclude []string
+		Filter func (*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
 		Parallel int
 		Path string
 		JoinStdout bool
@@ -65,9 +64,18 @@ var rootsBuildCommand = func() clib.Command {
 			joinStderr = false
 		}
 
+		err, rootFilter := dryad.RootCelFilter(
+			dryad.RootCelFilterRequest{
+				Include: includeOpts,
+				Exclude: excludeOpts,
+			},
+		)
+		if err != nil {
+			return err, ParsedArgs{}
+		}
+
 		return nil, ParsedArgs{
-			Include: includeOpts,
-			Exclude: excludeOpts,
+			Filter: rootFilter,
 			Path: path,
 			Parallel: parallel,
 			JoinStdout: joinStdout,
@@ -91,8 +99,7 @@ var rootsBuildCommand = func() clib.Command {
 		err = roots.Build(
 			ctx,
 			dryad.RootsBuildRequest{
-				IncludeRoots: args.Include,
-				ExcludeRoots: args.Exclude,
+				Filter: args.Filter,
 				JoinStdout: args.JoinStdout,
 				JoinStderr: args.JoinStderr,
 			},

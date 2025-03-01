@@ -11,8 +11,7 @@ import (
 
 type rootsBuildRequest struct {
 	Roots *SafeRootsReference
-	IncludeRoots []string
-	ExcludeRoots []string
+	Filter func (*task.ExecutionContext, *SafeRootReference) (error, bool)
 	JoinStdout bool
 	JoinStderr bool
 }
@@ -39,47 +38,16 @@ func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, a
 
 	var buildRoot = func (ctx *task.ExecutionContext, root *SafeRootReference) (error, any) {
 
-		var matchesInclude = false
-		var matchesExclude = false
+		var err error
+		var shouldMatch bool
 
-		if len(request.IncludeRoots) == 0 { matchesInclude = true }
-
-		for _, include := range request.IncludeRoots {
-			var matchesFilter bool
-			err, matchesFilter = root.Filter(
-				ctx,
-				RootFilterRequest{
-					Expression: include,
-				},
-			)
-			if err != nil {
-				return err, nil
-			}
-			matchesInclude = matchesInclude || matchesFilter
-			if matchesInclude {
-				break
-			}
-		}
-
-		for _, exclude := range request.ExcludeRoots {
-			var matchesFilter bool
-			err, matchesFilter = root.Filter(
-				ctx,
-				RootFilterRequest{
-					Expression: exclude,
-				},
-			)
-			if err != nil {
-				return err, nil
-			}
-			matchesExclude = matchesExclude || matchesFilter
-			if matchesExclude {
-				break
-			}
+		err, shouldMatch = request.Filter(ctx, root)
+		if err != nil {
+			return err, nil
 		}
 
 		// if the root isn't being excluded by a selector, build it
-		if matchesInclude && !matchesExclude {
+		if shouldMatch {
 			err, _ = root.Build(
 				ctx,
 				RootBuildRequest{
@@ -105,8 +73,7 @@ func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, a
 }
 
 type RootsBuildRequest struct {
-	IncludeRoots []string
-	ExcludeRoots []string
+	Filter func (*task.ExecutionContext, *SafeRootReference) (error, bool)
 	JoinStdout bool
 	JoinStderr bool
 }
@@ -116,8 +83,7 @@ func (roots *SafeRootsReference) Build(ctx *task.ExecutionContext, req RootsBuil
 		ctx,
 		rootsBuildRequest{
 			Roots: roots,
-			IncludeRoots: req.IncludeRoots,
-			ExcludeRoots: req.ExcludeRoots,
+			Filter: req.Filter,
 			JoinStdout: req.JoinStdout,
 			JoinStderr: req.JoinStderr,
 		},

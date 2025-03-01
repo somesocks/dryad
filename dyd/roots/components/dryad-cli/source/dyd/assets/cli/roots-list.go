@@ -16,8 +16,7 @@ var rootsListCommand = func() clib.Command {
 		GardenPath string
 		Relative bool
 		Parallel int
-		Include []string
-		Exclude []string
+		Filter func (*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
 	}	
 
 	var parseArgs = task.From(
@@ -41,13 +40,24 @@ var rootsListCommand = func() clib.Command {
 			var includeOpts []string
 			var excludeOpts []string
 
+			if options["include"] != nil {
+				includeOpts = options["include"].([]string)
+			}
+
 			if options["exclude"] != nil {
 				excludeOpts = options["exclude"].([]string)
 			}
 
-			if options["include"] != nil {
-				includeOpts = options["include"].([]string)
+			err, rootFilter := dryad.RootCelFilter(
+				dryad.RootCelFilterRequest{
+					Include: includeOpts,
+					Exclude: excludeOpts,
+				},
+			)
+			if err != nil {
+				return err, ParsedArgs{}
 			}
+
 
 			var parallel int
 
@@ -61,8 +71,7 @@ var rootsListCommand = func() clib.Command {
 				GardenPath: path,
 				Parallel: parallel,
 				Relative: relative,
-				Include: includeOpts,
-				Exclude: excludeOpts,
+				Filter: rootFilter,
 			}
 		},
 	)
@@ -85,67 +94,32 @@ var rootsListCommand = func() clib.Command {
 			dryad.RootsWalkRequest{
 				OnMatch: func (ctx *task.ExecutionContext, root *dryad.SafeRootReference) (error, any) {
 					var err error
-					var matchesInclude = false
-					var matchesExclude = false
+					var shouldMatch bool
 
-					if len(args.Include) == 0 { matchesInclude = true }
-
-					for _, include := range args.Include {
-						var matchesFilter bool
-						err, matchesFilter = root.Filter(
-							ctx,
-							dryad.RootFilterRequest{
-								Expression: include,
-							},
-						)
-						if err != nil {
-							return err, nil
-						}
-						matchesInclude = matchesInclude || matchesFilter
-						if matchesInclude {
-							break
-						}
-					}
-
-					for _, exclude := range args.Exclude {
-						var matchesFilter bool
-						err, matchesFilter = root.Filter(
-							ctx,
-							dryad.RootFilterRequest{
-								Expression: exclude,
-							},
-						)
-						if err != nil {
-							return err, nil
-						}
-						matchesExclude = matchesExclude || matchesFilter
-						if matchesExclude {
-							break
-						}
-					}
-
-					// calculate the relative path to the root from the base of the garden
-					relPath, err := filepath.Rel(root.Roots.Garden.BasePath, root.BasePath)
+					err, shouldMatch = args.Filter(ctx, root)
 					if err != nil {
 						return err, nil
 					}
 
-					// zlog.Info().
-					// 	Str("root", root.BasePath).
-					// 	Bool("matchesFilter", matchesFilter).
-					// 	Bool("args.Include(relPath)", args.Include(relPath)).
-					// 	Bool("!args.Exclude(relPath)", !args.Exclude(relPath)).
-					// 	Msg("roots list matchesFilter")
-
-					if matchesInclude && !matchesExclude {
-						if args.Relative {
-							fmt.Println(relPath)
-						} else {
-							fmt.Println(root.BasePath)
-						}
+					if !shouldMatch {
+						return nil, nil
 					}
 
-					return nil, nil
+					if args.Relative {
+						// calculate the relative path to the root from the base of the garden
+						relPath, err := filepath.Rel(root.Roots.Garden.BasePath, root.BasePath)
+						if err != nil {
+							return err, nil
+						}
+
+						fmt.Println(relPath)
+						return nil, nil
+					} else {
+						fmt.Println(root.BasePath)
+						return nil, nil
+					}
+
+
 				},
 			},
 		)
