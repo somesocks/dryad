@@ -5,7 +5,6 @@ import (
 )
 
 var gardenCommand = clib.NewCommand("garden", "commands to work with a dryad garden").
-	WithCommand(gardenBuildCommand).
 	WithCommand(gardenCreateCommand).
 	WithCommand(gardenPackCommand).
 	WithCommand(gardenPathCommand).

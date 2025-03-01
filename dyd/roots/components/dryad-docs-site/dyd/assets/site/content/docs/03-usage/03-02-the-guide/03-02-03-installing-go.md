@@ -88,5 +88,5 @@ _exit
 
 ```
 
-With these two scripts in place, `dryad garden build` should correctly download and extract the go toolchain into a stem.  You can verify this by running `dryad sprouts run --include=go -- version`, which should print out the go version.
+With these two scripts in place, `dryad roots build` should correctly download and extract the go toolchain into a stem.  You can verify this by running `dryad sprouts run --include=go -- version`, which should print out the go version.
 

@@ -32,7 +32,7 @@ _prepare() {
 	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR" 
 	chmod -R 755 "$TEMP_DIR"
 
-	(cd "$TEMP_DIR" && dryad garden build)
+	(cd "$TEMP_DIR" && dryad roots build)
 
 	:;
 }
