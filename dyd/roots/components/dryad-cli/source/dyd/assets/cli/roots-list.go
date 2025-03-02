@@ -18,6 +18,7 @@ var rootsListCommand = func() clib.Command {
 	type ParsedArgs struct {
 		GardenPath string
 		Relative bool
+		ToSprouts bool
 		Parallel int
 		FromStdinFilter func (*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
 		IncludeExcludeFilter func (*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
@@ -109,6 +110,7 @@ var rootsListCommand = func() clib.Command {
 			var options = req.Opts
 
 			var relative bool = true
+			var toSprouts bool
 			var path string = ""
 
 			if len(args) > 0 {
@@ -119,6 +121,12 @@ var rootsListCommand = func() clib.Command {
 				relative = options["relative"].(bool)
 			} else {
 				relative = true
+			}
+
+			if options["to-sprouts"] != nil {
+				toSprouts = options["to-sprouts"].(bool)
+			} else {
+				toSprouts = false
 			}
 
 			var includeOpts []string
@@ -160,6 +168,7 @@ var rootsListCommand = func() clib.Command {
 				GardenPath: path,
 				Parallel: parallel,
 				Relative: relative,
+				ToSprouts: toSprouts,
 				FromStdinFilter: fromStdinFilter,
 				IncludeExcludeFilter: rootFilter,
 			}
@@ -174,7 +183,12 @@ var rootsListCommand = func() clib.Command {
 			return err, nil
 		}
 
-		err, roots := garden.Roots().Resolve(task.SERIAL_CONTEXT)
+		err, roots := garden.Roots().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		err, sprouts := garden.Sprouts().Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}
@@ -200,7 +214,22 @@ var rootsListCommand = func() clib.Command {
 						return nil, nil
 					}
 
-					if args.Relative {
+					if args.ToSprouts {
+						// calculate the relative path to the root from the base of the roots
+						rootPath, err := filepath.Rel(root.Roots.BasePath, root.BasePath)
+						if err != nil {
+							return err, nil
+						}
+
+						var sproutPath string
+						if args.Relative {
+							sproutPath = filepath.Join("dyd", "sprouts", rootPath)
+						} else {
+							sproutPath = filepath.Join(sprouts.BasePath, rootPath)
+						}
+
+						fmt.Println(sproutPath)
+					} else if args.Relative {
 						// calculate the relative path to the root from the base of the garden
 						relPath, err := filepath.Rel(root.Roots.Garden.BasePath, root.BasePath)
 						if err != nil {
@@ -208,12 +237,10 @@ var rootsListCommand = func() clib.Command {
 						}
 
 						fmt.Println(relPath)
-						return nil, nil
 					} else {
 						fmt.Println(root.BasePath)
-						return nil, nil
 					}
-
+					return nil, nil
 
 				},
 			},
@@ -267,6 +294,13 @@ var rootsListCommand = func() clib.Command {
 		).
 		WithOption(clib.NewOption("include", "choose which roots are included in the list. the include filter is a CEL expression with access to a 'root' object that can be used to filter on properties of the root.").WithType(clib.OptionTypeMultiString)).
 		WithOption(clib.NewOption("exclude", "choose which roots are excluded from the list.  the exclude filter is a CEL expression with access to a 'root' object that can be used to filter on properties of the root.").WithType(clib.OptionTypeMultiString)).
+		WithOption(
+			clib.NewOption(
+				"to-sprouts", 
+				"if set, print the corresponding sprout path for each root instead of the root path.",
+			).
+			WithType(clib.OptionTypeBool),
+		).
 		WithAction(action)
 
 	command = ParallelCommand(command)
