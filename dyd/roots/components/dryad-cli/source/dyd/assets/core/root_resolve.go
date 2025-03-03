@@ -49,13 +49,15 @@ func rootPath(path string, limit string) (string, error) {
 
 				return workingPath, nil
 			} else {
-				zlog.Error().
-					Str("type", sentinel.String()).
+				err = errors.New("malformed type file, or root search started inside non-root resource")
+				zlog.Debug().
+					Str("searchPath", path).
 					Str("typeFile", flagPath).
 					Str("typeFileContent", string(fileBytes)).
 					Str("typeExpected", SentinelRoot.String()).
-					Msg("malformed type file, or root search started inside non-root resource")
-				return "", errors.New("malformed type file, or root search started inside non-root resource")
+					Err(err).
+					Msg("root resolve error")
+				return "", err
 			}
 		}
 
