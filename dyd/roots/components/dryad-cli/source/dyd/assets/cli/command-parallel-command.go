@@ -22,7 +22,7 @@ var ParallelCommand = func(
 
 		if options["parallel"] != nil {
 			parallel = int(options["parallel"].(int64))
-			if parallel < 1 || parallel > 64 {
+			if parallel < PARALLEL_COUNT_MIN || parallel > PARALLEL_COUNT_MAX {
 				zlog.
 					Fatal().
 					Msg("invalid number of parallel threads specified, must be between 1 and 64")

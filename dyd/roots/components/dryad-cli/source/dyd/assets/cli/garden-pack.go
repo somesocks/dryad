@@ -44,7 +44,7 @@ var gardenPackCommand = func() clib.Command {
 			if options["parallel"] != nil {
 				parallel = int(options["parallel"].(int64))
 			} else {
-				parallel = 8
+				parallel = PARALLEL_COUNT_DEFAULT
 			}
 
 			var includeRoots bool
