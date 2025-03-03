@@ -1,0 +1,6 @@
+
+package cli
+
+const PARALLEL_COUNT_MIN = 1
+const PARALLEL_COUNT_DEFAULT = 8
+const PARALLEL_COUNT_MAX = 64
