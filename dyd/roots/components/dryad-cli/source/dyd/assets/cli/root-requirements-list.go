@@ -62,28 +62,39 @@ var rootRequirementsListCommand = func() clib.Command {
 				return 1
 			}
 
-			var onRequirementMatch =func (ctx *task.ExecutionContext, match *dryad.SafeRootReference) (error, any) {
+			err, safeRequirements := safeRoot.Requirements().Resolve(task.SERIAL_CONTEXT)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error while resolving root requirements")
+				return 1
+			} else if safeRequirements == nil {
+				// no requirements, so exit
+				return 0				
+			}
+
+			var onRequirementMatch =func (ctx *task.ExecutionContext, requirement *dryad.SafeRootRequirementReference) (error, any) {
 				zlog.Trace().
-					Str("path", match.BasePath).
+					Str("path", requirement.BasePath).
 					Msg("root requirements list / onRequirement")				
 
 				if relative {
 					// calculate the relative path to the root from the base of the garden
-					relPath, err := filepath.Rel(match.Roots.Garden.BasePath, match.BasePath)
+					relPath, err := filepath.Rel(
+						requirement.Requirements.Root.Roots.Garden.BasePath,
+						requirement.BasePath,
+					)
 					if err != nil {
 						return err, nil
 					}
 					fmt.Println(relPath)
 				} else {
-					fmt.Println(match.BasePath)
+					fmt.Println(requirement.BasePath)
 				}
 				return nil, nil
 			}
 
-			err, _ = dryad.RootRequirementsWalk(
+			err = safeRequirements.Walk(
 				task.SERIAL_CONTEXT,
 				dryad.RootRequirementsWalkRequest{
-					Root: &safeRoot,
 					OnMatch: onRequirementMatch,
 				},
 			)

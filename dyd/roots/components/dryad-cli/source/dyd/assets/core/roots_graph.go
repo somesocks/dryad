@@ -61,46 +61,55 @@ func rootsGraph(
 ) (error, TRootsGraph) {
 	var err error
 	var relative bool = req.Relative
-	var gardenPath string = req.Roots.Garden.BasePath
 
 	graph := make(TRootsGraph)
 
-	var onRoot = func (ctx *task.ExecutionContext, match *SafeRootReference) (error, any) {
-		rootPath, err := filepath.EvalSymlinks(match.BasePath)
+	var onRootRequirement = func (ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
+		var rootPath string = requirement.Requirements.Root.BasePath
+		var targetPath string
+		var target *SafeRootReference
+		var err error
+
+		err, target = requirement.Target(ctx)
 		if err != nil {
 			return err, nil
 		}
+		
+		targetPath = target.BasePath
 
-		var onRequirementMatch = func(ctx *task.ExecutionContext, requirement *SafeRootReference) (error, any) {
-			requirementPath, err := filepath.EvalSymlinks(requirement.BasePath)
+		if relative {
+			var gardenPath string = requirement.Requirements.Root.Roots.Garden.BasePath
+			rootPath, err = filepath.Rel(gardenPath, rootPath)
 			if err != nil {
 				return err, nil
 			}
-
-			if relative {
-				relRootPath, err := filepath.Rel(gardenPath, rootPath)
-				if err != nil {
-					return err, nil
-				}
-
-				relRequirementPath, err := filepath.Rel(gardenPath, requirementPath)
-				if err != nil {
-					return err, nil
-				}
-
-				graph.AddEdge(relRootPath, relRequirementPath)
-			} else {
-				graph.AddEdge(rootPath, requirementPath)
+			targetPath, err = filepath.Rel(gardenPath, targetPath)
+			if err != nil {
+				return err, nil
 			}
+		}
 
+		graph.AddEdge(rootPath, targetPath)
+
+		return nil, nil
+	}
+
+	var onRoot = func (ctx *task.ExecutionContext, root *SafeRootReference) (error, any) {
+		var requirements *SafeRootRequirementsReference
+		var err error
+
+		err, requirements = root.Requirements().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		} else if requirements == nil {
+			// do nothing if there are no requirements
 			return nil, nil
 		}
 
-		err, _ = RootRequirementsWalk(
+		err = requirements.Walk(
 			ctx,
 			RootRequirementsWalkRequest{
-				Root: match,
-				OnMatch: onRequirementMatch,
+				OnMatch: onRootRequirement,
 			},
 		)
 		if err != nil {
