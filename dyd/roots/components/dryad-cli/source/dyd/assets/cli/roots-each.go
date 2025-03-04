@@ -41,27 +41,11 @@ var rootsEachCommand = func() clib.Command {
 	
 			var ignoreErrors bool
 
-			var includeOpts []string
-			var excludeOpts []string
-
-			if options["exclude"] != nil {
-				excludeOpts = options["exclude"].([]string)
-			}
-
-			if options["include"] != nil {
-				includeOpts = options["include"].([]string)
-			}
-
-			err, rootFilter := dryad.RootCelFilter(
-				dryad.RootCelFilterRequest{
-					Include: includeOpts,
-					Exclude: excludeOpts,
-				},
-			)
+			err, rootFilter := ArgRootFilterFromIncludeExclude(ctx, req)
 			if err != nil {
 				return err, ParsedArgs{}
 			}
-
+	
 			err, fromStdinFilter := ArgRootFilterFromStdin(ctx, req)
 			if err != nil {
 				return err, ParsedArgs{}

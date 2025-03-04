@@ -48,34 +48,17 @@ var rootsListCommand = func() clib.Command {
 			toSprouts = false
 		}
 
-		var includeOpts []string
-		var excludeOpts []string
-
-		if options["include"] != nil {
-			includeOpts = options["include"].([]string)
-		}
-
-		if options["exclude"] != nil {
-			excludeOpts = options["exclude"].([]string)
-		}
-
-		err, rootFilter := dryad.RootCelFilter(
-			dryad.RootCelFilterRequest{
-				Include: includeOpts,
-				Exclude: excludeOpts,
-			},
-		)
-		if err != nil {
-			return err, ParsedArgs{}
-		}
-
-
 		var parallel int
 
 		if options["parallel"] != nil {
 			parallel = int(options["parallel"].(int64))
 		} else {
 			parallel = PARALLEL_COUNT_DEFAULT
+		}
+
+		err, rootFilter := ArgRootFilterFromIncludeExclude(ctx, req)
+		if err != nil {
+			return err, ParsedArgs{}
 		}
 
 		err, fromStdinFilter := ArgRootFilterFromStdin(ctx, req)

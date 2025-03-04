@@ -26,21 +26,10 @@ var rootsBuildCommand = func() clib.Command {
 		var path string
 		// var err error
 
-		var includeOpts []string
-		var excludeOpts []string
-
 		var parallel int
 
 		var joinStdout bool
 		var joinStderr bool
-
-		if options["exclude"] != nil {
-			excludeOpts = options["exclude"].([]string)
-		}
-
-		if options["include"] != nil {
-			includeOpts = options["include"].([]string)
-		}
 
 		if options["path"] != nil {
 			path = options["path"].(string)
@@ -64,12 +53,7 @@ var rootsBuildCommand = func() clib.Command {
 			joinStderr = false
 		}
 
-		err, rootFilter := dryad.RootCelFilter(
-			dryad.RootCelFilterRequest{
-				Include: includeOpts,
-				Exclude: excludeOpts,
-			},
-		)
+		err, rootFilter := ArgRootFilterFromIncludeExclude(ctx, req)
 		if err != nil {
 			return err, ParsedArgs{}
 		}
