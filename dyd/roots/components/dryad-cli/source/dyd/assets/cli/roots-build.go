@@ -5,10 +5,6 @@ import (
 	dryad "dryad/core"
 	"dryad/task"
 
-	"bufio"
-	"os"
-	"path/filepath"
-
 	zlog "github.com/rs/zerolog/log"
 )
 
@@ -21,85 +17,6 @@ var rootsBuildCommand = func() clib.Command {
 		Path string
 		JoinStdout bool
 		JoinStderr bool
-	}
-
-	var buildStdinFilter = func (
-		ctx *task.ExecutionContext,
-		req clib.ActionRequest,
-	) (error, func (*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)) {
-		var options = req.Opts
-
-		var fromStdin bool
-		var fromStdinFilter func (*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
-
-		var path = ""
-
-		if options["from-stdin"] != nil {
-			fromStdin = options["from-stdin"].(bool)
-		} else {
-			fromStdin = false
-		}
-
-		if fromStdin {
-			unsafeGarden := dryad.Garden(path)
-	
-			err, garden := unsafeGarden.Resolve(ctx)
-			if err != nil {
-				return err, fromStdinFilter
-			}
-	
-			err, roots := garden.Roots().Resolve(ctx)
-			if err != nil {
-				return err, fromStdinFilter
-			}
-
-			var rootSet = make(map[string]bool)
-			var scanner = bufio.NewScanner(os.Stdin)
-
-			for scanner.Scan() {
-				var path = scanner.Text()
-				var err error 
-				var root dryad.SafeRootReference
-
-				path, err = filepath.Abs(path)
-				if err != nil {
-					zlog.Error().
-						Err(err).
-						Msg("error reading path from stdin")
-					return err, fromStdinFilter
-				}
-
-				path = _rootsOwningDependencyCorrection(path)
-				err, root = roots.Root(path).Resolve(ctx)
-				if err != nil {
-					zlog.Error().
-						Str("path", path).
-						Err(err).
-						Msg("error resolving root from path")
-					return err, fromStdinFilter
-				}
-
-				rootSet[root.BasePath] = true
-			}
-
-			// Check for any errors during scanning
-			if err := scanner.Err(); err != nil {
-				zlog.Error().Err(err).Msg("error reading stdin")
-				return err, fromStdinFilter
-			}
-
-			fromStdinFilter = func (ctx *task.ExecutionContext, root *dryad.SafeRootReference) (error, bool) {
-				_, ok := rootSet[root.BasePath]
-				return nil, ok
-			}
-
-		} else {
-			fromStdinFilter = func (ctx *task.ExecutionContext, root *dryad.SafeRootReference) (error, bool) {
-				return nil, true
-			}
-		}
-
-		return nil, fromStdinFilter
 	}
 
 	var parseArgs = func (ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
@@ -157,7 +74,7 @@ var rootsBuildCommand = func() clib.Command {
 			return err, ParsedArgs{}
 		}
 
-		err, fromStdinFilter := buildStdinFilter(task.SERIAL_CONTEXT, req)
+		err, fromStdinFilter := ArgRootFilterFromStdin(ctx, req)
 		if err != nil {
 			return err, ParsedArgs{}
 		}
