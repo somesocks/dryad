@@ -5,9 +5,7 @@ import (
 	dryad "dryad/core"
 	"dryad/task"
 	// "fmt"
-	"path/filepath"
 
-	"bufio"
 	"os"
 	"os/exec"
 
@@ -31,88 +29,8 @@ var rootsEachCommand = func() clib.Command {
 		IgnoreErrors bool
 	}
 
-
-	var buildStdinFilter = func (
-		ctx *task.ExecutionContext,
-		req clib.ActionRequest,
-	) (error, func (*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)) {
-		var options = req.Opts
-
-		var fromStdin bool
-		var fromStdinFilter func (*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
-
-		var path = ""
-
-		if options["from-stdin"] != nil {
-			fromStdin = options["from-stdin"].(bool)
-		} else {
-			fromStdin = false
-		}
-
-		if fromStdin {
-			unsafeGarden := dryad.Garden(path)
-	
-			err, garden := unsafeGarden.Resolve(ctx)
-			if err != nil {
-				return err, fromStdinFilter
-			}
-	
-			err, roots := garden.Roots().Resolve(ctx)
-			if err != nil {
-				return err, fromStdinFilter
-			}
-
-			var rootSet = make(map[string]bool)
-			var scanner = bufio.NewScanner(os.Stdin)
-
-			for scanner.Scan() {
-				var path = scanner.Text()
-				var err error 
-				var root dryad.SafeRootReference
-
-				path, err = filepath.Abs(path)
-				if err != nil {
-					zlog.Error().
-						Err(err).
-						Msg("error reading path from stdin")
-					return err, fromStdinFilter
-				}
-
-				path = _rootsOwningDependencyCorrection(path)
-				err, root = roots.Root(path).Resolve(ctx)
-				if err != nil {
-					zlog.Error().
-						Str("path", path).
-						Err(err).
-						Msg("error resolving root from path")
-					return err, fromStdinFilter
-				}
-
-				rootSet[root.BasePath] = true
-			}
-
-			// Check for any errors during scanning
-			if err := scanner.Err(); err != nil {
-				zlog.Error().Err(err).Msg("error reading stdin")
-				return err, fromStdinFilter
-			}
-
-			fromStdinFilter = func (ctx *task.ExecutionContext, root *dryad.SafeRootReference) (error, bool) {
-				_, ok := rootSet[root.BasePath]
-				return nil, ok
-			}
-
-		} else {
-			fromStdinFilter = func (ctx *task.ExecutionContext, root *dryad.SafeRootReference) (error, bool) {
-				return nil, true
-			}
-		}
-
-		return nil, fromStdinFilter
-	}
-
-	var parseArgs = task.From(
-		func(req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs =
+		func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
 			var args = req.Args
 			var options = req.Opts
 
@@ -123,28 +41,12 @@ var rootsEachCommand = func() clib.Command {
 	
 			var ignoreErrors bool
 
-			var includeOpts []string
-			var excludeOpts []string
-
-			if options["exclude"] != nil {
-				excludeOpts = options["exclude"].([]string)
-			}
-
-			if options["include"] != nil {
-				includeOpts = options["include"].([]string)
-			}
-
-			err, rootFilter := dryad.RootCelFilter(
-				dryad.RootCelFilterRequest{
-					Include: includeOpts,
-					Exclude: excludeOpts,
-				},
-			)
+			err, rootFilter := ArgRootFilterFromIncludeExclude(ctx, req)
 			if err != nil {
 				return err, ParsedArgs{}
 			}
-
-			err, fromStdinFilter := buildStdinFilter(task.SERIAL_CONTEXT, req)
+	
+			err, fromStdinFilter := ArgRootFilterFromStdin(ctx, req)
 			if err != nil {
 				return err, ParsedArgs{}
 			}
@@ -199,8 +101,7 @@ var rootsEachCommand = func() clib.Command {
 				JoinStderr: joinStderr,
 				IgnoreErrors: ignoreErrors,
 			}
-		},
-	)
+		}
 
 	var eachRoots = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
 		unsafeGarden := dryad.Garden(args.GardenPath)
@@ -218,47 +119,35 @@ var rootsEachCommand = func() clib.Command {
 		err = roots.Walk(
 			ctx,
 			dryad.RootsWalkRequest{
+				ShouldMatch: dryad.RootFiltersCompose(
+					args.FromStdinFilter,
+					args.IncludeExcludeFilter,
+				),
 				OnMatch: func (ctx *task.ExecutionContext, root *dryad.SafeRootReference) (error, any) {
 					var err error
-					var shouldMatch bool
 
-					err, shouldMatch = args.FromStdinFilter(ctx, root)
-					if err != nil {
-						return err, nil
-					} else if !shouldMatch {
-						return nil, nil
+					cmd := exec.Command(
+						args.Shell,
+						[]string{"-c", args.Command}...,
+					)
+				
+					cmd.Dir = root.BasePath
+
+					cmd.Stdin = os.Stdin
+
+					// optionally pipe the exec logs to us
+					if args.JoinStdout {
+						cmd.Stdout = os.Stdout
 					}
-
-					err, shouldMatch = args.IncludeExcludeFilter(ctx, root)
-					if err != nil {
-						return err, nil
+				
+					// optionally pipe the exec stderr to us
+					if args.JoinStderr {
+						cmd.Stderr = os.Stderr
 					}
-
-					if shouldMatch {
-
-						cmd := exec.Command(
-							args.Shell,
-							[]string{"-c", args.Command}...,
-						)
-					
-						cmd.Dir = root.BasePath
-
-						cmd.Stdin = os.Stdin
-
-						// optionally pipe the exec logs to us
-						if args.JoinStdout {
-							cmd.Stdout = os.Stdout
-						}
-					
-						// optionally pipe the exec stderr to us
-						if args.JoinStderr {
-							cmd.Stderr = os.Stderr
-						}
-											
-						err = cmd.Run()
-						if err != nil && !args.IgnoreErrors {
-							return err, nil
-						}
+										
+					err = cmd.Run()
+					if err != nil && !args.IgnoreErrors {
+						return err, nil
 					}
 
 					return nil, nil
