@@ -7,6 +7,7 @@ import (
 )
 
 type RootReplaceRequest struct {
+	Filter RootFilter
 	Dest *SafeRootReference
 }
 
@@ -60,6 +61,7 @@ func (root *SafeRootReference) Replace(ctx *task.ExecutionContext, request RootR
 	err = root.Roots.Walk(
 		ctx,
 		RootsWalkRequest{
+			ShouldMatch: request.Filter,
 			OnMatch: onRoot,
 		},
 	)
