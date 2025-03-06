@@ -33,6 +33,13 @@ var rootReplaceCommand = func() clib.Command {
 				"choose which roots are excluded in the search to find references to replace.  the exclude filter is a CEL expression with access to a 'root' object that can be used to filter on properties of the root.",
 			).WithType(clib.OptionTypeMultiString),
 		).
+		WithOption(
+			clib.NewOption(
+				"from-stdin", 
+				"if set, read a list of roots from stdin to use as a base list, instead of all roots. include and exclude filters will be applied to this list. default false",
+			).
+			WithType(clib.OptionTypeBool),
+		).
 		WithAction(func(req clib.ActionRequest) int {
 			var args = req.Args
 
@@ -45,6 +52,12 @@ var rootReplaceCommand = func() clib.Command {
 				zlog.Fatal().Err(err).Msg("error parsing include/exclude filters")
 				return 1
 			}
+
+			err, fromStdinFilter := ArgRootFilterFromStdin(task.SERIAL_CONTEXT, req)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error parsing --from-stdin filter")
+				return 1
+			}			
 
 			err, source = dydfs.PartialEvalSymlinks(task.SERIAL_CONTEXT, source)
 			if err != nil {
@@ -85,7 +98,10 @@ var rootReplaceCommand = func() clib.Command {
 			err = safeSourceRoot.Replace(
 				task.SERIAL_CONTEXT,
 				dryad.RootReplaceRequest{
-					Filter: includeExcludeFilter,
+					Filter: dryad.RootFiltersCompose(
+						fromStdinFilter,
+						includeExcludeFilter,
+					),
 					Dest: &safeDestRoot,
 				},
 			)
