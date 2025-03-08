@@ -126,7 +126,7 @@ var rootCopyCommand = func() clib.Command {
 		WithOption(
 			clib.NewOption(
 				"unpin", 
-				"run the copy with 'unpinned' dependencies, i.e. treat dependency links as relative links instead of absolute (if possible).",
+				"copy the root with 'unpinned' requirements, i.e. treat requirements links as relative links instead of absolute (if possible).",
 			).
 			WithType(clib.OptionTypeBool),
 		).

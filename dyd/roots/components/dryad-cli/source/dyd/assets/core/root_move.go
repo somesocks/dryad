@@ -9,6 +9,7 @@ import (
 type rootMoveRequest struct {
 	Source *SafeRootReference
 	Dest *UnsafeRootReference
+	Unpin bool
 }
 
 func rootMove(ctx *task.ExecutionContext, req rootMoveRequest) (error, *SafeRootReference) {
@@ -27,6 +28,7 @@ func rootMove(ctx *task.ExecutionContext, req rootMoveRequest) (error, *SafeRoot
 		ctx,
 		RootCopyRequest{
 			Dest: req.Dest,
+			Unpin: req.Unpin,
 		},
 	)
 	if err != nil {
@@ -51,6 +53,7 @@ func rootMove(ctx *task.ExecutionContext, req rootMoveRequest) (error, *SafeRoot
 
 type RootMoveRequest struct {
 	Dest *UnsafeRootReference
+	Unpin bool
 }
 
 func (root *SafeRootReference) Move(ctx *task.ExecutionContext, req RootMoveRequest) (error) {
@@ -59,6 +62,7 @@ func (root *SafeRootReference) Move(ctx *task.ExecutionContext, req RootMoveRequ
 		rootMoveRequest{
 			Source: root,
 			Dest: req.Dest,
+			Unpin: req.Unpin,
 		},
 	)
 	return err

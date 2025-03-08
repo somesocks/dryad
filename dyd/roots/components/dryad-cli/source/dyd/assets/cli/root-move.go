@@ -15,6 +15,7 @@ var rootMoveCommand = func() clib.Command {
 		SourcePath string
 		DestPath string
 		Parallel int
+		Unpin bool
 	}	
 
 	var parseArgs =
@@ -27,11 +28,18 @@ var rootMoveCommand = func() clib.Command {
 			var err error
 
 			var parallel int
+			var unpin bool
 
 			if options["parallel"] != nil {
 				parallel = int(options["parallel"].(int64))
 			} else {
 				parallel = PARALLEL_COUNT_DEFAULT
+			}
+
+			if options["unpin"] != nil {
+				unpin = options["unpin"].(bool)
+			} else {
+				unpin = false
 			}
 
 			err, source = dydfs.PartialEvalSymlinks(ctx, source)
@@ -48,6 +56,7 @@ var rootMoveCommand = func() clib.Command {
 				SourcePath: source,
 				DestPath: dest,
 				Parallel: parallel,
+				Unpin: unpin,
 			}
 		}
 
@@ -74,6 +83,7 @@ var rootMoveCommand = func() clib.Command {
 			ctx,
 			dryad.RootMoveRequest{
 				Dest: unsafeDestRoot,
+				Unpin: args.Unpin,
 			},
 		)
 		return err, nil
@@ -111,6 +121,13 @@ var rootMoveCommand = func() clib.Command {
 			clib.
 				NewArg("destination", "destination path for the root").
 				WithAutoComplete(ArgAutoCompletePath),
+		).
+		WithOption(
+			clib.NewOption(
+				"unpin", 
+				"move the root with 'unpinned' requirements, i.e. treat requirement links as relative links instead of absolute (if possible).",
+			).
+			WithType(clib.OptionTypeBool),
 		).
 		WithAction(action)
 
