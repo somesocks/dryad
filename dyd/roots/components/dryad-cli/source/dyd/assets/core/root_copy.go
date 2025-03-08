@@ -101,6 +101,7 @@ var rootCopy typeRootCopy = func () typeRootCopy {
 		basePath string,
 		sourcePath string, 
 		destPath string,
+		unpinMode bool,
 	) (error) {
 		var linkTarget string
 		var absLinkTarget string
@@ -116,10 +117,27 @@ var rootCopy typeRootCopy = func () typeRootCopy {
 
 		absLinkTarget = linkTarget
 		if !filepath.IsAbs(absLinkTarget) {
-			absLinkTarget = filepath.Join(
-				filepath.Dir(sourcePath),
-				absLinkTarget,
-			)
+			if unpinMode {
+				absLinkTarget = filepath.Join(
+					filepath.Dir(destPath),
+					absLinkTarget,
+				)
+				targetExists, err := fileExists(absLinkTarget)
+				if err != nil {
+					return err
+				}
+				if !targetExists {
+					absLinkTarget = filepath.Join(
+						filepath.Dir(sourcePath),
+						absLinkTarget,
+					)
+				}
+			} else {
+				absLinkTarget = filepath.Join(
+					filepath.Dir(sourcePath),
+					absLinkTarget,
+				)
+			}
 		}
 
 		isInternalLink, err = fileIsDescendant(absLinkTarget, basePath)
@@ -201,6 +219,7 @@ var rootCopy typeRootCopy = func () typeRootCopy {
 					node.BasePath,
 					node.Path,
 					targetDestPath,
+					req.Unpin,
 				)
 				return err, nil
 			} else {
