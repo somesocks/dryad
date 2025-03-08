@@ -15,7 +15,8 @@ var rootCopyCommand = func() clib.Command {
 		SourcePath string
 		DestPath string
 		Parallel int
-	}	
+		Unpin bool
+	}
 
 	var parseArgs = 
 		func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
@@ -28,11 +29,18 @@ var rootCopyCommand = func() clib.Command {
 			var err error
 
 			var parallel int
+			var unpin bool
 
 			if options["parallel"] != nil {
 				parallel = int(options["parallel"].(int64))
 			} else {
 				parallel = PARALLEL_COUNT_DEFAULT
+			}
+
+			if options["unpin"] != nil {
+				unpin = options["unpin"].(bool)
+			} else {
+				unpin = false
 			}
 
 			err, source = dydfs.PartialEvalSymlinks(ctx, source)
@@ -49,6 +57,7 @@ var rootCopyCommand = func() clib.Command {
 				SourcePath: source,
 				DestPath: dest,
 				Parallel: parallel,
+				Unpin: unpin,
 			}
 		}
 
@@ -75,6 +84,7 @@ var rootCopyCommand = func() clib.Command {
 			ctx,
 			dryad.RootCopyRequest{
 				Dest: unsafeDestRoot,
+				Unpin: args.Unpin,
 			},
 		)
 		return err, nil
@@ -112,6 +122,13 @@ var rootCopyCommand = func() clib.Command {
 			clib.
 				NewArg("destination", "destination path for the root copy").
 				WithAutoComplete(ArgAutoCompletePath),
+		).
+		WithOption(
+			clib.NewOption(
+				"unpin", 
+				"run the copy with 'unpinned' dependencies, i.e. treat dependency links as relative links instead of absolute (if possible).",
+			).
+			WithType(clib.OptionTypeBool),
 		).
 		WithAction(action)
 
