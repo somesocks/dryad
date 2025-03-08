@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"io/fs"
+
 )
 
 
@@ -115,12 +116,24 @@ var rootCopy typeRootCopy = func () typeRootCopy {
 			return err
 		}
 
-		absLinkTarget = linkTarget
-		if !filepath.IsAbs(absLinkTarget) {
+		if !filepath.IsAbs(linkTarget) {
+			absLinkTarget = filepath.Join(
+				filepath.Dir(sourcePath),
+				linkTarget,
+			)
+		} else {
+			absLinkTarget = linkTarget
+		}
+
+		isInternalLink, err = fileIsDescendant(absLinkTarget, basePath)
+
+		if isInternalLink {
+			newLinkTarget = linkTarget
+		} else {
 			if unpinMode {
 				absLinkTarget = filepath.Join(
 					filepath.Dir(destPath),
-					absLinkTarget,
+					linkTarget,
 				)
 				targetExists, err := fileExists(absLinkTarget)
 				if err != nil {
@@ -129,21 +142,11 @@ var rootCopy typeRootCopy = func () typeRootCopy {
 				if !targetExists {
 					absLinkTarget = filepath.Join(
 						filepath.Dir(sourcePath),
-						absLinkTarget,
+						linkTarget,
 					)
 				}
-			} else {
-				absLinkTarget = filepath.Join(
-					filepath.Dir(sourcePath),
-					absLinkTarget,
-				)
 			}
-		}
 
-		isInternalLink, err = fileIsDescendant(absLinkTarget, basePath)
-		if isInternalLink {
-			newLinkTarget = linkTarget
-		} else {
 			newLinkTarget, err = filepath.Rel(
 				filepath.Dir(destPath),
 				absLinkTarget,

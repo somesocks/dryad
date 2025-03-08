@@ -41,7 +41,8 @@ _test() {
 	# any pathological concurrency issues in the build
 	dryad root copy dyd/roots/group-01/root-02 dyd/roots/group-02/root-02 --unpin --log-level="$DYD_LOG_LEVEL" 1>&2;
 	dryad root copy dyd/roots/group-01/root-02 dyd/roots/group-02/root-03 --log-level="$DYD_LOG_LEVEL" 1>&2;
-	dryad root copy dyd/roots/group-01/root-02 dyd/roots/group-03/root-02 --log-level="$DYD_LOG_LEVEL" 1>&2;
+	dryad root copy dyd/roots/group-01/root-02 dyd/roots/group-03/root-02 --unpin --log-level="$DYD_LOG_LEVEL" 1>&2;
+	dryad root copy dyd/roots/group-01/root-02 dyd/roots/root-02 --unpin --log-level="$DYD_LOG_LEVEL" 1>&2;
 	dryad roots build --log-level="$DYD_LOG_LEVEL" 1>&2;
 }
 
@@ -99,6 +100,16 @@ _verify() {
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/group-03/root-02/dyd/assets/test-dir-01/test-file-02" "test-file-02"
 	assert_symlink_target "$TEMP_DIR/dyd/roots/group-03/root-02/dyd/assets/test-link-01" "./test-file-01"
 	assert_symlink_target "$TEMP_DIR/dyd/roots/group-03/root-02/dyd/requirements/root-01" "../../../../group-01/root-01"
+
+	# root-02 was copied one level up, which has no local root-01,
+	# so the root-01 requirement should point to the original root-01 (group-01/root-01)
+	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-02/dyd/type" "root"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-02/dyd/assets/test-file-01" "test-file-01"
+	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02/dyd/assets/test-dir-01"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-02/dyd/assets/test-dir-01/test-file-02" "test-file-02"
+	assert_symlink_target "$TEMP_DIR/dyd/roots/root-02/dyd/assets/test-link-01" "./test-file-01"
+	assert_symlink_target "$TEMP_DIR/dyd/roots/root-02/dyd/requirements/root-01" "../../../group-01/root-01"
 
 	:;
 }
