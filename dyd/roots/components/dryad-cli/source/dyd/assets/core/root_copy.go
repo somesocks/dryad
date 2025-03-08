@@ -7,71 +7,66 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"io/fs"
+
 )
 
-var _ROOT_COPY_CRAWL_INCLUDE_REGEXP = regexp.MustCompile(
-	"^(" +
-		"(\\.)" +
-		"|(dyd)" +
-		"|(dyd/assets)" +
-		"|(dyd/assets/.*)" +
-		"|(dyd/commands)" +
-		"|(dyd/commands/.*)" +
-		"|(dyd/docs)" +
-		"|(dyd/docs/.*)" +
-		"|(dyd/requirements)" +
-		"|(dyd/requirements/.*)" +
-		"|(dyd/secrets)" +
-		"|(dyd/secrets/.*)" +
-		"|(dyd/traits)" +
-		"|(dyd/traits/.*)" +
-		")$",
-)
-
-var _ROOT_COPY_CRAWL_EXCLUDE_REGEXP = regexp.MustCompile(`^$`)
-
-var _ROOT_COPY_MATCH_INCLUDE_REGEXP = regexp.MustCompile(
-	"^(" +
-		"(\\.)" +
-		"|(dyd)" +
-		"|(dyd/assets)" +
-		"|(dyd/assets/.*)" +
-		"|(dyd/commands)" +
-		"|(dyd/commands/.*)" +
-		"|(dyd/docs)" +
-		"|(dyd/docs/.*)" +
-		"|(dyd/secrets)" +
-		"|(dyd/secrets/.*)" +
-		"|(dyd/fingerprint)" +
-		"|(dyd/type)" +
-		"|(dyd/root)" +
-		"|(dyd/secrets-fingerprint)" +
-		"|(dyd/requirements)" +
-		"|(dyd/requirements/.*)" +
-		"|(dyd/traits)" +
-		"|(dyd/traits/.*)" +
-		")$",
-)
-
-var _ROOT_COPY_MATCH_EXCLUDE_REGEXP = regexp.MustCompile(`^$`)
 
 type rootCopyRequest struct {
 	Source *SafeRootReference
 	Dest *UnsafeRootReference
+	Unpin bool
 }
 
-func rootCopy(ctx *task.ExecutionContext, req rootCopyRequest) (error, *SafeRootReference) {
-	var sourcePath string = req.Source.BasePath
-	var destPath string = req.Dest.BasePath
-	var err error
+type typeRootCopy = func (*task.ExecutionContext, rootCopyRequest) (error, *SafeRootReference)
 
-	// check that source and destination are within the same garden
-	if req.Source.Roots.Garden.BasePath != req.Dest.Roots.Garden.BasePath {
-		return fmt.Errorf("source and destination roots are not in same garden"), nil
-	}
+var rootCopy typeRootCopy = func () typeRootCopy {
+
+	var _ROOT_COPY_CRAWL_INCLUDE_REGEXP = regexp.MustCompile(
+		"^(" +
+			"(\\.)" +
+			"|(dyd)" +
+			"|(dyd/assets)" +
+			"|(dyd/assets/.*)" +
+			"|(dyd/commands)" +
+			"|(dyd/commands/.*)" +
+			"|(dyd/docs)" +
+			"|(dyd/docs/.*)" +
+			"|(dyd/requirements)" +
+			"|(dyd/requirements/.*)" +
+			"|(dyd/secrets)" +
+			"|(dyd/secrets/.*)" +
+			"|(dyd/traits)" +
+			"|(dyd/traits/.*)" +
+			")$",
+	)
+
+	var _ROOT_COPY_MATCH_INCLUDE_REGEXP = regexp.MustCompile(
+		"^(" +
+			"(\\.)" +
+			"|(dyd)" +
+			"|(dyd/assets)" +
+			"|(dyd/assets/.*)" +
+			"|(dyd/commands)" +
+			"|(dyd/commands/.*)" +
+			"|(dyd/docs)" +
+			"|(dyd/docs/.*)" +
+			"|(dyd/secrets)" +
+			"|(dyd/secrets/.*)" +
+			"|(dyd/fingerprint)" +
+			"|(dyd/type)" +
+			"|(dyd/root)" +
+			"|(dyd/secrets-fingerprint)" +
+			"|(dyd/requirements)" +
+			"|(dyd/requirements/.*)" +
+			"|(dyd/traits)" +
+			"|(dyd/traits/.*)" +
+			")$",
+	)
+		
 
 	// don't crawl symlinks
-	shouldCrawl := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+	var shouldCrawl = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
 		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
 		if relErr != nil {
 			return relErr, false
@@ -84,7 +79,8 @@ func rootCopy(ctx *task.ExecutionContext, req rootCopyRequest) (error, *SafeRoot
 		return nil, _ROOT_COPY_CRAWL_INCLUDE_REGEXP.Match([]byte(relPath))
 	}
 
-	shouldMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+
+	var shouldMatch = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
 		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
 		if relErr != nil {
 			return relErr, false
@@ -95,109 +91,182 @@ func rootCopy(ctx *task.ExecutionContext, req rootCopyRequest) (error, *SafeRoot
 		return nil, res
 	}
 
-	onMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
-		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
-		if relErr != nil {
-			return relErr, nil
+	var copyDir = func (ctx *task.ExecutionContext, path string, mode fs.FileMode) (error) {
+		// for a directory, make a new dir
+		var err = os.MkdirAll(path, mode)
+		return err
+	}
+
+	var copySymlink = func (
+		ctx *task.ExecutionContext,
+		basePath string,
+		sourcePath string, 
+		destPath string,
+		unpinMode bool,
+	) (error) {
+		var linkTarget string
+		var absLinkTarget string
+		var newLinkTarget string
+		var isInternalLink bool
+		var err error
+
+
+		linkTarget, err = os.Readlink(sourcePath)
+		if err != nil {
+			return err
 		}
 
-		targetDestPath := filepath.Join(destPath, relPath)
-		targetDestExists, err := fileExists(targetDestPath)
+		if !filepath.IsAbs(linkTarget) {
+			absLinkTarget = filepath.Join(
+				filepath.Dir(sourcePath),
+				linkTarget,
+			)
+		} else {
+			absLinkTarget = linkTarget
+		}
+
+		isInternalLink, err = fileIsDescendant(absLinkTarget, basePath)
+
+		if isInternalLink {
+			newLinkTarget = linkTarget
+		} else {
+			if unpinMode {
+				absLinkTarget = filepath.Join(
+					filepath.Dir(destPath),
+					linkTarget,
+				)
+				targetExists, err := fileExists(absLinkTarget)
+				if err != nil {
+					return err
+				}
+				if !targetExists {
+					absLinkTarget = filepath.Join(
+						filepath.Dir(sourcePath),
+						linkTarget,
+					)
+				}
+			}
+
+			newLinkTarget, err = filepath.Rel(
+				filepath.Dir(destPath),
+				absLinkTarget,
+			)
+			if err != nil {
+				return err
+			}
+		}
+	
+		err = os.Symlink(newLinkTarget, destPath)
+		return err
+	}
+
+	var copyFile = func (ctx *task.ExecutionContext, sourcePath string, sourceMode fs.FileMode, destPath string) error {	
+		// for a file, copy contents
+
+		srcFile, err := os.Open(sourcePath)
+		if err != nil {
+			return err
+		}
+		defer srcFile.Close()
+
+		var destFile *os.File
+		destFile, err = os.Create(destPath)
+		if err != nil {
+			return err
+		}
+		defer destFile.Close()
+
+		_, err = destFile.ReadFrom(srcFile)
+		if err != nil {
+			return err
+		}
+
+		err = destFile.Chmod(sourceMode)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	var rootCopy = func (ctx *task.ExecutionContext, req rootCopyRequest) (error, *SafeRootReference) {
+		var sourcePath string = req.Source.BasePath
+		var destPath string = req.Dest.BasePath
+		var err error
+	
+		// check that source and destination are within the same garden
+		if req.Source.Roots.Garden.BasePath != req.Dest.Roots.Garden.BasePath {
+			return fmt.Errorf("source and destination roots are not in same garden"), nil
+		}
+	
+		onMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
+			var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
+			if relErr != nil {
+				return relErr, nil
+			}
+	
+			targetDestPath := filepath.Join(destPath, relPath)
+			targetDestExists, err := fileExists(targetDestPath)
+			if err != nil {
+				return err, nil
+			} else if targetDestExists {
+				return fmt.Errorf("error: copy destination %s already exists", targetDestPath), nil
+			}
+	
+			if node.Info.IsDir() {
+				err = copyDir(ctx, targetDestPath, node.Info.Mode())
+				return err, nil
+			} else if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
+				err = copySymlink(
+					ctx,
+					node.BasePath,
+					node.Path,
+					targetDestPath,
+					req.Unpin,
+				)
+				return err, nil
+			} else {
+				err = copyFile(
+					ctx,
+					node.Path,
+					node.Info.Mode(),
+					targetDestPath,
+				)
+				return err, nil
+			}
+		}
+	
+		err, _ = fs2.BFSWalk3(
+			ctx,
+			fs2.Walk5Request{
+				BasePath:     sourcePath,
+				Path:     sourcePath,
+				VPath:     sourcePath,
+				ShouldCrawl: shouldCrawl,
+				ShouldMatch: shouldMatch,
+				OnMatch:      onMatch,
+			},
+		)
 		if err != nil {
 			return err, nil
-		} else if targetDestExists {
-			return fmt.Errorf("error: copy destination %s already exists", targetDestPath), nil
 		}
-
-		if node.Info.IsDir() {
-			// for a directory, make a new dir
-
-			err = os.MkdirAll(targetDestPath, node.Info.Mode())
+	
+		var newRoot SafeRootReference
+		err, newRoot = req.Dest.Resolve(ctx)
+		if err != nil {
 			return err, nil
-
-		} else if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
-			// for a symlink, make a new link resolving to the target
-
-			linkPath, err := os.Readlink(node.Path)
-			if err != nil {
-				return err, nil
-			}
-
-			// convert relative links to an absolute path
-			if !filepath.IsAbs(linkPath) {
-				linkPath = filepath.Join(
-					filepath.Dir(node.Path),
-					linkPath,
-				)
-			}
-
-			// fmt.Println("[debug] root copy symlink linkpath", linkPath)
-
-			linkRelPath, err := filepath.Rel(filepath.Dir(targetDestPath), linkPath)
-			if err != nil {
-				return err, nil
-			}
-
-			err = os.Symlink(linkRelPath, targetDestPath)
-			return err, nil
-
-		} else {
-
-			// for a file, copy contents
-
-			srcFile, err := os.Open(node.Path)
-			if err != nil {
-				return err, nil
-			}
-			defer srcFile.Close()
-
-			var destFile *os.File
-			destFile, err = os.Create(targetDestPath)
-			if err != nil {
-				return err, nil
-			}
-			defer destFile.Close()
-
-			_, err = destFile.ReadFrom(srcFile)
-			if err != nil {
-				return err, nil
-			}
-
-			err = destFile.Chmod(node.Info.Mode())
-			if err != nil {
-				return err, nil
-			}
-
-			return nil, nil
 		}
+	
+		return nil, &newRoot
 	}
+	
+	return rootCopy
+}();
 
-	err, _ = fs2.BFSWalk3(
-		ctx,
-		fs2.Walk5Request{
-			BasePath:     sourcePath,
-			Path:     sourcePath,
-			VPath:     sourcePath,
-			ShouldCrawl: shouldCrawl,
-			ShouldMatch: shouldMatch,
-			OnMatch:      onMatch,
-		},
-	)
-	if err != nil {
-		return err, nil
-	}
-
-	var newRoot SafeRootReference
-	err, newRoot = req.Dest.Resolve(ctx)
-	if err != nil {
-		return err, nil
-	}
-
-	return nil, &newRoot
-}
 
 type RootCopyRequest struct {
 	Dest *UnsafeRootReference
+	Unpin bool
 }
 
 func (root *SafeRootReference) Copy(ctx *task.ExecutionContext, req RootCopyRequest) (error, *SafeRootReference) {
@@ -206,6 +275,7 @@ func (root *SafeRootReference) Copy(ctx *task.ExecutionContext, req RootCopyRequ
 		rootCopyRequest{
 			Source: root,
 			Dest: req.Dest,
+			Unpin: req.Unpin,
 		},
 	)
 	return err, res
