@@ -50,7 +50,7 @@ _BUILD_PACKAGE () {
 	cp -r $TEMP_DIR/. $DEST_PACKAGE/dyd/assets/
 	rm -rf $TEMP_DIR
 
-	ln -s ../assets/caddy $DEST_PACKAGE/dyd/commands/default
+	ln -s ../assets/caddy $DEST_PACKAGE/dyd/commands/dyd-stem-run
 }
 
 _SET_GLOBALS "$@"

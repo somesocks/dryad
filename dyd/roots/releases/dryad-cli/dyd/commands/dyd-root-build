@@ -14,19 +14,19 @@ DEST_DIR=$DYD_BUILD
 TEMP_DIR=$(mktemp -d)
 
 VERSION="$(cat $SRC_DIR/dyd/dependencies/darwin-arm64/dyd/traits/version)"
-cp -L $SRC_DIR/dyd/dependencies/darwin-arm64/dyd/commands/default $DEST_DIR/dyd/assets/dryad-$VERSION-darwin-arm64
+cp -L $SRC_DIR/dyd/dependencies/darwin-arm64/dyd/commands/dyd-stem-run $DEST_DIR/dyd/assets/dryad-$VERSION-darwin-arm64
 chmod 0755 $DEST_DIR/dyd/assets/dryad-$VERSION-darwin-arm64
 
 VERSION="$(cat $SRC_DIR/dyd/dependencies/darwin-amd64/dyd/traits/version)"
-cp -L $SRC_DIR/dyd/dependencies/darwin-amd64/dyd/commands/default $DEST_DIR/dyd/assets/dryad-$VERSION-darwin-amd64
+cp -L $SRC_DIR/dyd/dependencies/darwin-amd64/dyd/commands/dyd-stem-run $DEST_DIR/dyd/assets/dryad-$VERSION-darwin-amd64
 chmod 0755 $DEST_DIR/dyd/assets/dryad-$VERSION-darwin-amd64
 
 VERSION="$(cat $SRC_DIR/dyd/dependencies/linux-arm64/dyd/traits/version)"
-cp -L $SRC_DIR/dyd/dependencies/linux-arm64/dyd/commands/default $DEST_DIR/dyd/assets/dryad-$VERSION-linux-arm64
+cp -L $SRC_DIR/dyd/dependencies/linux-arm64/dyd/commands/dyd-stem-run $DEST_DIR/dyd/assets/dryad-$VERSION-linux-arm64
 chmod 0755 $DEST_DIR/dyd/assets/dryad-$VERSION-linux-arm64
 
 VERSION="$(cat $SRC_DIR/dyd/dependencies/linux-amd64/dyd/traits/version)"
-cp -L $SRC_DIR/dyd/dependencies/linux-amd64/dyd/commands/default $DEST_DIR/dyd/assets/dryad-$VERSION-linux-amd64
+cp -L $SRC_DIR/dyd/dependencies/linux-amd64/dyd/commands/dyd-stem-run $DEST_DIR/dyd/assets/dryad-$VERSION-linux-amd64
 chmod 0755 $DEST_DIR/dyd/assets/dryad-$VERSION-linux-amd64
 
 VERSION="$(cat $SRC_DIR/dyd/dependencies/src/dyd/traits/version)"
