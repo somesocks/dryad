@@ -44,6 +44,7 @@ var rootBuild_stage5 func (ctx *task.ExecutionContext, req rootBuild_stage5_requ
 			Args:       []string{req.StemBuildPath},
 			JoinStdout: req.JoinStdout,
 			JoinStderr: req.JoinStderr,
+			MainOverride: "dyd-root-build",
 		})
 		if err != nil {
 			zlog.Debug().
