@@ -45,7 +45,9 @@ func rootBuild_pathPrepare(workspacePath string) error {
 			baseTemplate := rootBuild_pathStub(baseName, commandName)
 
 			var stubName string
-			if commandName == "default" {
+			if commandName == "dyd-stem-run" {
+				stubName = baseName
+			} else if commandName == "default" {
 				stubName = baseName
 			} else {
 				stubName = baseName + "--" + commandName

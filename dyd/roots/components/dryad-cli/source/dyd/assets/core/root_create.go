@@ -83,12 +83,12 @@ func rootCreate(ctx *task.ExecutionContext, req rootCreateRequest) (error, *Safe
 		return err, nil
 	}
 
-	var defaultCommandPath string = filepath.Join(basePath, "commands", "default")
-	if _, err := os.Create(defaultCommandPath); err != nil {
+	var rootBuildCommandPath string = filepath.Join(basePath, "commands", "dyd-root-build")
+	if _, err := os.Create(rootBuildCommandPath); err != nil {
 		return err, nil
 	}
 
-	if err := os.Chmod(defaultCommandPath, 0775); err != nil {
+	if err := os.Chmod(rootBuildCommandPath, 0775); err != nil {
 		return err, nil
 	}
 

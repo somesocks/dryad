@@ -45,4 +45,4 @@ mkdir -p $DEST_DIR/dyd/assets
 tar -xf $TEMP_DIR/go.tar -C $DEST_DIR/dyd/assets
 rm -rf $TEMP_DIR
 
-cat $SRC_DIR/dyd/assets/main > $DEST_DIR/dyd/commands/default
+cat $SRC_DIR/dyd/assets/main > $DEST_DIR/dyd/commands/dyd-stem-run

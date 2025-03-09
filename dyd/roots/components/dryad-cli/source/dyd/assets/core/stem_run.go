@@ -86,7 +86,7 @@ func StemRun(request StemRunRequest) error {
 	if request.MainOverride != "" {
 		command = request.MainOverride
 	} else {
-		command = stemPath + "/dyd/commands/default"
+		command = stemPath + "/dyd/commands/dyd-stem-run"
 	}
 
 	cmd := exec.Command(

@@ -8,7 +8,7 @@ SRC_DIR=$DYD_STEM
 # echo "dryad"
 
 DEST_DIR=$1
-DEST_MAIN=$DEST_DIR/dyd/commands/default
+DEST_MAIN=$DEST_DIR/dyd/commands/dyd-stem-run
 
 OS="$(cat $SRC_DIR/dyd/traits/os)"
 ARCH="$(cat $SRC_DIR/dyd/traits/arch)"
