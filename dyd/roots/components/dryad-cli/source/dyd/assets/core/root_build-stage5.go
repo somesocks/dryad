@@ -7,7 +7,7 @@ import (
 	// "io/fs"
 	// "io/ioutil"
 	// "os"
-	// "path/filepath"
+	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -44,7 +44,7 @@ var rootBuild_stage5 func (ctx *task.ExecutionContext, req rootBuild_stage5_requ
 			Args:       []string{req.StemBuildPath},
 			JoinStdout: req.JoinStdout,
 			JoinStderr: req.JoinStderr,
-			MainOverride: "dyd-root-build",
+			MainOverride: filepath.Join(req.RootStemPath, "dyd", "commands", "dyd-root-build"),
 		})
 		if err != nil {
 			zlog.Debug().
