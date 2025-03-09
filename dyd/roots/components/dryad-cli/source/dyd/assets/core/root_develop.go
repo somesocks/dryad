@@ -198,7 +198,7 @@ func rootDevelop_stage3(rootPath string, workspacePath string) (string, error) {
 	return stemFingerprint, err
 }
 
-// stage 4 - execute the `on-develop-start` command if it exists
+// stage 4 - execute the `dyd-root-develop-start` command if it exists
 func rootDevelop_stage4(
 	rootStemPath string,
 	stemBuildPath string,
@@ -215,7 +215,7 @@ func rootDevelop_stage4(
 		return err
 	}
 
-	onDevelopStartPath := filepath.Join(rootStemPath, "dyd", "commands", "on-develop-start")
+	onDevelopStartPath := filepath.Join(rootStemPath, "dyd", "commands", "dyd-root-develop-start")
 
 	onDevelopStartExists, err := fileExists(onDevelopStartPath)
 	if err != nil {
@@ -244,7 +244,7 @@ func rootDevelop_stage4(
 
 }
 
-// stage 6 - execute the `on-develop-stop` command if it exists
+// stage 6 - execute the `dyd-root-develop-stop` command if it exists
 func rootDevelop_stage6(
 	rootStemPath string,
 	stemBuildPath string,
@@ -261,7 +261,7 @@ func rootDevelop_stage6(
 		return err
 	}
 
-	onDevelopStopPath := filepath.Join(rootStemPath, "dyd", "commands", "on-develop-stop")
+	onDevelopStopPath := filepath.Join(rootStemPath, "dyd", "commands", "dyd-root-develop-stop")
 
 	onDevelopStopExists, err := fileExists(onDevelopStopPath)
 	if err != nil {
@@ -303,10 +303,10 @@ func rootDevelop_stage5(
 	// fmt.Println("rootDevelop_stage5 ", rootStemPath, stemBuildPath)
 
 	// find default development editor if not passed in
-	// fallback to 'sh' if no on-develop command exists
+	// fallback to 'sh' if no dyd-root-develop command exists
 	if editor == "" {
 
-		onDevelopPath := filepath.Join(rootStemPath, "dyd", "commands", "on-develop")
+		onDevelopPath := filepath.Join(rootStemPath, "dyd", "commands", "dyd-root-develop")
 		onDevelopExists, err := fileExists(onDevelopPath)
 		if err != nil {
 			return "", err
