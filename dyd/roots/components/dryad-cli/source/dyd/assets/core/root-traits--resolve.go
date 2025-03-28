@@ -5,13 +5,8 @@ import (
 	// fs2 "dryad/filesystem"
 	"dryad/task"
 
-	// "os"
-
-	"errors"
 	// zlog "github.com/rs/zerolog/log"
 )
-
-var ErrorNoRootTraits = errors.New("root does not have traits")
 
 func (rootTraits *UnsafeRootTraitsReference) Resolve(ctx * task.ExecutionContext) (error, *SafeRootTraitsReference) {
 	var rootTraitsExists bool
@@ -24,7 +19,7 @@ func (rootTraits *UnsafeRootTraitsReference) Resolve(ctx * task.ExecutionContext
 	}
 
 	if !rootTraitsExists {
-		return ErrorNoRootTraits, nil
+		return nil, nil
 	}
 
 	safeRef = SafeRootTraitsReference{

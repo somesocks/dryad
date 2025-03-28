@@ -3,16 +3,9 @@ package core
 
 import (
 	"dryad/task"
-	"errors"
-
-	// "path/filepath"
-
-	// "os"
 
 	// zlog "github.com/rs/zerolog/log"
 )
-
-var ErrorNoRootTrait = errors.New("root does not have trait")
 
 func (rootTrait *UnsafeRootTraitReference) Resolve(ctx * task.ExecutionContext) (error, *SafeRootTraitReference) {
 	var rootTraitExists bool
@@ -25,7 +18,7 @@ func (rootTrait *UnsafeRootTraitReference) Resolve(ctx * task.ExecutionContext) 
 	}
 
 	if !rootTraitExists {
-		return ErrorNoRootTrait, nil
+		return nil, nil
 	}
 
 	safeRef = SafeRootTraitReference{
