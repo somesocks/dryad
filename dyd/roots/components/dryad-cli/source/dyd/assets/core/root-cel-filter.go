@@ -111,23 +111,21 @@ var rootFilterCelEnv = func () *cel.Env {
 
 					err, traits := wrapper.root.Traits().Resolve(wrapper.ctx)
 					if err != nil {
-						if errors.Is(err, ErrorNoRootTraits) {
-							return types.String("")
-						}
 						zlog.Error().
 							Err(err).
 							Msg("error getting root traits")
-						return types.NullValue						
+						return types.NewErr("error resolving root traits")
+					} else if traits == nil {
+						return types.NullValue
 					}
 
 					err, trait := traits.Trait(path).Resolve(wrapper.ctx)
 					if err != nil {
-						if errors.Is(err, ErrorNoRootTrait) {
-							return types.String("")
-						}
 						zlog.Error().
 							Err(err).
 							Msg("error getting root trait")
+						return types.NullValue
+					} else if trait == nil {
 						return types.NullValue
 					}
 
