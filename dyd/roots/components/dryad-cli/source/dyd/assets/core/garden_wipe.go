@@ -4,9 +4,9 @@ import (
 	fs2 "dryad/filesystem"
 	"dryad/task"
 
-	"os"
 	"path/filepath"
 )
+
 
 func (sg *SafeGardenReference) Wipe(ctx *task.ExecutionContext) (error) {
 	var err error
@@ -17,17 +17,9 @@ func (sg *SafeGardenReference) Wipe(ctx *task.ExecutionContext) (error) {
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(sproutsPath, os.ModePerm)
-	if err != nil {
-		return err
-	}
 
 	derivationsPath := filepath.Join(gardenPath, "dyd", "heap", "derivations")
 	err, _ = fs2.RemoveAll(ctx, derivationsPath)
-	if err != nil {
-		return err
-	}
-	err = os.MkdirAll(derivationsPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -37,17 +29,9 @@ func (sg *SafeGardenReference) Wipe(ctx *task.ExecutionContext) (error) {
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(stemsPath, os.ModePerm)
-	if err != nil {
-		return err
-	}
 
 	filesPath := filepath.Join(gardenPath, "dyd", "heap", "files")
 	err, _ = fs2.RemoveAll(ctx, filesPath)
-	if err != nil {
-		return err
-	}
-	err = os.MkdirAll(filesPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -57,25 +41,9 @@ func (sg *SafeGardenReference) Wipe(ctx *task.ExecutionContext) (error) {
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(secretsPath, os.ModePerm)
-	if err != nil {
-		return err
-	}
 
 	contextsPath := filepath.Join(gardenPath, "dyd", "heap", "contexts")
 	err, _ = fs2.RemoveAll(ctx, contextsPath)
-	if err != nil {
-		return err
-	}
-	err = os.MkdirAll(contextsPath, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	
-	var unsafeGardenRef = Garden(sg.BasePath)
-
-	err, _ = unsafeGardenRef.Create(ctx)
 	if err != nil {
 		return err
 	}
