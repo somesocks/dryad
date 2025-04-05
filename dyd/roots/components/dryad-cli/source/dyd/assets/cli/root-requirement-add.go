@@ -10,7 +10,7 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-var rootRequirementsAddCommand = func() clib.Command {
+var rootRequirementAddCommand = func() clib.Command {
 	command := clib.NewCommand("add", "add a root as a dependency of the current root").
 		WithArg(
 			clib.
