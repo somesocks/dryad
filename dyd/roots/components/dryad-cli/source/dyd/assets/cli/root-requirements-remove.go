@@ -2,7 +2,9 @@ package cli
 
 import (
 	clib "dryad/cli-builder"
-	dryad "dryad/core"
+	core "dryad/core"
+	task "dryad/task"
+	
 	"os"
 
 	zlog "github.com/rs/zerolog/log"
@@ -12,11 +14,13 @@ var rootRequirementsRemoveCommand = func() clib.Command {
 	command := clib.NewCommand("remove", "remove a requirement from the current root").
 		WithArg(
 			clib.
-				NewArg("path", "path to the dependency to remove").
+				NewArg("name", "name of the requirement to remove").
 				WithAutoComplete(ArgAutoCompletePath),
 		).
 		WithAction(func(req clib.ActionRequest) int {
 			var args = req.Args
+
+			var requirementName = args[0]
 
 			var rootPath, err = os.Getwd()
 			if err != nil {
@@ -24,9 +28,47 @@ var rootRequirementsRemoveCommand = func() clib.Command {
 				return 1
 			}
 
-			var path = args[0]
+			err, garden := core.Garden(rootPath).Resolve(task.SERIAL_CONTEXT)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error while resolving garden")
+				return 1
+			}
 
-			err = dryad.RootUnlink(rootPath, path)
+			err, roots := garden.Roots().Resolve(task.SERIAL_CONTEXT)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error while resolving roots")
+				return 1
+			}
+
+			err, root := roots.Root(rootPath).Resolve(task.SERIAL_CONTEXT)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error while resolving root")
+				return 1
+			}
+			
+			err, requirements := root.
+				Requirements().
+				Resolve(task.SERIAL_CONTEXT)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error while resolving root requirements")
+				return 1
+			} else if requirements == nil {
+				zlog.Fatal().Err(err).Msg("root has no requirements")
+				return 1
+			}
+
+			err, requirement := requirements.
+				Requirement(requirementName).
+				Resolve(task.SERIAL_CONTEXT)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error while resolving requirement")
+				return 1
+			} else if requirement == nil {
+				zlog.Fatal().Err(err).Msg("requirement does not exist")
+				return 1
+			}
+
+			err = requirement.Remove(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while unlinking root")
 				return 1
