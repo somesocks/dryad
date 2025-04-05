@@ -10,7 +10,7 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-var rootRequirementsRemoveCommand = func() clib.Command {
+var rootRequirementRemoveCommand = func() clib.Command {
 	command := clib.NewCommand("remove", "remove a requirement from the current root").
 		WithArg(
 			clib.
