@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"dryad/task"
 
+	"net/url"
 	"os"
 	// zlog "github.com/rs/zerolog/log"
 )
@@ -40,7 +41,12 @@ func (requirements *SafeRootRequirementsReference) Add(
 		return err, nil
 	}
 
-	err = os.Symlink(linkPath, requirementPath)
+	var linkUrl url.URL = url.URL{
+		Scheme: "root",
+		Opaque: linkPath,
+	}
+
+	err = os.WriteFile(requirementPath, []byte(linkUrl.String()), 0644)
 	if err != nil {
 		return err, nil
 	}

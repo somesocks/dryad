@@ -63,7 +63,12 @@ func (rootRequirement *SafeRootRequirementReference) Target(ctx * task.Execution
 			return fmt.Errorf("unsupported scheme for root requirement: %s", linkScheme), nil
 		}
 
-		linkPath := linkUrl.Path
+		// check for an opaque path, otherwise use regular
+		linkPath := linkUrl.Opaque
+		if linkPath == "" {
+			linkPath = linkUrl.Path
+		}
+
 		if filepath.IsAbs(linkPath) {
 			return fmt.Errorf("root requirement path must be relative", linkScheme), nil
 		}

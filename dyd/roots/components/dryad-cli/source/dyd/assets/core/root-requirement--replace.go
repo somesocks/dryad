@@ -2,10 +2,11 @@
 package core
 
 import (
-	fs2 "dryad/filesystem"
+	// fs2 "dryad/filesystem"
 	"dryad/task"
 
-	// "os"
+	"os"
+	"net/url"
 	"path/filepath"
 
 	// "errors"
@@ -23,13 +24,12 @@ func (rootRequirement *SafeRootRequirementReference) Replace(ctx * task.Executio
 		return err
 	}
 	
-	err, _ = fs2.Symlink(
-		ctx,
-		fs2.SymlinkRequest{
-			Path: rootRequirement.BasePath,
-			Target: linkTarget,
-		},
-	)
+	var linkUrl url.URL = url.URL{
+		Scheme: "root",
+		Opaque: linkTarget,
+	}
+
+	err = os.WriteFile(rootRequirement.BasePath, []byte(linkUrl.String()), 0644)
 	if err != nil {
 		return err
 	}
