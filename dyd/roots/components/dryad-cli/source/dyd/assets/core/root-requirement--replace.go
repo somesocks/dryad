@@ -2,7 +2,7 @@
 package core
 
 import (
-	// fs2 "dryad/filesystem"
+	fs2 "dryad/filesystem"
 	"dryad/task"
 
 	"os"
@@ -27,6 +27,11 @@ func (rootRequirement *SafeRootRequirementReference) Replace(ctx * task.Executio
 	var linkUrl url.URL = url.URL{
 		Scheme: "root",
 		Opaque: linkTarget,
+	}
+
+	err, _ = fs2.Remove(ctx, rootRequirement.BasePath)
+	if err != nil {
+		return err
 	}
 
 	err = os.WriteFile(rootRequirement.BasePath, []byte(linkUrl.String()), 0644)
