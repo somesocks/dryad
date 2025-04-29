@@ -63,15 +63,21 @@ var rootRequirementAddCommand = func() clib.Command {
 				return 1
 			}
 
+			err, reqs := root.Requirements().Resolve(task.SERIAL_CONTEXT)
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error while resolving root requirements")
+				return 1
+			}
+
 			err, dep := roots.Root(depPath).Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while resolving dependency")
 				return 1
 			}
 
-			err = root.Link(
+			err, _ = reqs.Add(
 				task.SERIAL_CONTEXT,
-				dryad.RootLinkRequest{
+				dryad.RootRequirementsAddRequest{
 					Dependency: &dep,
 					Alias: alias,
 				},

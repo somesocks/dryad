@@ -32,6 +32,7 @@ func init () {
 	type rootBuild_stage1_buildDependencyRequest struct {
 		Roots *SafeRootsReference
 		BaseRequest rootBuild_stage1_request
+		DependencyName string
 		DependencyPath string
 		JoinStdout bool
 		JoinStderr bool
@@ -48,22 +49,39 @@ func init () {
 		ctx *task.ExecutionContext, 
 		req rootBuild_stage1_request,
 	) (error, []rootBuild_stage1_buildDependencyRequest) {
-		var rootsPath string = filepath.Join(req.RootPath, "dyd", "requirements")
 		var buildDependencyRequests []rootBuild_stage1_buildDependencyRequest
-	
-		dependencies, err := filepath.Glob(filepath.Join(rootsPath, "*"))
+
+		rootRef := SafeRootReference{
+			BasePath: req.RootPath,
+			Roots: req.Roots,
+		}
+
+		err, requirementsRef := rootRef.Requirements().Resolve(ctx)
 		if err != nil {
 			return err, buildDependencyRequests
 		}
-	
-		for _, dependencyPath := range dependencies {
-			buildDependencyRequests = append(buildDependencyRequests, rootBuild_stage1_buildDependencyRequest{
-				Roots: req.Roots,
-				BaseRequest: req,
-				DependencyPath: dependencyPath,
-				JoinStdout: req.JoinStdout,
-				JoinStderr: req.JoinStderr,
-			})
+
+		err = requirementsRef.Walk(task.SERIAL_CONTEXT, RootRequirementsWalkRequest{
+			OnMatch: func (ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
+				err, target := requirement.Target(ctx)
+				if err != nil {
+					return err, nil
+				}
+
+				buildDependencyRequests = append(buildDependencyRequests, rootBuild_stage1_buildDependencyRequest{
+					Roots: req.Roots,
+					BaseRequest: req,
+					DependencyName: filepath.Base(requirement.BasePath),
+					DependencyPath: target.BasePath,
+					JoinStdout: req.JoinStdout,
+					JoinStderr: req.JoinStderr,
+				})	
+
+				return nil, nil
+			},
+		});
+		if err != nil {
+			return err, buildDependencyRequests
 		}
 	
 		return nil, buildDependencyRequests
@@ -98,7 +116,7 @@ func init () {
 	
 		dependencyHeapPath := filepath.Join(req.BaseRequest.Roots.Garden.BasePath, "dyd", "heap", "stems", dependencyFingerprint)
 	
-		dependencyName := filepath.Base(req.DependencyPath)
+		dependencyName := req.DependencyName
 	
 		targetDepPath := filepath.Join(req.BaseRequest.WorkspacePath, "dyd", "dependencies", dependencyName)
 	

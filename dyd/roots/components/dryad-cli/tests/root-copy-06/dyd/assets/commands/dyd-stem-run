@@ -50,6 +50,7 @@ _verify() {
 	assert_directory_exists "$TEMP_DIR/dyd"
 	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
 
+	# validate structure of group-01/root-01
 	assert_directory_exists "$TEMP_DIR/dyd/roots/group-01/root-01"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/group-01/root-01/dyd/type" "root"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/group-01/root-01/dyd/assets/test-file-01" "test-file-01"
@@ -57,15 +58,16 @@ _verify() {
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/group-01/root-01/dyd/assets/test-dir-01/test-file-02" "test-file-02"
 	assert_symlink_target "$TEMP_DIR/dyd/roots/group-01/root-01/dyd/assets/test-link-01" "./test-file-01"
 
+	# validate structure of group-01/root-02
 	assert_directory_exists "$TEMP_DIR/dyd/roots/group-01/root-02"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/group-01/root-02/dyd/type" "root"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/group-01/root-02/dyd/assets/test-file-01" "test-file-01"
 	assert_directory_exists "$TEMP_DIR/dyd/roots/group-01/root-02/dyd/assets/test-dir-01"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/group-01/root-02/dyd/assets/test-dir-01/test-file-02" "test-file-02"
 	assert_symlink_target "$TEMP_DIR/dyd/roots/group-01/root-02/dyd/assets/test-link-01" "./test-file-01"
-	assert_symlink_target "$TEMP_DIR/dyd/roots/group-01/root-02/dyd/requirements/root-01" "../../../root-01"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/group-01/root-02/dyd/requirements/root-01" "root:../../../root-01"
 
-
+	# validate structure of group-02/root-01
 	assert_directory_exists "$TEMP_DIR/dyd/roots/group-02/root-01"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/group-02/root-01/dyd/type" "root"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/group-02/root-01/dyd/assets/test-file-01" "test-file-01"
@@ -73,6 +75,7 @@ _verify() {
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/group-02/root-01/dyd/assets/test-dir-01/test-file-02" "test-file-02"
 	assert_symlink_target "$TEMP_DIR/dyd/roots/group-02/root-01/dyd/assets/test-link-01" "./test-file-01"
 
+	# validate structure of group-02/root-02
 	# group-02/root-02 was copied in unpinned mode, so the root-01 requirement should point to the local root-01 (group-02/root-01)
 	assert_directory_exists "$TEMP_DIR/dyd/roots/group-02/root-02"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/group-02/root-02/dyd/type" "root"
@@ -80,8 +83,9 @@ _verify() {
 	assert_directory_exists "$TEMP_DIR/dyd/roots/group-02/root-02/dyd/assets/test-dir-01"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/group-02/root-02/dyd/assets/test-dir-01/test-file-02" "test-file-02"
 	assert_symlink_target "$TEMP_DIR/dyd/roots/group-02/root-02/dyd/assets/test-link-01" "./test-file-01"
-	assert_symlink_target "$TEMP_DIR/dyd/roots/group-02/root-02/dyd/requirements/root-01" "../../../root-01"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/group-02/root-02/dyd/requirements/root-01" "root:../../../root-01"
 
+	# validate structure of group-02/root-03
 	# group-02/root-03 was copied in pinned mode, so the root-01 requirement should point to the original root-01 (group-01/root-01)
 	assert_directory_exists "$TEMP_DIR/dyd/roots/group-02/root-03"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/group-02/root-03/dyd/type" "root"
@@ -89,8 +93,9 @@ _verify() {
 	assert_directory_exists "$TEMP_DIR/dyd/roots/group-02/root-03/dyd/assets/test-dir-01"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/group-02/root-03/dyd/assets/test-dir-01/test-file-02" "test-file-02"
 	assert_symlink_target "$TEMP_DIR/dyd/roots/group-02/root-03/dyd/assets/test-link-01" "./test-file-01"
-	assert_symlink_target "$TEMP_DIR/dyd/roots/group-02/root-03/dyd/requirements/root-01" "../../../../group-01/root-01"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/group-02/root-03/dyd/requirements/root-01" "root:../../../../group-01/root-01"
 
+	# validate structure of group-03/root-03
 	# group-03/root-02 was copied in unpinned mode, but into a directory with no local root-01,
 	# so the root-01 requirement should point to the original root-01 (group-01/root-01)
 	assert_directory_exists "$TEMP_DIR/dyd/roots/group-03/root-02"
@@ -99,9 +104,10 @@ _verify() {
 	assert_directory_exists "$TEMP_DIR/dyd/roots/group-03/root-02/dyd/assets/test-dir-01"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/group-03/root-02/dyd/assets/test-dir-01/test-file-02" "test-file-02"
 	assert_symlink_target "$TEMP_DIR/dyd/roots/group-03/root-02/dyd/assets/test-link-01" "./test-file-01"
-	assert_symlink_target "$TEMP_DIR/dyd/roots/group-03/root-02/dyd/requirements/root-01" "../../../../group-01/root-01"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/group-03/root-02/dyd/requirements/root-01" "root:../../../../group-01/root-01"
 
-	# root-02 was copied one level up, which has no local root-01,
+	# validate structure of root-03
+	# root-02 was copied in unpinned more, but one level up, which has no local root-01,
 	# so the root-01 requirement should point to the original root-01 (group-01/root-01)
 	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-02/dyd/type" "root"
@@ -109,7 +115,7 @@ _verify() {
 	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02/dyd/assets/test-dir-01"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-02/dyd/assets/test-dir-01/test-file-02" "test-file-02"
 	assert_symlink_target "$TEMP_DIR/dyd/roots/root-02/dyd/assets/test-link-01" "./test-file-01"
-	assert_symlink_target "$TEMP_DIR/dyd/roots/root-02/dyd/requirements/root-01" "../../../group-01/root-01"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-02/dyd/requirements/root-01" "root:../../../group-01/root-01"
 
 	:;
 }
