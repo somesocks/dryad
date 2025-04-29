@@ -25,7 +25,7 @@ type rootBuild_stage5_request struct {
 // stage 5 - execute the root to build its stem,
 var rootBuild_stage5 func (ctx *task.ExecutionContext, req rootBuild_stage5_request) (error, string) =
 	func (ctx *task.ExecutionContext, req rootBuild_stage5_request) (error, string) {
-		zlog.Debug().
+		zlog.Trace().
 			Str("path", req.RelRootPath).
 			Msg("root build - stage5")
 

@@ -40,7 +40,7 @@ var rootBuild_stage4 func (ctx *task.ExecutionContext, req rootBuild_stage4_requ
 			return err, nil
 		}
 
-		zlog.Debug().
+		zlog.Trace().
 			Str("path", relRootPath).
 			Msg("root build - stage4")
 

@@ -25,17 +25,14 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		req.Root.Roots.BasePath,
 		rootPath,
 	)
-	zlog.Debug().
-		Str("gardenPath", gardenPath).
-		Str("rootPath", rootPath).
-		Str("relRootPath", relRootPath).
-		Msg("RootBuild/relRootPath")
+	gardenRootPath := filepath.Join("dyd", "roots", relRootPath)
+
 	if err != nil {
 		return err, ""
 	}
 
 	zlog.Info().
-		Str("path", relRootPath).
+		Str("path", gardenRootPath).
 		Msg("root build - verifying root")
 
 	// prepare a workspace
@@ -147,7 +144,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 
 	} else {
 		zlog.Info().
-			Str("path", relRootPath).
+			Str("path", gardenRootPath).
 			Msg("root build - building root")
 
 		// otherwise run the root in a build env
@@ -198,11 +195,12 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		}
 
 		zlog.Info().
-			Str("path", relRootPath).
+			Str("path", gardenRootPath).
 			Msg("root build - done building root")
 	}
 
-	sproutPath := filepath.Join(gardenPath, "dyd", "sprouts", relRootPath)
+	relSproutPath := filepath.Join("dyd", "sprouts", relRootPath) 
+	sproutPath := filepath.Join(gardenPath, relSproutPath)
 	sproutParent := filepath.Dir(sproutPath)
 	sproutHeapPath := filepath.Join(gardenPath, "dyd", "heap", "stems", stemBuildFingerprint)
 	relSproutLink, err := filepath.Rel(
@@ -213,9 +211,9 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		return err, ""
 	}
 
-	zlog.Debug().
-		Str("path", sproutParent).
-		Msg("root build - building sprout")
+	zlog.Info().
+		Str("path", relSproutPath).
+		Msg("root build - linking sprout")
 	err, _ = dydfs.Mkdir2(
 		ctx,
 		dydfs.MkdirRequest{
@@ -233,7 +231,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 	}
 
 	// create the sprout symlink
-	zlog.Debug().
+	zlog.Trace().
 		Str("path", sproutPath).
 		Str("target", relSproutLink).
 		Msg("root build - building sprout symlink")
@@ -253,7 +251,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 	}
 
 	zlog.Info().
-		Str("path", relRootPath).
+		Str("path", gardenRootPath).
 		Msg("root build - done verifying root")
 
 	return nil, stemBuildFingerprint
