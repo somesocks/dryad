@@ -115,63 +115,45 @@ func rootDevelop_stage1(
 	workspacePath string,
 	roots *SafeRootsReference,
 ) error {
-	// fmt.Println("rootDevelop_stage1 ", rootPath, " ", workspacePath)
+	
+	rootRef := SafeRootReference{
+		BasePath: rootPath,
+		Roots: roots,
+	}
 
-	// walk through the dependencies, build them, and add the fingerprint as a dependency
-	rootsPath := filepath.Join(rootPath, "dyd", "requirements")
-
-	dependencies, err := filepath.Glob(filepath.Join(rootsPath, "*"))
+	err, requirementsRef := rootRef.Requirements().Resolve(ctx)
 	if err != nil {
 		return err
 	}
 
-	for _, dependencyPath := range dependencies {
-		var unsafeDepReference = UnsafeRootReference{
-			Roots: roots,
-			BasePath: dependencyPath,
-		}
-		var safeDepReference SafeRootReference
-		var err error
+	err = requirementsRef.Walk(task.SERIAL_CONTEXT, RootRequirementsWalkRequest{
+		OnMatch: func (ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
+			err, safeDepReference := requirement.Target(ctx)
+			if err != nil {
+				return err, nil
+			}
 
-		err, safeDepReference = unsafeDepReference.Resolve(ctx)
-		if err != nil {
-			return err
-		}
+			err, dependencyFingerprint := safeDepReference.Build(
+				ctx,
+				RootBuildRequest{},
+			)
+			if err != nil {
+				return err, nil
+			}
+	
+			dependencyHeapPath := filepath.Join(requirement.Requirements.Root.Roots.Garden.BasePath, "dyd", "heap", "stems", dependencyFingerprint)
+	
+			dependencyName := filepath.Base(requirement.BasePath)
+		
+			targetDepPath := filepath.Join(workspacePath, "dyd", "dependencies", dependencyName)
+		
+			err = os.Symlink(dependencyHeapPath, targetDepPath)
 
-		err, _ = safeDepReference.Build(
-			ctx,
-			RootBuildRequest{
-			},
-		)
-		if err != nil {
-			return err
-		}
-
-		dependencyName := filepath.Base(dependencyPath)
-
-		// fmt.Println("[trace] RootBuild gardenPath", gardenPath)
-
-		absRootPath, err := filepath.EvalSymlinks(dependencyPath)
-		if err != nil {
-			return err
-		}
-
-		relRootPath, err := filepath.Rel(
-			roots.BasePath,
-			absRootPath,
-		)
-		if err != nil {
-			return err
-		}
-
-		sproutPath := filepath.Join(roots.Garden.BasePath, "dyd", "sprouts", relRootPath)
-		targetDepPath := filepath.Join(workspacePath, "dyd", "dependencies", dependencyName)
-
-		err = os.Symlink(sproutPath, targetDepPath)
-
-		if err != nil {
-			return err
-		}
+			return err, nil
+		},
+	});
+	if err != nil {
+		return err
 	}
 
 	return nil
