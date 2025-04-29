@@ -32,8 +32,6 @@ var rootCopy typeRootCopy = func () typeRootCopy {
 			"|(dyd/commands/.*)" +
 			"|(dyd/docs)" +
 			"|(dyd/docs/.*)" +
-			"|(dyd/requirements)" +
-			"|(dyd/requirements/.*)" +
 			"|(dyd/secrets)" +
 			"|(dyd/secrets/.*)" +
 			"|(dyd/traits)" +
@@ -57,8 +55,6 @@ var rootCopy typeRootCopy = func () typeRootCopy {
 			"|(dyd/type)" +
 			"|(dyd/root)" +
 			"|(dyd/secrets-fingerprint)" +
-			"|(dyd/requirements)" +
-			"|(dyd/requirements/.*)" +
 			"|(dyd/traits)" +
 			"|(dyd/traits/.*)" +
 			")$",
@@ -250,12 +246,38 @@ var rootCopy typeRootCopy = func () typeRootCopy {
 		if err != nil {
 			return err, nil
 		}
-	
+
+		err, sourceRequirements := req.Source.Requirements().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
 		var newRoot SafeRootReference
 		err, newRoot = req.Dest.Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}
+
+		err, newRequirements := newRoot.Requirements().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		sourceRequirements.Walk(
+			ctx,
+			RootRequirementsWalkRequest{
+				OnMatch: func (
+					ctx *task.ExecutionContext,
+					requirement *SafeRootRequirementReference,
+				) (error, any) {
+					err, _ := requirement.Copy(ctx, RootRequirementCopyRequest{
+						DestRequirements: newRequirements,
+						Unpin: req.Unpin,
+					})
+					return err, nil
+				},
+			},
+		)
 	
 		return nil, &newRoot
 	}
