@@ -24,6 +24,10 @@ var sproutRunCommand = func() clib.Command {
 		WithOption(clib.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(clib.OptionTypeBool)).
 		WithOption(clib.NewOption("override", "run this executable in the stem run envinronment instead of the main")).
 		WithOption(clib.NewOption("confirm", "ask for a confirmation string to be entered to execute this command").WithType(clib.OptionTypeString)).
+		WithOption(clib.NewOption("join-stdout", "join the stdout of child processes to the stderr of the parent dryad process. default true").WithType(clib.OptionTypeBool)).
+		WithOption(clib.NewOption("join-stderr", "join the stderr of child processes to the stderr of the parent dryad process. default true").WithType(clib.OptionTypeBool)).
+		WithOption(clib.NewOption("log-stdout", "log the stdout of child processes to a file in the specified directory. disables joining").WithType(clib.OptionTypeString)).
+		WithOption(clib.NewOption("log-stderr", "log the stderr of child processes to a file in the specified directory. disables joining").WithType(clib.OptionTypeString)).
 		WithArg(clib.NewArg("-- args", "args to pass to the stem").AsOptional()).
 		WithAction(func(req clib.ActionRequest) int {
 			var args = req.Args
@@ -33,6 +37,10 @@ var sproutRunCommand = func() clib.Command {
 			var override string
 			var inherit bool
 			var confirm string
+			var joinStdout bool
+			var logStdout string
+			var joinStderr bool
+			var logStderr string
 
 			if options["context"] != nil {
 				context = options["context"].(string)
@@ -48,6 +56,28 @@ var sproutRunCommand = func() clib.Command {
 
 			if options["confirm"] != nil {
 				confirm = options["confirm"].(string)
+			}
+
+			if options["join-stdout"] != nil {
+				joinStdout = options["join-stdout"].(bool)
+			} else {
+				joinStdout = true
+			}
+
+			if options["log-stdout"] != nil {
+				logStdout = options["log-stdout"].(string)
+				joinStdout = false
+			}
+
+			if options["join-stderr"] != nil {
+				joinStderr = options["join-stderr"].(bool)
+			} else {
+				joinStderr = true
+			}
+
+			if options["log-stderr"] != nil {
+				logStderr = options["log-stderr"].(string)
+				joinStderr = false
 			}
 
 			// if confirm is set, we want to print the list
@@ -121,8 +151,10 @@ var sproutRunCommand = func() clib.Command {
 					MainOverride: override,
 					Env:          env,
 					Args:         extras,
-					JoinStdout:   true,
-					JoinStderr:   true,
+					JoinStdout:   joinStdout,
+					LogStdout:    logStdout,
+					JoinStderr:   joinStderr,
+					LogStderr:    logStderr,
 					Context:      context,
 				},
 			)

@@ -14,7 +14,9 @@ type SproutRunRequest struct {
 	Env          map[string]string
 	Args         []string
 	JoinStdout   bool
+	LogStdout    string
 	JoinStderr   bool
+	LogStderr    string
 	InheritEnv   bool
 }
 
@@ -33,7 +35,9 @@ func (sprout *SafeSproutReference) Run(
 			Env: req.Env,
 			Args: req.Args,
 			JoinStdout: req.JoinStdout,
+			LogStdout: req.LogStdout,
 			JoinStderr: req.JoinStderr,
+			LogStderr: req.LogStderr,
 			InheritEnv: req.InheritEnv,						
 		},
 	)

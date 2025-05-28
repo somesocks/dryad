@@ -7,8 +7,16 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"regexp"
+
 	zerolog "github.com/rs/zerolog"
 )
+
+var invalidChars = regexp.MustCompile(`[<>:"/\\|?*]`)
+
+func sanitizePathSegment(s string) string {
+	return invalidChars.ReplaceAllString(s, "-")
+}
 
 type StemRunRequest struct {
 	Garden *SafeGardenReference
@@ -19,7 +27,9 @@ type StemRunRequest struct {
 	Env          map[string]string
 	Args         []string
 	JoinStdout   bool
+	LogStdout    string
 	JoinStderr   bool
+	LogStderr    string
 	InheritEnv   bool
 }
 
@@ -113,11 +123,39 @@ func StemRun(request StemRunRequest) error {
 	// optionally pipe the exec logs to us
 	if request.JoinStdout {
 		cmd.Stdout = os.Stdout
+	} else if request.LogStdout != "" {
+		relStemPath, err := filepath.Rel(gardenPath, stemPath)
+		if err != nil {
+			return err
+		}
+	
+		logFile := "dyd-stem-run--" + sanitizePathSegment(relStemPath) + ".out"
+		outputPath := filepath.Join(request.LogStdout, logFile)
+		file, err := os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		cmd.Stdout = file
 	}
 
 	// optionally pipe the exec stderr to us
 	if request.JoinStderr {
 		cmd.Stderr = os.Stderr
+	} else if request.LogStderr != "" {
+		relStemPath, err := filepath.Rel(gardenPath, stemPath)
+		if err != nil {
+			return err
+		}
+	
+		logFile := "dyd-stem-run--" + sanitizePathSegment(relStemPath) + ".err"
+		outputPath := filepath.Join(request.LogStderr, logFile)
+		file, err := os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		cmd.Stderr = file
 	}
 
 	envPath := fmt.Sprintf(
