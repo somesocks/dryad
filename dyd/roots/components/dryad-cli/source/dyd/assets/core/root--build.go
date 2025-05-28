@@ -4,6 +4,8 @@ import (
 	dydfs "dryad/filesystem"
 	"dryad/task"
 
+	"errors"
+
 	"os"
 	"path/filepath"
 
@@ -50,7 +52,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		},
 	)
 	if err != nil {
-		return err, ""
+		return errors.New("error preparing root for build"), ""
 	}
 
 	err, _ = rootBuild_stage1(
@@ -64,7 +66,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		},
 	)
 	if err != nil {
-		return err, ""
+		return errors.New("error resolving root dependencies"), ""
 	}
 
 	err, _ = rootBuild_stage2(
@@ -76,7 +78,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		},
 	)
 	if err != nil {
-		return err, ""
+		return errors.New("error preparing root execution path"), ""
 	}
 
 	err, rootFingerprint := rootBuild_stage3(
@@ -88,7 +90,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		},
 	)
 	if err != nil {
-		return err, ""
+		return errors.New("error generating root fingerprint"), ""
 	}
 
 	err, rootStem := rootBuild_stage4(
@@ -100,7 +102,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		},
 	)
 	if err != nil {
-		return err, ""
+		return errors.New("error packing root into heap"), ""
 	}
 
 	isUnstableRoot, err := fileExists(
@@ -167,7 +169,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 			},
 		)
 		if err != nil {
-			return err, ""
+			return errors.New("error executing root to build stem"), ""
 		}
 
 		err, _ = rootBuild_stage6(
@@ -179,7 +181,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 			},
 		)
 		if err != nil {
-			return err, ""
+			return errors.New("error packing stem into heap"), ""
 		}
 
 		if !isUnstableRoot {
@@ -257,8 +259,24 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 	return nil, stemBuildFingerprint
 }
 
-var memoRootBuild = task.Memoize(
+var rootBuild2 = task.OnFailure(
 	rootBuild,
+	func (ctx * task.ExecutionContext, args task.Tuple2[rootBuildRequest, error]) (error, any) {
+		var req = args.A
+		var err = args.B
+
+		zlog.
+			Error().
+			Err(err).
+			Str("path", req.Root.BasePath).
+			Msg("error while building root")
+
+		return nil, nil
+	},
+)
+
+var memoRootBuild = task.Memoize(
+	rootBuild2,
 	func (ctx * task.ExecutionContext, req rootBuildRequest) (error, any) {
 		var res = struct {
 			Group string
