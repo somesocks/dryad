@@ -42,17 +42,10 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: ./utils/nix-shell/run.sh ./utils/dryad-run-tests.sh
         continue-on-error: true  # Allow this step to fail without stopping the job
-      
-      - name: Save Build Logs
-        if: always()  # This ensures it runs even if the previous step failed
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-logs--${{ matrix.os }}
-          path: logs/build
 
-      - name: Save Test Logs
+      - name: Save Logs
         if: always()  # This ensures it runs even if the previous step failed
         uses: actions/upload-artifact@v4
         with:
-          name: test-logs--${{ matrix.os }}
-          path: logs/tests
+          name: logs--${{ matrix.os }}
+          path: logs
