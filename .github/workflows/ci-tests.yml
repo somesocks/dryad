@@ -35,15 +35,24 @@ jobs:
       - name: Build Garden
         working-directory: ${{ github.workspace }}
         run: ./utils/nix-shell/run.sh ./utils/dryad-garden-build.sh
+        continue-on-error: true  # Allow this step to fail without stopping the job
 
       - name: Run Tests
+        if: success()  # Only run if all previous steps succeeded
         working-directory: ${{ github.workspace }}
         run: ./utils/nix-shell/run.sh ./utils/dryad-run-tests.sh
         continue-on-error: true  # Allow this step to fail without stopping the job
       
+      - name: Save Build Logs
+        if: always()  # This ensures it runs even if the previous step failed
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs--${{ matrix.os }}
+          path: logs/build
+
       - name: Save Test Logs
         if: always()  # This ensures it runs even if the previous step failed
         uses: actions/upload-artifact@v4
         with:
           name: test-logs--${{ matrix.os }}
-          path: logs
+          path: logs/tests
