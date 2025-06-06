@@ -25,6 +25,8 @@ var sproutsRunCommand = func() clib.Command {
 		IgnoreErrors bool
 		JoinStdout bool
 		JoinStderr bool
+		LogStdout string
+		LogStderr string
 		Extras []string
 	}
 
@@ -50,6 +52,9 @@ var sproutsRunCommand = func() clib.Command {
 			var confirm string
 			var joinStdout bool
 			var joinStderr bool
+			var logStdout string
+			var logStderr string
+	
 			var parallel int
 			
 			if options["context"] != nil {
@@ -74,7 +79,17 @@ var sproutsRunCommand = func() clib.Command {
 				joinStderr = options["join-stderr"].(bool)
 			} else {
 				joinStderr = false
-			}		
+			}
+
+			if options["log-stdout"] != nil {
+				logStdout = options["log-stdout"].(string)
+				joinStdout = false
+			}
+	
+			if options["log-stderr"] != nil {
+				logStderr = options["log-stderr"].(string)
+				joinStderr = false
+			}
 
 			if options["parallel"] != nil {
 				parallel = int(options["parallel"].(int64))
@@ -116,6 +131,8 @@ var sproutsRunCommand = func() clib.Command {
 				IgnoreErrors: ignoreErrors,
 				JoinStdout: joinStdout,
 				JoinStderr: joinStderr,
+				LogStdout: logStdout,
+				LogStderr: logStderr,
 				Extras: extras,
 			}
 		},
@@ -228,6 +245,20 @@ var sproutsRunCommand = func() clib.Command {
 								Args:       args.Extras,
 								JoinStdout: args.JoinStdout,
 								JoinStderr: args.JoinStderr,
+								LogStdout:    struct {
+									Path string
+									Name string
+								}{
+									Path: args.LogStdout,
+									Name: "",
+								},
+								LogStderr:    struct {
+									Path string
+									Name string
+								}{
+									Path: args.LogStderr,
+									Name: "",
+								},				
 								Context:    args.Context,
 							},
 						)
@@ -298,6 +329,8 @@ var sproutsRunCommand = func() clib.Command {
 		WithOption(clib.NewOption("ignore-errors", "continue running even if a sprout returns an error").WithType(clib.OptionTypeBool)).
 		WithOption(clib.NewOption("join-stdout", "join the stdout of child processes to the stderr of the parent dryad process. default false").WithType(clib.OptionTypeBool)).
 		WithOption(clib.NewOption("join-stderr", "join the stderr of child processes to the stderr of the parent dryad process. default false").WithType(clib.OptionTypeBool)).
+		WithOption(clib.NewOption("log-stdout", "log the stdout of child processes to a file in the specified directory. disables joining").WithType(clib.OptionTypeString)).
+		WithOption(clib.NewOption("log-stderr", "log the stderr of child processes to a file in the specified directory. disables joining").WithType(clib.OptionTypeString)).
 		WithArg(clib.NewArg("-- args", "args to pass to each sprout on execution").AsOptional()).
 		WithAction(action)
 
