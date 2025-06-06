@@ -45,5 +45,5 @@ jobs:
         if: always()  # This ensures it runs even if the previous step failed
         uses: actions/upload-artifact@v4
         with:
-          name: test-logs
+          name: test-logs--${{ matrix.os }}
           path: logs
