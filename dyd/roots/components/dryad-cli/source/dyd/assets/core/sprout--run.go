@@ -14,9 +14,15 @@ type SproutRunRequest struct {
 	Env          map[string]string
 	Args         []string
 	JoinStdout   bool
-	LogStdout    string
+	LogStdout    struct {
+		Path string
+		Name string
+	}
 	JoinStderr   bool
-	LogStderr    string
+	LogStderr    struct {
+		Path string
+		Name string
+	}
 	InheritEnv   bool
 }
 

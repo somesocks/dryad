@@ -152,9 +152,21 @@ var sproutRunCommand = func() clib.Command {
 					Env:          env,
 					Args:         extras,
 					JoinStdout:   joinStdout,
-					LogStdout:    logStdout,
+					LogStdout:    struct {
+						Path string
+						Name string
+					}{
+						Path: logStdout,
+						Name: "",
+					},
 					JoinStderr:   joinStderr,
-					LogStderr:    logStderr,
+					LogStderr:    struct {
+						Path string
+						Name string
+					}{
+						Path: logStderr,
+						Name: "",
+					},
 					Context:      context,
 				},
 			)

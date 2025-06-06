@@ -27,9 +27,15 @@ type StemRunRequest struct {
 	Env          map[string]string
 	Args         []string
 	JoinStdout   bool
-	LogStdout    string
+	LogStdout    struct {
+			Path string
+			Name string
+		}
 	JoinStderr   bool
-	LogStderr    string
+	LogStderr    struct {
+			Path string
+			Name string
+		}
 	InheritEnv   bool
 }
 
@@ -123,14 +129,21 @@ func StemRun(request StemRunRequest) error {
 	// optionally pipe the exec logs to us
 	if request.JoinStdout {
 		cmd.Stdout = os.Stdout
-	} else if request.LogStdout != "" {
-		relStemPath, err := filepath.Rel(gardenPath, stemPath)
-		if err != nil {
-			return err
-		}
+	} else if request.LogStdout.Path != "" {
+		var outputPath string
+
+		if request.LogStdout.Name != "" {
+			outputPath = filepath.Join(request.LogStdout.Path, request.LogStdout.Name)				
+		} else {
+			relStemPath, err := filepath.Rel(gardenPath, stemPath)
+			if err != nil {
+				return err
+			}
 	
-		logFile := "dyd-stem-run--" + sanitizePathSegment(relStemPath) + ".out"
-		outputPath := filepath.Join(request.LogStdout, logFile)
+			logFile := "dyd-stem-run--" + sanitizePathSegment(relStemPath) + ".out"
+			outputPath = filepath.Join(request.LogStdout.Path, logFile)	
+		}
+
 		file, err := os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
 			return err
@@ -142,14 +155,21 @@ func StemRun(request StemRunRequest) error {
 	// optionally pipe the exec stderr to us
 	if request.JoinStderr {
 		cmd.Stderr = os.Stderr
-	} else if request.LogStderr != "" {
-		relStemPath, err := filepath.Rel(gardenPath, stemPath)
-		if err != nil {
-			return err
+	} else if request.LogStderr.Path != "" {
+		var outputPath string
+
+		if request.LogStderr.Name != "" {
+			outputPath = filepath.Join(request.LogStderr.Path, request.LogStderr.Name)	
+		} else {
+			relStemPath, err := filepath.Rel(gardenPath, stemPath)
+			if err != nil {
+				return err
+			}
+		
+			logFile := "dyd-stem-run--" + sanitizePathSegment(relStemPath) + ".err"
+			outputPath = filepath.Join(request.LogStderr.Path, logFile)	
 		}
-	
-		logFile := "dyd-stem-run--" + sanitizePathSegment(relStemPath) + ".err"
-		outputPath := filepath.Join(request.LogStderr, logFile)
+
 		file, err := os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
 			return err
