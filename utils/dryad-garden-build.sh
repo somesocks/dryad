@@ -3,4 +3,10 @@
 set -eu
 set -x
 
-dryad roots build --scope=none
+mkdir -p ./logs/build
+
+dryad roots build \
+    --scope=none \
+    --log-level=debug \
+    --log-stdout=./logs/build \
+    --log-stderr=./logs/build

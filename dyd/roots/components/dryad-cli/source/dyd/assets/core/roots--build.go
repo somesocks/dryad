@@ -14,6 +14,14 @@ type rootsBuildRequest struct {
 	Filter func (*task.ExecutionContext, *SafeRootReference) (error, bool)
 	JoinStdout bool
 	JoinStderr bool
+	LogStdout struct {
+		Path string
+		Name string
+	}
+	LogStderr struct {
+		Path string
+		Name string
+	}	
 }
 
 func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, any) {
@@ -53,6 +61,8 @@ func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, a
 				RootBuildRequest{
 					JoinStdout: request.JoinStdout,
 					JoinStderr: request.JoinStderr,
+					LogStdout: request.LogStdout,
+					LogStderr: request.LogStderr,
 				},
 			)
 			return err, nil
@@ -76,6 +86,14 @@ type RootsBuildRequest struct {
 	Filter func (*task.ExecutionContext, *SafeRootReference) (error, bool)
 	JoinStdout bool
 	JoinStderr bool
+	LogStdout struct {
+		Path string
+		Name string
+	}
+	LogStderr struct {
+		Path string
+		Name string
+	}
 }
 
 func (roots *SafeRootsReference) Build(ctx *task.ExecutionContext, req RootsBuildRequest) (error) {
@@ -86,7 +104,9 @@ func (roots *SafeRootsReference) Build(ctx *task.ExecutionContext, req RootsBuil
 			Filter: req.Filter,
 			JoinStdout: req.JoinStdout,
 			JoinStderr: req.JoinStderr,
-		},
+			LogStdout: req.LogStdout,
+			LogStderr: req.LogStderr,
+},
 	)
 
 	return err

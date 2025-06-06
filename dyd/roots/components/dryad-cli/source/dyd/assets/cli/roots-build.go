@@ -17,6 +17,8 @@ var rootsBuildCommand = func() clib.Command {
 		Path string
 		JoinStdout bool
 		JoinStderr bool
+		LogStdout string
+		LogStderr string
 	}
 
 	var parseArgs = func (ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
@@ -30,6 +32,8 @@ var rootsBuildCommand = func() clib.Command {
 
 		var joinStdout bool
 		var joinStderr bool
+		var logStdout string
+		var logStderr string
 
 		if options["path"] != nil {
 			path = options["path"].(string)
@@ -50,6 +54,16 @@ var rootsBuildCommand = func() clib.Command {
 		if options["join-stderr"] != nil {
 			joinStderr = options["join-stderr"].(bool)
 		} else {
+			joinStderr = false
+		}
+
+		if options["log-stdout"] != nil {
+			logStdout = options["log-stdout"].(string)
+			joinStdout = false
+		}
+
+		if options["log-stderr"] != nil {
+			logStderr = options["log-stderr"].(string)
 			joinStderr = false
 		}
 
@@ -84,6 +98,8 @@ var rootsBuildCommand = func() clib.Command {
 			Parallel: parallel,
 			JoinStdout: joinStdout,
 			JoinStderr: joinStderr,
+			LogStdout: logStdout,
+			LogStderr: logStderr,
 		}
 	}
 
@@ -106,6 +122,20 @@ var rootsBuildCommand = func() clib.Command {
 				Filter: args.Filter,
 				JoinStdout: args.JoinStdout,
 				JoinStderr: args.JoinStderr,
+				LogStdout:    struct {
+					Path string
+					Name string
+				}{
+					Path: args.LogStdout,
+					Name: "",
+				},
+				LogStderr:    struct {
+					Path string
+					Name string
+				}{
+					Path: args.LogStderr,
+					Name: "",
+				},
 			},
 		)
 
@@ -163,6 +193,8 @@ var rootsBuildCommand = func() clib.Command {
 			).
 			WithType(clib.OptionTypeBool),
 		).
+		WithOption(clib.NewOption("log-stdout", "log the stdout of child processes to a file in the specified directory. disables joining").WithType(clib.OptionTypeString)).
+		WithOption(clib.NewOption("log-stderr", "log the stderr of child processes to a file in the specified directory. disables joining").WithType(clib.OptionTypeString)).
 		WithAction(action)
 
 	command = ParallelCommand(command)

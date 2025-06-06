@@ -16,6 +16,14 @@ type rootBuildRequest struct {
 	Root *SafeRootReference
 	JoinStdout bool
 	JoinStderr bool
+	LogStdout struct {
+		Path string
+		Name string
+	}
+	LogStderr struct {
+		Path string
+		Name string
+	}
 }
 
 func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string) {
@@ -63,6 +71,8 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 			WorkspacePath: workspacePath,
 			JoinStdout: req.JoinStdout,
 			JoinStderr: req.JoinStderr,
+			LogStdout: req.LogStdout,
+			LogStderr: req.LogStderr,
 		},
 	)
 	if err != nil {
@@ -166,6 +176,8 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 				RootFingerprint: rootFingerprint,
 				JoinStdout: req.JoinStdout,
 				JoinStderr: req.JoinStderr,
+				LogStdout: req.LogStdout,
+				LogStderr: req.LogStderr,	
 			},
 		)
 		if err != nil {
@@ -300,6 +312,14 @@ var rootBuildWrapper = func (ctx *task.ExecutionContext, req rootBuildRequest) (
 type RootBuildRequest struct {
 	JoinStdout bool
 	JoinStderr bool
+	LogStdout struct {
+		Path string
+		Name string
+	}
+	LogStderr struct {
+		Path string
+		Name string
+	}
 }
 
 func (root *SafeRootReference) Build(ctx *task.ExecutionContext, req RootBuildRequest) (error, string) {
@@ -308,7 +328,9 @@ func (root *SafeRootReference) Build(ctx *task.ExecutionContext, req RootBuildRe
 		rootBuildRequest{
 			Root: root,
 			JoinStdout: req.JoinStdout,
-			JoinStderr: req.JoinStderr,	
+			JoinStderr: req.JoinStderr,
+			LogStdout: req.LogStdout,
+			LogStderr: req.LogStderr,
 		},
 	)
 	return err, res

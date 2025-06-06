@@ -1,32 +1,48 @@
 #!/usr/bin/env sh
 
-set -e
-# set -x
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -eu
 
-SRC_DIR=$DYD_STEM
+_setup_globals () {
+    SRC_PACKAGE=$DYD_STEM
 
-# echo "dryad"
+    DEST_PACKAGE=$DYD_BUILD
+    DEST_MAIN=$DEST_PACKAGE/dyd/commands/dyd-stem-run
+}
 
-DEST_DIR=$1
-DEST_MAIN=$DEST_DIR/dyd/commands/dyd-stem-run
+_setup_logging () {
+    case $DYD_LOG_LEVEL in
+        # turn on shell script debug logs for trace and debug log levels
+        'debug' | 'trace' ) set -x ;;
+        * ) ;;
+    esac
+}
 
-OS="$DYD_OS"
-ARCH="$DYD_ARCH"
-VERSION="$(cat $SRC_DIR/dyd/dependencies/src/dyd/traits/version)"
-FINGERPRINT="$(cat $SRC_DIR/dyd/dependencies/src/dyd/fingerprint)"
+_build_package () {
+	OS="$DYD_OS"
+	ARCH="$DYD_ARCH"
+	VERSION="$(cat $SRC_PACKAGE/dyd/dependencies/src/dyd/traits/version)"
+	FINGERPRINT="$(cat $SRC_PACKAGE/dyd/dependencies/src/dyd/fingerprint)"
 
-# copy assets to build
-printf %s "$OS" > $DEST_DIR/dyd/traits/os
-printf %s "$ARCH" > $DEST_DIR/dyd/traits/arch
-printf %s "$VERSION" > $DEST_DIR/dyd/traits/version
+	# copy assets to build
+	printf %s "$OS" > $DEST_PACKAGE/dyd/traits/os
+	printf %s "$ARCH" > $DEST_PACKAGE/dyd/traits/arch
+	printf %s "$VERSION" > $DEST_PACKAGE/dyd/traits/version
 
 
-# run go build for specified arch
-# diable workspace mode to avoid "missing module" errors
-cd $SRC_DIR/dyd/dependencies/src/dyd/assets/ && \
-GOARCH="$ARCH" \
-GOOS="$OS" \
-GOWORK=off \
-go build \
-	-o $DEST_MAIN \
-	-ldflags "-X=main.Version=$VERSION,-X=main.Fingerprint=$FINGERPRINT,-s,-w"
+	# run go build for specified arch
+	# diable workspace mode to avoid "missing module" errors
+	cd $SRC_PACKAGE/dyd/dependencies/src/dyd/assets/ && \
+	GOARCH="$ARCH" \
+	GOOS="$OS" \
+	GOWORK=off \
+	go build \
+		-o $DEST_MAIN \
+		-ldflags "-X=main.Version=$VERSION,-X=main.Fingerprint=$FINGERPRINT,-s,-w"
+}
+
+_setup_logging
+_setup_globals
+_build_package

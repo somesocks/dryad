@@ -6,3 +6,6 @@
 
 /bootstrap/
 /docs/
+
+# used in CI test runs
+/logs/
