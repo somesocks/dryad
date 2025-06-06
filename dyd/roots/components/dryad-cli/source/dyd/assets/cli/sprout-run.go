@@ -38,8 +38,8 @@ var sproutRunCommand = func() clib.Command {
 			var inherit bool
 			var confirm string
 			var joinStdout bool
-			var logStdout string
 			var joinStderr bool
+			var logStdout string
 			var logStderr string
 
 			if options["context"] != nil {
@@ -64,15 +64,15 @@ var sproutRunCommand = func() clib.Command {
 				joinStdout = true
 			}
 
-			if options["log-stdout"] != nil {
-				logStdout = options["log-stdout"].(string)
-				joinStdout = false
-			}
-
 			if options["join-stderr"] != nil {
 				joinStderr = options["join-stderr"].(bool)
 			} else {
 				joinStderr = true
+			}
+
+			if options["log-stdout"] != nil {
+				logStdout = options["log-stdout"].(string)
+				joinStdout = false
 			}
 
 			if options["log-stderr"] != nil {

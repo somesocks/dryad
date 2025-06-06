@@ -17,6 +17,8 @@ var rootBuildCommand = func() clib.Command {
 		Parallel int
 		JoinStdout bool
 		JoinStderr bool
+		LogStdout string
+		LogStderr string
 	}
 
 	var parseArgs = 
@@ -28,6 +30,8 @@ var rootBuildCommand = func() clib.Command {
 			var parallel int
 			var joinStdout bool
 			var joinStderr bool
+			var logStdout string
+			var logStderr string
 
 			var err error
 
@@ -53,6 +57,16 @@ var rootBuildCommand = func() clib.Command {
 				joinStderr = false
 			}
 
+			if options["log-stdout"] != nil {
+				logStdout = options["log-stdout"].(string)
+				joinStdout = false
+			}
+
+			if options["log-stderr"] != nil {
+				logStderr = options["log-stderr"].(string)
+				joinStderr = false
+			}
+
 			err, path = dydfs.PartialEvalSymlinks(ctx, path)
 			if err != nil {
 				return err, ParsedArgs{}
@@ -63,6 +77,8 @@ var rootBuildCommand = func() clib.Command {
 				Parallel: parallel,
 				JoinStdout: joinStdout,
 				JoinStderr: joinStderr,
+				LogStdout: logStdout,
+				LogStderr: logStderr,
 			}
 		}
 
@@ -89,6 +105,20 @@ var rootBuildCommand = func() clib.Command {
 			dryad.RootBuildRequest{
 				JoinStdout: args.JoinStdout,
 				JoinStderr: args.JoinStderr,
+				LogStdout:    struct {
+					Path string
+					Name string
+				}{
+					Path: args.LogStdout,
+					Name: "",
+				},
+				LogStderr:    struct {
+					Path string
+					Name string
+				}{
+					Path: args.LogStderr,
+					Name: "",
+				},
 			},
 		)
 		if err != nil {
@@ -143,6 +173,8 @@ var rootBuildCommand = func() clib.Command {
 			).
 			WithType(clib.OptionTypeBool),
 		).
+		WithOption(clib.NewOption("log-stdout", "log the stdout of child processes to a file in the specified directory. disables joining").WithType(clib.OptionTypeString)).
+		WithOption(clib.NewOption("log-stderr", "log the stderr of child processes to a file in the specified directory. disables joining").WithType(clib.OptionTypeString)).
 		WithAction(action)
 
 	command = ParallelCommand(command)

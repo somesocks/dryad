@@ -18,6 +18,14 @@ type rootBuild_stage1_request struct {
 	WorkspacePath string
 	JoinStdout bool
 	JoinStderr bool
+	LogStdout struct {
+		Path string
+		Name string
+	}
+	LogStderr struct {
+		Path string
+		Name string
+	}
 }
 
 // stage 1 - walk through the root dependencies, build them if necessary,
@@ -36,6 +44,14 @@ func init () {
 		DependencyPath string
 		JoinStdout bool
 		JoinStderr bool
+		LogStdout struct {
+			Path string
+			Name string
+		}
+		LogStderr struct {
+			Path string
+			Name string
+		}
 	}
 	
 	var rootBuild_stage1_prepReq = func (ctx *task.ExecutionContext, req rootBuild_stage1_request) (error, rootBuild_stage1_request) {
@@ -75,6 +91,8 @@ func init () {
 					DependencyPath: target.BasePath,
 					JoinStdout: req.JoinStdout,
 					JoinStderr: req.JoinStderr,
+					LogStdout: req.LogStdout,
+					LogStderr: req.LogStderr,
 				})	
 
 				return nil, nil
@@ -108,12 +126,16 @@ func init () {
 			RootBuildRequest{
 				JoinStdout: req.JoinStdout,
 				JoinStderr: req.JoinStderr,
+				LogStdout: req.LogStdout,
+				LogStderr: req.LogStderr,
 			},
 		)
 		if err != nil {
 			return err, ""
 		}
 	
+
+		
 		dependencyHeapPath := filepath.Join(req.BaseRequest.Roots.Garden.BasePath, "dyd", "heap", "stems", dependencyFingerprint)
 	
 		dependencyName := req.DependencyName

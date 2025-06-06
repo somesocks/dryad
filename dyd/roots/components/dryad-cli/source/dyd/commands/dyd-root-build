@@ -1,17 +1,34 @@
 #!/usr/bin/env sh
 
-set -e
-# set -x
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -eu
 
-SRC_DIR=$DYD_STEM
+_setup_globals () {
+    SRC_PACKAGE=$DYD_STEM
 
-DEST_DIR=$DYD_BUILD
-DEST_MAIN=$DEST_DIR/dyd/commands/dyd-stem-run
+    DEST_PACKAGE=$DYD_BUILD
+    DEST_MAIN=$DEST_PACKAGE/dyd/commands/dyd-stem-run
+}
 
-# copy assets to build
+_setup_logging () {
+    case $DYD_LOG_LEVEL in
+        # turn on shell script debug logs for trace and debug log levels
+        'debug' | 'trace' ) set -x ;;
+        * ) ;;
+    esac
+}
 
-# copy traits to stem
-cp -s -R $SRC_DIR/dyd/traits/* $DEST_DIR/dyd/traits/
+_build_package () {
+    # copy source code to stem assets
+    cp -s -R $SRC_PACKAGE/dyd/assets/* $DEST_PACKAGE/dyd/assets/
 
-# copy source code to stem assets
-cp -s -R $SRC_DIR/dyd/assets/* $DEST_DIR/dyd/assets/
+    # copy traits to stem
+    cp -s -R $SRC_PACKAGE/dyd/traits/* $DEST_PACKAGE/dyd/traits/
+
+}
+
+_setup_logging
+_setup_globals
+_build_package

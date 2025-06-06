@@ -20,6 +20,14 @@ type rootBuild_stage5_request struct {
 	RootFingerprint string
 	JoinStdout bool
 	JoinStderr bool
+	LogStdout struct {
+		Path string
+		Name string
+	}
+	LogStderr struct {
+		Path string
+		Name string
+	}
 }
 
 // stage 5 - execute the root to build its stem,
@@ -44,6 +52,20 @@ var rootBuild_stage5 func (ctx *task.ExecutionContext, req rootBuild_stage5_requ
 			Args:       []string{req.StemBuildPath},
 			JoinStdout: req.JoinStdout,
 			JoinStderr: req.JoinStderr,
+			LogStdout: struct {
+				Path string
+				Name string
+			}{
+				Path: req.LogStdout.Path,
+				Name: "dyd-root-build--" + sanitizePathSegment(req.RelRootPath) + ".out",
+			},
+			LogStderr: struct {
+				Path string
+				Name string
+			}{
+				Path: req.LogStderr.Path,
+				Name: "dyd-root-build--" + sanitizePathSegment(req.RelRootPath) + ".err",
+			},
 			MainOverride: filepath.Join(req.RootStemPath, "dyd", "commands", "dyd-root-build"),
 		})
 		if err != nil {
