@@ -30,7 +30,7 @@ var RE_STEM_FINGERPRINT_SHOULD_MATCH = regexp.MustCompile(
 		")$",
 )
 
-func StemFingerprintShouldMatch(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+func StemFingerprintShouldMatch(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
 	var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
 	if relErr != nil {
 		return relErr, false
@@ -73,7 +73,7 @@ func StemFingerprint(ctx *task.ExecutionContext, args StemFingerprintRequest) (e
 	var checksumMap = make(map[string]string)
 	var checksumMutex sync.Mutex
 
-	var onMatch = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
+	var onMatch = func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, any) {
 		var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
 		if relErr != nil {
 			return relErr, nil
@@ -104,15 +104,14 @@ func StemFingerprint(ctx *task.ExecutionContext, args StemFingerprintRequest) (e
 		return nil, nil
 	}
 
-	err, _ := fs2.BFSWalk3(
+	err, _ := fs2.Walk6(
 		ctx,
-		fs2.Walk5Request{
+		fs2.Walk6Request{
 			Path:        args.BasePath,
 			VPath:       args.BasePath,
 			BasePath:    args.BasePath,
-			ShouldCrawl: StemWalkShouldCrawl,
-			ShouldMatch: StemFingerprintShouldMatch,
-			OnMatch:     onMatch,
+			ShouldWalk: StemWalkShouldCrawl,
+			OnPreMatch: fs2.ConditionalWalkAction(onMatch, StemFingerprintShouldMatch),
 		},
 	)
 

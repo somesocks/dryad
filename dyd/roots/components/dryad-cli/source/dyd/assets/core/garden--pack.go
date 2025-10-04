@@ -3,7 +3,7 @@ package core
 import (
 	"archive/tar"
 	"compress/gzip"
-	fs2 "dryad/filesystem"
+	dydfs "dryad/filesystem"
 	"dryad/task"
 	"errors"
 	"io"
@@ -64,7 +64,7 @@ func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, strin
 	var packMutex sync.Mutex
 	var packMap = make(map[string]bool)
 
-	var packEntry = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
+	var packEntry = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
 		zlog.Trace().
 			Str("path", node.Path).
 			Msg("GardenPack/packEntry")
@@ -157,7 +157,7 @@ func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, strin
 		return nil, nil
 	}
 
-	packDirShouldCrawl := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+	packDirShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 		var relativePath string
 		var err error
 
@@ -191,7 +191,7 @@ func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, strin
 		return nil, shouldCrawl
 	}
 
-	packDirShouldMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+	packDirShouldMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 		var relativePath string
 		var err error
 
@@ -225,16 +225,15 @@ func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, strin
 
 		return nil, shouldMatch
 	}
-
-	err, _ = fs2.BFSWalk3(
+	
+	err, _ = dydfs.Walk6(
 		ctx,
-		fs2.Walk5Request{
+		dydfs.Walk6Request{
 			BasePath: gardenPath,
 			Path: gardenPath,
 			VPath: gardenPath,
-			ShouldCrawl: packDirShouldCrawl,
-			ShouldMatch: packDirShouldMatch,
-			OnMatch:     packEntry,
+			ShouldWalk: packDirShouldWalk,
+			OnPreMatch: dydfs.ConditionalWalkAction(packEntry, packDirShouldMatch),
 		},
 	)
 	if err != nil {
@@ -243,7 +242,7 @@ func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, strin
 
 
 
-	packFilesShouldCrawl := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+	packFilesShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 		var relativePath string
 		var err error
 
@@ -277,7 +276,7 @@ func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, strin
 		return nil, shouldCrawl
 	}
 
-	packFilesShouldMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+	packFilesShouldMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 		var relativePath string
 		var err error
 
@@ -314,15 +313,14 @@ func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, strin
 		return nil, shouldMatch
 	}
 
-	err = fs2.DFSWalk3(
+	err, _ = dydfs.Walk6(
 		ctx,
-		fs2.Walk5Request{
+		dydfs.Walk6Request{
 			BasePath: gardenPath,
 			Path: gardenPath,
 			VPath: gardenPath,
-			ShouldCrawl: packFilesShouldCrawl,
-			ShouldMatch: packFilesShouldMatch,
-			OnMatch:     packEntry,
+			ShouldWalk: packFilesShouldWalk,
+			OnPostMatch:     dydfs.ConditionalWalkAction(packEntry, packFilesShouldMatch),
 		},
 	)
 	if err != nil {

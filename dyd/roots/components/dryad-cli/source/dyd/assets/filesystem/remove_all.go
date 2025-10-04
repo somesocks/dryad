@@ -3,7 +3,7 @@ package fs2
 import (
 	// "io/fs"
 	"os"
-	"path/filepath"
+	// "path/filepath"
 
 	"dryad/task"
 
@@ -29,63 +29,76 @@ func RemoveAll(ctx *task.ExecutionContext, path string) (error, any) {
 		}	
 	}
 
-	// walk through the filesystem and fix any permissions problems,
-	// if you can
-	err = DFSWalk3(
+	shouldWalk := func(ctx *task.ExecutionContext, node Walk6Node) (error, bool) {
+		isSymlink := node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
+		shouldWalk := !isSymlink
+ 
+		zlog.Trace().
+			Str("path", node.Path).
+			Str("vpath", node.VPath).
+			Bool("isSymlink", isSymlink).
+			Msg("dryad/filesystem/RemoveAll/shouldWalk")
+
+		return nil, shouldWalk
+	}
+
+	onPreMatch := func(ctx *task.ExecutionContext, node Walk6Node) (error, any) {
+		isDir := node.Info.IsDir()
+		isWritable := node.Info.Mode()&0o200 == 0o200
+
+		zlog.Trace().
+			Str("path", node.Path).
+			Str("vpath", node.VPath).
+			Bool("isDir", isDir).
+			Bool("isWritable", isWritable).
+			Msg("dryad/filesystem/RemoveAll/onPreMatch")
+
+		if isDir && !isWritable {
+			err := os.Chmod(node.Path, node.Info.Mode()|0o200)
+
+			zlog.Trace().
+				Str("path", node.Path).
+				Str("vpath", node.VPath).
+				Err(err).
+				Msg("dryad/filesystem/RemoveAll/onPreMatch chmod")
+
+			if err != nil {
+				return err, nil
+			}
+		}
+
+		return nil, nil
+	}
+
+	onPostMatch := func(ctx *task.ExecutionContext, node Walk6Node) (error, any) {
+		isWritable := node.Info.Mode()&0o200 != 0o200
+		isDir := node.Info.IsDir()
+
+		err = os.Remove(node.Path)
+
+		zlog.Trace().
+			Str("path", node.Path).
+			Str("vpath", node.VPath).
+			Bool("isWritable", isWritable).
+			Bool("isDir", isDir).
+			Err(err).
+			Msg("dryad/filesystem/RemoveAll/onPostMatch remove")
+
+		return err, nil
+	}
+
+	err, _ = Walk6(
 		ctx,
-		Walk5Request{
+		Walk6Request{
 			BasePath:    path,
 			Path:        path,
 			VPath:       path,
-			ShouldCrawl: func(ctx *task.ExecutionContext, node Walk5Node) (error, bool) {
-				// don't crawl symlinks
-				var shouldCrawl bool = !(node.Info.Mode()&os.ModeSymlink == os.ModeSymlink)
-
-				zlog.Trace().
-					Str("path", node.Path).
-					Str("vpath", node.VPath).
-					Bool("shouldCrawl", shouldCrawl).
-					Bool("isSymLink", node.Info.Mode()&os.ModeSymlink == os.ModeSymlink).
-					Msg("dryad/filesystem/RemoveAll/ShouldCrawl")
-
-				return nil, shouldCrawl
-			},
-			ShouldMatch: func(ctx *task.ExecutionContext, node Walk5Node) (error, bool) {
-				var shouldMatch bool = true
-				zlog.Trace().
-					Str("path", node.Path).
-					Str("vpath", node.VPath).
-					Bool("shouldMatch", shouldMatch).
-					Msg("dryad/filesystem/RemoveAll/ShouldMatch")
-				return nil, shouldMatch
-			},
-			OnMatch: func(ctx *task.ExecutionContext, node Walk5Node) (error, any) {
-				zlog.Trace().
-					Str("path", node.Path).
-					Str("vpath", node.VPath).
-					Msg("dryad/filesystem/RemoveAll/OnMatch")
-
-				parentInfo, err := os.Lstat(filepath.Dir(node.Path))
-				if err != nil {
-					return err, nil
-				}
-
-				if parentInfo.Mode()&0o200 != 0o200 {
-					err := os.Chmod(filepath.Dir(node.Path), parentInfo.Mode()|0o200)
-					if err != nil {
-						return err, nil
-					}
-				}
-
-				err = os.Remove(node.Path)
-				if err != nil {
-					return err, nil
-				}
-
-				return nil, nil
-			},
+			ShouldWalk: shouldWalk,
+			OnPreMatch: onPreMatch,
+			OnPostMatch: onPostMatch,
 		},
 	)
+
 	if err != nil {
 		zlog.Trace().
 			Err(err).

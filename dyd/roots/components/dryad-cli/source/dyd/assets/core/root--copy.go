@@ -1,7 +1,7 @@
 package core
 
 import (
-	fs2 "dryad/filesystem"
+	dydfs "dryad/filesystem"
 	"dryad/task"
 	"fmt"
 	"os"
@@ -62,7 +62,7 @@ var rootCopy typeRootCopy = func () typeRootCopy {
 		
 
 	// don't crawl symlinks
-	var shouldCrawl = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+	var shouldWalk = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
 		if relErr != nil {
 			return relErr, false
@@ -76,7 +76,7 @@ var rootCopy typeRootCopy = func () typeRootCopy {
 	}
 
 
-	var shouldMatch = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+	var shouldMatch = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
 		if relErr != nil {
 			return relErr, false
@@ -195,7 +195,7 @@ var rootCopy typeRootCopy = func () typeRootCopy {
 			return fmt.Errorf("source and destination roots are not in same garden"), nil
 		}
 	
-		onMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
+		onMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
 			var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
 			if relErr != nil {
 				return relErr, nil
@@ -232,15 +232,16 @@ var rootCopy typeRootCopy = func () typeRootCopy {
 			}
 		}
 	
-		err, _ = fs2.BFSWalk3(
+		onMatch = dydfs.ConditionalWalkAction(onMatch, shouldMatch)
+
+		err, _ = dydfs.Walk6(
 			ctx,
-			fs2.Walk5Request{
+			dydfs.Walk6Request{
 				BasePath:     sourcePath,
 				Path:     sourcePath,
 				VPath:     sourcePath,
-				ShouldCrawl: shouldCrawl,
-				ShouldMatch: shouldMatch,
-				OnMatch:      onMatch,
+				ShouldWalk: shouldWalk,
+				OnPreMatch:      onMatch,
 			},
 		)
 		if err != nil {

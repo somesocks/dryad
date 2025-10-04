@@ -39,7 +39,7 @@ var RE_STEM_WALK_SHOULD_CRAWL = regexp.MustCompile(
 // - else if the node is a directory then yes
 // - else if the node is a file then no
 // - else error?
-func StemWalkShouldCrawl(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+func StemWalkShouldCrawl(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
 	zlog.
 		Trace().
 		Str("path", node.Path).
@@ -111,7 +111,7 @@ var RE_STEM_WALK_SHOULD_MATCH = regexp.MustCompile(
 // - else if the node is a directory then no,
 // - else if the node is a file then yes,
 // - else error?
-func StemWalkShouldMatch(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+func StemWalkShouldMatch(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
 	zlog.
 		Trace().
 		Str("path", node.Path).
@@ -129,7 +129,7 @@ func StemWalkShouldMatch(ctx *task.ExecutionContext, node fs2.Walk5Node) (error,
 
 type StemWalkRequest struct {
 	BasePath string
-	OnMatch  func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any)
+	OnMatch  func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, any)
 }
 
 func StemWalk(
@@ -149,25 +149,19 @@ func StemWalk(
 		return err
 	}
 
-	err, _ = fs2.BFSWalk3(
+	onMatch := fs2.ConditionalWalkAction(
+		args.OnMatch,
+		StemWalkShouldMatch,
+	)
+
+	err, _ = fs2.Walk6(
 		ctx,
-		fs2.Walk5Request{
+		fs2.Walk6Request{
+			BasePath:    path,
 			Path:        path,
 			VPath:       path,
-			BasePath:    path,
-			ShouldCrawl: StemWalkShouldCrawl,
-			ShouldMatch: StemWalkShouldMatch,
-			OnMatch:     args.OnMatch,
-			OnError: func(err error, node fs2.Walk5Node) error {
-				zlog.
-					Trace().
-					Str("path", node.Path).
-					Str("vpath", node.VPath).
-					Err(err).
-					Msg("StemWalk / onError")
-				
-				return err
-			},
+			ShouldWalk: StemWalkShouldCrawl,
+			OnPreMatch: onMatch,
 		},
 	)
 

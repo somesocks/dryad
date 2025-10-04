@@ -1,7 +1,7 @@
 package core
 
 import (
-	fs2 "dryad/filesystem"
+	dydfs "dryad/filesystem"
 	"dryad/task"
 	// "path/filepath"
 )
@@ -13,15 +13,15 @@ type RootRequirementsWalkRequest struct {
 func (requirements *SafeRootRequirementsReference) Walk(ctx *task.ExecutionContext, req RootRequirementsWalkRequest) error {
 	var err error
 
-	var shouldCrawl = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+	var shouldWalk = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 		return nil, node.Path == node.BasePath
 	}
 
-	var shouldMatch = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+	var shouldMatch = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 		return nil, node.Path != node.BasePath
 	}
 
-	var onMatch = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
+	var onMatch = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
 		var unsafeRequirementRef = UnsafeRootRequirementReference{
 			BasePath: node.Path,
 			Requirements: requirements,
@@ -42,15 +42,16 @@ func (requirements *SafeRootRequirementsReference) Walk(ctx *task.ExecutionConte
 		return nil, nil
 	}
 
-	err, _ = fs2.BFSWalk3(
+	onMatch = dydfs.ConditionalWalkAction(onMatch, shouldMatch)
+
+	err, _ = dydfs.Walk6(
 		ctx,
-		fs2.Walk5Request{
+		dydfs.Walk6Request{
+			BasePath: requirements.BasePath,
 			Path:     requirements.BasePath,
 			VPath:    requirements.BasePath,
-			BasePath: requirements.BasePath,
-			ShouldCrawl: shouldCrawl,
-			ShouldMatch: shouldMatch,
-			OnMatch: onMatch,
+			ShouldWalk: shouldWalk,
+			OnPreMatch: onMatch,
 		},
 	)
 	if err != nil {
