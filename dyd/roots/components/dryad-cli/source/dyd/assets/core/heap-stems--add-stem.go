@@ -64,7 +64,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 	}
 
 	// walk the packed root files and copy them into the garden heap
-	err = StemWalk(
+	err, _ = StemWalk(
 		ctx,
 		StemWalkRequest{
 			BasePath: stemPath,
