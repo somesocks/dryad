@@ -18,11 +18,14 @@ type GlobPath struct {
 	path string
 }
 
-func NewGlobPath (raw_path string) (GlobPath) {
+func NewGlobPath(raw_path string, is_dir bool) (GlobPath) {
 	raw_path = strings.ReplaceAll(raw_path, "\\", "/")
 	raw_path = path.Clean(raw_path)
 	if !strings.HasPrefix(raw_path, "/") {
-		raw_path = "/" +  raw_path
+		raw_path = "/" + raw_path
+	}
+	if is_dir && !strings.HasSuffix(raw_path, "/") {
+		raw_path = raw_path + "/"
 	}
 	return GlobPath{path: raw_path}
 }

@@ -52,7 +52,7 @@ func TestGlobPattern_BasicTable(t *testing.T) {
 			assert.Nil(err)
 			assert.NotNil(pattern)
 
-			path := NewGlobPath(tc.path)
+			path := NewGlobPath(tc.path, false)
 
 			err, match := pattern.Match(path)
 			assert.Nil(err)
@@ -106,7 +106,7 @@ func TestGlobMatcher0(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			path := NewGlobPath(tc.path)
+			path := NewGlobPath(tc.path, false)
 
 			err, match := matcher.Match(path)
 			assert.Nil(err)
@@ -159,7 +159,7 @@ func TestGlobMatcher1(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			path := NewGlobPath(tc.path)
+			path := NewGlobPath(tc.path, false)
 
 			err, match := matcher.Match(path)
 			assert.Nil(err)
@@ -216,7 +216,7 @@ func TestGlobMatcher2(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			path := NewGlobPath(tc.path)
+			path := NewGlobPath(tc.path, false)
 
 			err, match := matcher.Match(path)
 			assert.Nil(err)
