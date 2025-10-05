@@ -16,6 +16,7 @@ import (
 
 type GlobPath struct {
 	path string
+	is_dir bool
 }
 
 func NewGlobPath(raw_path string, is_dir bool) (GlobPath) {
@@ -24,10 +25,7 @@ func NewGlobPath(raw_path string, is_dir bool) (GlobPath) {
 	if !strings.HasPrefix(raw_path, "/") {
 		raw_path = "/" + raw_path
 	}
-	if is_dir && !strings.HasSuffix(raw_path, "/") {
-		raw_path = raw_path + "/"
-	}
-	return GlobPath{path: raw_path}
+	return GlobPath{path: raw_path, is_dir: is_dir}
 }
 
 type GlobPatternMatchResult int
@@ -41,9 +39,16 @@ const (
 type GlobPattern struct {
 	pattern string
 	inclusion bool
+	matches_dirs bool
+	matches_files bool
 }
 
 func (p * GlobPattern) Match(path GlobPath) (error, GlobPatternMatchResult) {
+	can_match := (path.is_dir && p.matches_dirs) || (!path.is_dir && p.matches_files)
+	if (!can_match) {
+		return nil, PATTERN_NO_MATCH
+	}
+
 	matched, err := doublestar.Match(p.pattern, path.path)
 	if err != nil {
 		return err, PATTERN_NO_MATCH
@@ -83,9 +88,8 @@ func NewGlobPattern (pattern string, base string) (error, *GlobPattern) {
 	pattern = strings.ReplaceAll(pattern, "\\", "/")
 	pattern = path.Clean(pattern)
 
-	if directory {
-		pattern = pattern + "/"
-	}
+	matches_dirs := true
+	matches_files := !directory
 
 	err := doublestar.ValidatePattern(pattern)	
 	if !err {
@@ -95,6 +99,8 @@ func NewGlobPattern (pattern string, base string) (error, *GlobPattern) {
 	return nil, &GlobPattern{
 		pattern:  pattern,
 		inclusion: inclusion,
+		matches_dirs: matches_dirs,
+		matches_files: matches_files,
 	}
 }
 
