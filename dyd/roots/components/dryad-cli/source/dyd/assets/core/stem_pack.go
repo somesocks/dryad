@@ -221,7 +221,7 @@ func stemArchive(request StemPackRequest) (string, error) {
 			defer tarWriter.Close()
 		}
 
-		var shouldCrawl = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+		var shouldWalk = func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
 			// don't crawl symlinks
 			if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
 				return nil, false
@@ -229,7 +229,7 @@ func stemArchive(request StemPackRequest) (string, error) {
 			return nil, true
 		}
 
-		var onMatch = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
+		var onMatch = func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, any) {
 			zlog.
 				Trace().
 				Str("node.Path", node.Path).
@@ -335,14 +335,14 @@ func stemArchive(request StemPackRequest) (string, error) {
 		}
 
 		// NOTE: packing needs to be serial for now
-		err, _ = fs2.BFSWalk3(
+		err, _ = fs2.Walk6(
 			task.SERIAL_CONTEXT,
-			fs2.Walk5Request{
+			fs2.Walk6Request{
 				BasePath:    request.TargetPath,
 				Path:        request.TargetPath,
 				VPath:       request.TargetPath,
-				OnMatch:     onMatch,
-				ShouldCrawl: shouldCrawl,
+				OnPreMatch:     onMatch,
+				ShouldWalk: shouldWalk,
 			},
 		)
 		if err != nil {

@@ -26,7 +26,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 
 	// crawler used to match files to copy 
 	// node.BasePath should be the path to the package dyd/dependencies 
-	var fs_should_crawl = func(ctx *task.ExecutionContext, node dydfs.Walk5Node) (error, bool) {
+	var fs_should_walk = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 		var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
 		if relErr != nil {
 			return relErr, false
@@ -35,7 +35,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 		zlog.Trace().
 			Str("node.VPath", node.VPath).
 			Bool("shouldCrawl", shouldCrawl).
-			Msg("rootBuild_requirementsPrepare.fs_should_crawl")
+			Msg("rootBuild_requirementsPrepare.fs_should_walk")
 		return nil, shouldCrawl
 	}
 
@@ -49,7 +49,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 
 	// matcher used to match files to copy 
 	// node.BasePath should be the path to the package dyd/dependencies 
-	var fs_should_match = func(ctx *task.ExecutionContext, node dydfs.Walk5Node) (error, bool) {
+	var fs_should_match = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 		var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
 		if relErr != nil {
 			return relErr, false
@@ -62,7 +62,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 		return nil, shouldMatch
 	}
 
-	var fs_on_match = func(ctx *task.ExecutionContext, node dydfs.Walk5Node) (error, any) {
+	var fs_on_match = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
 		zlog.Trace().
 			Str("node.VPath", node.VPath).
 			Msg("rootBuild_requirementsPrepare.fs_on_match")
@@ -157,6 +157,8 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 		return nil, nil
 	}
 
+	fs_on_match = dydfs.ConditionalWalkAction(fs_on_match, fs_should_match)
+
 	var action = func(workspacePath string) error {
 		zlog.Trace().
 			Str("workspacePath", workspacePath).
@@ -176,15 +178,14 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 
 		// NOTE: this should use a serial execution context until it has been verified to be
 		// concurrent-safe
-		err, _ = dydfs.BFSWalk3(
+		err, _ = dydfs.Walk6(
 			task.SERIAL_CONTEXT,
-			dydfs.Walk5Request{
+			dydfs.Walk6Request{
 				BasePath:    dependenciesPath,
 				Path:        dependenciesPath,
 				VPath:       dependenciesPath,
-				ShouldCrawl: fs_should_crawl,
-				ShouldMatch: fs_should_match,
-				OnMatch:     fs_on_match,
+				ShouldWalk:  fs_should_walk,
+				OnPreMatch:     fs_on_match,
 			})
 		if err != nil {
 			return err

@@ -1,7 +1,7 @@
 package core
 
 import (
-	fs2 "dryad/filesystem"
+	dydfs "dryad/filesystem"
 	"errors"
 	"os"
 	"path/filepath"
@@ -46,7 +46,7 @@ var gardenPrune_mark =
 		markStatsChecked := 0
 		markStatsMarked := 0
 
-		markShouldCrawl := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+		markShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 			// crawl if we haven't marked already or the timestamp is newer
 			// always crawl the sprouts directory regardless of the timestamp
 			var shouldCrawl bool = node.Info.ModTime().Before(req.Snapshot) ||
@@ -58,12 +58,12 @@ var gardenPrune_mark =
 				Bool("shouldCrawl", shouldCrawl).
 				Time("snapshotTime", req.Snapshot).
 				Time("fileTime", node.Info.ModTime()).
-				Msg("garden prune - markShouldCrawl")
+				Msg("garden prune - markShouldWalk")
 
 			return nil, shouldCrawl
 		}
 
-		markShouldMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+		markShouldMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 			// match if we haven't marked already or the timestamp is newer
 			// always match the sprouts directory regardless of the timestamp
 			var shouldMatch bool = node.Info.ModTime().Before(req.Snapshot) ||
@@ -82,7 +82,7 @@ var gardenPrune_mark =
 			return nil, shouldMatch
 		}
 
-		markOnMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
+		markOnMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
 			markStatsMarked += 1
 
 			zlog.Trace().
@@ -96,15 +96,16 @@ var gardenPrune_mark =
 			return nil, nil
 		}
 
-		var err = fs2.DFSWalk3(
+		markOnMatch = dydfs.ConditionalWalkAction(markOnMatch, markShouldMatch)
+
+		var err, _ = dydfs.Walk6(
 			ctx,
-			fs2.Walk5Request{
+			dydfs.Walk6Request{
+				BasePath: sproutsPath,
 				Path: sproutsPath,
 				VPath: sproutsPath,
-				BasePath: sproutsPath,
-				ShouldCrawl: markShouldCrawl,
-				ShouldMatch: markShouldMatch,
-				OnMatch: markOnMatch,
+				ShouldWalk: markShouldWalk,
+				OnPostMatch: markOnMatch,
 			},
 		)
 		if err != nil {
@@ -124,7 +125,7 @@ var gardenPrune_sweepStems =
 	func (ctx *task.ExecutionContext, req gardenPruneRequest) (error, gardenPruneRequest) {
 		heapPath := filepath.Join(req.Garden.BasePath, "dyd", "heap")
 
-		sweepStemShouldCrawl := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+		sweepStemShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 			var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
 			if relErr != nil {
 				return relErr, false
@@ -137,12 +138,12 @@ var gardenPrune_sweepStems =
 				Str("path", node.Path).
 				Str("vpath", node.VPath).
 				Bool("shouldCrawl", shouldCrawl).
-				Msg("GardenPrune/sweepStemShouldCrawl")
+				Msg("GardenPrune/sweepStemShouldWalk")
 
 			return nil, shouldCrawl
 		}
 
-		sweepStemShouldMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+		sweepStemShouldMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 			var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
 			if relErr != nil {
 				return relErr, false
@@ -161,11 +162,11 @@ var gardenPrune_sweepStems =
 		sweepStemStatsCheck := 0
 		sweepStemStatsCount := 0
 
-		sweepStem := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
+		sweepStem := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
 			sweepStemStatsCheck += 1
 
 			if node.Info.ModTime().Before(req.Snapshot) {
-				var err, _ = fs2.RemoveAll(ctx, node.Path)
+				var err, _ = dydfs.RemoveAll(ctx, node.Path)
 				if err != nil {
 					return err, nil
 				}
@@ -176,15 +177,16 @@ var gardenPrune_sweepStems =
 			return nil, nil
 		}
 
-		var err, _ = fs2.BFSWalk3(
+		sweepStem = dydfs.ConditionalWalkAction(sweepStem, sweepStemShouldMatch)
+
+		var err, _ = dydfs.Walk6(
 			ctx,
-			fs2.Walk5Request{
+			dydfs.Walk6Request{
 				BasePath: heapPath,
 				Path: heapPath,
 				VPath: heapPath,
-				ShouldCrawl: sweepStemShouldCrawl,
-				ShouldMatch: sweepStemShouldMatch,
-				OnMatch:     sweepStem,
+				ShouldWalk: sweepStemShouldWalk,
+				OnPreMatch:     sweepStem,
 			},
 		)
 		if err != nil {
@@ -206,7 +208,7 @@ var gardenPrune_sweepDerivations =
 		sweepDerivationStatsCheck := 0
 		sweepDerivationStatsCount := 0	
 
-		sweepDerivationsShouldCrawl := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+		sweepDerivationsShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 			relPath, relErr := filepath.Rel(node.BasePath, node.Path)
 			if relErr != nil {
 				return relErr, false
@@ -216,7 +218,7 @@ var gardenPrune_sweepDerivations =
 			return nil, shouldCrawl
 		}
 
-		sweepDerivationsShouldMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+		sweepDerivationsShouldMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 			sweepDerivationStatsCheck += 1
 
 			var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
@@ -236,20 +238,21 @@ var gardenPrune_sweepDerivations =
 			return nil, shouldMatch
 		}
 
-		sweepDerivation := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
+		sweepDerivation := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
 			sweepDerivationStatsCount += 1
 			return os.Remove(node.Path), nil
 		}
 
-		var err = fs2.DFSWalk3(
+		sweepDerivation = dydfs.ConditionalWalkAction(sweepDerivation, sweepDerivationsShouldMatch)
+
+		var err, _ = dydfs.Walk6(
 			ctx,
-			fs2.Walk5Request{
+			dydfs.Walk6Request{
+				BasePath:    heapPath,
 				Path:    heapPath,
 				VPath:    heapPath,
-				BasePath:    heapPath,
-				ShouldCrawl: sweepDerivationsShouldCrawl,
-				ShouldMatch: sweepDerivationsShouldMatch,
-				OnMatch:     sweepDerivation,
+				ShouldWalk: sweepDerivationsShouldWalk,
+				OnPostMatch:     sweepDerivation,
 			},
 		)
 		if err != nil {
@@ -270,7 +273,7 @@ var gardenPrune_sweepFiles =
 		sweepFileStatsCheck := 0
 		sweepFileStatsCount := 0	
 			
-		sweepFileShouldCrawl := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+		sweepFileShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 			var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
 			if relErr != nil {
 				return relErr, false
@@ -281,7 +284,7 @@ var gardenPrune_sweepFiles =
 			return nil, shouldCrawl
 		}
 
-		sweepFilesShouldMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+		sweepFilesShouldMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 			sweepFileStatsCheck += 1
 
 			var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
@@ -292,7 +295,7 @@ var gardenPrune_sweepFiles =
 			return nil, shouldMatch
 		}
 
-		sweepFile := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
+		sweepFile := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
 			if node.Info.ModTime().Before(req.Snapshot) {
 				parentPath := filepath.Dir(node.Path)
 				parentInfo, err := os.Lstat(parentPath)
@@ -318,15 +321,16 @@ var gardenPrune_sweepFiles =
 			return nil, nil
 		}
 
-		var err = fs2.DFSWalk3(
+		sweepFile = dydfs.ConditionalWalkAction(sweepFile, sweepFilesShouldMatch)
+
+		var err, _ = dydfs.Walk6(
 			ctx,
-			fs2.Walk5Request{
+			dydfs.Walk6Request{
+				BasePath:    heapPath,
 				Path:    heapPath,
 				VPath:    heapPath,	
-				BasePath:    heapPath,
-				ShouldCrawl: sweepFileShouldCrawl,
-				ShouldMatch: sweepFilesShouldMatch,
-				OnMatch:     sweepFile,
+				ShouldWalk: sweepFileShouldWalk,
+				OnPostMatch:     sweepFile,
 			},
 		)
 		if err != nil {

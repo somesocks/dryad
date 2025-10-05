@@ -68,7 +68,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 		ctx,
 		StemWalkRequest{
 			BasePath: stemPath,
-			OnMatch: func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
+			OnMatch: func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, any) {
 				zlog.
 					Trace().
 					Str("path", node.Path).
@@ -230,7 +230,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 	}
 
 
-	var setPermissionsShouldCrawl = func (ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+	var setPermissionsShouldCrawl = func (ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
 		isDir := node.Info.IsDir()
 
 		zlog.Trace().
@@ -241,7 +241,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 		return nil, isDir
 	}	
 
-	var setPermissionsShouldMatch = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+	var setPermissionsShouldMatch = func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
 		isDir := node.Info.IsDir()
 
 		zlog.Trace().
@@ -252,7 +252,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 		return nil, isDir
 	}
 
-	var setPermissionsOnMatch = func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
+	var setPermissionsOnMatch = func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, any) {
 		zlog.Trace().
 			Str("path", node.VPath).
 			Msg("heap add stem - dir OnMatch")
@@ -279,16 +279,18 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 		return nil, nil
 	}
 
+	
+
+
 	// now that all files are added, sweep through in a second pass and make directories read-only
-	err = fs2.DFSWalk3(
+	err, _ = fs2.Walk6(
 		ctx,
-		fs2.Walk5Request{
+		fs2.Walk6Request{
+			BasePath:    finalStemPath,
 			Path:        finalStemPath,
 			VPath:       finalStemPath,
-			BasePath:    finalStemPath,
-			ShouldCrawl: setPermissionsShouldCrawl,
-			ShouldMatch: setPermissionsShouldMatch,
-			OnMatch: setPermissionsOnMatch,
+			ShouldWalk: setPermissionsShouldCrawl,
+			OnPostMatch: fs2.ConditionalWalkAction(setPermissionsOnMatch, setPermissionsShouldMatch),
 		},
 	)
 	if err != nil {

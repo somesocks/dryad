@@ -20,18 +20,18 @@ func sproutsPrune(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) err
 	}
 
 	// crawl everything that isn't a symlink
-	shouldCrawl := func(ctx *task.ExecutionContext, node dydfs.Walk5Node) (error, bool) {
-		var shouldCrawl bool = node.Info.Mode()&os.ModeSymlink != os.ModeSymlink
+	shouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+		var shouldWalk bool = node.Info.Mode()&os.ModeSymlink != os.ModeSymlink
 
 		zlog.Trace().
 			Str("path", node.Path).
-			Bool("shouldCrawl", shouldCrawl).
-			Msg("SproutsPrune.shouldCrawl")
-		return nil, shouldCrawl
+			Bool("shouldWalk", shouldWalk).
+			Msg("SproutsPrune.shouldWalk")
+		return nil, shouldWalk
 	}
 
 	// match any path that we should delete
-	shouldMatch := func(ctx *task.ExecutionContext, node dydfs.Walk5Node) (error, bool) {
+	shouldMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 
 		zlog.Trace().
 			Str("path", node.Path).
@@ -58,7 +58,7 @@ func sproutsPrune(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) err
 		return nil, false
 	}
 
-	onMatch := func(ctx *task.ExecutionContext, node dydfs.Walk5Node) (error, any) {
+	onMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
 		zlog.Trace().
 			Str("path", node.Path).
 			Msg("SproutsPrune.onMatch")
@@ -71,17 +71,18 @@ func sproutsPrune(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) err
 		return nil, nil
 	}
 
+	onMatch = dydfs.ConditionalWalkAction(onMatch, shouldMatch)
+	
 	// NOTE: this needs to run serially until we fix the concurrency issue
 	// with parent permissions in onMatch
-	err = dydfs.DFSWalk3(
+	err, _ = dydfs.Walk6(
 		task.SERIAL_CONTEXT,
-		dydfs.Walk5Request{
+		dydfs.Walk6Request{
+			BasePath:    sprouts.BasePath,
 			Path:        sprouts.BasePath,
 			VPath:       sprouts.BasePath,
-			BasePath:    sprouts.BasePath,
-			ShouldCrawl: shouldCrawl,
-			ShouldMatch: shouldMatch,
-			OnMatch:     onMatch,
+			ShouldWalk: shouldWalk,
+			OnPostMatch:     onMatch,
 		},
 	)
 	if err != nil {

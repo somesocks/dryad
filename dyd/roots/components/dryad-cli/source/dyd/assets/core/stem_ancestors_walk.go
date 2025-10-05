@@ -24,12 +24,12 @@ var RE_STEM_ANCESTORS_SHOULD_CRAWL = regexp.MustCompile(
 
 // should walk
 
-func StemAncestorsWalkCrawler() func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+func stemAncestorsShouldWalk() func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
 
 	var crawlMap = make(map[string]bool)
 
 	// - if the vpath matches the pattern then yes
-	return func (ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+	return func (ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
 		// don't crawl a path that's already been crawled
 		if _, seen := crawlMap[node.Path]; seen {
 			return nil, false
@@ -55,41 +55,41 @@ func StemAncestorsWalkCrawler() func(ctx *task.ExecutionContext, node fs2.Walk5N
 	}
 }
 
+var stemAncestorsShouldMatch fs2.WalkDecision = func () fs2.WalkDecision {
+		RE_STEM_ANCESTORS_WALK_SHOULD_MATCH := regexp.MustCompile(
+			"^(" +
+				"(\\.)" +
+				"|((dyd/dependencies/[^/]*))" +
+				"|((dyd/dependencies/[^/]*/)+dyd/dependencies/[^/]*)" +
+			")$",
+		)
 
+		shouldMatch :=  func (ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
 
-var RE_STEM_ANCESTORS_WALK_SHOULD_MATCH = regexp.MustCompile(
-	"^(" +
-		"(\\.)" +
-		"|((dyd/dependencies/[^/]*))" +
-		"|((dyd/dependencies/[^/]*/)+dyd/dependencies/[^/]*)" +
-	")$",
-)
+			var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
+			if relErr != nil {
+				return relErr, false
+			}
+			matchesPath := RE_STEM_ANCESTORS_WALK_SHOULD_MATCH.Match([]byte(relPath))
 
-// should match
-func StemAncestorsWalkShouldMatch(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, bool) {
+			isDir := node.Info.IsDir()
 
-	var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
-	if relErr != nil {
-		return relErr, false
-	}
-	matchesPath := RE_STEM_ANCESTORS_WALK_SHOULD_MATCH.Match([]byte(relPath))
+			zlog.Trace().
+				Str("relPath", relPath).
+				Bool("match", matchesPath).
+				Bool("isDir", isDir).
+				Msg("stem ancestors walk / should match")
 
-	isDir := node.Info.IsDir()
+			return nil, matchesPath && isDir
 
+		}
 
-	zlog.Trace().
-		Str("relPath", relPath).
-		Bool("match", matchesPath).
-		Bool("isDir", isDir).
-		Msg("stem ancestors walk / should match")
-
-	return nil, matchesPath && isDir
-
-}
+		return shouldMatch
+	}()
 
 type StemAncestorsWalkRequest struct {
 	BasePath string
-	OnMatch  func(node fs2.Walk5Node) error
+	OnMatch  func(node fs2.Walk6Node) error
 	Self bool
 }
 
@@ -97,7 +97,7 @@ func StemAncestorsWalk(args StemAncestorsWalkRequest) error {
 
 	self := args.Self
 	seen := 0
-	onMatch := func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
+	onMatch := func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, any) {
 		// skip the first match if we don't want to see ourselves
 		seen += 1
 		if !self && (seen == 1) {
@@ -107,16 +107,20 @@ func StemAncestorsWalk(args StemAncestorsWalkRequest) error {
 		return args.OnMatch(node), nil
 	}
 
+	onMatch = fs2.ConditionalWalkAction(
+		onMatch,
+		stemAncestorsShouldMatch,
+	)
+	
 	// NOTE: this should run serially until checked for concurrency issues
-	err, _ := fs2.BFSWalk3(
+	err, _ := fs2.Walk6(
 		task.SERIAL_CONTEXT,
-		fs2.Walk5Request{
+		fs2.Walk6Request{
+			BasePath:    args.BasePath,
 			Path:        args.BasePath,
 			VPath:       args.BasePath,
-			BasePath:    args.BasePath,
-			ShouldCrawl: StemAncestorsWalkCrawler(),
-			ShouldMatch: StemAncestorsWalkShouldMatch,
-			OnMatch:     onMatch,
+			ShouldWalk: stemAncestorsShouldWalk(),
+			OnPreMatch:     onMatch,
 		},
 	)
 

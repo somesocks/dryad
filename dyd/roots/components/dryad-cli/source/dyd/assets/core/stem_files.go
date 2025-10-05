@@ -17,7 +17,7 @@ func StemFiles(args StemFilesArgs) error {
 		task.DEFAULT_CONTEXT,
 		StemWalkRequest{
 			BasePath: args.BasePath,
-			OnMatch: func(ctx *task.ExecutionContext, node fs2.Walk5Node) (error, any) {
+			OnMatch: func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, any) {
 				if !node.Info.IsDir() {
 					fmt.Println(node.VPath)
 				}
