@@ -256,43 +256,58 @@ type StemWalkRequest struct {
 	OnMatch  func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any)
 }
 
-func StemWalk(
-	ctx *task.ExecutionContext,
-	args StemWalkRequest,
-) error {
-	var path string
-	var err error
+var StemWalk task.Task[StemWalkRequest, any] = func () task.Task[StemWalkRequest, any] {
+	var stemWalk = func (
+		ctx *task.ExecutionContext,
+		args StemWalkRequest,
+	) (error, any) {
+		var path string
+		var err error
 
-	path, err = filepath.EvalSymlinks(args.BasePath)
-	if err != nil {
-		return err
+		path, err = filepath.EvalSymlinks(args.BasePath)
+		if err != nil {
+			return err, nil
+		}
+
+		path, err = filepath.Abs(path)
+		if err != nil {
+			return err, nil
+		}
+
+		onMatch := dydfs.ConditionalWalkAction(
+			args.OnMatch,
+			StemWalkShouldMatch,
+		)
+
+		err, _ = dydfs.Walk6(
+			ctx,
+			dydfs.Walk6Request{
+				BasePath:    path,
+				Path:        path,
+				VPath:       path,
+				ShouldWalk: StemWalkShouldCrawl,
+				OnPreMatch: onMatch,
+			},
+		)
+
+		zlog.
+			Trace().
+			Err(err).
+			Msg("StemWalk / err")
+
+		return err, nil
 	}
 
-	path, err = filepath.Abs(path)
-	if err != nil {
-		return err
-	}
-
-	onMatch := dydfs.ConditionalWalkAction(
-		args.OnMatch,
-		StemWalkShouldMatch,
-	)
-
-	err, _ = dydfs.Walk6(
-		ctx,
-		dydfs.Walk6Request{
-			BasePath:    path,
-			Path:        path,
-			VPath:       path,
-			ShouldWalk: StemWalkShouldCrawl,
-			OnPreMatch: onMatch,
+	// we want to replace the execution context, but with the same concurrency channel as before.
+	// only the execution cache is replaced, to limit the scope of memoized calls to fetch dyd-ignore files
+	stemWalk = task.WithContext(
+		stemWalk,
+		func (ctx *task.ExecutionContext, args StemWalkRequest) (error, *task.ExecutionContext) {
+			return nil, &task.ExecutionContext{
+				ConcurrencyChannel: ctx.ConcurrencyChannel,
+			}
 		},
 	)
-
-	zlog.
-		Trace().
-		Err(err).
-		Msg("StemWalk / err")
-
-	return err
-}
+	
+	return stemWalk
+}()
