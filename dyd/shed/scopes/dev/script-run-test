@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 
 dryad sprouts run \
+    --scope="$DYD_SCOPE" \
     --include="sprout.path().contains('components/dryad-cli/tests')" \
     --log-level="$DYD_LOG_LEVEL" \
     $@

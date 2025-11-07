@@ -1,4 +1,8 @@
-#!/bin/sh
+#!/usr/bin/env sh
 set -eu
 
-dryad roots build
+echo "DYD_SCOPE $DYD_SCOPE"
+
+dryad roots build \
+    --log-level="$DYD_LOG_LEVEL" \
+    --scope="$DYD_SCOPE"

@@ -17,9 +17,13 @@ _OPEN () {
 _OPEN_DOCS () {
     _OPEN http://localhost:9999
 
-    dryad sprout run "$DYD_GARDEN/dyd/sprouts/tools/caddy" -- file-server \
-        --root "$DYD_GARDEN/dyd/sprouts/components/dryad-docs-site/dyd/assets/site" \
-        --listen :9999
+    dryad sprout run \
+        "$DYD_GARDEN/dyd/sprouts/tools/caddy" \
+        --scope="$DYD_SCOPE" \
+        -- \
+            file-server \
+            --root "$DYD_GARDEN/dyd/sprouts/components/dryad-docs-site/dyd/assets/site" \
+            --listen :9999
 }
 
 _OPEN_DOCS

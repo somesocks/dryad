@@ -5,6 +5,7 @@ set -eu
 
 for i in $(seq 1 100); do
     dryad sprouts run \
+        --scope="$DYD_SCOPE" \
         --include="sprout.path().contains('components/dryad-cli/tests')" \
         --log-level="$DYD_LOG_LEVEL" \
         $@
