@@ -52,6 +52,9 @@ var scriptRunAction = func(req clib.ActionRequest) int {
 	var inherit bool
 	var env = map[string]string{}
 
+	// setting scope to pass to shell
+	env["DYD_SCOPE"] = scope
+
 	if options["inherit"] != nil {
 		inherit = options["inherit"].(bool)
 	} else {

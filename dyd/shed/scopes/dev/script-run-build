@@ -1,3 +1,6 @@
 #!/usr/bin/env sh
+set -eu
 
-dryad roots build --log-level="$DYD_LOG_LEVEL"
+dryad roots build \
+    --log-level="$DYD_LOG_LEVEL" \
+    --scope="$DYD_SCOPE"
