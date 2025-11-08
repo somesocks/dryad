@@ -59,12 +59,13 @@ var gardenPrune_mark =
 				_, err = os.Stat(node.Path)
 				if errors.Is(err, fs.ErrNotExist) {
 					shouldCrawl = false
+
+					zlog.Warn().
+						Str("path", node.Path).
+						Str("vpath", node.VPath).
+						Str("action", "garden-prune/mark/should-walk").
+						Msg("cannot crawl symlink (broken)")
 				}
-				zlog.Warn().
-					Str("path", node.Path).
-					Str("vpath", node.VPath).
-					Str("action", "garden-prune/mark/should-walk").
-					Msg("cannot crawl symlink (broken)")
 			}
 
 			zlog.Trace().
