@@ -4,6 +4,7 @@ import (
 	dydfs "dryad/filesystem"
 	"errors"
 	"os"
+	"io/fs"
 	"path/filepath"
 	"regexp"
 	"time"
@@ -48,9 +49,23 @@ var gardenPrune_mark =
 
 		markShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 			// crawl if we haven't marked already or the timestamp is newer
-			// always crawl the sprouts directory regardless of the timestamp
+			// always crawl the sprouts directory regardless of the timestamp 
 			var shouldCrawl bool = node.Info.ModTime().Before(req.Snapshot) ||
 				strings.HasPrefix(node.Path, sproutsPath)
+
+			var isSymlink bool = node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
+			if isSymlink {
+				var err error
+				_, err = os.Stat(node.Path)
+				if errors.Is(err, fs.ErrNotExist) {
+					shouldCrawl = false
+				}
+				zlog.Warn().
+					Str("path", node.Path).
+					Str("vpath", node.VPath).
+					Str("action", "garden-prune/mark/should-walk").
+					Msg("cannot crawl symlink (broken)")
+			}
 
 			zlog.Trace().
 				Str("path", node.Path).
@@ -58,7 +73,8 @@ var gardenPrune_mark =
 				Bool("shouldCrawl", shouldCrawl).
 				Time("snapshotTime", req.Snapshot).
 				Time("fileTime", node.Info.ModTime()).
-				Msg("garden prune - markShouldWalk")
+				Str("action", "garden-prune/mark/should-walk").
+				Msg("")
 
 			return nil, shouldCrawl
 		}
@@ -77,7 +93,8 @@ var gardenPrune_mark =
 				Bool("shouldMatch", shouldMatch).
 				Time("snapshotTime", req.Snapshot).
 				Time("fileTime", node.Info.ModTime()).
-				Msg("garden prune - markShouldMatch")
+				Str("action", "garden-prune/mark/should-match").
+				Msg("")
 
 			return nil, shouldMatch
 		}
@@ -87,9 +104,10 @@ var gardenPrune_mark =
 
 			zlog.Trace().
 				Str("path", node.VPath).
-				Msg("garden prune - markOnMatch")
+				Str("action", "garden-prune/mark/on-match").
+				Msg("")
 
-			var err = os.Chtimes(node.Path, req.Snapshot, req.Snapshot)
+			var err = dydfs.Chtimes(node.Path, req.Snapshot, req.Snapshot)
 			if err != nil {
 				return err, nil
 			}
@@ -138,7 +156,8 @@ var gardenPrune_sweepStems =
 				Str("path", node.Path).
 				Str("vpath", node.VPath).
 				Bool("shouldCrawl", shouldCrawl).
-				Msg("GardenPrune/sweepStemShouldWalk")
+				Str("action", "garden-prune/sweep-stems/should-walk").
+				Msg("")
 
 			return nil, shouldCrawl
 		}
@@ -154,7 +173,8 @@ var gardenPrune_sweepStems =
 				Str("path", node.Path).
 				Str("vpath", node.VPath).
 				Bool("shouldMatch", shouldMatch).
-				Msg("GardenPrune/sweepStemShouldMatch")
+				Str("action", "garden-prune/sweep-stems/should-match").
+				Msg("")
 
 			return nil, shouldMatch
 		}
