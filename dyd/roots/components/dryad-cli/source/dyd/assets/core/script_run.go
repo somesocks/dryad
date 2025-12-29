@@ -43,6 +43,7 @@ func ScriptRun(request ScriptRunRequest) error {
 		"DYD_OS="+runtime.GOOS,
 		"DYD_ARCH="+runtime.GOARCH,
 		"DYD_LOG_LEVEL="+zerolog.GlobalLevel().String(),
+		"DYD_DOCKER_SOCK="+GetDockerSockPath(),
 	)
 
 	err = cmd.Run()

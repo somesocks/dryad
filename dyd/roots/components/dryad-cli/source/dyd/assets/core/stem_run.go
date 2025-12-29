@@ -1,13 +1,11 @@
 package core
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
-
 	"regexp"
+	"runtime"
 
 	zerolog "github.com/rs/zerolog"
 )
@@ -178,12 +176,7 @@ func StemRun(request StemRunRequest) error {
 		cmd.Stderr = file
 	}
 
-	envPath := fmt.Sprintf(
-		"PATH=%s/dyd/commands:%s/dyd/path:%s:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-		stemPath,
-		stemPath,
-		dryadPath,
-	)
+	envPath := "PATH=" + BuildPlatformPath(stemPath, dryadPath)
 
 	cmd.Env = append(
 		cmd.Env,
@@ -195,6 +188,7 @@ func StemRun(request StemRunRequest) error {
 		"DYD_OS="+runtime.GOOS,
 		"DYD_ARCH="+runtime.GOARCH,
 		"DYD_LOG_LEVEL="+zerolog.GlobalLevel().String(),
+		"DYD_DOCKER_SOCK="+GetDockerSockPath(),
 	)
 
 	err = cmd.Run()
