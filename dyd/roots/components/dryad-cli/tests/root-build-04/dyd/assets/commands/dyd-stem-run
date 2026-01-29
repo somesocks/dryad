@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+ROOTS=("root-01" "root-02" "root-03" "root-04" "root-05")
+
+# import assertion functions
+. $SRC_DIR/dyd/assets/assertions.sh
+
+_setup() {
+	#
+	# make a temporary working directory
+	# this command is linux / osx agnostic
+	# https://unix.stackexchange.com/questions/30091/fix-or-alternative-for-mktemp-in-os-x
+	# echo "\[INFO\] creating temporary working directory" 1>&2;
+	TEMP_DIR=''
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	# echo "[INFO] creating garden" 1>&2;
+
+	# copy the sample garden to the working directory
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR" 
+	chmod -R 755 "$TEMP_DIR"
+
+	:;
+}
+
+_test() {
+	for root_name in "${ROOTS[@]}"; do
+		(cd "$TEMP_DIR" && dryad root build "dyd/roots/$root_name" --log-level="$DYD_LOG_LEVEL") 1>&2;
+	done
+}
+
+_verify() {
+	assert_directory_exists "$TEMP_DIR/dyd"
+	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
+
+	for root_name in "${ROOTS[@]}"; do
+		root_type_path="$TEMP_DIR/dyd/roots/$root_name/dyd/type"
+		root_type_bytes=$(wc -c < "$root_type_path" | tr -d ' ')
+		if [ "$root_type_bytes" -ne 4 ]; then
+			echo "[ERROR] Fail: root type file should be exactly 4 bytes (expected 4, got $root_type_bytes)" 1>&2
+			return 1
+		fi
+		assert_file_content_equals "$root_type_path" "root"
+
+		assert_directory_exists "$TEMP_DIR/dyd/sprouts/$root_name"
+		assert_file_content_equals "$TEMP_DIR/dyd/sprouts/$root_name/dyd/type" "stem"
+	done
+
+	:;
+}
+
+_teardown() {
+	# echo "\[INFO\] tearing down fixtures" 1>&2;
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

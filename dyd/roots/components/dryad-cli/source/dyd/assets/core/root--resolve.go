@@ -38,7 +38,10 @@ func rootPath(path string, limit string) (string, error) {
 	var workingPath = path
 	var flagPath = filepath.Join(workingPath, "dyd", "type")
 	var fileBytes, fileInfoErr = os.ReadFile(flagPath)
-	var sentinel Sentinel = SentinelFromString(string(fileBytes))
+	if fileInfoErr == nil {
+		warnTypeFileWhitespace(flagPath, SentinelRoot.String(), string(fileBytes))
+	}
+	var sentinel Sentinel = SentinelFromString(strings.TrimSpace(string(fileBytes)))
 
 	for workingPath != "/" && strings.HasPrefix(workingPath, limit) {
 		if fileInfoErr == nil {
@@ -64,7 +67,10 @@ func rootPath(path string, limit string) (string, error) {
 		workingPath = filepath.Dir(workingPath)
 		flagPath = filepath.Join(workingPath, "dyd", "type")
 		fileBytes, fileInfoErr = os.ReadFile(flagPath)
-		sentinel = SentinelFromString(string(fileBytes))
+		if fileInfoErr == nil {
+			warnTypeFileWhitespace(flagPath, SentinelRoot.String(), string(fileBytes))
+		}
+		sentinel = SentinelFromString(strings.TrimSpace(string(fileBytes)))
 	}
 
 	zlog.Trace().
