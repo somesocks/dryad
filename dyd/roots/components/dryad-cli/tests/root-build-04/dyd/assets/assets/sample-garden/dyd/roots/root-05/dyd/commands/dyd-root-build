@@ -12,4 +12,8 @@ set -euf -o pipefail
 SRC_DIR=$DYD_STEM
 DEST_DIR=$DYD_BUILD
 
-cp -R "$SRC_DIR/dyd/assets/." "$DEST_DIR/dyd/assets/"
+if [ -d "$SRC_DIR/dyd/assets" ]; then
+	cp -R "$SRC_DIR/dyd/assets/." "$DEST_DIR/dyd/assets/"
+else
+	mkdir -p "$DEST_DIR/dyd/assets"
+fi
