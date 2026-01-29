@@ -34,9 +34,6 @@ _prepare() {
 	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR" 
 	chmod -R 755 "$TEMP_DIR"
 
-	# introduce whitespace into the root type file in the fixture garden
-	printf "root\n" > "$TEMP_DIR/dyd/roots/root-01/dyd/type"
-
 	:;
 }
 
