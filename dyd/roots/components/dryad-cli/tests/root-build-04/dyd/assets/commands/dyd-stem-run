@@ -11,6 +11,7 @@ set -euf -o pipefail
 
 SRC_DIR=$DYD_STEM
 TEMP_DIR=''
+ROOTS=("root-01" "root-02" "root-03" "root-04" "root-05")
 
 # import assertion functions
 . $SRC_DIR/dyd/assets/assertions.sh
@@ -36,24 +37,27 @@ _prepare() {
 }
 
 _test() {
-	(cd "$TEMP_DIR" && dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL") 1>&2;
+	for root_name in "${ROOTS[@]}"; do
+		(cd "$TEMP_DIR" && dryad root build "dyd/roots/$root_name" --log-level="$DYD_LOG_LEVEL") 1>&2;
+	done
 }
 
 _verify() {
 	assert_directory_exists "$TEMP_DIR/dyd"
 	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
 
-	# root type file should be sanitized during build
-	root_type_path="$TEMP_DIR/dyd/roots/root-01/dyd/type"
-	root_type_bytes=$(wc -c < "$root_type_path" | tr -d ' ')
-	if [ "$root_type_bytes" -ne 4 ]; then
-		echo "[ERROR] Fail: root type file should be exactly 4 bytes (expected 4, got $root_type_bytes)" 1>&2
-		return 1
-	fi
-	assert_file_content_equals "$root_type_path" "root"
+	for root_name in "${ROOTS[@]}"; do
+		root_type_path="$TEMP_DIR/dyd/roots/$root_name/dyd/type"
+		root_type_bytes=$(wc -c < "$root_type_path" | tr -d ' ')
+		if [ "$root_type_bytes" -ne 4 ]; then
+			echo "[ERROR] Fail: root type file should be exactly 4 bytes (expected 4, got $root_type_bytes)" 1>&2
+			return 1
+		fi
+		assert_file_content_equals "$root_type_path" "root"
 
-	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01"
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/type" "stem"
+		assert_directory_exists "$TEMP_DIR/dyd/sprouts/$root_name"
+		assert_file_content_equals "$TEMP_DIR/dyd/sprouts/$root_name/dyd/type" "stem"
+	done
 
 	# test-1
 	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/test-1/test-file-01" "test-file-01"

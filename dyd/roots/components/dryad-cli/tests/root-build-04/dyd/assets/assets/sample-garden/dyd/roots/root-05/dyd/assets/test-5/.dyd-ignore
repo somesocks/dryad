@@ -1,0 +1,5 @@
+# ignore test-dir-01
+
+test-file-01
+
+!test-file-01

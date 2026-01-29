@@ -12,7 +12,8 @@ set -euf -o pipefail
 SRC_DIR=$DYD_STEM
 TEMP_DIR=''
 
-TEST_ROOT_PATH=''
+ROOTS=("root-01" "root-02" "root-03" "root-04" "root-05")
+declare -A ROOT_PATHS
 
 # import assertion functions
 . $SRC_DIR/dyd/assets/assertions.sh
@@ -39,7 +40,9 @@ _prepare() {
 
 _test() {
 	cd "$TEMP_DIR/dyd/roots";
-	TEST_ROOT_PATH=$(dryad root path root-01 --log-level="$DYD_LOG_LEVEL");
+	for root_name in "${ROOTS[@]}"; do
+		ROOT_PATHS["$root_name"]=$(dryad root path "$root_name" --log-level="$DYD_LOG_LEVEL");
+	done
 }
 
 _verify() {
@@ -48,7 +51,9 @@ _verify() {
 	# so in this test case we need to make sure that we do the same
 	TEMP_DIR=$(readlink -f "$TEMP_DIR")
 
-	assert_all_equal "$TEST_ROOT_PATH" "$TEMP_DIR/dyd/roots/root-01"
+	for root_name in "${ROOTS[@]}"; do
+		assert_all_equal "${ROOT_PATHS[$root_name]}" "$TEMP_DIR/dyd/roots/$root_name"
+	done
 
 	:;
 }
