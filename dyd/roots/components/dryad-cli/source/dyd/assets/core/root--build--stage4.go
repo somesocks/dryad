@@ -44,6 +44,14 @@ var rootBuild_stage4 func (ctx *task.ExecutionContext, req rootBuild_stage4_requ
 			Str("path", relRootPath).
 			Msg("root build - stage4")
 
+		err = sanitizeTypeFile(
+			filepath.Join(req.RootPath, "dyd", "type"),
+			SentinelRoot.String(),
+		)
+		if err != nil {
+			return err, nil
+		}
+
 		err, stem := stems.AddStem(
 			ctx,
 			HeapAddStemRequest{
