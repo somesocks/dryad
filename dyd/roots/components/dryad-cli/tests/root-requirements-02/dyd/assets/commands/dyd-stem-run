@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+# import assertion functions
+. $SRC_DIR/dyd/assets/assertions.sh
+
+_setup() {
+	#
+	# make a temporary working directory
+	# this command is linux / osx agnostic
+	# https://unix.stackexchange.com/questions/30091/fix-or-alternative-for-mktemp-in-os-x
+	# echo "\[INFO\] creating temporary working directory" 1>&2;
+	TEMP_DIR=''
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	# copy the sample garden to the working directory
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+
+	:;
+}
+
+_test() {
+	ROOT_1="$TEMP_DIR/dyd/roots/root-01"
+	ROOT_2="$TEMP_DIR/dyd/roots/root-02"
+
+	(cd "$ROOT_1" && dryad root requirement add "$ROOT_2" dep-02) 1>&2;
+
+	LIST_OUTPUT=$(cd "$ROOT_1" && dryad root requirements list)
+	case "$LIST_OUTPUT" in
+		*"dyd/roots/root-01/dyd/requirements/dep-02"*)
+			;;
+		*)
+			echo "[ERROR] Fail: expected requirements list to include dep-02" 1>&2
+			return 1
+			;;
+	esac
+
+	(cd "$ROOT_1" && dryad root requirement remove dep-02) 1>&2;
+
+	LIST_OUTPUT_AFTER=$(cd "$ROOT_1" && dryad root requirements list)
+	if [ -n "$LIST_OUTPUT_AFTER" ]; then
+		echo "[ERROR] Fail: expected requirements list to be empty after removal" 1>&2
+		return 1
+	fi
+}
+
+_verify() {
+	assert_directory_exists "$TEMP_DIR/dyd"
+	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
+
+	assert_directory_exists "$TEMP_DIR/dyd/roots/root-01"
+	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02"
+
+	:;
+}
+
+_teardown() {
+	# echo "\[INFO\] tearing down fixtures" 1>&2;
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
