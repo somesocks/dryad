@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+DEST_DIR=$DYD_BUILD
+
+cp -R "$SRC_DIR/dyd/assets/commands/." "$DEST_DIR/dyd/commands/"
+cp -R "$SRC_DIR/dyd/assets/assets/." "$DEST_DIR/dyd/assets/"

@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+OUT_DIR="$DYD_CONTEXT"
+mkdir -p "$OUT_DIR"
+
+printf "%s\n" "$HOME" > "$OUT_DIR/home"
+printf "%s\n" "$DYD_CONTEXT" > "$OUT_DIR/context"
+printf "%s\n" "$DYD_STEM" > "$OUT_DIR/stem"
+printf "%s\n" "$*" > "$OUT_DIR/args"
