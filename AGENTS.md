@@ -21,3 +21,40 @@
   - `builds/*` (platform builds: native + OS/arch)
   - `tests/*` (CLI test roots)
 - `tools/*` are external toolchain roots (go/hugo/caddy/envsubst).
+
+## Dryad concepts - Roots
+- A root is a build source that produces a stem; roots live under `dyd/roots/...`.
+- Root type marker: `dyd/type` with content `root` (no trailing newline).
+- Build entrypoint: `dyd/commands/dyd-root-build`.
+- Inputs and metadata: `dyd/assets/`, `dyd/docs/`, `dyd/traits/`, `dyd/secrets/`.
+- Dependencies are declared under `dyd/requirements/` (files contain `root:<relative-path>` and are managed by `dryad root requirement add/remove`).
+
+## Dryad concepts - Scopes
+- A scope is a named execution context for scripts/aliases, used to partition commands in a garden.
+- Scopes live under `dyd/shed/scopes/<scope-name>/`.
+- Default scope is a symlink: `dyd/shed/scopes/default -> <scope-name>`.
+- `dryad run` / `dryad script run` use `--scope=<name>` if provided; otherwise default scope.
+- If no scope is set, these commands fail with “no scope set”.
+- Scripts resolve to `dyd/shed/scopes/<scope>/script-run-<command>` and are executed directly.
+
+## Dryad concepts - Stems
+- A stem is a built artifact stored in the heap, marked by `dyd/type` with content `stem`.
+- Entry point: `dyd/commands/dyd-stem-run` (or `--override` for run commands).
+- Assets and metadata live under `dyd/assets/` and `dyd/traits/`.
+- Dependencies are linked under `dyd/dependencies/`.
+- Fingerprints are stored in `dyd/fingerprint`.
+
+## Dryad concepts - Sprouts
+- Sprouts are workspace-visible links to stems under `dyd/sprouts/...`.
+- `dryad sprout run` executes the stem in its run environment.
+
+## Dryad concepts - Heap
+- The heap is a content-addressed store for stems and contexts: `dyd/heap/...`.
+- It can be deleted and rebuilt; it is not source of truth.
+
+## Dryad concepts - Contexts
+- Contexts provide isolated HOME directories under `dyd/heap/contexts/<name>`.
+- `dryad stem run` / `dryad sprout run` set `HOME` and `DYD_CONTEXT` to the context path.
+
+## Dryad concepts - Shed
+- `dyd/shed/` stores workspace configuration, including scopes and settings.
