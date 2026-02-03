@@ -22,17 +22,54 @@ func BuildPlatformPath(stemPath, dryadPath string) string {
 	return basePath
 }
 
+func pathExists(path string) bool {
+	if path == "" {
+		return false
+	}
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+func homeDockerSock() string {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	path := filepath.Join(homeDir, ".docker", "run", "docker.sock")
+	if pathExists(path) {
+		return path
+	}
+	return ""
+}
+
 // GetDockerSockPath returns the platform-appropriate Docker socket path.
-// On macOS with Docker Desktop, the socket is at $HOME/.docker/run/docker.sock.
-// On Linux (or if macOS socket doesn't exist), returns /var/run/docker.sock.
+// Returns empty string if no socket path is found.
 func GetDockerSockPath() string {
 	if runtime.GOOS == "darwin" {
-		if homeDir, err := os.UserHomeDir(); err == nil {
-			macOSSock := filepath.Join(homeDir, ".docker", "run", "docker.sock")
-			if _, err := os.Stat(macOSSock); err == nil {
-				return macOSSock
+		if sock := homeDockerSock(); sock != "" {
+			return sock
+		}
+		if pathExists("/var/run/docker.sock") {
+			return "/var/run/docker.sock"
+		}
+		return ""
+	}
+
+	if runtime.GOOS == "linux" {
+		if xdg := os.Getenv("XDG_RUNTIME_DIR"); xdg != "" {
+			path := filepath.Join(xdg, "docker.sock")
+			if pathExists(path) {
+				return path
 			}
 		}
+		if sock := homeDockerSock(); sock != "" {
+			return sock
+		}
 	}
-	return "/var/run/docker.sock"
+
+	if pathExists("/var/run/docker.sock") {
+		return "/var/run/docker.sock"
+	}
+
+	return ""
 }

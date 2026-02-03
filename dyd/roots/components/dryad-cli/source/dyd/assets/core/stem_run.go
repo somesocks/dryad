@@ -177,8 +177,6 @@ func StemRun(request StemRunRequest) error {
 	}
 
 	envPath := "PATH=" + BuildPlatformPath(stemPath, dryadPath)
-
-	dockerSock := GetDockerSockPath()
 	cmd.Env = append(
 		cmd.Env,
 		envPath,
@@ -189,9 +187,12 @@ func StemRun(request StemRunRequest) error {
 		"DYD_OS="+runtime.GOOS,
 		"DYD_ARCH="+runtime.GOARCH,
 		"DYD_LOG_LEVEL="+zerolog.GlobalLevel().String(),
-		"DYD_DOCKER_SOCK="+dockerSock,
-		"DOCKER_HOST=unix://"+dockerSock,
 	)
+
+	// Always override DOCKER_HOST because context HOME changes can invalidate user paths.
+	if dockerSock := GetDockerSockPath(); dockerSock != "" {
+		cmd.Env = append(cmd.Env, "DOCKER_HOST=unix://"+dockerSock)
+	}
 
 	err = cmd.Run()
 	if err != nil {

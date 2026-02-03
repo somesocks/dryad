@@ -37,16 +37,18 @@ func ScriptRun(request ScriptRunRequest) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	dockerSock := GetDockerSockPath()
 	cmd.Env = append(
 		cmd.Env,
 		"DYD_GARDEN="+request.Garden.BasePath,
 		"DYD_OS="+runtime.GOOS,
 		"DYD_ARCH="+runtime.GOARCH,
 		"DYD_LOG_LEVEL="+zerolog.GlobalLevel().String(),
-		"DYD_DOCKER_SOCK="+dockerSock,
-		"DOCKER_HOST=unix://"+dockerSock,
 	)
+
+	// Always override DOCKER_HOST because context HOME changes can invalidate user paths.
+	if dockerSock := GetDockerSockPath(); dockerSock != "" {
+		cmd.Env = append(cmd.Env, "DOCKER_HOST=unix://"+dockerSock)
+	}
 
 	err = cmd.Run()
 	return err
