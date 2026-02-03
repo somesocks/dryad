@@ -21,10 +21,10 @@ var RE_STEM_FINGERPRINT_SHOULD_MATCH = regexp.MustCompile(
 	"^(" +
 		"(dyd/path/.*)" +
 		"|(dyd/assets/.*)" +
+		"|(dyd/secrets/.*)" +
 		"|(dyd/commands/.*)" +
 		"|(dyd/docs/.*)" +
 		"|(dyd/type)" +
-		"|(dyd/secrets-fingerprint)" +
 		"|(dyd/traits/.*)" +
 		"|(dyd/requirements/.*)" +
 		")$",
@@ -69,8 +69,8 @@ type StemFingerprintRequest struct {
 	MatchDeny *regexp.Regexp
 }
 
-var StemFingerprint task.Task[StemFingerprintRequest, string] = func () task.Task[StemFingerprintRequest, string] {
-	var stemFingerprint = func (ctx *task.ExecutionContext, args StemFingerprintRequest) (error, string) {
+var StemFingerprint task.Task[StemFingerprintRequest, string] = func() task.Task[StemFingerprintRequest, string] {
+	var stemFingerprint = func(ctx *task.ExecutionContext, args StemFingerprintRequest) (error, string) {
 		var checksumMap = make(map[string]string)
 		var checksumMutex sync.Mutex
 
@@ -108,9 +108,9 @@ var StemFingerprint task.Task[StemFingerprintRequest, string] = func () task.Tas
 		err, _ := fs2.Walk6(
 			ctx,
 			fs2.Walk6Request{
-				Path:        args.BasePath,
-				VPath:       args.BasePath,
-				BasePath:    args.BasePath,
+				Path:       args.BasePath,
+				VPath:      args.BasePath,
+				BasePath:   args.BasePath,
 				ShouldWalk: StemWalkShouldCrawl,
 				OnPreMatch: fs2.ConditionalWalkAction(onMatch, StemFingerprintShouldMatch),
 			},
@@ -164,13 +164,12 @@ var StemFingerprint task.Task[StemFingerprintRequest, string] = func () task.Tas
 	// only the execution cache is replaced, to limit the scope of memoized calls to fetch dyd-ignore files
 	stemFingerprint = task.WithContext(
 		stemFingerprint,
-		func (ctx *task.ExecutionContext, args StemFingerprintRequest) (error, *task.ExecutionContext) {
+		func(ctx *task.ExecutionContext, args StemFingerprintRequest) (error, *task.ExecutionContext) {
 			return nil, &task.ExecutionContext{
 				ConcurrencyChannel: ctx.ConcurrencyChannel,
 			}
 		},
-	)	
+	)
 
 	return stemFingerprint
 }()
-

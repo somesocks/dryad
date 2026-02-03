@@ -1,9 +1,9 @@
 package core
 
 import (
-	"io/fs"
 	"os"
 	"path/filepath"
+
 	"dryad/task"
 )
 
@@ -18,30 +18,10 @@ func stemFinalize(ctx *task.ExecutionContext, stemPath string) (error, string) {
 		return err, ""
 	}
 
-	secretsPath, err := SecretsPath(stemPath)
-	if err != nil {
-		return err, ""
-	}
-
 	// write the type file
 	err = os.WriteFile(filepath.Join(stemPath, "dyd", "type"), []byte("stem"), os.ModePerm)
 	if err != nil {
 		return err, ""
-	}
-
-	// write out the secrets fingerprint
-	secretsFingerprint, err := SecretsFingerprint(
-		SecretsFingerprintArgs{BasePath: secretsPath},
-	)
-	if err != nil {
-		return err, ""
-	}
-
-	if secretsFingerprint != "" {
-		err = os.WriteFile(filepath.Join(stemPath, "dyd", "secrets-fingerprint"), []byte(secretsFingerprint), fs.ModePerm)
-		if err != nil {
-			return err, ""
-		}
 	}
 
 	// write out the stem fingerprint
@@ -55,7 +35,7 @@ func stemFinalize(ctx *task.ExecutionContext, stemPath string) (error, string) {
 		return err, ""
 	}
 
-	err = os.WriteFile(filepath.Join(stemPath, "dyd", "fingerprint"), []byte(stemFingerprint), fs.ModePerm)
+	err = os.WriteFile(filepath.Join(stemPath, "dyd", "fingerprint"), []byte(stemFingerprint), os.ModePerm)
 	if err != nil {
 		return err, ""
 	}

@@ -4,11 +4,12 @@ import (
 	fs2 "dryad/filesystem"
 	"dryad/task"
 
+	"errors"
 	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"errors"
+	"strings"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -22,9 +23,10 @@ func _readFile(filePath string) (string, error) {
 }
 
 type heapAddStemRequest struct {
-	HeapStems *SafeHeapStemsReference
-	HeapFiles *SafeHeapFilesReference
-	StemPath string	
+	HeapStems   *SafeHeapStemsReference
+	HeapFiles   *SafeHeapFilesReference
+	HeapSecrets *SafeHeapSecretsReference
+	StemPath    string
 }
 
 // heapAddStem takes a stem in a directory, and adds it to the heap.
@@ -33,6 +35,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 	var stemPath = req.StemPath
 
 	heapFilesPath := req.HeapFiles.BasePath
+	heapSecretsPath := req.HeapSecrets.BasePath
 	heapStemsPath := req.HeapStems.BasePath
 
 	stemFingerprint, err := _readFile(filepath.Join(stemPath, "dyd", "fingerprint"))
@@ -52,9 +55,9 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 	if stemExists {
 		stemRef := SafeHeapStemReference{
 			BasePath: finalStemPath,
-			Stems: req.HeapStems,
+			Stems:    req.HeapStems,
 		}
-		
+
 		return nil, &stemRef
 	}
 
@@ -111,30 +114,45 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 					if err != nil {
 						return err, nil
 					}
-										
+
 					absLinkTarget := linkTarget
 					if !filepath.IsAbs(absLinkTarget) {
 						absLinkTarget = filepath.Join(filepath.Dir(node.VPath), linkTarget)
-					} 
-						
+					}
+
 					isInternalLink, err := fileIsDescendant(absLinkTarget, node.BasePath)
-			
+
 					if isInternalLink {
 						err = os.Symlink(linkTarget, destPath)
 						if err != nil {
 							return err, nil
 						}
-					} 
+					}
 				} else {
 					// zlog.
 					// 	Trace().
 					// 	Str("path", node.Path).
 					// 	Msg("heapAddStem / onMatch isFile")
 
-					err, fileFingerprint := req.HeapFiles.AddFile(
-						ctx,
-						node.Path,
-					)
+					relSlash := filepath.ToSlash(relPath)
+					isSecret := strings.HasPrefix(relSlash, "dyd/secrets/")
+
+					var fileFingerprint string
+					var heapPath string
+
+					if isSecret {
+						err, fileFingerprint = req.HeapSecrets.AddFile(
+							ctx,
+							node.Path,
+						)
+						heapPath = heapSecretsPath
+					} else {
+						err, fileFingerprint = req.HeapFiles.AddFile(
+							ctx,
+							node.Path,
+						)
+						heapPath = heapFilesPath
+					}
 					if err != nil {
 						zlog.
 							Trace().
@@ -145,7 +163,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 						return err, nil
 					}
 
-					fileHeapPath := filepath.Join(heapFilesPath, fileFingerprint)
+					fileHeapPath := filepath.Join(heapPath, fileFingerprint)
 
 					err = os.Link(fileHeapPath, destPath)
 					if err != nil {
@@ -191,46 +209,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 
 	}
 
-	secretsFingerprintPath := filepath.Join(finalStemPath, "dyd", "secrets-fingerprint")
-
-	hasSecrets, err := fileExists(secretsFingerprintPath)
-	if err != nil {
-		return err, nil
-	}
-
-	if hasSecrets {
-		secretsPath := filepath.Join(stemPath, "dyd", "secrets")
-
-		err, secretsRef := req.HeapStems.Heap.Secrets().Resolve(ctx)
-		if err != nil {
-			return err, nil
-		}
-
-		err, secretRef := secretsRef.AddSecret(ctx, secretsPath)
-		if err != nil {
-			return err, nil
-		}
-
-		secretsMountPoint := filepath.Join(finalStemPath, "dyd", "secrets")
-		secretsHeapPath := secretRef.BasePath
-
-		relativeLink, err := filepath.Rel(
-			filepath.Dir(secretsMountPoint),
-			secretsHeapPath,
-		)
-		if err != nil {
-			return err, nil
-		}
-
-		err = os.Symlink(relativeLink, secretsMountPoint)
-		if err != nil {
-			return err, nil
-		}
-
-	}
-
-
-	var setPermissionsShouldCrawl = func (ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
+	var setPermissionsShouldCrawl = func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
 		isDir := node.Info.IsDir()
 
 		zlog.Trace().
@@ -239,7 +218,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 			Msg("heap add stem - dir ShouldCrawl")
 
 		return nil, isDir
-	}	
+	}
 
 	var setPermissionsShouldMatch = func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
 		isDir := node.Info.IsDir()
@@ -279,9 +258,6 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 		return nil, nil
 	}
 
-	
-
-
 	// now that all files are added, sweep through in a second pass and make directories read-only
 	err, _ = fs2.Walk6(
 		ctx,
@@ -289,7 +265,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 			BasePath:    finalStemPath,
 			Path:        finalStemPath,
 			VPath:       finalStemPath,
-			ShouldWalk: setPermissionsShouldCrawl,
+			ShouldWalk:  setPermissionsShouldCrawl,
 			OnPostMatch: fs2.ConditionalWalkAction(setPermissionsOnMatch, setPermissionsShouldMatch),
 		},
 	)
@@ -299,7 +275,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 
 	stemRef := SafeHeapStemReference{
 		BasePath: finalStemPath,
-		Stems: req.HeapStems,
+		Stems:    req.HeapStems,
 	}
 
 	return nil, &stemRef
@@ -307,9 +283,9 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 
 var memoHeapAddStem = task.Memoize(
 	heapAddStem,
-	func (ctx * task.ExecutionContext, req heapAddStemRequest) (error, any) {
+	func(ctx *task.ExecutionContext, req heapAddStemRequest) (error, any) {
 		type Key struct {
-			Group string
+			Group       string
 			Fingerprint string
 		}
 		var res Key
@@ -322,9 +298,9 @@ var memoHeapAddStem = task.Memoize(
 		if err != nil {
 			return err, res
 		}
-		
+
 		res = Key{
-			Group: "HeapStems.AddStem",
+			Group:       "HeapStems.AddStem",
 			Fingerprint: fingerprint,
 		}
 
@@ -333,7 +309,7 @@ var memoHeapAddStem = task.Memoize(
 )
 
 type HeapAddStemRequest struct {
-	StemPath string	
+	StemPath string
 }
 
 func (heapStems *SafeHeapStemsReference) AddStem(
@@ -345,12 +321,18 @@ func (heapStems *SafeHeapStemsReference) AddStem(
 		return err, nil
 	}
 
+	err, heapSecrets := heapStems.Heap.Secrets().Resolve(ctx)
+	if err != nil {
+		return err, nil
+	}
+
 	err, res := memoHeapAddStem(
 		ctx,
 		heapAddStemRequest{
-			HeapStems: heapStems,
-			HeapFiles: heapFiles,
-			StemPath: req.StemPath,
+			HeapStems:   heapStems,
+			HeapFiles:   heapFiles,
+			HeapSecrets: heapSecrets,
+			StemPath:    req.StemPath,
 		},
 	)
 

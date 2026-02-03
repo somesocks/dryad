@@ -24,8 +24,8 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 			")$",
 	)
 
-	// crawler used to match files to copy 
-	// node.BasePath should be the path to the package dyd/dependencies 
+	// crawler used to match files to copy
+	// node.BasePath should be the path to the package dyd/dependencies
 	var fs_should_walk = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 		var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
 		if relErr != nil {
@@ -42,13 +42,12 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 	var RE_ROOT_BUILD_REQUIREMENTS_PREPARE_SHOULD_MATCH = regexp.MustCompile(
 		"^(" +
 			"([^/]*/dyd/fingerprint)" +
-			"|([^/]*/dyd/secrets-fingerprint)" +
 			"|([^/]*/dyd/traits/.*)" +
 			")$",
 	)
 
-	// matcher used to match files to copy 
-	// node.BasePath should be the path to the package dyd/dependencies 
+	// matcher used to match files to copy
+	// node.BasePath should be the path to the package dyd/dependencies
 	var fs_should_match = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 		var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
 		if relErr != nil {
@@ -181,11 +180,11 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 		err, _ = dydfs.Walk6(
 			task.SERIAL_CONTEXT,
 			dydfs.Walk6Request{
-				BasePath:    dependenciesPath,
-				Path:        dependenciesPath,
-				VPath:       dependenciesPath,
-				ShouldWalk:  fs_should_walk,
-				OnPreMatch:     fs_on_match,
+				BasePath:   dependenciesPath,
+				Path:       dependenciesPath,
+				VPath:      dependenciesPath,
+				ShouldWalk: fs_should_walk,
+				OnPreMatch: fs_on_match,
 			})
 		if err != nil {
 			return err

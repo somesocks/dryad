@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+# import assertion functions
+. $SRC_DIR/dyd/assets/assertions.sh
+
+_setup() {
+	#
+	# make a temporary working directory
+	# this command is linux / osx agnostic
+	# https://unix.stackexchange.com/questions/30091/fix-or-alternative-for-mktemp-in-os-x
+	# echo "\[INFO\] creating temporary working directory" 1>&2;
+	TEMP_DIR=''
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	# echo "[INFO] creating garden" 1>&2;
+
+	# copy the sample garden to the working directory
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR" 
+	chmod -R 755 "$TEMP_DIR"
+
+	:;
+}
+
+_test() {
+	(cd "$TEMP_DIR" && dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL") 1>&2;
+}
+
+_verify() {
+	assert_directory_exists "$TEMP_DIR/dyd"
+	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
+
+	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/type" "stem"
+
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/test-file-01" "test-file-01"
+	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/test-dir-01"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/test-dir-01/test-file-02" "test-file-02"
+
+	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/secrets/"
+	if [ -L "$TEMP_DIR/dyd/sprouts/root-01/dyd/secrets" ]; then
+		echo "[ERROR] Fail: secrets directory should not be a symlink" 1>&2
+		return 1
+	fi
+
+	if [ -e "$TEMP_DIR/dyd/sprouts/root-01/dyd/secrets-fingerprint" ]; then
+		echo "[ERROR] Fail: secrets-fingerprint should not exist" 1>&2
+		return 1
+	fi
+
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/secrets/test-secret-01" "test-secret-01"
+	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/secrets/test-secret-02"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/secrets/test-secret-02/test-secret-02" "test-secret-02"
+
+	assert_directory_exists "$TEMP_DIR/dyd/heap/secrets"
+
+	if stat -c %i "$TEMP_DIR/dyd/sprouts/root-01/dyd/secrets/test-secret-01" >/dev/null 2>&1; then
+		secret_inode=$(stat -c %i "$TEMP_DIR/dyd/sprouts/root-01/dyd/secrets/test-secret-01")
+	else
+		secret_inode=$(stat -f %i "$TEMP_DIR/dyd/sprouts/root-01/dyd/secrets/test-secret-01")
+	fi
+
+	if [ -z "$secret_inode" ]; then
+		echo "[ERROR] Fail: could not determine inode for stem secret file" 1>&2
+		return 1
+	fi
+
+	heap_secret_file=$(find "$TEMP_DIR/dyd/heap/secrets" -type f -inum "$secret_inode" -print -quit)
+	if [ -z "$heap_secret_file" ]; then
+		echo "[ERROR] Fail: expected hardlinked secret file in heap/secrets" 1>&2
+		return 1
+	fi
+
+	case "$(basename "$heap_secret_file")" in
+		dyd-v1-*)
+			;;
+		*)
+			echo "[ERROR] Fail: expected content-addressed secret filename, got $(basename "$heap_secret_file")" 1>&2
+			return 1
+			;;
+	esac
+
+	:;
+}
+
+_teardown() {
+	# echo "\[INFO\] tearing down fixtures" 1>&2;
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
