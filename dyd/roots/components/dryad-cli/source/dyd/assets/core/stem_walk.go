@@ -13,52 +13,50 @@ import (
 
 type DydIgnoreRequest struct {
 	BasePath string
-	Path string
+	Path     string
 }
 
-var readDydIgnore task.Task[DydIgnoreRequest, *dydfs.GlobMatcher] =
-	func () task.Task[DydIgnoreRequest, *dydfs.GlobMatcher] {
-		var read task.Task[DydIgnoreRequest, *dydfs.GlobMatcher]
+var readDydIgnore task.Task[DydIgnoreRequest, *dydfs.GlobMatcher] = func() task.Task[DydIgnoreRequest, *dydfs.GlobMatcher] {
+	var read task.Task[DydIgnoreRequest, *dydfs.GlobMatcher]
 
-		read = func (ctx *task.ExecutionContext, req DydIgnoreRequest) (error, *dydfs.GlobMatcher) {
-			var parentMatcher *dydfs.GlobMatcher
-			var err error
+	read = func(ctx *task.ExecutionContext, req DydIgnoreRequest) (error, *dydfs.GlobMatcher) {
+		var parentMatcher *dydfs.GlobMatcher
+		var err error
 
-			if req.Path != req.BasePath {
-				parentDir := filepath.Dir(req.Path)
-				err, parentMatcher = read(ctx, DydIgnoreRequest{
-					BasePath: req.BasePath,
-					Path: parentDir,
-				})
-				if err != nil {
-					return err, nil
-				}
+		if req.Path != req.BasePath {
+			parentDir := filepath.Dir(req.Path)
+			err, parentMatcher = read(ctx, DydIgnoreRequest{
+				BasePath: req.BasePath,
+				Path:     parentDir,
+			})
+			if err != nil {
+				return err, nil
 			}
-
-			var ignoreFile string
-			var matcher *dydfs.GlobMatcher
-
-			ignoreFile = filepath.Join(req.Path, ".dyd-ignore")
-
-			zlog.
-				Trace().
-				Str("ignoreFile", ignoreFile).
-				Msg("StemWalk / readDydIgnore")
-
-				err, matcher = dydfs.NewGlobMatcherFromFile(ignoreFile, parentMatcher)
-			return err, matcher
 		}
 
-		read = task.Memoize(
-			read,
-			func (ctx *task.ExecutionContext, req DydIgnoreRequest) (error, any) {
-				return nil, "readDydIgnore" + "-" + req.BasePath + "-" + req.Path
-			},
-		)
+		var ignoreFile string
+		var matcher *dydfs.GlobMatcher
 
-		return read
-	}()
+		ignoreFile = filepath.Join(req.Path, ".dyd-ignore")
 
+		zlog.
+			Trace().
+			Str("ignoreFile", ignoreFile).
+			Msg("StemWalk / readDydIgnore")
+
+		err, matcher = dydfs.NewGlobMatcherFromFile(ignoreFile, parentMatcher)
+		return err, matcher
+	}
+
+	read = task.Memoize(
+		read,
+		func(ctx *task.ExecutionContext, req DydIgnoreRequest) (error, any) {
+			return nil, "readDydIgnore" + "-" + req.BasePath + "-" + req.Path
+		},
+	)
+
+	return read
+}()
 
 var RE_STEM_WALK_SHOULD_CRAWL = regexp.MustCompile(
 	"^(" +
@@ -71,6 +69,8 @@ var RE_STEM_WALK_SHOULD_CRAWL = regexp.MustCompile(
 		"|(dyd/commands/.*)" +
 		"|(dyd/docs)" +
 		"|(dyd/docs/.*)" +
+		"|(dyd/secrets)" +
+		"|(dyd/secrets/.*)" +
 		"|(dyd/requirements)" +
 		"|(dyd/requirements/.*)" +
 		"|(dyd/traits)" +
@@ -90,8 +90,9 @@ var RE_STEM_WALK_SHOULD_CHECK_DYD_IGNORE = regexp.MustCompile(
 
 // - if the vpath does not match the pattern then no
 // - else if the node is a symlink then
-// 	- if the node is a symlink pointing to a relative location within the package then no
-// 	- else yes
+//   - if the node is a symlink pointing to a relative location within the package then no
+//   - else yes
+//
 // - else if the node is a directory then yes
 // - else if the node is a file then no
 // - else error?
@@ -120,20 +121,20 @@ func StemWalkShouldCrawl(ctx *task.ExecutionContext, node dydfs.Walk6Node) (erro
 		Msg("StemWalk / shouldCrawl 2")
 
 	if !matchesPath {
-		return nil, false 
+		return nil, false
 	} else if node.Info.IsDir() {
 		if shouldCheckDydIgnore {
 			parentDir := filepath.Dir(node.VPath)
 
 			err, matcher := readDydIgnore(ctx, DydIgnoreRequest{
 				BasePath: node.BasePath,
-				Path: parentDir,
+				Path:     parentDir,
 			})
 			if err != nil {
 				return err, false
 			}
 
-			err, match := matcher.Match(dydfs.NewGlobPath(node.VPath, true)) 
+			err, match := matcher.Match(dydfs.NewGlobPath(node.VPath, true))
 
 			zlog.
 				Trace().
@@ -161,7 +162,7 @@ func StemWalkShouldCrawl(ctx *task.ExecutionContext, node dydfs.Walk6Node) (erro
 		absLinkTarget := linkTarget
 		if !filepath.IsAbs(absLinkTarget) {
 			absLinkTarget = filepath.Join(filepath.Dir(node.VPath), linkTarget)
-		} 
+		}
 
 		isDescendant, err := fileIsDescendant(absLinkTarget, node.BasePath)
 
@@ -169,9 +170,9 @@ func StemWalkShouldCrawl(ctx *task.ExecutionContext, node dydfs.Walk6Node) (erro
 			return err, false
 		}
 
-		return  nil, !isDescendant
+		return nil, !isDescendant
 	} else {
-		return nil, false 
+		return nil, false
 	}
 }
 
@@ -186,9 +187,10 @@ var RE_STEM_WALK_SHOULD_MATCH = regexp.MustCompile(
 		"|(dyd/commands/.*)" +
 		"|(dyd/docs)" +
 		"|(dyd/docs/.*)" +
+		"|(dyd/secrets)" +
+		"|(dyd/secrets/.*)" +
 		"|(dyd/type)" +
 		"|(dyd/fingerprint)" +
-		"|(dyd/secrets-fingerprint)" +
 		"|(dyd/requirements)" +
 		"|(dyd/requirements/.*)" +
 		"|(dyd/dependencies)" +
@@ -200,8 +202,9 @@ var RE_STEM_WALK_SHOULD_MATCH = regexp.MustCompile(
 // should match
 // - if the vpath does not match the pattern then no,
 // - else if the node is a symlink then
-// 	- if the node is a symlink pointing to a relative location within the package then yes,
-// 	- else no
+//   - if the node is a symlink pointing to a relative location within the package then yes,
+//   - else no
+//
 // - else if the node is a directory then no,
 // - else if the node is a file then yes,
 // - else error?
@@ -225,13 +228,13 @@ func StemWalkShouldMatch(ctx *task.ExecutionContext, node dydfs.Walk6Node) (erro
 
 		err, matcher := readDydIgnore(ctx, DydIgnoreRequest{
 			BasePath: node.BasePath,
-			Path: parentDir,
+			Path:     parentDir,
 		})
 		if err != nil {
 			return err, false
 		}
 
-		err, match := matcher.Match(dydfs.NewGlobPath(node.VPath, node.Info.IsDir())) 
+		err, match := matcher.Match(dydfs.NewGlobPath(node.VPath, node.Info.IsDir()))
 
 		zlog.
 			Trace().
@@ -247,8 +250,8 @@ func StemWalkShouldMatch(ctx *task.ExecutionContext, node dydfs.Walk6Node) (erro
 			return nil, false
 		}
 	}
-	
-	return nil, matchesPath 
+
+	return nil, matchesPath
 }
 
 type StemWalkRequest struct {
@@ -256,8 +259,8 @@ type StemWalkRequest struct {
 	OnMatch  func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any)
 }
 
-var StemWalk task.Task[StemWalkRequest, any] = func () task.Task[StemWalkRequest, any] {
-	var stemWalk = func (
+var StemWalk task.Task[StemWalkRequest, any] = func() task.Task[StemWalkRequest, any] {
+	var stemWalk = func(
 		ctx *task.ExecutionContext,
 		args StemWalkRequest,
 	) (error, any) {
@@ -282,9 +285,9 @@ var StemWalk task.Task[StemWalkRequest, any] = func () task.Task[StemWalkRequest
 		err, _ = dydfs.Walk6(
 			ctx,
 			dydfs.Walk6Request{
-				BasePath:    path,
-				Path:        path,
-				VPath:       path,
+				BasePath:   path,
+				Path:       path,
+				VPath:      path,
 				ShouldWalk: StemWalkShouldCrawl,
 				OnPreMatch: onMatch,
 			},
@@ -302,12 +305,12 @@ var StemWalk task.Task[StemWalkRequest, any] = func () task.Task[StemWalkRequest
 	// only the execution cache is replaced, to limit the scope of memoized calls to fetch dyd-ignore files
 	stemWalk = task.WithContext(
 		stemWalk,
-		func (ctx *task.ExecutionContext, args StemWalkRequest) (error, *task.ExecutionContext) {
+		func(ctx *task.ExecutionContext, args StemWalkRequest) (error, *task.ExecutionContext) {
 			return nil, &task.ExecutionContext{
 				ConcurrencyChannel: ctx.ConcurrencyChannel,
 			}
 		},
 	)
-	
+
 	return stemWalk
 }()

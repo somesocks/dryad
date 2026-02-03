@@ -1,9 +1,11 @@
 package core
 
+import "io/fs"
+
 func SecretsExist(path string) (bool, error) {
 	var err error
 	var exists bool
-	var fingerprint string
+	var found bool
 
 	path, err = SecretsPath(path)
 	if err != nil {
@@ -19,12 +21,21 @@ func SecretsExist(path string) (bool, error) {
 		return false, nil
 	}
 
-	// use the fingerprint as a proxy to check if there are actually any secrets,
-	// or if the secrets folder is empty
-	fingerprint, err = SecretsFingerprint(SecretsFingerprintArgs{BasePath: path})
+	err = SecretsWalk(
+		SecretsWalkArgs{
+			BasePath: path,
+			OnMatch: func(_ string, info fs.FileInfo) error {
+				if info.IsDir() {
+					return nil
+				}
+				found = true
+				return nil
+			},
+		},
+	)
 	if err != nil {
 		return false, err
 	}
 
-	return fingerprint != "", nil
+	return found, nil
 }
