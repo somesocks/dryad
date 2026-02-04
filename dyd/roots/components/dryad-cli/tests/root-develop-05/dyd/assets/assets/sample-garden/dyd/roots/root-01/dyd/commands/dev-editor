@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+printf "updated\n" > "$DYD_STEM/dyd/assets/file.txt"
+printf "new\n" > "$DYD_STEM/dyd/assets/new.txt"
+
+"$DYD_CLI_BIN" root develop-save

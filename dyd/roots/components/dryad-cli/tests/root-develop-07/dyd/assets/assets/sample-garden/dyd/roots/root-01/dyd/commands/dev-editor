@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+rm -f "$DYD_STEM/dyd/assets/delete.txt"
+
+"$DYD_CLI_BIN" root develop-save

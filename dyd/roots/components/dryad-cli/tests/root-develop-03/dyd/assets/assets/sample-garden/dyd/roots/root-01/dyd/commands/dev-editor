@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+. "$DYD_STEM/dyd/assets/assertions.sh"
+
+assert_not_empty "$DYD_DEV_SOCKET" "DYD_DEV_SOCKET"
+
+assert_file_exists "$DYD_STEM/dyd/assets/keep.txt"
+assert_file_not_exists "$DYD_STEM/dyd/assets/ignored.txt"
+assert_directory_not_exists "$DYD_STEM/dyd/assets/ignore-dir"
+
+assert_file_content_equals "$DYD_STEM/dyd/secrets/link-to-foo" "foo"
+
+OUT_DIR="$DYD_GARDEN/dyd/heap/root-develop-03"
+mkdir -p "$OUT_DIR"
+printf "ok\n" > "$OUT_DIR/ok"
