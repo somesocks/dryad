@@ -8,4 +8,6 @@ var developCommand = clib.NewCommand("develop", "alias for root develop").
 	WithCommand(rootDevelopStartCommand).
 	WithCommand(rootDevelopStatusCommand).
 	WithCommand(rootDevelopSaveCommand).
+	WithCommand(rootDevelopSnapshotCommand).
+	WithCommand(rootDevelopResetCommand).
 	WithCommand(rootDevelopStopCommand)

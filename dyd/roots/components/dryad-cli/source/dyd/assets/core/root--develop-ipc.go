@@ -16,6 +16,8 @@ import (
 type rootDevelopIPCHandlers struct {
 	OnSave func() error
 	OnStatus func() ([]rootDevelopStatusEntry, error)
+	OnSnapshot func() (string, error)
+	OnReset func() error
 	OnStop func() error
 }
 
@@ -149,6 +151,44 @@ func rootDevelopIPC_handle(conn net.Conn, handlers rootDevelopIPCHandlers) {
 		}
 		_ = rootDevelopIPC_writeMessage(conn, rootDevelopIPCResponse{
 			Status: "ok",
+		})
+	case "snapshot":
+		if handlers.OnSnapshot != nil {
+			fingerprint, err := handlers.OnSnapshot()
+			if err != nil {
+				_ = rootDevelopIPC_writeMessage(conn, rootDevelopIPCResponse{
+					Status:  "error",
+					Message: err.Error(),
+				})
+				return
+			}
+			_ = rootDevelopIPC_writeMessage(conn, rootDevelopIPCResponse{
+				Status:  "ok",
+				Message: fingerprint,
+			})
+			return
+		}
+		_ = rootDevelopIPC_writeMessage(conn, rootDevelopIPCResponse{
+			Status:  "error",
+			Message: "snapshot handler not available",
+		})
+	case "reset":
+		if handlers.OnReset != nil {
+			if err := handlers.OnReset(); err != nil {
+				_ = rootDevelopIPC_writeMessage(conn, rootDevelopIPCResponse{
+					Status:  "error",
+					Message: err.Error(),
+				})
+				return
+			}
+			_ = rootDevelopIPC_writeMessage(conn, rootDevelopIPCResponse{
+				Status: "ok",
+			})
+			return
+		}
+		_ = rootDevelopIPC_writeMessage(conn, rootDevelopIPCResponse{
+			Status:  "error",
+			Message: "reset handler not available",
 		})
 	default:
 		_ = rootDevelopIPC_writeMessage(conn, rootDevelopIPCResponse{

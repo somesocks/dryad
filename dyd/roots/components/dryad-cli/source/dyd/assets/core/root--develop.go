@@ -142,6 +142,115 @@ func rootDevelop_stage0(ctx *task.ExecutionContext, snapshotStemPath string, wor
 	return nil
 }
 
+func rootDevelop_resetWorkspace(
+	ctx *task.ExecutionContext,
+	snapshotStemPath string,
+	workspacePath string,
+) error {
+	snapshotStemPath, err := filepath.EvalSymlinks(snapshotStemPath)
+	if err != nil {
+		return err
+	}
+
+	exists, err := fileExists(filepath.Join(snapshotStemPath, "dyd", "assets"))
+	if err != nil {
+		return err
+	}
+	if exists {
+		err = rootDevelop_copyDirFromStem(
+			ctx,
+			filepath.Join(snapshotStemPath, "dyd", "assets"),
+			filepath.Join(workspacePath, "dyd", "assets"),
+			"dyd/assets",
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	exists, err = fileExists(filepath.Join(snapshotStemPath, "dyd", "commands"))
+	if err != nil {
+		return err
+	}
+	if exists {
+		err = rootDevelop_copyDirFromStem(
+			ctx,
+			filepath.Join(snapshotStemPath, "dyd", "commands"),
+			filepath.Join(workspacePath, "dyd", "commands"),
+			"dyd/commands",
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	exists, err = fileExists(filepath.Join(snapshotStemPath, "dyd", "docs"))
+	if err != nil {
+		return err
+	}
+	if exists {
+		err = rootDevelop_copyDirFromStem(
+			ctx,
+			filepath.Join(snapshotStemPath, "dyd", "docs"),
+			filepath.Join(workspacePath, "dyd", "docs"),
+			"dyd/docs",
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	exists, err = fileExists(filepath.Join(snapshotStemPath, "dyd", "traits"))
+	if err != nil {
+		return err
+	}
+	if exists {
+		err = rootDevelop_copyDirFromStem(
+			ctx,
+			filepath.Join(snapshotStemPath, "dyd", "traits"),
+			filepath.Join(workspacePath, "dyd", "traits"),
+			"dyd/traits",
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	exists, err = fileExists(filepath.Join(snapshotStemPath, "dyd", "secrets"))
+	if err != nil {
+		return err
+	}
+	if exists {
+		err = rootDevelop_copyDirFromStem(
+			ctx,
+			filepath.Join(snapshotStemPath, "dyd", "secrets"),
+			filepath.Join(workspacePath, "dyd", "secrets"),
+			"dyd/secrets",
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	exists, err = fileExists(filepath.Join(snapshotStemPath, "dyd", "requirements"))
+	if err != nil {
+		return err
+	}
+	if exists {
+		err = rootDevelop_copyDirFromStem(
+			ctx,
+			filepath.Join(snapshotStemPath, "dyd", "requirements"),
+			filepath.Join(workspacePath, "dyd", "requirements"),
+			"dyd/requirements",
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func rootDevelop_devDir(workspacePath string) string {
 	return filepath.Join(workspacePath, ".dyd-develop")
 }
@@ -716,7 +825,11 @@ func rootDevelop(
 	devSocketPath := filepath.Join(devDir, "host.sock")
 	devServer, err := rootDevelopIPC_start(devSocketPath, rootDevelopIPCHandlers{
 		OnSave: func() error {
-			conflicts, err := rootDevelop_saveChanges(ctx, rootPath, workspacePath, snapshotStemPath)
+			currentSnapshotPath, err := rootDevelop_snapshotStemPath(req.Root.Roots.Garden, workspacePath)
+			if err != nil {
+				return err
+			}
+			conflicts, err := rootDevelop_saveChanges(ctx, rootPath, workspacePath, currentSnapshotPath)
 			if err != nil {
 				return err
 			}
@@ -726,7 +839,28 @@ func rootDevelop(
 			return nil
 		},
 		OnStatus: func() ([]rootDevelopStatusEntry, error) {
-			return rootDevelop_statusChanges(ctx, rootPath, workspacePath, snapshotStemPath)
+			currentSnapshotPath, err := rootDevelop_snapshotStemPath(req.Root.Roots.Garden, workspacePath)
+			if err != nil {
+				return nil, err
+			}
+			return rootDevelop_statusChanges(ctx, rootPath, workspacePath, currentSnapshotPath)
+		},
+		OnSnapshot: func() (string, error) {
+			fingerprint, err := rootDevelop_createSnapshotStem(ctx, workspacePath, req.Root.Roots.Garden)
+			if err != nil {
+				return "", err
+			}
+			if err := os.WriteFile(rootDevelop_snapshotFile(workspacePath), []byte(fingerprint), 0o644); err != nil {
+				return "", err
+			}
+			return fingerprint, nil
+		},
+		OnReset: func() error {
+			currentSnapshotPath, err := rootDevelop_snapshotStemPath(req.Root.Roots.Garden, workspacePath)
+			if err != nil {
+				return err
+			}
+			return rootDevelop_resetWorkspace(ctx, currentSnapshotPath, workspacePath)
 		},
 		OnStop: func() error {
 			return editorProcess.requestStop()

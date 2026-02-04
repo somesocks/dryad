@@ -18,6 +18,20 @@ type rootDevelopCopyOptions struct {
 	ApplyIgnore bool
 }
 
+func rootDevelop_removeExistingPath(path string) error {
+	info, err := os.Lstat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	if info.IsDir() && info.Mode()&os.ModeSymlink != os.ModeSymlink {
+		return os.RemoveAll(path)
+	}
+	return os.Remove(path)
+}
+
 func rootDevelop_unfreezeMode(relPath string, mode fs.FileMode) fs.FileMode {
 	relSlash := filepath.ToSlash(relPath)
 	switch {
@@ -92,6 +106,9 @@ func rootDevelop_copyDirFromStem(
 		case mode.IsDir():
 			return os.MkdirAll(dest, 0o755), nil
 		case mode&os.ModeSymlink == os.ModeSymlink:
+			if err := rootDevelop_removeExistingPath(dest); err != nil {
+				return err, nil
+			}
 			linkTarget, err := os.Readlink(node.Path)
 			if err != nil {
 				return err, nil
@@ -106,10 +123,13 @@ func rootDevelop_copyDirFromStem(
 			if err := os.MkdirAll(parent, 0o755); err != nil {
 				return err, nil
 			}
-		unfreezeRelPath := relPath
-		if relBase != "" {
-			unfreezeRelPath = filepath.Join(relBase, relPath)
-		}
+			if err := rootDevelop_removeExistingPath(dest); err != nil {
+				return err, nil
+			}
+			unfreezeRelPath := relPath
+			if relBase != "" {
+				unfreezeRelPath = filepath.Join(relBase, relPath)
+			}
 		destMode := rootDevelop_unfreezeMode(unfreezeRelPath, mode)
 		return rootDevelop_copyFile(node.Path, dest, destMode), nil
 	default:
