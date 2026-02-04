@@ -1,12 +1,9 @@
 package cli
 
 import (
-	"bufio"
 	clib "dryad/cli-builder"
 	"errors"
-	"net"
 	"os"
-	"strings"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -20,29 +17,17 @@ var rootDevelopSaveCommand = func() clib.Command {
 				return 1
 			}
 
-			conn, err := net.Dial("unix", socketPath)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("failed to connect to root develop socket")
-				return 1
-			}
-			defer conn.Close()
-
-			_, err = conn.Write([]byte("save\n"))
+			res, err := rootDevelopIPC_send(socketPath, "save")
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("failed to send save request")
 				return 1
 			}
-
-			reader := bufio.NewReader(conn)
-			line, err := reader.ReadString('\n')
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("failed to read save response")
-				return 1
-			}
-
-			status := strings.TrimSpace(line)
-			if status != "ok" {
-				zlog.Fatal().Err(errors.New(status)).Msg("save request failed")
+			if res.Status != "ok" {
+				msg := res.Message
+				if msg == "" {
+					msg = "save request failed"
+				}
+				zlog.Fatal().Err(errors.New(msg)).Msg("save request failed")
 				return 1
 			}
 

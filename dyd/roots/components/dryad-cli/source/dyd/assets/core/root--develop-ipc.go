@@ -2,7 +2,10 @@ package core
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net"
 	"os"
 	"strings"
@@ -14,6 +17,17 @@ type rootDevelopIPCHandlers struct {
 	OnSave func() error
 	OnStatus func() ([]string, []string, error)
 	OnStop func() error
+}
+
+type rootDevelopIPCRequest struct {
+	Cmd string `json:"cmd"`
+}
+
+type rootDevelopIPCResponse struct {
+	Status    string   `json:"status"`
+	Changed   []string `json:"changed,omitempty"`
+	Conflicts []string `json:"conflicts,omitempty"`
+	Message   string   `json:"message,omitempty"`
 }
 
 type rootDevelopIPCServer struct {
@@ -72,48 +86,123 @@ func rootDevelopIPC_handle(conn net.Conn, handlers rootDevelopIPCHandlers) {
 	defer conn.Close()
 
 	reader := bufio.NewReader(conn)
-	line, err := reader.ReadString('\n')
+	payload, err := rootDevelopIPC_readMessage(reader)
 	if err != nil {
+		_ = rootDevelopIPC_writeMessage(conn, rootDevelopIPCResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
 		return
 	}
 
-	cmd := strings.TrimSpace(line)
-	switch cmd {
+	var req rootDevelopIPCRequest
+	if err := json.Unmarshal(payload, &req); err != nil {
+		_ = rootDevelopIPC_writeMessage(conn, rootDevelopIPCResponse{
+			Status:  "error",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	switch strings.TrimSpace(req.Cmd) {
 	case "save":
 		if handlers.OnSave != nil {
 			if err := handlers.OnSave(); err != nil {
-				_, _ = conn.Write([]byte("error\n"))
+				_ = rootDevelopIPC_writeMessage(conn, rootDevelopIPCResponse{
+					Status:  "error",
+					Message: err.Error(),
+				})
 				return
 			}
 		}
-		_, _ = conn.Write([]byte("ok\n"))
+		_ = rootDevelopIPC_writeMessage(conn, rootDevelopIPCResponse{
+			Status: "ok",
+		})
 	case "status":
 		if handlers.OnStatus != nil {
 			changed, conflicts, err := handlers.OnStatus()
 			if err != nil {
-				_, _ = conn.Write([]byte("error\n"))
+				_ = rootDevelopIPC_writeMessage(conn, rootDevelopIPCResponse{
+					Status:  "error",
+					Message: err.Error(),
+				})
 				return
 			}
-			_, _ = conn.Write([]byte("ok\n"))
-			for _, path := range changed {
-				_, _ = conn.Write([]byte("changed " + path + "\n"))
-			}
-			for _, path := range conflicts {
-				_, _ = conn.Write([]byte("conflict " + path + "\n"))
-			}
-			_, _ = conn.Write([]byte("end\n"))
+			_ = rootDevelopIPC_writeMessage(conn, rootDevelopIPCResponse{
+				Status:    "ok",
+				Changed:   changed,
+				Conflicts: conflicts,
+			})
 			return
 		}
-		_, _ = conn.Write([]byte("error\n"))
+		_ = rootDevelopIPC_writeMessage(conn, rootDevelopIPCResponse{
+			Status:  "error",
+			Message: "status handler not available",
+		})
 	case "stop":
 		if handlers.OnStop != nil {
 			if err := handlers.OnStop(); err != nil {
-				_, _ = conn.Write([]byte("error\n"))
+				_ = rootDevelopIPC_writeMessage(conn, rootDevelopIPCResponse{
+					Status:  "error",
+					Message: err.Error(),
+				})
 				return
 			}
 		}
-		_, _ = conn.Write([]byte("ok\n"))
+		_ = rootDevelopIPC_writeMessage(conn, rootDevelopIPCResponse{
+			Status: "ok",
+		})
 	default:
-		_, _ = conn.Write([]byte("unknown\n"))
+		_ = rootDevelopIPC_writeMessage(conn, rootDevelopIPCResponse{
+			Status:  "error",
+			Message: "unknown command",
+		})
 	}
+}
+
+func rootDevelopIPC_readMessage(reader *bufio.Reader) ([]byte, error) {
+	var contentLength int
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			return nil, err
+		}
+
+		line = strings.TrimRight(line, "\r\n")
+		if line == "" {
+			break
+		}
+
+		if strings.HasPrefix(strings.ToLower(line), "content-length:") {
+			_, err := fmt.Sscanf(line, "Content-Length: %d", &contentLength)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	if contentLength <= 0 {
+		return nil, errors.New("missing Content-Length")
+	}
+
+	payload := make([]byte, contentLength)
+	_, err := io.ReadFull(reader, payload)
+	if err != nil {
+		return nil, err
+	}
+
+	return payload, nil
+}
+
+func rootDevelopIPC_writeMessage(conn net.Conn, res rootDevelopIPCResponse) error {
+	payload, err := json.Marshal(res)
+	if err != nil {
+		return err
+	}
+	header := fmt.Sprintf("Content-Length: %d\r\n\r\n", len(payload))
+	if _, err := conn.Write([]byte(header)); err != nil {
+		return err
+	}
+	_, err = conn.Write(payload)
+	return err
 }
