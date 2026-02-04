@@ -30,7 +30,7 @@ _prepare() {
 }
 
 _test() {
-	HELP_TEXT=$(cd "$TEMP_DIR" && dryad root develop --help);
+	HELP_TEXT=$(cd "$TEMP_DIR" && dryad root develop start --help);
 }
 
 _verify() {

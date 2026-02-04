@@ -7,4 +7,4 @@ printf "external\n" > "$ROOT_PATH"
 OUT_DIR="$DYD_GARDEN/dyd/heap/root-develop-status-06"
 mkdir -p "$OUT_DIR"
 
-"$DYD_CLI_BIN" root develop-status > "$OUT_DIR/status"
+"$DYD_CLI_BIN" root develop status > "$OUT_DIR/status"

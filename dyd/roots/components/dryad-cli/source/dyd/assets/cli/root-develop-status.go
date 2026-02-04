@@ -13,7 +13,7 @@ import (
 )
 
 var rootDevelopStatusCommand = func() clib.Command {
-	command := clib.NewCommand("develop-status", "show the status of an active root development environment").
+	command := clib.NewCommand("status", "show the status of an active root development environment").
 		WithAction(func(req clib.ActionRequest) int {
 			socketPath := os.Getenv("DYD_DEV_SOCKET")
 			if socketPath == "" {

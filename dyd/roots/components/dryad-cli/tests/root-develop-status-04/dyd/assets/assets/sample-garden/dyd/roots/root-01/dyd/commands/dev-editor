@@ -6,4 +6,4 @@ printf "new\n" > "$DYD_STEM/dyd/assets/new.txt"
 OUT_DIR="$DYD_GARDEN/dyd/heap/root-develop-status-04"
 mkdir -p "$OUT_DIR"
 
-"$DYD_CLI_BIN" root develop-status > "$OUT_DIR/status"
+"$DYD_CLI_BIN" root develop status > "$OUT_DIR/status"

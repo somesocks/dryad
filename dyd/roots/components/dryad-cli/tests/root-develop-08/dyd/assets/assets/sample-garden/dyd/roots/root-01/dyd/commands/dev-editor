@@ -2,4 +2,4 @@
 set -euf -o pipefail
 ln -s keep.txt "$DYD_STEM/dyd/assets/link.txt"
 
-"$DYD_CLI_BIN" root develop-save
+"$DYD_CLI_BIN" root develop save

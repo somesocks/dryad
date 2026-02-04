@@ -12,7 +12,7 @@ import (
 )
 
 var rootDevelopSaveCommand = func() clib.Command {
-	command := clib.NewCommand("develop-save", "send a save request to an active root development environment").
+	command := clib.NewCommand("save", "save changes from an active root development environment").
 		WithAction(func(req clib.ActionRequest) int {
 			socketPath := os.Getenv("DYD_DEV_SOCKET")
 			if socketPath == "" {
