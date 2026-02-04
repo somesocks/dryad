@@ -1,6 +1,7 @@
 package core
 
 import (
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -58,13 +59,19 @@ func stemRun_prepContext(request StemRunRequest) (string, error) {
 	return contextPath, nil
 }
 
-func StemRunCommand(request StemRunRequest) (*exec.Cmd, error) {
+type StemRunInstance struct {
+	Cmd   *exec.Cmd
+	Close func() error
+}
+
+func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 	var workingPath = request.WorkingPath
 	var stemPath = request.StemPath
 	var env = request.Env
 	var args = request.Args
 	var gardenPath string
 	var err error
+	var closers []io.Closer
 
 	if env == nil {
 		env = make(map[string]string)
@@ -147,8 +154,8 @@ func StemRunCommand(request StemRunRequest) (*exec.Cmd, error) {
 		if err != nil {
 			return nil, err
 		}
-		defer file.Close()
 		cmd.Stdout = file
+		closers = append(closers, file)
 	}
 
 	// optionally pipe the exec stderr to us
@@ -173,8 +180,8 @@ func StemRunCommand(request StemRunRequest) (*exec.Cmd, error) {
 		if err != nil {
 			return nil, err
 		}
-		defer file.Close()
 		cmd.Stderr = file
+		closers = append(closers, file)
 	}
 
 	envPath := "PATH=" + BuildPlatformPath(stemPath, dryadPath)
@@ -196,16 +203,32 @@ func StemRunCommand(request StemRunRequest) (*exec.Cmd, error) {
 		cmd.Env = append(cmd.Env, "DOCKER_HOST=unix://"+dockerSock)
 	}
 
-	return cmd, nil
+	instance := &StemRunInstance{
+		Cmd: cmd,
+		Close: func() error {
+			var firstErr error
+			for _, closer := range closers {
+				if err := closer.Close(); err != nil && firstErr == nil {
+					firstErr = err
+				}
+			}
+			return firstErr
+		},
+	}
+
+	return instance, nil
 }
 
 func StemRun(request StemRunRequest) error {
-	cmd, err := StemRunCommand(request)
+	instance, err := StemRunCommand(request)
 	if err != nil {
 		return err
 	}
+	if instance.Close != nil {
+		defer instance.Close()
+	}
 
-	err = cmd.Run()
+	err = instance.Cmd.Run()
 	if err != nil {
 		return err
 	}

@@ -401,7 +401,7 @@ func rootDevelop_stage5(
 		env["DYD_DEV_SOCKET"] = devSocket
 	}
 
-	cmd, err := StemRunCommand(StemRunRequest{
+	instance, err := StemRunCommand(StemRunRequest{
 		Garden: garden,
 		StemPath:     rootStemPath,
 		WorkingPath:  rootStemPath,
@@ -415,18 +415,21 @@ func rootDevelop_stage5(
 	if err != nil {
 		return "", err
 	}
+	if instance.Close != nil {
+		defer instance.Close()
+	}
 
 	if editorProcess != nil {
-		editorProcess.setCmd(cmd)
+		editorProcess.setCmd(instance.Cmd)
 	}
-	if err := cmd.Start(); err != nil {
+	if err := instance.Cmd.Start(); err != nil {
 		if editorProcess != nil {
 			editorProcess.clearCmd()
 		}
 		return "", err
 	}
 
-	err = cmd.Wait()
+	err = instance.Cmd.Wait()
 	if editorProcess != nil {
 		editorProcess.clearCmd()
 		if err != nil && editorProcess.wasStopRequested() {
