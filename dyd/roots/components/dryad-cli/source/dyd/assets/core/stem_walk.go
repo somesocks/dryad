@@ -23,6 +23,14 @@ var readDydIgnore task.Task[DydIgnoreRequest, *dydfs.GlobMatcher] = func() task.
 		var parentMatcher *dydfs.GlobMatcher
 		var err error
 
+		isDescendant, err := fileIsDescendant(req.Path, req.BasePath)
+		if err != nil {
+			return err, nil
+		}
+		if !isDescendant {
+			req.Path = req.BasePath
+		}
+
 		if req.Path != req.BasePath {
 			parentDir := filepath.Dir(req.Path)
 			err, parentMatcher = read(ctx, DydIgnoreRequest{

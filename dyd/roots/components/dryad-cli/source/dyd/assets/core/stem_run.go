@@ -94,6 +94,7 @@ func StemRun(request StemRunRequest) error {
 	if err != nil {
 		return err
 	}
+	dryadBin := dryadPath
 	dryadPath = filepath.Dir(dryadPath)
 
 	var command string
@@ -184,6 +185,7 @@ func StemRun(request StemRunRequest) error {
 		"DYD_CONTEXT="+contextPath,
 		"DYD_STEM="+stemPath,
 		"DYD_GARDEN="+gardenPath,
+		"DYD_CLI_BIN="+dryadBin,
 		"DYD_OS="+runtime.GOOS,
 		"DYD_ARCH="+runtime.GOARCH,
 		"DYD_LOG_LEVEL="+zerolog.GlobalLevel().String(),
