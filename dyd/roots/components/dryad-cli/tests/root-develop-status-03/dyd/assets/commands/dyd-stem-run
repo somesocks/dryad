@@ -23,7 +23,7 @@ _test() {
 
 _verify() {
 	STATUS_FILE="$TEMP_DIR/dyd/heap/root-develop-status-03/status"
-	EXPECTED=$(printf "changed dyd/assets/file.txt\n" | sort)
+	EXPECTED=$(printf " D dyd/assets/file.txt\n" | sort)
 	ACTUAL=$(cat "$STATUS_FILE" | sort)
 	if [ "$ACTUAL" != "$EXPECTED" ]; then
 		echo "[ERROR] Fail: expected status ($EXPECTED), got ($ACTUAL)" 1>&2

@@ -15,7 +15,7 @@ import (
 
 type rootDevelopIPCHandlers struct {
 	OnSave func() error
-	OnStatus func() ([]string, []string, error)
+	OnStatus func() ([]rootDevelopStatusEntry, error)
 	OnStop func() error
 }
 
@@ -24,10 +24,9 @@ type rootDevelopIPCRequest struct {
 }
 
 type rootDevelopIPCResponse struct {
-	Status    string   `json:"status"`
-	Changed   []string `json:"changed,omitempty"`
-	Conflicts []string `json:"conflicts,omitempty"`
-	Message   string   `json:"message,omitempty"`
+	Status  string                  `json:"status"`
+	Entries []rootDevelopStatusEntry `json:"entries,omitempty"`
+	Message string                  `json:"message,omitempty"`
 }
 
 type rootDevelopIPCServer struct {
@@ -120,7 +119,7 @@ func rootDevelopIPC_handle(conn net.Conn, handlers rootDevelopIPCHandlers) {
 		})
 	case "status":
 		if handlers.OnStatus != nil {
-			changed, conflicts, err := handlers.OnStatus()
+			entries, err := handlers.OnStatus()
 			if err != nil {
 				_ = rootDevelopIPC_writeMessage(conn, rootDevelopIPCResponse{
 					Status:  "error",
@@ -129,9 +128,8 @@ func rootDevelopIPC_handle(conn net.Conn, handlers rootDevelopIPCHandlers) {
 				return
 			}
 			_ = rootDevelopIPC_writeMessage(conn, rootDevelopIPCResponse{
-				Status:    "ok",
-				Changed:   changed,
-				Conflicts: conflicts,
+				Status:  "ok",
+				Entries: entries,
 			})
 			return
 		}

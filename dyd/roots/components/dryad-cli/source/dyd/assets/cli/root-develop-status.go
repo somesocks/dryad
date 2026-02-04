@@ -32,11 +32,8 @@ var rootDevelopStatusCommand = func() clib.Command {
 				return 1
 			}
 
-			for _, path := range res.Changed {
-				fmt.Println("changed " + path)
-			}
-			for _, path := range res.Conflicts {
-				fmt.Println("conflict " + path)
+			for _, entry := range res.Entries {
+				fmt.Println(entry.Code + " " + entry.Path)
 			}
 
 			return 0

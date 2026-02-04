@@ -19,6 +19,11 @@ type rootDevelopFileState struct {
 	LinkTarget string
 }
 
+type rootDevelopStatusEntry struct {
+	Code string `json:"code"`
+	Path string `json:"path"`
+}
+
 type rootDevelopCollectSpec struct {
 	BasePath    string
 	RelPrefix   string
@@ -345,18 +350,18 @@ func rootDevelop_statusChanges(
 	rootPath string,
 	workspacePath string,
 	snapshotStemPath string,
-) ([]string, []string, error) {
+) ([]rootDevelopStatusEntry, error) {
 	rootStates, err := rootDevelop_collectAll(ctx, rootPath)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	workspaceStates, err := rootDevelop_collectAll(ctx, workspacePath)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	snapshot, err := rootDevelop_collectAll(ctx, snapshotStemPath)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	keys := map[string]struct{}{}
@@ -370,8 +375,7 @@ func rootDevelop_statusChanges(
 		keys[k] = struct{}{}
 	}
 
-	changed := []string{}
-	conflicts := []string{}
+	entries := []rootDevelopStatusEntry{}
 
 	for key := range keys {
 		var sPtr, rPtr, wPtr *rootDevelopFileState
@@ -392,12 +396,20 @@ func rootDevelop_statusChanges(
 			continue
 		}
 
-		changed = append(changed, key)
-
-		if rootChanged && !rootDevelop_stateEqual(wPtr, rPtr) {
-			conflicts = append(conflicts, key)
+		conflict := rootChanged && !rootDevelop_stateEqual(wPtr, rPtr)
+		entry := rootDevelopStatusEntry{
+			Code: " M",
+			Path: key,
 		}
+		if conflict {
+			entry.Code = "UU"
+		} else if sPtr == nil && wPtr != nil {
+			entry.Code = "??"
+		} else if sPtr != nil && wPtr == nil {
+			entry.Code = " D"
+		}
+		entries = append(entries, entry)
 	}
 
-	return changed, conflicts, nil
+	return entries, nil
 }

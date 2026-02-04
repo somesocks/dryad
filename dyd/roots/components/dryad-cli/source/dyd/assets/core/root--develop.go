@@ -725,7 +725,7 @@ func rootDevelop(
 			}
 			return nil
 		},
-		OnStatus: func() ([]string, []string, error) {
+		OnStatus: func() ([]rootDevelopStatusEntry, error) {
 			return rootDevelop_statusChanges(ctx, rootPath, workspacePath, snapshotStemPath)
 		},
 		OnStop: func() error {
