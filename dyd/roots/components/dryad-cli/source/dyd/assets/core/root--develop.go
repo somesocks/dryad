@@ -4,9 +4,12 @@ import (
 	dydfs "dryad/filesystem"
 	"dryad/task"
 
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"sync"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -294,6 +297,60 @@ func rootDevelop_stage6(
 
 }
 
+type rootDevelopEditorProcess struct {
+	mu            sync.Mutex
+	cmd           *exec.Cmd
+	stopRequested bool
+}
+
+func (proc *rootDevelopEditorProcess) setCmd(cmd *exec.Cmd) {
+	if proc == nil {
+		return
+	}
+	proc.mu.Lock()
+	defer proc.mu.Unlock()
+	proc.cmd = cmd
+}
+
+func (proc *rootDevelopEditorProcess) clearCmd() {
+	if proc == nil {
+		return
+	}
+	proc.mu.Lock()
+	defer proc.mu.Unlock()
+	proc.cmd = nil
+}
+
+func (proc *rootDevelopEditorProcess) wasStopRequested() bool {
+	if proc == nil {
+		return false
+	}
+	proc.mu.Lock()
+	defer proc.mu.Unlock()
+	return proc.stopRequested
+}
+
+func (proc *rootDevelopEditorProcess) requestStop() error {
+	if proc == nil {
+		return nil
+	}
+	proc.mu.Lock()
+	proc.stopRequested = true
+	cmd := proc.cmd
+	proc.mu.Unlock()
+
+	if cmd == nil || cmd.Process == nil {
+		return nil
+	}
+
+	err := cmd.Process.Signal(os.Interrupt)
+	if err != nil && !errors.Is(err, os.ErrProcessDone) {
+		return err
+	}
+
+	return nil
+}
+
 // stage 5 - execute the editor in the root to build its stem
 func rootDevelop_stage5(
 	rootStemPath string,
@@ -304,6 +361,7 @@ func rootDevelop_stage5(
 	editorArgs []string,
 	inherit bool,
 	devSocket string,
+	editorProcess *rootDevelopEditorProcess,
 ) (string, error) {
 	// fmt.Println("rootDevelop_stage5 ", rootStemPath, stemBuildPath)
 
@@ -325,6 +383,10 @@ func rootDevelop_stage5(
 
 	}
 
+	if editorProcess != nil && editorProcess.wasStopRequested() {
+		return "", nil
+	}
+
 	var err error
 
 	err = StemInit(stemBuildPath)
@@ -339,7 +401,7 @@ func rootDevelop_stage5(
 		env["DYD_DEV_SOCKET"] = devSocket
 	}
 
-	err = StemRun(StemRunRequest{
+	cmd, err := StemRunCommand(StemRunRequest{
 		Garden: garden,
 		StemPath:     rootStemPath,
 		WorkingPath:  rootStemPath,
@@ -350,6 +412,27 @@ func rootDevelop_stage5(
 		JoinStderr: true,
 		InheritEnv: inherit,
 	})
+	if err != nil {
+		return "", err
+	}
+
+	if editorProcess != nil {
+		editorProcess.setCmd(cmd)
+	}
+	if err := cmd.Start(); err != nil {
+		if editorProcess != nil {
+			editorProcess.clearCmd()
+		}
+		return "", err
+	}
+
+	err = cmd.Wait()
+	if editorProcess != nil {
+		editorProcess.clearCmd()
+		if err != nil && editorProcess.wasStopRequested() {
+			return "", nil
+		}
+	}
 
 	return "", err
 }
@@ -420,6 +503,8 @@ func rootDevelop(
 		return "", err
 	}
 
+	editorProcess := &rootDevelopEditorProcess{}
+
 	devSocketPath := filepath.Join(workspacePath, "dev.sock")
 	devServer, err := rootDevelopIPC_start(devSocketPath, rootDevelopIPCHandlers{
 		OnSave: func() error {
@@ -434,6 +519,9 @@ func rootDevelop(
 		},
 		OnStatus: func() ([]string, []string, error) {
 			return rootDevelop_statusChanges(ctx, rootPath, workspacePath, snapshot)
+		},
+		OnStop: func() error {
+			return editorProcess.requestStop()
 		},
 	})
 	if err != nil {
@@ -471,6 +559,7 @@ func rootDevelop(
 		editorArgs,
 		inherit,
 		devSocketPath,
+		editorProcess,
 	)
 
 	onStopErr := rootDevelop_stage6(

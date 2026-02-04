@@ -7,4 +7,5 @@ import (
 var rootDevelopCommand = clib.NewCommand("develop", "commands to work with root development environments").
 	WithCommand(rootDevelopStartCommand).
 	WithCommand(rootDevelopStatusCommand).
-	WithCommand(rootDevelopSaveCommand)
+	WithCommand(rootDevelopSaveCommand).
+	WithCommand(rootDevelopStopCommand)

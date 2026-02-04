@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+OUT_DIR="$DYD_GARDEN/dyd/heap/root-develop-stop-03"
+mkdir -p "$OUT_DIR"
+
+(
+  sleep 1
+  "$DYD_CLI_BIN" root develop stop
+  sleep 1
+  "$DYD_CLI_BIN" root develop stop
+) &
+
+STOPPED=0
+trap 'STOPPED=1; printf "ok\n" > "$OUT_DIR/editor-stopped"' INT
+
+while true; do
+  if [ "$STOPPED" -eq 1 ]; then
+    sleep 2
+    exit 0
+  fi
+  sleep 1
+done

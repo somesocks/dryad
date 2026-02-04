@@ -58,7 +58,7 @@ func stemRun_prepContext(request StemRunRequest) (string, error) {
 	return contextPath, nil
 }
 
-func StemRun(request StemRunRequest) error {
+func StemRunCommand(request StemRunRequest) (*exec.Cmd, error) {
 	var workingPath = request.WorkingPath
 	var stemPath = request.StemPath
 	var env = request.Env
@@ -73,7 +73,7 @@ func StemRun(request StemRunRequest) error {
 	if !filepath.IsAbs(stemPath) {
 		cwd, err := os.Getwd()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		stemPath = filepath.Join(cwd, stemPath)
 	}
@@ -82,17 +82,17 @@ func StemRun(request StemRunRequest) error {
 
 	contextPath, err := stemRun_prepContext(request)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// prepare by getting the executable path
 	dryadPath, err := os.Executable()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	dryadPath, err = filepath.EvalSymlinks(dryadPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	dryadBin := dryadPath
 	dryadPath = filepath.Dir(dryadPath)
@@ -136,7 +136,7 @@ func StemRun(request StemRunRequest) error {
 		} else {
 			relStemPath, err := filepath.Rel(gardenPath, stemPath)
 			if err != nil {
-				return err
+				return nil, err
 			}
 	
 			logFile := "dyd-stem-run--" + sanitizePathSegment(relStemPath) + ".out"
@@ -145,7 +145,7 @@ func StemRun(request StemRunRequest) error {
 
 		file, err := os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		defer file.Close()
 		cmd.Stdout = file
@@ -162,7 +162,7 @@ func StemRun(request StemRunRequest) error {
 		} else {
 			relStemPath, err := filepath.Rel(gardenPath, stemPath)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		
 			logFile := "dyd-stem-run--" + sanitizePathSegment(relStemPath) + ".err"
@@ -171,7 +171,7 @@ func StemRun(request StemRunRequest) error {
 
 		file, err := os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		defer file.Close()
 		cmd.Stderr = file
@@ -194,6 +194,15 @@ func StemRun(request StemRunRequest) error {
 	// Always override DOCKER_HOST because context HOME changes can invalidate user paths.
 	if dockerSock := GetDockerSockPath(); dockerSock != "" {
 		cmd.Env = append(cmd.Env, "DOCKER_HOST=unix://"+dockerSock)
+	}
+
+	return cmd, nil
+}
+
+func StemRun(request StemRunRequest) error {
+	cmd, err := StemRunCommand(request)
+	if err != nil {
+		return err
 	}
 
 	err = cmd.Run()
