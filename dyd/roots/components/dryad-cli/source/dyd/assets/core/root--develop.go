@@ -432,6 +432,9 @@ func rootDevelop(
 			}
 			return nil
 		},
+		OnStatus: func() ([]string, []string, error) {
+			return rootDevelop_statusChanges(ctx, rootPath, workspacePath, snapshot)
+		},
 	})
 	if err != nil {
 		return "", err

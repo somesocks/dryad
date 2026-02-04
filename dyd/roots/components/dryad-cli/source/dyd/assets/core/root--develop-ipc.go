@@ -12,6 +12,7 @@ import (
 
 type rootDevelopIPCHandlers struct {
 	OnSave func() error
+	OnStatus func() ([]string, []string, error)
 }
 
 type rootDevelopIPCServer struct {
@@ -85,6 +86,24 @@ func rootDevelopIPC_handle(conn net.Conn, handlers rootDevelopIPCHandlers) {
 			}
 		}
 		_, _ = conn.Write([]byte("ok\n"))
+	case "status":
+		if handlers.OnStatus != nil {
+			changed, conflicts, err := handlers.OnStatus()
+			if err != nil {
+				_, _ = conn.Write([]byte("error\n"))
+				return
+			}
+			_, _ = conn.Write([]byte("ok\n"))
+			for _, path := range changed {
+				_, _ = conn.Write([]byte("changed " + path + "\n"))
+			}
+			for _, path := range conflicts {
+				_, _ = conn.Write([]byte("conflict " + path + "\n"))
+			}
+			_, _ = conn.Write([]byte("end\n"))
+			return
+		}
+		_, _ = conn.Write([]byte("error\n"))
 	default:
 		_, _ = conn.Write([]byte("unknown\n"))
 	}

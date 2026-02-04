@@ -277,6 +277,7 @@ func rootDevelop_saveChanges(
 	}
 
 	conflicts := []string{}
+	changed := []string{}
 
 	for key := range keys {
 		var sPtr, rPtr, wPtr *rootDevelopFileState
@@ -296,6 +297,8 @@ func rootDevelop_saveChanges(
 		if !workspaceChanged {
 			continue
 		}
+
+		changed = append(changed, key)
 
 		if !rootChanged || rootDevelop_stateEqual(wPtr, rPtr) {
 			destPath := filepath.Join(rootPath, key)
@@ -327,4 +330,62 @@ func rootDevelop_saveChanges(
 	}
 
 	return conflicts, nil
+}
+
+func rootDevelop_statusChanges(
+	ctx *task.ExecutionContext,
+	rootPath string,
+	workspacePath string,
+	snapshot map[string]rootDevelopFileState,
+) ([]string, []string, error) {
+	rootStates, err := rootDevelop_collectAll(ctx, rootPath)
+	if err != nil {
+		return nil, nil, err
+	}
+	workspaceStates, err := rootDevelop_collectAll(ctx, workspacePath)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	keys := map[string]struct{}{}
+	for k := range snapshot {
+		keys[k] = struct{}{}
+	}
+	for k := range rootStates {
+		keys[k] = struct{}{}
+	}
+	for k := range workspaceStates {
+		keys[k] = struct{}{}
+	}
+
+	changed := []string{}
+	conflicts := []string{}
+
+	for key := range keys {
+		var sPtr, rPtr, wPtr *rootDevelopFileState
+		if s, ok := snapshot[key]; ok {
+			sPtr = &s
+		}
+		if r, ok := rootStates[key]; ok {
+			rPtr = &r
+		}
+		if w, ok := workspaceStates[key]; ok {
+			wPtr = &w
+		}
+
+		workspaceChanged := !rootDevelop_stateEqual(wPtr, sPtr)
+		rootChanged := !rootDevelop_stateEqual(rPtr, sPtr)
+
+		if !workspaceChanged {
+			continue
+		}
+
+		changed = append(changed, key)
+
+		if rootChanged && !rootDevelop_stateEqual(wPtr, rPtr) {
+			conflicts = append(conflicts, key)
+		}
+	}
+
+	return changed, conflicts, nil
 }

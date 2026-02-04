@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+printf "workspace\n" > "$DYD_STEM/dyd/assets/file.txt"
+
+ROOT_PATH="$DYD_GARDEN/dyd/roots/root-01/dyd/assets/file.txt"
+printf "external\n" > "$ROOT_PATH"
+
+OUT_DIR="$DYD_GARDEN/dyd/heap/root-develop-status-05"
+mkdir -p "$OUT_DIR"
+
+"$DYD_CLI_BIN" root develop-status > "$OUT_DIR/status"
