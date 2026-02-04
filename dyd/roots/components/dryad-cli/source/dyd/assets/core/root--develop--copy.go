@@ -9,12 +9,125 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	zlog "github.com/rs/zerolog/log"
 )
 
 type rootDevelopCopyOptions struct {
 	ApplyIgnore bool
+}
+
+func rootDevelop_unfreezeMode(relPath string, mode fs.FileMode) fs.FileMode {
+	relSlash := filepath.ToSlash(relPath)
+	switch {
+	case mode.IsDir():
+		return 0o755
+	case strings.HasPrefix(relSlash, "dyd/commands/"):
+		return 0o755
+	default:
+		return 0o644
+	}
+}
+
+func rootDevelop_copyDirFromStem(
+	ctx *task.ExecutionContext,
+	srcPath string,
+	destPath string,
+	relBase string,
+) error {
+	var err error
+
+	if ctx == nil {
+		ctx = task.DEFAULT_CONTEXT
+	}
+	ctx = &task.ExecutionContext{
+		ConcurrencyChannel: ctx.ConcurrencyChannel,
+	}
+
+	srcPath, err = filepath.Abs(srcPath)
+	if err != nil {
+		return err
+	}
+
+	info, err := os.Lstat(srcPath)
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("rootDevelop_copyDirFromStem: source is not a directory: %s", srcPath)
+	}
+
+	err = os.MkdirAll(destPath, 0o755)
+	if err != nil {
+		return err
+	}
+
+	shouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+		if node.Info == nil {
+			return nil, false
+		}
+		if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
+			return nil, false
+		}
+		if !node.Info.IsDir() {
+			return nil, false
+		}
+		return nil, true
+	}
+
+	onCopy := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+		relPath, err := filepath.Rel(srcPath, node.VPath)
+		if err != nil {
+			return err, nil
+		}
+		if relPath == "." {
+			return nil, nil
+		}
+
+		dest := filepath.Join(destPath, relPath)
+
+		mode := node.Info.Mode()
+		switch {
+		case mode.IsDir():
+			return os.MkdirAll(dest, 0o755), nil
+		case mode&os.ModeSymlink == os.ModeSymlink:
+			linkTarget, err := os.Readlink(node.Path)
+			if err != nil {
+				return err, nil
+			}
+			parent := filepath.Dir(dest)
+			if err := os.MkdirAll(parent, 0o755); err != nil {
+				return err, nil
+			}
+			return os.Symlink(linkTarget, dest), nil
+		case mode.IsRegular():
+			parent := filepath.Dir(dest)
+			if err := os.MkdirAll(parent, 0o755); err != nil {
+				return err, nil
+			}
+		unfreezeRelPath := relPath
+		if relBase != "" {
+			unfreezeRelPath = filepath.Join(relBase, relPath)
+		}
+		destMode := rootDevelop_unfreezeMode(unfreezeRelPath, mode)
+		return rootDevelop_copyFile(node.Path, dest, destMode), nil
+	default:
+			return fmt.Errorf("rootDevelop_copyDirFromStem: unsupported file type: %s", node.Path), nil
+		}
+	}
+
+	err, _ = dydfs.Walk6(
+		ctx,
+		dydfs.Walk6Request{
+			BasePath:   srcPath,
+			Path:       srcPath,
+			VPath:      srcPath,
+			ShouldWalk: shouldWalk,
+			OnPreMatch: onCopy,
+		},
+	)
+	return err
 }
 
 func rootDevelop_copyDir(

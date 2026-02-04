@@ -186,6 +186,10 @@ func rootDevelop_collectAll(
 			BasePath:  filepath.Join(rootPath, "dyd", "secrets"),
 			RelPrefix: filepath.Join("dyd", "secrets"),
 		},
+		{
+			BasePath:  filepath.Join(rootPath, "dyd", "requirements"),
+			RelPrefix: filepath.Join("dyd", "requirements"),
+		},
 	}
 
 	all := make(map[string]rootDevelopFileState)
@@ -254,13 +258,17 @@ func rootDevelop_saveChanges(
 	ctx *task.ExecutionContext,
 	rootPath string,
 	workspacePath string,
-	snapshot map[string]rootDevelopFileState,
+	snapshotStemPath string,
 ) ([]string, error) {
 	rootStates, err := rootDevelop_collectAll(ctx, rootPath)
 	if err != nil {
 		return nil, err
 	}
 	workspaceStates, err := rootDevelop_collectAll(ctx, workspacePath)
+	if err != nil {
+		return nil, err
+	}
+	snapshot, err := rootDevelop_collectAll(ctx, snapshotStemPath)
 	if err != nil {
 		return nil, err
 	}
@@ -336,13 +344,17 @@ func rootDevelop_statusChanges(
 	ctx *task.ExecutionContext,
 	rootPath string,
 	workspacePath string,
-	snapshot map[string]rootDevelopFileState,
+	snapshotStemPath string,
 ) ([]string, []string, error) {
 	rootStates, err := rootDevelop_collectAll(ctx, rootPath)
 	if err != nil {
 		return nil, nil, err
 	}
 	workspaceStates, err := rootDevelop_collectAll(ctx, workspacePath)
+	if err != nil {
+		return nil, nil, err
+	}
+	snapshot, err := rootDevelop_collectAll(ctx, snapshotStemPath)
 	if err != nil {
 		return nil, nil, err
 	}

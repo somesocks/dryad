@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	zlog "github.com/rs/zerolog/log"
@@ -16,10 +17,10 @@ import (
 
 // stage 0 - build a shallow partial clone of the root into a working directory,
 // so we can build it into a stem
-func rootDevelop_stage0(ctx *task.ExecutionContext, rootPath string, workspacePath string) error {
+func rootDevelop_stage0(ctx *task.ExecutionContext, snapshotStemPath string, workspacePath string) error {
 	// fmt.Println("rootDevelop_stage0 ", rootPath, " ", workspacePath)
 
-	rootPath, err := filepath.EvalSymlinks(rootPath)
+	snapshotStemPath, err := filepath.EvalSymlinks(snapshotStemPath)
 	if err != nil {
 		return err
 	}
@@ -32,81 +33,102 @@ func rootDevelop_stage0(ctx *task.ExecutionContext, rootPath string, workspacePa
 		return err
 	}
 
-	exists, err := fileExists(filepath.Join(rootPath, "dyd", "assets"))
+	exists, err := fileExists(filepath.Join(snapshotStemPath, "dyd", "assets"))
 	if err != nil {
 		return err
 	}
 	if exists {
-		err = rootDevelop_copyDir(
+		err = rootDevelop_copyDirFromStem(
 			ctx,
-			filepath.Join(rootPath, "dyd", "assets"),
+			filepath.Join(snapshotStemPath, "dyd", "assets"),
 			filepath.Join(workspacePath, "dyd", "assets"),
-			rootDevelopCopyOptions{ApplyIgnore: true},
+			"dyd/assets",
 		)
 		if err != nil {
 			return err
 		}
 	}
 
-	exists, err = fileExists(filepath.Join(rootPath, "dyd", "commands"))
+	exists, err = fileExists(filepath.Join(snapshotStemPath, "dyd", "commands"))
 	if err != nil {
 		return err
 	}
 	if exists {
-		err = rootDevelop_copyDir(
+		err = rootDevelop_copyDirFromStem(
 			ctx,
-			filepath.Join(rootPath, "dyd", "commands"),
+			filepath.Join(snapshotStemPath, "dyd", "commands"),
 			filepath.Join(workspacePath, "dyd", "commands"),
-			rootDevelopCopyOptions{},
+			"dyd/commands",
 		)
 		if err != nil {
 			return err
 		}
 	}
 
-	exists, err = fileExists(filepath.Join(rootPath, "dyd", "docs"))
+	exists, err = fileExists(filepath.Join(snapshotStemPath, "dyd", "docs"))
 	if err != nil {
 		return err
 	}
 	if exists {
-		err = rootDevelop_copyDir(
+		err = rootDevelop_copyDirFromStem(
 			ctx,
-			filepath.Join(rootPath, "dyd", "docs"),
+			filepath.Join(snapshotStemPath, "dyd", "docs"),
 			filepath.Join(workspacePath, "dyd", "docs"),
-			rootDevelopCopyOptions{},
+			"dyd/docs",
 		)
 		if err != nil {
 			return err
 		}
 	}
 
-	exists, err = fileExists(filepath.Join(rootPath, "dyd", "traits"))
+	exists, err = fileExists(filepath.Join(snapshotStemPath, "dyd", "traits"))
 	if err != nil {
 		return err
 	}
 	if exists {
-		err = rootDevelop_copyDir(
+		err = rootDevelop_copyDirFromStem(
 			ctx,
-			filepath.Join(rootPath, "dyd", "traits"),
+			filepath.Join(snapshotStemPath, "dyd", "traits"),
 			filepath.Join(workspacePath, "dyd", "traits"),
-			rootDevelopCopyOptions{},
+			"dyd/traits",
 		)
 		if err != nil {
 			return err
 		}
 	}
 
-	exists, err = fileExists(filepath.Join(rootPath, "dyd", "secrets"))
+	exists, err = fileExists(filepath.Join(snapshotStemPath, "dyd", "secrets"))
 	if err != nil {
 		return err
 	}
 	if exists {
-		err = rootDevelop_copyDir(
+		err = rootDevelop_copyDirFromStem(
 			ctx,
-			filepath.Join(rootPath, "dyd", "secrets"),
+			filepath.Join(snapshotStemPath, "dyd", "secrets"),
 			filepath.Join(workspacePath, "dyd", "secrets"),
-			rootDevelopCopyOptions{},
+			"dyd/secrets",
 		)
+		if err != nil {
+			return err
+		}
+	}
+
+	exists, err = fileExists(filepath.Join(snapshotStemPath, "dyd", "requirements"))
+	if err != nil {
+		return err
+	}
+	if exists {
+		err = rootDevelop_copyDirFromStem(
+			ctx,
+			filepath.Join(snapshotStemPath, "dyd", "requirements"),
+			filepath.Join(workspacePath, "dyd", "requirements"),
+			"dyd/requirements",
+		)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = os.MkdirAll(filepath.Join(workspacePath, "dyd", "requirements"), os.ModePerm)
 		if err != nil {
 			return err
 		}
@@ -118,6 +140,176 @@ func rootDevelop_stage0(ctx *task.ExecutionContext, rootPath string, workspacePa
 	}
 
 	return nil
+}
+
+func rootDevelop_devDir(workspacePath string) string {
+	return filepath.Join(workspacePath, ".dyd-develop")
+}
+
+func rootDevelop_snapshotFile(workspacePath string) string {
+	return filepath.Join(rootDevelop_devDir(workspacePath), "snapshot-stem")
+}
+
+func rootDevelop_snapshotStemPath(
+	garden *SafeGardenReference,
+	workspacePath string,
+) (string, error) {
+	bytes, err := os.ReadFile(rootDevelop_snapshotFile(workspacePath))
+	if err != nil {
+		return "", err
+	}
+	fingerprint := strings.TrimSpace(string(bytes))
+	return filepath.Join(garden.BasePath, "dyd", "heap", "stems", fingerprint), nil
+}
+
+func rootDevelop_createSnapshotStem(
+	ctx *task.ExecutionContext,
+	rootPath string,
+	garden *SafeGardenReference,
+) (string, error) {
+	snapshotWorkspace, err := os.MkdirTemp("", "dryad-snapshot-*")
+	if err != nil {
+		return "", err
+	}
+	defer dydfs.RemoveAll(task.SERIAL_CONTEXT, snapshotWorkspace)
+
+	err = os.MkdirAll(filepath.Join(snapshotWorkspace, "dyd"), os.ModePerm)
+	if err != nil {
+		return "", err
+	}
+
+	exists, err := fileExists(filepath.Join(rootPath, "dyd", "assets"))
+	if err != nil {
+		return "", err
+	}
+	if exists {
+		err = rootDevelop_copyDir(
+			ctx,
+			filepath.Join(rootPath, "dyd", "assets"),
+			filepath.Join(snapshotWorkspace, "dyd", "assets"),
+			rootDevelopCopyOptions{ApplyIgnore: true},
+		)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	exists, err = fileExists(filepath.Join(rootPath, "dyd", "commands"))
+	if err != nil {
+		return "", err
+	}
+	if exists {
+		err = rootDevelop_copyDir(
+			ctx,
+			filepath.Join(rootPath, "dyd", "commands"),
+			filepath.Join(snapshotWorkspace, "dyd", "commands"),
+			rootDevelopCopyOptions{},
+		)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	exists, err = fileExists(filepath.Join(rootPath, "dyd", "docs"))
+	if err != nil {
+		return "", err
+	}
+	if exists {
+		err = rootDevelop_copyDir(
+			ctx,
+			filepath.Join(rootPath, "dyd", "docs"),
+			filepath.Join(snapshotWorkspace, "dyd", "docs"),
+			rootDevelopCopyOptions{},
+		)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	exists, err = fileExists(filepath.Join(rootPath, "dyd", "traits"))
+	if err != nil {
+		return "", err
+	}
+	if exists {
+		err = rootDevelop_copyDir(
+			ctx,
+			filepath.Join(rootPath, "dyd", "traits"),
+			filepath.Join(snapshotWorkspace, "dyd", "traits"),
+			rootDevelopCopyOptions{},
+		)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	exists, err = fileExists(filepath.Join(rootPath, "dyd", "secrets"))
+	if err != nil {
+		return "", err
+	}
+	if exists {
+		err = rootDevelop_copyDir(
+			ctx,
+			filepath.Join(rootPath, "dyd", "secrets"),
+			filepath.Join(snapshotWorkspace, "dyd", "secrets"),
+			rootDevelopCopyOptions{},
+		)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	exists, err = fileExists(filepath.Join(rootPath, "dyd", "requirements"))
+	if err != nil {
+		return "", err
+	}
+	if exists {
+		err = rootDevelop_copyDir(
+			ctx,
+			filepath.Join(rootPath, "dyd", "requirements"),
+			filepath.Join(snapshotWorkspace, "dyd", "requirements"),
+			rootDevelopCopyOptions{},
+		)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		err = os.MkdirAll(filepath.Join(snapshotWorkspace, "dyd", "requirements"), os.ModePerm)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	err = os.MkdirAll(filepath.Join(snapshotWorkspace, "dyd", "dependencies"), os.ModePerm)
+	if err != nil {
+		return "", err
+	}
+
+	err, snapshotFingerprint := stemFinalize(ctx, snapshotWorkspace)
+	if err != nil {
+		return "", err
+	}
+
+	err, heap := garden.Heap().Resolve(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	err, stems := heap.Stems().Resolve(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	err, _ = stems.AddStem(
+		ctx,
+		HeapAddStemRequest{
+			StemPath: snapshotWorkspace,
+		},
+	)
+	if err != nil {
+		return "", err
+	}
+
+	return snapshotFingerprint, nil
 }
 
 // stage 1 - walk through the root dependencies,
@@ -481,12 +673,25 @@ func rootDevelop(
 	}
 	defer dydfs.RemoveAll(task.SERIAL_CONTEXT, workspacePath)
 
-	err = rootDevelop_stage0(ctx, rootPath, workspacePath)
+	devDir := rootDevelop_devDir(workspacePath)
+	err = os.MkdirAll(devDir, 0o755)
 	if err != nil {
 		return "", err
 	}
 
-	snapshot, err := rootDevelop_collectAll(ctx, rootPath)
+	snapshotFingerprint, err := rootDevelop_createSnapshotStem(ctx, rootPath, req.Root.Roots.Garden)
+	if err != nil {
+		return "", err
+	}
+
+	err = os.WriteFile(rootDevelop_snapshotFile(workspacePath), []byte(snapshotFingerprint), 0o644)
+	if err != nil {
+		return "", err
+	}
+
+	snapshotStemPath := filepath.Join(req.Root.Roots.Garden.BasePath, "dyd", "heap", "stems", snapshotFingerprint)
+
+	err = rootDevelop_stage0(ctx, snapshotStemPath, workspacePath)
 	if err != nil {
 		return "", err
 	}
@@ -508,10 +713,10 @@ func rootDevelop(
 
 	editorProcess := &rootDevelopEditorProcess{}
 
-	devSocketPath := filepath.Join(workspacePath, "dev.sock")
+	devSocketPath := filepath.Join(devDir, "host.sock")
 	devServer, err := rootDevelopIPC_start(devSocketPath, rootDevelopIPCHandlers{
 		OnSave: func() error {
-			conflicts, err := rootDevelop_saveChanges(ctx, rootPath, workspacePath, snapshot)
+			conflicts, err := rootDevelop_saveChanges(ctx, rootPath, workspacePath, snapshotStemPath)
 			if err != nil {
 				return err
 			}
@@ -521,7 +726,7 @@ func rootDevelop(
 			return nil
 		},
 		OnStatus: func() ([]string, []string, error) {
-			return rootDevelop_statusChanges(ctx, rootPath, workspacePath, snapshot)
+			return rootDevelop_statusChanges(ctx, rootPath, workspacePath, snapshotStemPath)
 		},
 		OnStop: func() error {
 			return editorProcess.requestStop()
