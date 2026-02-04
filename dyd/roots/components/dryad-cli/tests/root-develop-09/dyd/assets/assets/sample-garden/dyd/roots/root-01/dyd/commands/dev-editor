@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+rm -f "$DYD_STEM/dyd/assets/link.txt"
+
+"$DYD_CLI_BIN" root develop-save
