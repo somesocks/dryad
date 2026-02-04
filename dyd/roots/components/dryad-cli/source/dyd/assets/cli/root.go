@@ -11,6 +11,7 @@ var rootCommand = clib.NewCommand("root", "commands to work with a dryad root").
 	WithCommand(rootCreateCommand).
 	WithCommand(rootDescendantsCommand).
 	WithCommand(rootDevelopCommand).
+	WithCommand(rootDevelopSaveCommand).
 	WithCommand(rootMoveCommand).
 	WithCommand(rootPathCommand).
 	WithCommand(rootReplaceCommand).

@@ -1,10 +1,10 @@
 package core
 
 import (
-
 	dydfs "dryad/filesystem"
 	"dryad/task"
 
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -13,7 +13,7 @@ import (
 
 // stage 0 - build a shallow partial clone of the root into a working directory,
 // so we can build it into a stem
-func rootDevelop_stage0(rootPath string, workspacePath string) error {
+func rootDevelop_stage0(ctx *task.ExecutionContext, rootPath string, workspacePath string) error {
 	// fmt.Println("rootDevelop_stage0 ", rootPath, " ", workspacePath)
 
 	rootPath, err := filepath.EvalSymlinks(rootPath)
@@ -34,9 +34,11 @@ func rootDevelop_stage0(rootPath string, workspacePath string) error {
 		return err
 	}
 	if exists {
-		err = os.Symlink(
+		err = rootDevelop_copyDir(
+			ctx,
 			filepath.Join(rootPath, "dyd", "assets"),
 			filepath.Join(workspacePath, "dyd", "assets"),
+			rootDevelopCopyOptions{ApplyIgnore: true},
 		)
 		if err != nil {
 			return err
@@ -48,9 +50,11 @@ func rootDevelop_stage0(rootPath string, workspacePath string) error {
 		return err
 	}
 	if exists {
-		err = os.Symlink(
+		err = rootDevelop_copyDir(
+			ctx,
 			filepath.Join(rootPath, "dyd", "commands"),
 			filepath.Join(workspacePath, "dyd", "commands"),
+			rootDevelopCopyOptions{},
 		)
 		if err != nil {
 			return err
@@ -62,9 +66,11 @@ func rootDevelop_stage0(rootPath string, workspacePath string) error {
 		return err
 	}
 	if exists {
-		err = os.Symlink(
+		err = rootDevelop_copyDir(
+			ctx,
 			filepath.Join(rootPath, "dyd", "docs"),
 			filepath.Join(workspacePath, "dyd", "docs"),
+			rootDevelopCopyOptions{},
 		)
 		if err != nil {
 			return err
@@ -76,9 +82,11 @@ func rootDevelop_stage0(rootPath string, workspacePath string) error {
 		return err
 	}
 	if exists {
-		err = os.Symlink(
+		err = rootDevelop_copyDir(
+			ctx,
 			filepath.Join(rootPath, "dyd", "traits"),
 			filepath.Join(workspacePath, "dyd", "traits"),
+			rootDevelopCopyOptions{},
 		)
 		if err != nil {
 			return err
@@ -90,9 +98,11 @@ func rootDevelop_stage0(rootPath string, workspacePath string) error {
 		return err
 	}
 	if exists {
-		err = os.Symlink(
+		err = rootDevelop_copyDir(
+			ctx,
 			filepath.Join(rootPath, "dyd", "secrets"),
 			filepath.Join(workspacePath, "dyd", "secrets"),
+			rootDevelopCopyOptions{},
 		)
 		if err != nil {
 			return err
@@ -189,6 +199,7 @@ func rootDevelop_stage4(
 	editor string,
 	editorArgs []string,
 	inherit bool,
+	devSocket string,
 ) error {
 	var err error
 
@@ -208,14 +219,19 @@ func rootDevelop_stage4(
 		return nil
 	}
 
+	env := map[string]string{
+		"DYD_BUILD": stemBuildPath,
+	}
+	if devSocket != "" {
+		env["DYD_DEV_SOCKET"] = devSocket
+	}
+
 	err = StemRun(StemRunRequest{
 		Garden: garden,
 		StemPath:     rootStemPath,
 		WorkingPath:  rootStemPath,
 		MainOverride: onDevelopStartPath,
-		Env: map[string]string{
-			"DYD_BUILD": stemBuildPath,
-		},
+		Env:         env,
 		Args:       editorArgs,
 		JoinStdout: true,
 		JoinStderr: true,
@@ -235,6 +251,7 @@ func rootDevelop_stage6(
 	editor string,
 	editorArgs []string,
 	inherit bool,
+	devSocket string,
 ) error {
 	var err error
 
@@ -254,14 +271,19 @@ func rootDevelop_stage6(
 		return nil
 	}
 
+	env := map[string]string{
+		"DYD_BUILD": stemBuildPath,
+	}
+	if devSocket != "" {
+		env["DYD_DEV_SOCKET"] = devSocket
+	}
+
 	err = StemRun(StemRunRequest{
 		Garden:   garden,
 		StemPath:     rootStemPath,
 		WorkingPath:  rootStemPath,
 		MainOverride: onDevelopStopPath,
-		Env: map[string]string{
-			"DYD_BUILD": stemBuildPath,
-		},
+		Env:         env,
 		Args:       editorArgs,
 		JoinStdout: true,
 		JoinStderr: true,
@@ -281,6 +303,7 @@ func rootDevelop_stage5(
 	editor string,
 	editorArgs []string,
 	inherit bool,
+	devSocket string,
 ) (string, error) {
 	// fmt.Println("rootDevelop_stage5 ", rootStemPath, stemBuildPath)
 
@@ -309,14 +332,19 @@ func rootDevelop_stage5(
 		return "", err
 	}
 
+	env := map[string]string{
+		"DYD_BUILD": stemBuildPath,
+	}
+	if devSocket != "" {
+		env["DYD_DEV_SOCKET"] = devSocket
+	}
+
 	err = StemRun(StemRunRequest{
 		Garden: garden,
 		StemPath:     rootStemPath,
 		WorkingPath:  rootStemPath,
 		MainOverride: editor,
-		Env: map[string]string{
-			"DYD_BUILD": stemBuildPath,
-		},
+		Env:         env,
 		Args:       editorArgs,
 		JoinStdout: true,
 		JoinStderr: true,
@@ -367,7 +395,12 @@ func rootDevelop(
 	}
 	defer dydfs.RemoveAll(task.SERIAL_CONTEXT, workspacePath)
 
-	err = rootDevelop_stage0(rootPath, workspacePath)
+	err = rootDevelop_stage0(ctx, rootPath, workspacePath)
+	if err != nil {
+		return "", err
+	}
+
+	snapshot, err := rootDevelop_collectAll(ctx, rootPath)
 	if err != nil {
 		return "", err
 	}
@@ -387,6 +420,24 @@ func rootDevelop(
 		return "", err
 	}
 
+	devSocketPath := filepath.Join(workspacePath, "dev.sock")
+	devServer, err := rootDevelopIPC_start(devSocketPath, rootDevelopIPCHandlers{
+		OnSave: func() error {
+			conflicts, err := rootDevelop_saveChanges(ctx, rootPath, workspacePath, snapshot)
+			if err != nil {
+				return err
+			}
+			if len(conflicts) > 0 {
+				return fmt.Errorf("root develop save: %d conflicts", len(conflicts))
+			}
+			return nil
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+	defer devServer.Close()
+
 	// otherwise run the root in a build env
 	stemBuildPath, err := os.MkdirTemp("", "dryad-*")
 	if err != nil {
@@ -402,6 +453,7 @@ func rootDevelop(
 		editor,
 		editorArgs,
 		inherit,
+		devSocketPath,
 	)
 	if err != nil {
 		return "", err
@@ -415,6 +467,7 @@ func rootDevelop(
 		editor,
 		editorArgs,
 		inherit,
+		devSocketPath,
 	)
 
 	onStopErr := rootDevelop_stage6(
@@ -425,6 +478,7 @@ func rootDevelop(
 		editor,
 		editorArgs,
 		inherit,
+		devSocketPath,
 	)
 
 	if onDevelopErr != nil {
