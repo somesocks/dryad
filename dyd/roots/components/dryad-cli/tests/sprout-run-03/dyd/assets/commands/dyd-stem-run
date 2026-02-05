@@ -33,8 +33,20 @@ _prepare() {
 	:;
 }
 
+_resolve_temp_dir() {
+	if command -v realpath >/dev/null 2>&1; then
+		TEMP_DIR=$(realpath "$TEMP_DIR")
+		return
+	fi
+	if readlink -f "$TEMP_DIR" >/dev/null 2>&1; then
+		TEMP_DIR=$(readlink -f "$TEMP_DIR")
+		return
+	fi
+}
+
 _test() {
 	(cd "$TEMP_DIR" && dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL") 1>&2;
+	_resolve_temp_dir
 
 	# stdout/stderr should be joined by default
 	set +e

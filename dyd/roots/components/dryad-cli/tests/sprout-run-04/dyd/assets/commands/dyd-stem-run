@@ -37,7 +37,7 @@ _test() {
 	(cd "$TEMP_DIR" && dryad root build dyd/roots/root-01 --join-stdout=true --join-stderr=true --log-level="$DYD_LOG_LEVEL") 1>&2;
 
 	set +e
-	OUTPUT=$(dryad sprout run "$TEMP_DIR/dyd/sprouts/root-01" --log-level="$DYD_LOG_LEVEL" -- 2>&1)
+	OUTPUT=$(cd "$TEMP_DIR" && dryad sprout run "dyd/sprouts/root-01" --log-level="$DYD_LOG_LEVEL" -- 2>&1)
 	STATUS=$?
 	set -e
 
