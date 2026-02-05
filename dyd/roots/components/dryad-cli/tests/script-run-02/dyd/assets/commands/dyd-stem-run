@@ -43,7 +43,8 @@ _verify() {
 
 	assert_directory_exists "$TEMP_DIR/dyd/heap/script-run-02"
 	assert_file_content_equals "$TEMP_DIR/dyd/heap/script-run-02/scope" "dev"
-	assert_file_content_equals "$TEMP_DIR/dyd/heap/script-run-02/garden" "$TEMP_DIR"
+	EXPECTED_GARDEN=$(cd "$TEMP_DIR" && pwd -P)
+	assert_file_content_equals "$TEMP_DIR/dyd/heap/script-run-02/garden" "$EXPECTED_GARDEN"
 	assert_file_content_equals "$TEMP_DIR/dyd/heap/script-run-02/args" "arg1 arg2"
 
 	:;
