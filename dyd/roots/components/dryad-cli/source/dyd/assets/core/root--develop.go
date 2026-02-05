@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/mattn/go-isatty"
 	zlog "github.com/rs/zerolog/log"
@@ -781,12 +782,12 @@ func rootDevelop_handleUnsavedChanges(
 	for {
 		fmt.Fprint(os.Stderr, "save changes? [s=save, d=discard]: ")
 		line, readErr := reader.ReadString('\n')
-		if readErr != nil && !errors.Is(readErr, io.EOF) {
+		if readErr != nil && !errors.Is(readErr, io.EOF) && !errors.Is(readErr, syscall.EIO) {
 			return readErr
 		}
 
 		choice := strings.TrimSpace(strings.ToLower(line))
-		if readErr != nil && errors.Is(readErr, io.EOF) && choice == "" {
+		if readErr != nil && (errors.Is(readErr, io.EOF) || errors.Is(readErr, syscall.EIO)) && choice == "" {
 			fmt.Fprintf(os.Stderr, "warning: root develop exited with unsaved changes; snapshot %s\n", snapshotFingerprint)
 			return nil
 		}
