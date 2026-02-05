@@ -1,17 +1,19 @@
 package core
 
 import (
+	"bufio"
 	dydfs "dryad/filesystem"
 	"dryad/task"
-
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
 
+	"github.com/mattn/go-isatty"
 	zlog "github.com/rs/zerolog/log"
 )
 
@@ -741,6 +743,74 @@ func rootDevelop_stage5(
 	return "", err
 }
 
+func rootDevelop_handleUnsavedChanges(
+	ctx *task.ExecutionContext,
+	rootPath string,
+	workspacePath string,
+	garden *SafeGardenReference,
+) error {
+	currentSnapshotPath, err := rootDevelop_snapshotStemPath(garden, workspacePath)
+	if err != nil {
+		return err
+	}
+
+	entries, err := rootDevelop_statusChanges(ctx, rootPath, workspacePath, currentSnapshotPath)
+	if err != nil {
+		return err
+	}
+	if len(entries) == 0 {
+		return nil
+	}
+
+	snapshotFingerprint, err := rootDevelop_createSnapshotStem(ctx, workspacePath, garden)
+	if err != nil {
+		return err
+	}
+
+	if !isatty.IsTerminal(os.Stdin.Fd()) {
+		fmt.Fprintf(os.Stderr, "warning: root develop exited with unsaved changes; snapshot %s\n", snapshotFingerprint)
+		return nil
+	}
+
+	fmt.Fprintln(os.Stderr, "unsaved changes:")
+	for _, entry := range entries {
+		fmt.Fprintln(os.Stderr, entry.Code+" "+entry.Path)
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Fprint(os.Stderr, "save changes? [s=save, d=discard]: ")
+		line, readErr := reader.ReadString('\n')
+		if readErr != nil && !errors.Is(readErr, io.EOF) {
+			return readErr
+		}
+
+		choice := strings.TrimSpace(strings.ToLower(line))
+		if readErr != nil && errors.Is(readErr, io.EOF) && choice == "" {
+			fmt.Fprintf(os.Stderr, "warning: root develop exited with unsaved changes; snapshot %s\n", snapshotFingerprint)
+			return nil
+		}
+
+		switch choice {
+		case "s", "save", "y", "yes":
+			conflicts, err := rootDevelop_saveChanges(ctx, rootPath, workspacePath, currentSnapshotPath)
+			if err != nil {
+				return err
+			}
+			if len(conflicts) > 0 {
+				fmt.Fprintf(os.Stderr, "warning: save reported %d conflicts\n", len(conflicts))
+				continue
+			}
+			return nil
+		case "d", "discard", "n", "no":
+			fmt.Fprintf(os.Stderr, "warning: discarded unsaved changes; snapshot %s\n", snapshotFingerprint)
+			return nil
+		default:
+			fmt.Fprintln(os.Stderr, "enter 's' to save or 'd' to discard")
+		}
+	}
+}
+
 type rootDevelopRequest struct {
 	Root *SafeRootReference
 	Editor string
@@ -914,6 +984,11 @@ func rootDevelop(
 		inherit,
 		devSocketPath,
 	)
+
+	promptErr := rootDevelop_handleUnsavedChanges(ctx, rootPath, workspacePath, req.Root.Roots.Garden)
+	if promptErr != nil {
+		return "", promptErr
+	}
 
 	if onDevelopErr != nil {
 		return "", onDevelopErr
