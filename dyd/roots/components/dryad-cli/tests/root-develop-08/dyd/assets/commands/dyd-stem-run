@@ -34,7 +34,7 @@ _prepare() {
 
 _test() {
 	EDITOR_PATH="$TEMP_DIR/dyd/roots/root-01/dyd/commands/dev-editor"
-	(cd "$TEMP_DIR" && dryad root develop start dyd/roots/root-01 --editor="$EDITOR_PATH" --log-level="$DYD_LOG_LEVEL") 1>&2
+	(cd "$TEMP_DIR" && dryad root develop start dyd/roots/root-01 --editor="$EDITOR_PATH" --log-level="$DYD_LOG_LEVEL" < /dev/null) 1>&2
 }
 
 _verify() {
