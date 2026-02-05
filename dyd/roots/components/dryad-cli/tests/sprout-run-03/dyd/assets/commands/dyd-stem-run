@@ -38,7 +38,7 @@ _test() {
 
 	# stdout/stderr should be joined by default
 	set +e
-	OUTPUT_JOINED=$(dryad sprout run "$TEMP_DIR/dyd/sprouts/root-01" --log-level="$DYD_LOG_LEVEL" -- 2>&1)
+	OUTPUT_JOINED=$(cd "$TEMP_DIR" && dryad sprout run "dyd/sprouts/root-01" --log-level="$DYD_LOG_LEVEL" -- 2>&1)
 	STATUS=$?
 	set -e
 	if [ "$STATUS" -ne 0 ]; then
@@ -67,7 +67,7 @@ _test() {
 	LOG_DIR="$TEMP_DIR/logs"
 	mkdir -p "$LOG_DIR"
 	set +e
-	OUTPUT_LOGGED=$(dryad sprout run "$TEMP_DIR/dyd/sprouts/root-01" \
+	OUTPUT_LOGGED=$(cd "$TEMP_DIR" && dryad sprout run "dyd/sprouts/root-01" \
 		--log-stdout="$LOG_DIR" \
 		--log-stderr="$LOG_DIR" \
 		--log-level="$DYD_LOG_LEVEL" -- 2>&1)
