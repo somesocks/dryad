@@ -749,6 +749,7 @@ func rootDevelop_handleUnsavedChanges(
 	rootPath string,
 	workspacePath string,
 	garden *SafeGardenReference,
+	onExit string,
 ) error {
 	currentSnapshotPath, err := rootDevelop_snapshotStemPath(garden, workspacePath)
 	if err != nil {
@@ -766,6 +767,25 @@ func rootDevelop_handleUnsavedChanges(
 	snapshotFingerprint, err := rootDevelop_createSnapshotStem(ctx, workspacePath, garden)
 	if err != nil {
 		return err
+	}
+
+	switch strings.TrimSpace(strings.ToLower(onExit)) {
+	case "":
+	case "ask":
+	case "save":
+		conflicts, err := rootDevelop_saveChanges(ctx, rootPath, workspacePath, currentSnapshotPath)
+		if err != nil {
+			return err
+		}
+		if len(conflicts) > 0 {
+			return fmt.Errorf("root develop save: %d conflicts", len(conflicts))
+		}
+		return nil
+	case "discard":
+		fmt.Fprintf(os.Stderr, "warning: discarded unsaved changes; snapshot %s\n", snapshotFingerprint)
+		return nil
+	default:
+		return fmt.Errorf("invalid on-exit action: %s", onExit)
 	}
 
 	if !isatty.IsTerminal(os.Stdin.Fd()) {
@@ -817,6 +837,7 @@ type rootDevelopRequest struct {
 	Editor string
 	EditorArgs []string
 	Inherit bool
+	OnExit string
 }
 
 func rootDevelop(
@@ -986,7 +1007,7 @@ func rootDevelop(
 		devSocketPath,
 	)
 
-	promptErr := rootDevelop_handleUnsavedChanges(ctx, rootPath, workspacePath, req.Root.Roots.Garden)
+	promptErr := rootDevelop_handleUnsavedChanges(ctx, rootPath, workspacePath, req.Root.Roots.Garden, req.OnExit)
 	if promptErr != nil {
 		return "", promptErr
 	}
@@ -1005,6 +1026,7 @@ type RootDevelopRequest struct {
 	Editor string
 	EditorArgs []string
 	Inherit bool
+	OnExit string
 }
 
 func (root *SafeRootReference) Develop(ctx *task.ExecutionContext, req RootDevelopRequest) (error, string) {
@@ -1015,6 +1037,7 @@ func (root *SafeRootReference) Develop(ctx *task.ExecutionContext, req RootDevel
 			Editor: req.Editor,
 			EditorArgs: req.EditorArgs,
 			Inherit: req.Inherit,
+			OnExit: req.OnExit,
 		},
 	)
 	return err, res

@@ -20,6 +20,7 @@ var rootDevelopStartCommand = func() clib.Command {
 		).
 		WithOption(clib.NewOption("editor", "choose the editor to run in the root development environment").WithType(clib.OptionTypeString)).
 		WithOption(clib.NewOption("arg", "argument to pass to the editor").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("on-exit", "action to take when exiting with unsaved changes: ask, save, discard").WithType(clib.OptionTypeString)).
 		WithOption(clib.NewOption("inherit", "inherit env variables from the host environment").WithType(clib.OptionTypeBool)).
 		WithAction(func(req clib.ActionRequest) int {
 			var args = req.Args
@@ -29,6 +30,7 @@ var rootDevelopStartCommand = func() clib.Command {
 			var editor string
 			var editorArgs []string
 			var inherit bool
+			var onExit string
 			var err error
 
 			if len(args) > 0 {
@@ -43,6 +45,10 @@ var rootDevelopStartCommand = func() clib.Command {
 
 			if opts["arg"] != nil {
 				editorArgs = opts["arg"].([]string)
+			}
+
+			if opts["on-exit"] != nil {
+				onExit = opts["on-exit"].(string)
 			}
 
 			if opts["inherit"] != nil {
@@ -80,6 +86,7 @@ var rootDevelopStartCommand = func() clib.Command {
 					Editor: editor,
 					EditorArgs: editorArgs,
 					Inherit: inherit,
+					OnExit: onExit,
 				},
 			)
 			if err != nil {
