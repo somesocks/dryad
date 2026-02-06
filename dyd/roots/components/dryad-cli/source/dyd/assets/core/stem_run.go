@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -109,6 +110,14 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 		command = request.MainOverride
 	} else {
 		command = stemPath + "/dyd/commands/dyd-stem-run"
+	}
+
+	info, err := os.Stat(command)
+	if err != nil {
+		return nil, fmt.Errorf("missing stem main %q: %w", command, err)
+	}
+	if info.IsDir() {
+		return nil, fmt.Errorf("stem main is a directory %q", command)
 	}
 
 	cmd := exec.Command(
