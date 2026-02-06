@@ -4,81 +4,116 @@ import (
 	clib "dryad/cli-builder"
 	core "dryad/core"
 	task "dryad/task"
-	
+	"fmt"
 	"os"
 
 	zlog "github.com/rs/zerolog/log"
 )
 
 var rootRequirementRemoveCommand = func() clib.Command {
-	command := clib.NewCommand("remove", "remove a requirement from the current root").
-		WithArg(
-			clib.
-				NewArg("name", "name of the requirement to remove").
-				WithAutoComplete(ArgAutoCompletePath),
-		).
-		WithAction(func(req clib.ActionRequest) int {
+	type ParsedArgs struct {
+		RequirementName string
+		RootPath        string
+		Parallel        int
+	}
+
+	var parseArgs = task.From(
+		func(req clib.ActionRequest) (error, ParsedArgs) {
 			var args = req.Args
+			var options = req.Opts
 
 			var requirementName = args[0]
+			var parallel int
+
+			if options["parallel"] != nil {
+				parallel = int(options["parallel"].(int64))
+			} else {
+				parallel = PARALLEL_COUNT_DEFAULT
+			}
 
 			var rootPath, err = os.Getwd()
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while finding working directory")
-				return 1
+				return err, ParsedArgs{}
 			}
 
-			err, garden := core.Garden(rootPath).Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while resolving garden")
-				return 1
+			return nil, ParsedArgs{
+				RequirementName: requirementName,
+				RootPath:        rootPath,
+				Parallel:        parallel,
 			}
+		},
+	)
 
-			err, roots := garden.Roots().Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while resolving roots")
-				return 1
-			}
+	var removeRequirement = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+		err, garden := core.Garden(args.RootPath).Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
 
-			err, root := roots.Root(rootPath).Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while resolving root")
-				return 1
-			}
-			
-			err, requirements := root.
-				Requirements().
-				Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while resolving root requirements")
-				return 1
-			} else if requirements == nil {
-				zlog.Fatal().Err(err).Msg("root has no requirements")
-				return 1
-			}
+		err, roots := garden.Roots().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
 
-			err, requirement := requirements.
-				Requirement(requirementName).
-				Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while resolving requirement")
-				return 1
-			} else if requirement == nil {
-				zlog.Fatal().Err(err).Msg("requirement does not exist")
-				return 1
-			}
+		err, root := roots.Root(args.RootPath).Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
 
-			err = requirement.Remove(task.SERIAL_CONTEXT)
+		err, requirements := root.Requirements().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		} else if requirements == nil {
+			return fmt.Errorf("root has no requirements"), nil
+		}
+
+		err, requirement := requirements.Requirement(args.RequirementName).Resolve(ctx)
+		if err != nil {
+			return err, nil
+		} else if requirement == nil {
+			return fmt.Errorf("requirement does not exist"), nil
+		}
+
+		err = requirement.Remove(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		return nil, nil
+	}
+
+	removeRequirement = task.WithContext(
+		removeRequirement,
+		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
+			return nil, task.NewContext(args.Parallel)
+		},
+	)
+
+	var action = task.Return(
+		task.Series2(
+			parseArgs,
+			removeRequirement,
+		),
+		func(err error, val any) int {
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while unlinking root")
 				return 1
 			}
 
 			return 0
-		})
+		},
+	)
 
+	command := clib.NewCommand("remove", "remove a requirement from the current root").
+		WithArg(
+			clib.
+				NewArg("name", "name of the requirement to remove").
+				WithAutoComplete(ArgAutoCompletePath),
+		).
+		WithAction(action)
+
+	command = ParallelCommand(command)
 	command = LoggingCommand(command)
-
 
 	return command
 }()
