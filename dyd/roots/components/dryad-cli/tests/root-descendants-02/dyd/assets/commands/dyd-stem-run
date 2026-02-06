@@ -39,7 +39,7 @@ _prepare() {
 
 _test() {
 
-	(cd "$TEMP_DIR" && dryad root descendants dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL") 1>&2;
+	(dryad root descendants dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL") 1>&2;
 }
 
 _verify() {

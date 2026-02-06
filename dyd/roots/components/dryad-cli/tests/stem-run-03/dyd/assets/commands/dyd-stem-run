@@ -37,7 +37,7 @@ _prepare() {
 
 _test() {
 
-	(cd "$TEMP_DIR" && dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL") 1>&2;
+	(dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL") 1>&2;
 
 	# reject incorrect confirmation
 	set +e

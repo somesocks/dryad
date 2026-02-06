@@ -33,7 +33,7 @@ _prepare() {
 
 _test() {
 
-	HELP_TEXT=$(cd "$TEMP_DIR" && dryad system autocomplete --help);
+	HELP_TEXT=$(dryad system autocomplete --help);
 }
 
 _verify() {

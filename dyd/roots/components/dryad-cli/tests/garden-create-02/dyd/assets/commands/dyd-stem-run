@@ -34,7 +34,7 @@ _prepare() {
 _test() {
 
 	# echo "[INFO] creating garden" 1>&2;
-	(cd "$TEMP_DIR" && dryad garden create)
+	(dryad garden create)
 }
 
 _verify() {

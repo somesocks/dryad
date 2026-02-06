@@ -33,7 +33,7 @@ _prepare() {
 
 _test() {
 
-	HELP_TEXT=$(cd "$TEMP_DIR" && dryad stem unpack --help);
+	HELP_TEXT=$(dryad stem unpack --help);
 }
 
 _verify() {

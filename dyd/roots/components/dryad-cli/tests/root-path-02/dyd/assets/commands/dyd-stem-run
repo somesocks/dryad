@@ -41,7 +41,6 @@ _prepare() {
 
 _test() {
 
-	cd "$TEMP_DIR";
 	TEST_ROOT_PATH=$(dryad root path dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL");
 }
 

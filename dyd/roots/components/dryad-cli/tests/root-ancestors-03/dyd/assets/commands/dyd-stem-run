@@ -39,7 +39,7 @@ _prepare() {
 
 _test() {
 
-	(cd "$TEMP_DIR" && dryad root ancestors dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL" --parallel=64) 1>&2;
+	(dryad root ancestors dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL" --parallel=64) 1>&2;
 }
 
 _verify() {

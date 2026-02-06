@@ -42,7 +42,6 @@ _prepare() {
 
 _test() {
 
-	cd "$TEMP_DIR";
 	TEST_OUTPUT=$(dryad roots list | sort)
 }
 

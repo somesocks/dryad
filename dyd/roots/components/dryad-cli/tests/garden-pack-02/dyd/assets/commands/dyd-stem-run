@@ -39,8 +39,8 @@ _prepare() {
 
 _test() {
 
-	cd "$TEMP_DIR" && dryad garden pack --log-level="$DYD_LOG_LEVEL"
-	FOO=$(ls -al "$TEMP_DIR")
+	dryad garden pack --log-level="$DYD_LOG_LEVEL"
+	FOO=$(ls -al)
 }
 
 _verify() {

@@ -37,7 +37,7 @@ _prepare() {
 
 _test() {
 
-	(cd "$TEMP_DIR" && dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL") 1>&2;
+	(dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL") 1>&2;
 
 	set +e
 	OUTPUT=$(dryad sprout run "dyd/sprouts/root-01" \

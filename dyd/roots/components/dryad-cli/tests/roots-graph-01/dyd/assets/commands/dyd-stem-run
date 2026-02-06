@@ -33,7 +33,7 @@ _prepare() {
 
 _test() {
 
-	HELP_TEXT=$(cd "$TEMP_DIR" && dryad roots graph --help);
+	HELP_TEXT=$(dryad roots graph --help);
 }
 
 _verify() {

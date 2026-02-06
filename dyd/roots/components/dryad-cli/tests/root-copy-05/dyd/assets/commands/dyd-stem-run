@@ -39,7 +39,6 @@ _prepare() {
 
 _test() {
 
-	cd "$TEMP_DIR";
 	dryad root copy dyd/roots/root-01 dyd/roots/root-02/root-02 --log-level="$DYD_LOG_LEVEL" 1>&2;
 	dryad roots build --log-level="$DYD_LOG_LEVEL" 1>&2;
 }

@@ -42,7 +42,7 @@ _prepare() {
 
 _test() {
 
-	(cd "$TEMP_DIR" && dryad roots build --log-level="$DYD_LOG_LEVEL") 1>&2;
+	(dryad roots build --log-level="$DYD_LOG_LEVEL") 1>&2;
 }
 
 _verify() {

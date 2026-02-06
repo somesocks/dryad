@@ -33,7 +33,7 @@ _prepare() {
 
 _test() {
 
-	HELP_TEXT=$(cd "$TEMP_DIR" && dryad root requirement remove --help);
+	HELP_TEXT=$(dryad root requirement remove --help);
 }
 
 _verify() {

@@ -33,7 +33,7 @@ _prepare() {
 
 _test() {
 
-	HELP_TEXT=$(cd "$TEMP_DIR" && dryad garden create --help);
+	HELP_TEXT=$(dryad garden create --help);
 }
 
 _verify() {

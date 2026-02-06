@@ -37,7 +37,7 @@ _prepare() {
 
 _test() {
 
-	(cd "$TEMP_DIR" && dryad script run hello --log-level="$DYD_LOG_LEVEL" -- arg1 arg2) 1>&2;
+	(dryad script run hello --log-level="$DYD_LOG_LEVEL" -- arg1 arg2) 1>&2;
 }
 
 _verify() {

@@ -33,7 +33,7 @@ _prepare() {
 
 _test() {
 
-	STOP_OUTPUT=$(cd "$TEMP_DIR" && dryad root develop stop 2>&1 || true)
+	STOP_OUTPUT=$(dryad root develop stop 2>&1 || true)
 }
 
 _verify() {

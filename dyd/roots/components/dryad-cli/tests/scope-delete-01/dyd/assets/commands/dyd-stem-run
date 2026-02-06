@@ -33,7 +33,7 @@ _prepare() {
 
 _test() {
 
-	HELP_TEXT=$(cd "$TEMP_DIR" && dryad scope delete --help);
+	HELP_TEXT=$(dryad scope delete --help);
 }
 
 _verify() {

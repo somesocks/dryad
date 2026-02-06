@@ -39,7 +39,6 @@ _prepare() {
 
 _test() {
 
-	cd "$TEMP_DIR";
 	
 	dryad root copy dyd/roots/group-01/root-02 dyd/roots/group-01/temp-root 1>&2;
 	dryad root move dyd/roots/group-01/temp-root dyd/roots/group-02/root-02 --unpin 1>&2;

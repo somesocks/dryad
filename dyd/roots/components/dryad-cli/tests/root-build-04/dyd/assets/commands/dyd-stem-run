@@ -41,7 +41,7 @@ _prepare() {
 _test() {
 
 	for root_name in "${ROOTS[@]}"; do
-		(cd "$TEMP_DIR" && dryad root build "dyd/roots/$root_name" --log-level="$DYD_LOG_LEVEL") 1>&2;
+		(dryad root build "dyd/roots/$root_name" --log-level="$DYD_LOG_LEVEL") 1>&2;
 	done
 }
 

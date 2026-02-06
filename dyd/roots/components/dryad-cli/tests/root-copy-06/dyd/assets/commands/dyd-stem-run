@@ -39,7 +39,6 @@ _prepare() {
 
 _test() {
 
-	cd "$TEMP_DIR";
 	# NOTE: this root is copied several times, to attempt to trigger
 	# any pathological concurrency issues in the build
 	dryad root copy dyd/roots/group-01/root-02 dyd/roots/group-02/root-02 --unpin --log-level="$DYD_LOG_LEVEL" 1>&2;

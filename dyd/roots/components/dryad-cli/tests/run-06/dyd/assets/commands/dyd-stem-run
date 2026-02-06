@@ -38,7 +38,7 @@ _prepare() {
 _test() {
 
 	set +e
-	OUTPUT=$(cd "$TEMP_DIR" && dryad run hello --scope=missing --log-level="$DYD_LOG_LEVEL" 2>&1)
+	OUTPUT=$(dryad run hello --scope=missing --log-level="$DYD_LOG_LEVEL" 2>&1)
 	STATUS=$?
 	set -e
 
