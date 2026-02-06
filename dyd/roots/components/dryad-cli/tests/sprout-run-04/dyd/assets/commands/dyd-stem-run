@@ -29,12 +29,13 @@ _prepare() {
 	# copy the sample garden to the working directory
 	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
 	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
 
 	:;
 }
 
 _test() {
-	(cd "$TEMP_DIR" && dryad root build dyd/roots/root-01 --join-stdout=true --join-stderr=true --log-level="$DYD_LOG_LEVEL") 1>&2;
+	dryad root build dyd/roots/root-01 --join-stdout=true --join-stderr=true --log-level="$DYD_LOG_LEVEL" 1>&2;
 
 	echo "[DEBUG] DYD_LOG_LEVEL=$DYD_LOG_LEVEL" 1>&2
 	echo "[DEBUG] commands dir listing:" 1>&2
@@ -45,7 +46,7 @@ _test() {
 	fi
 
 	set +e
-	OUTPUT=$(cd "$TEMP_DIR" && dryad sprout run "dyd/sprouts/root-01" --log-level="$DYD_LOG_LEVEL" -- 2>&1)
+	OUTPUT=$(dryad sprout run "dyd/sprouts/root-01" --log-level="$DYD_LOG_LEVEL" -- 2>&1)
 	STATUS=$?
 	set -e
 
