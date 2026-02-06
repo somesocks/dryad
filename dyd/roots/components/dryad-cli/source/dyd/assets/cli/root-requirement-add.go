@@ -3,14 +3,123 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	"dryad/task"
 	dydfs "dryad/filesystem"
+	"dryad/task"
 	"os"
 
 	zlog "github.com/rs/zerolog/log"
 )
 
 var rootRequirementAddCommand = func() clib.Command {
+	type ParsedArgs struct {
+		RootPath string
+		DepPath  string
+		Alias    string
+		Parallel int
+	}
+
+	var parseArgs = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+		var args = req.Args
+		var options = req.Opts
+
+		var rootPath, err = os.Getwd()
+		if err != nil {
+			return err, ParsedArgs{}
+		}
+
+		var depPath = args[0]
+		var alias = ""
+		if len(args) > 1 {
+			alias = args[1]
+		}
+
+		var parallel int
+		if options["parallel"] != nil {
+			parallel = int(options["parallel"].(int64))
+		} else {
+			parallel = PARALLEL_COUNT_DEFAULT
+		}
+
+		err, rootPath = dydfs.PartialEvalSymlinks(ctx, rootPath)
+		if err != nil {
+			return err, ParsedArgs{}
+		}
+
+		err, depPath = dydfs.PartialEvalSymlinks(ctx, depPath)
+		if err != nil {
+			return err, ParsedArgs{}
+		}
+
+		return nil, ParsedArgs{
+			RootPath: rootPath,
+			DepPath:  depPath,
+			Alias:    alias,
+			Parallel: parallel,
+		}
+	}
+
+	var addRequirement = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+		err, garden := dryad.Garden(args.RootPath).Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		err, roots := garden.Roots().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		err, root := roots.Root(args.RootPath).Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		err, reqs := root.Requirements().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		err, dep := roots.Root(args.DepPath).Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		err, _ = reqs.Add(
+			ctx,
+			dryad.RootRequirementsAddRequest{
+				Dependency: &dep,
+				Alias:      args.Alias,
+			},
+		)
+		if err != nil {
+			return err, nil
+		}
+
+		return nil, nil
+	}
+
+	addRequirement = task.WithContext(
+		addRequirement,
+		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
+			return nil, task.NewContext(args.Parallel)
+		},
+	)
+
+	var action = task.Return(
+		task.Series2(
+			parseArgs,
+			addRequirement,
+		),
+		func(err error, val any) int {
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error while linking root")
+				return 1
+			}
+
+			return 0
+		},
+	)
+
 	command := clib.NewCommand("add", "add a root as a dependency of the current root").
 		WithArg(
 			clib.
@@ -18,80 +127,10 @@ var rootRequirementAddCommand = func() clib.Command {
 				WithAutoComplete(ArgAutoCompletePath),
 		).
 		WithArg(clib.NewArg("alias", "the alias to add the root under. if not specified, this defaults to the basename of the linked root").AsOptional()).
-		WithAction(func(req clib.ActionRequest) int {
-			var args = req.Args
+		WithAction(action)
 
-			var rootPath, err = os.Getwd()
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while finding working directory")
-				return 1
-			}
-
-			var depPath = args[0]
-			var alias = ""
-			if len(args) > 1 {
-				alias = args[1]
-			}
-
-			err, rootPath = dydfs.PartialEvalSymlinks(task.SERIAL_CONTEXT, rootPath)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while resolving root path")
-				return 1
-			}
-
-			err, depPath = dydfs.PartialEvalSymlinks(task.SERIAL_CONTEXT, depPath)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while resolving dependency path")
-				return 1
-			}
-
-			err, garden := dryad.Garden(rootPath).Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while resolving garden")
-				return 1
-			}
-
-			err, roots := garden.Roots().Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while resolving roots")
-				return 1
-			}
-
-			err, root := roots.Root(rootPath).Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while resolving root")
-				return 1
-			}
-
-			err, reqs := root.Requirements().Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while resolving root requirements")
-				return 1
-			}
-
-			err, dep := roots.Root(depPath).Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while resolving dependency")
-				return 1
-			}
-
-			err, _ = reqs.Add(
-				task.SERIAL_CONTEXT,
-				dryad.RootRequirementsAddRequest{
-					Dependency: &dep,
-					Alias: alias,
-				},
-			)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while linking root")
-				return 1
-			}
-
-			return 0
-		})
-
+	command = ParallelCommand(command)
 	command = LoggingCommand(command)
-
 
 	return command
 }()
