@@ -11,107 +11,105 @@ import (
 
 	"strings"
 
-
 	zlog "github.com/rs/zerolog/log"
 )
 
 var rootsEachCommand = func() clib.Command {
 
 	type ParsedArgs struct {
-		FromStdinFilter func (*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
-		IncludeExcludeFilter func (*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
-		Shell string
-		Command string
-		GardenPath string
-		Parallel int
-		JoinStdout bool
-		JoinStderr bool
-		IgnoreErrors bool
+		FromStdinFilter      func(*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
+		IncludeExcludeFilter func(*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
+		Shell                string
+		Command              string
+		GardenPath           string
+		Parallel             int
+		JoinStdout           bool
+		JoinStderr           bool
+		IgnoreErrors         bool
 	}
 
-	var parseArgs =
-		func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
-			var args = req.Args
-			var options = req.Opts
+	var parseArgs = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+		var args = req.Args
+		var options = req.Opts
 
-			var path string = ""
+		var path string = ""
 
-			var joinStdout bool
-			var joinStderr bool
-	
-			var ignoreErrors bool
+		var joinStdout bool
+		var joinStderr bool
 
-			err, rootFilter := ArgRootFilterFromIncludeExclude(ctx, req)
-			if err != nil {
-				return err, ParsedArgs{}
-			}
-	
-			err, fromStdinFilter := ArgRootFilterFromStdin(ctx, req)
-			if err != nil {
-				return err, ParsedArgs{}
-			}
+		var ignoreErrors bool
 
-			var parallel int
-
-			if options["parallel"] != nil {
-				parallel = int(options["parallel"].(int64))
-			} else {
-				parallel = PARALLEL_COUNT_DEFAULT
-			}
-	
-			var shell string
-			if options["shell"] != nil {
-				shell = options["shell"].(string)
-			}
-			if shell == "" {
-				shell = os.Getenv("SHELL")
-			}
-			if shell == "" {
-				shell = "/bin/sh"
-			}
-
-			if options["join-stdout"] != nil {
-				joinStdout = options["join-stdout"].(bool)
-			} else {
-				joinStdout = false
-			}
-	
-			if options["join-stderr"] != nil {
-				joinStderr = options["join-stderr"].(bool)
-			} else {
-				joinStderr = false
-			}
-
-			if options["ignore-errors"] != nil {
-				ignoreErrors = options["ignore-errors"].(bool)
-			} else {
-				ignoreErrors = false
-			}
-
-			var command string = strings.Join(args[:], " ")
-
-			return nil, ParsedArgs{
-				GardenPath: path,
-				Parallel: parallel,
-				Shell: shell,
-				Command: command,
-				FromStdinFilter: fromStdinFilter,
-				IncludeExcludeFilter: rootFilter,
-				JoinStdout: joinStdout,
-				JoinStderr: joinStderr,
-				IgnoreErrors: ignoreErrors,
-			}
+		err, rootFilter := ArgRootFilterFromIncludeExclude(ctx, req)
+		if err != nil {
+			return err, ParsedArgs{}
 		}
 
-	var eachRoots = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+		err, fromStdinFilter := ArgRootFilterFromStdin(ctx, req)
+		if err != nil {
+			return err, ParsedArgs{}
+		}
+
+		var parallel int
+
+		if options["parallel"] != nil {
+			parallel = int(options["parallel"].(int64))
+		} else {
+			parallel = PARALLEL_COUNT_DEFAULT
+		}
+
+		var shell string
+		if options["shell"] != nil {
+			shell = options["shell"].(string)
+		}
+		if shell == "" {
+			shell = os.Getenv("SHELL")
+		}
+		if shell == "" {
+			shell = "/bin/sh"
+		}
+
+		if options["join-stdout"] != nil {
+			joinStdout = options["join-stdout"].(bool)
+		} else {
+			joinStdout = false
+		}
+
+		if options["join-stderr"] != nil {
+			joinStderr = options["join-stderr"].(bool)
+		} else {
+			joinStderr = false
+		}
+
+		if options["ignore-errors"] != nil {
+			ignoreErrors = options["ignore-errors"].(bool)
+		} else {
+			ignoreErrors = false
+		}
+
+		var command string = strings.Join(args[:], " ")
+
+		return nil, ParsedArgs{
+			GardenPath:           path,
+			Parallel:             parallel,
+			Shell:                shell,
+			Command:              command,
+			FromStdinFilter:      fromStdinFilter,
+			IncludeExcludeFilter: rootFilter,
+			JoinStdout:           joinStdout,
+			JoinStderr:           joinStderr,
+			IgnoreErrors:         ignoreErrors,
+		}
+	}
+
+	var eachRoots = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
 		unsafeGarden := dryad.Garden(args.GardenPath)
-		
+
 		err, garden := unsafeGarden.Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}
 
-		err, roots := garden.Roots().Resolve(task.SERIAL_CONTEXT)
+		err, roots := garden.Roots().Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}
@@ -123,14 +121,14 @@ var rootsEachCommand = func() clib.Command {
 					args.FromStdinFilter,
 					args.IncludeExcludeFilter,
 				),
-				OnMatch: func (ctx *task.ExecutionContext, root *dryad.SafeRootReference) (error, any) {
+				OnMatch: func(ctx *task.ExecutionContext, root *dryad.SafeRootReference) (error, any) {
 					var err error
 
 					cmd := exec.Command(
 						args.Shell,
 						[]string{"-c", args.Command}...,
 					)
-				
+
 					cmd.Dir = root.BasePath
 
 					cmd.Stdin = os.Stdin
@@ -139,12 +137,12 @@ var rootsEachCommand = func() clib.Command {
 					if args.JoinStdout {
 						cmd.Stdout = os.Stdout
 					}
-				
+
 					// optionally pipe the exec stderr to us
 					if args.JoinStderr {
 						cmd.Stderr = os.Stderr
 					}
-										
+
 					err = cmd.Run()
 					if err != nil && !args.IgnoreErrors {
 						return err, nil
@@ -159,18 +157,17 @@ var rootsEachCommand = func() clib.Command {
 
 	eachRoots = task.WithContext(
 		eachRoots,
-		func (ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
+		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
 			return nil, task.NewContext(args.Parallel)
 		},
 	)
-
 
 	var action = task.Return(
 		task.Series2(
 			parseArgs,
 			eachRoots,
 		),
-		func (err error, val any) int {
+		func(err error, val any) int {
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while executing commands")
 				return 1
@@ -185,38 +182,38 @@ var rootsEachCommand = func() clib.Command {
 		WithOption(clib.NewOption("exclude", "choose which roots are excluded from the list.  the exclude filter is a CEL expression with access to a 'root' object that can be used to filter on properties of the root.").WithType(clib.OptionTypeMultiString)).
 		WithOption(
 			clib.NewOption(
-				"from-stdin", 
+				"from-stdin",
 				"if set, read a list of roots from stdin to use as a base list of roots instead of all roots. include and exclude filters will be applied after this list. default false",
 			).
-			WithType(clib.OptionTypeBool),
+				WithType(clib.OptionTypeBool),
 		).
 		WithOption(
 			clib.NewOption(
 				"ignore-errors",
 				"continue running even if one command execution returns an error",
 			).
-			WithType(clib.OptionTypeBool),
+				WithType(clib.OptionTypeBool),
 		).
 		WithOption(
 			clib.NewOption(
 				"join-stdout",
 				"join the stdout of child processes to the stderr of the parent dryad process. default false",
 			).
-			WithType(clib.OptionTypeBool),
+				WithType(clib.OptionTypeBool),
 		).
 		WithOption(
 			clib.NewOption(
 				"join-stderr",
 				"join the stderr of child processes to the stderr of the parent dryad process. default false",
 			).
-			WithType(clib.OptionTypeBool),
+				WithType(clib.OptionTypeBool),
 		).
 		WithOption(
 			clib.NewOption(
 				"shell",
 				"override the shell used to run the command in each root",
 			).
-			WithType(clib.OptionTypeString),
+				WithType(clib.OptionTypeString),
 		).
 		WithArg(clib.NewArg("-- command", "command to run once for each root").AsOptional()).
 		WithAction(action)
