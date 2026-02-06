@@ -44,8 +44,9 @@ _verify() {
 	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
 
 	assert_directory_exists "$TEMP_DIR/dyd/heap/contexts/testctx"
-	assert_file_content_equals "$TEMP_DIR/dyd/heap/contexts/testctx/home" "$TEMP_DIR/dyd/heap/contexts/testctx"
-	assert_file_content_equals "$TEMP_DIR/dyd/heap/contexts/testctx/context" "$TEMP_DIR/dyd/heap/contexts/testctx"
+	EXPECTED_CONTEXT=$(cd "$TEMP_DIR/dyd/heap/contexts/testctx" && pwd -P)
+	assert_file_content_equals "$TEMP_DIR/dyd/heap/contexts/testctx/home" "$EXPECTED_CONTEXT"
+	assert_file_content_equals "$TEMP_DIR/dyd/heap/contexts/testctx/context" "$EXPECTED_CONTEXT"
 	assert_file_content_equals "$TEMP_DIR/dyd/heap/contexts/testctx/args" "argX argY"
 	assert_file_content_equals "$TEMP_DIR/dyd/heap/contexts/testctx/stem" "$TEMP_DIR/dyd/sprouts/root-01"
 
