@@ -38,6 +38,8 @@ _test() {
 	dryad root build dyd/roots/root-01 --join-stdout=true --join-stderr=true --log-level="$DYD_LOG_LEVEL" 1>&2;
 
 	echo "[DEBUG] DYD_LOG_LEVEL=$DYD_LOG_LEVEL" 1>&2
+	echo "[DEBUG] sprout dir listing:" 1>&2
+	ls -la "dyd/sprouts/root-01" 1>&2 || true
 	echo "[DEBUG] sprout commands dir listing:" 1>&2
 	ls -la "dyd/sprouts/root-01/dyd/commands" 1>&2 || true
 	if [ -e "dyd/sprouts/root-01/dyd/commands/dyd-stem-run" ]; then

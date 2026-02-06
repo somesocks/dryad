@@ -141,7 +141,7 @@ var sproutRunCommand = func() clib.Command {
 
 			err, sprout := sprouts.Sprout(path).Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error resolving sprouts")
+				zlog.Fatal().Err(err).Msg("error resolving sprout")
 				return 1
 			}
 
