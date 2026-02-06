@@ -16,18 +16,19 @@ import (
 var sproutsRunCommand = func() clib.Command {
 
 	type ParsedArgs struct {
-		GardenPath string
-		Parallel int
-		SproutFilter func (*task.ExecutionContext, *dryad.SafeSproutReference) (error, bool)
-		Confirm string
-		Context string
-		Inherit bool
-		IgnoreErrors bool
-		JoinStdout bool
-		JoinStderr bool
-		LogStdout string
-		LogStderr string
-		Extras []string
+		GardenPath           string
+		Parallel             int
+		Request              clib.ActionRequest
+		IncludeExcludeFilter func(*task.ExecutionContext, *dryad.SafeSproutReference) (error, bool)
+		Confirm              string
+		Context              string
+		Inherit              bool
+		IgnoreErrors         bool
+		JoinStdout           bool
+		JoinStderr           bool
+		LogStdout            string
+		LogStderr            string
+		Extras               []string
 	}
 
 	var parseArgs = task.From(
@@ -54,9 +55,9 @@ var sproutsRunCommand = func() clib.Command {
 			var joinStderr bool
 			var logStdout string
 			var logStderr string
-	
+
 			var parallel int
-			
+
 			if options["context"] != nil {
 				context = options["context"].(string)
 			}
@@ -74,7 +75,7 @@ var sproutsRunCommand = func() clib.Command {
 			} else {
 				joinStdout = false
 			}
-	
+
 			if options["join-stderr"] != nil {
 				joinStderr = options["join-stderr"].(bool)
 			} else {
@@ -85,7 +86,7 @@ var sproutsRunCommand = func() clib.Command {
 				logStdout = options["log-stdout"].(string)
 				joinStdout = false
 			}
-	
+
 			if options["log-stderr"] != nil {
 				logStderr = options["log-stderr"].(string)
 				joinStderr = false
@@ -96,7 +97,7 @@ var sproutsRunCommand = func() clib.Command {
 			} else {
 				parallel = PARALLEL_COUNT_DEFAULT
 			}
-	
+
 			if options["confirm"] != nil {
 				confirm = options["confirm"].(string)
 			}
@@ -111,37 +112,39 @@ var sproutsRunCommand = func() clib.Command {
 				return err, ParsedArgs{}
 			}
 
-			err, fromStdinFilter := ArgSproutFilterFromStdin(task.SERIAL_CONTEXT, req)
-			if err != nil {
-				return err, ParsedArgs{}
-			}
-
 			extras := args[0:]
 
 			return nil, ParsedArgs{
-				GardenPath: "",
-				Parallel: parallel,
-				SproutFilter: dryad.SproutFiltersCompose(
-					fromStdinFilter,
-					includeExcludeFilter,
-				),
-				Confirm: confirm,
-				Context: context,
-				Inherit: inherit,
-				IgnoreErrors: ignoreErrors,
-				JoinStdout: joinStdout,
-				JoinStderr: joinStderr,
-				LogStdout: logStdout,
-				LogStderr: logStderr,
-				Extras: extras,
+				GardenPath:           "",
+				Parallel:             parallel,
+				Request:              req,
+				IncludeExcludeFilter: includeExcludeFilter,
+				Confirm:              confirm,
+				Context:              context,
+				Inherit:              inherit,
+				IgnoreErrors:         ignoreErrors,
+				JoinStdout:           joinStdout,
+				JoinStderr:           joinStderr,
+				LogStdout:            logStdout,
+				LogStderr:            logStderr,
+				Extras:               extras,
 			}
 		},
 	)
 
-	var runSprouts = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var runSprouts = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+		err, fromStdinFilter := ArgSproutFilterFromStdin(ctx, args.Request)
+		if err != nil {
+			return err, nil
+		}
+
+		sproutFilter := dryad.SproutFiltersCompose(
+			fromStdinFilter,
+			args.IncludeExcludeFilter,
+		)
 
 		unsafeGarden := dryad.Garden(args.GardenPath)
-		
+
 		err, garden := unsafeGarden.Resolve(ctx)
 		if err != nil {
 			return err, nil
@@ -160,9 +163,9 @@ var sproutsRunCommand = func() clib.Command {
 			err := sprouts.Walk(
 				ctx,
 				dryad.SproutsWalkRequest{
-					OnSprout: func (ctx *task.ExecutionContext, sprout *dryad.SafeSproutReference) (error, any) {
-						
-						err, shouldMatch := args.SproutFilter(ctx, sprout)
+					OnSprout: func(ctx *task.ExecutionContext, sprout *dryad.SafeSproutReference) (error, any) {
+
+						err, shouldMatch := sproutFilter(ctx, sprout)
 						if err != nil {
 							return err, nil
 						}
@@ -170,12 +173,12 @@ var sproutsRunCommand = func() clib.Command {
 						if !shouldMatch {
 							return nil, nil
 						}
-						
+
 						// calculate the relative path to the root from the base of the garden
 						relPath, err := filepath.Rel(sprout.Sprouts.Garden.BasePath, sprout.BasePath)
 						if err != nil {
 							return err, nil
-						}	
+						}
 
 						fmt.Println(" - " + relPath)
 
@@ -183,7 +186,7 @@ var sproutsRunCommand = func() clib.Command {
 					},
 				},
 			)
-				
+
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while crawling sprouts")
 				return err, nil
@@ -208,7 +211,6 @@ var sproutsRunCommand = func() clib.Command {
 
 		}
 
-
 		var env = map[string]string{}
 
 		// pull environment variables from parent process
@@ -226,9 +228,9 @@ var sproutsRunCommand = func() clib.Command {
 		err = sprouts.Walk(
 			ctx,
 			dryad.SproutsWalkRequest{
-				OnSprout: func (ctx *task.ExecutionContext, sprout *dryad.SafeSproutReference) (error, any) {
+				OnSprout: func(ctx *task.ExecutionContext, sprout *dryad.SafeSproutReference) (error, any) {
 
-					err, shouldMatch := args.SproutFilter(ctx, sprout)
+					err, shouldMatch := sproutFilter(ctx, sprout)
 					if err != nil {
 						return err, nil
 					}
@@ -237,7 +239,7 @@ var sproutsRunCommand = func() clib.Command {
 						zlog.Info().
 							Str("sprout", sprout.BasePath).
 							Msg("sprout run starting")
-		
+
 						err := sprout.Run(
 							ctx,
 							dryad.SproutRunRequest{
@@ -245,21 +247,21 @@ var sproutsRunCommand = func() clib.Command {
 								Args:       args.Extras,
 								JoinStdout: args.JoinStdout,
 								JoinStderr: args.JoinStderr,
-								LogStdout:    struct {
+								LogStdout: struct {
 									Path string
 									Name string
 								}{
 									Path: args.LogStdout,
 									Name: "",
 								},
-								LogStderr:    struct {
+								LogStderr: struct {
 									Path string
 									Name string
 								}{
 									Path: args.LogStderr,
 									Name: "",
-								},				
-								Context:    args.Context,
+								},
+								Context: args.Context,
 							},
 						)
 						if err != nil {
@@ -275,9 +277,9 @@ var sproutsRunCommand = func() clib.Command {
 								Str("sprout", sprout.BasePath).
 								Msg("sprout run finished")
 						}
-		
+
 					}
-		
+
 					return nil, nil
 
 				},
@@ -293,7 +295,7 @@ var sproutsRunCommand = func() clib.Command {
 
 	runSprouts = task.WithContext(
 		runSprouts,
-		func (ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
+		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
 			return nil, task.NewContext(args.Parallel)
 		},
 	)
@@ -303,7 +305,7 @@ var sproutsRunCommand = func() clib.Command {
 			parseArgs,
 			runSprouts,
 		),
-		func (err error, val any) int {
+		func(err error, val any) int {
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while running sprouts")
 				return 1
@@ -316,10 +318,10 @@ var sproutsRunCommand = func() clib.Command {
 	command := clib.NewCommand("run", "run each sprout in the current garden").
 		WithOption(
 			clib.NewOption(
-				"from-stdin", 
+				"from-stdin",
 				"if set, read a list of sprouts from stdin to use as a base list to run, instead of all sprouts. include and exclude filters are applied to this list. default false",
 			).
-			WithType(clib.OptionTypeBool),
+				WithType(clib.OptionTypeBool),
 		).
 		WithOption(clib.NewOption("include", "choose which sprouts are included. the include filter is a CEL expression with access to a 'sprout' object that can be used to filter on properties of each sprout.").WithType(clib.OptionTypeMultiString)).
 		WithOption(clib.NewOption("exclude", "choose which sprouts are excluded.  the exclude filter is a CEL expression with access to a 'sprout' object that can be used to filter on properties of each sprout.").WithType(clib.OptionTypeMultiString)).
