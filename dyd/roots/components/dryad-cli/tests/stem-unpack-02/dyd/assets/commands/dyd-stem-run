@@ -26,15 +26,18 @@ _setup() {
 }
 
 _prepare() {
+
 	# copy the sample garden to the working directory
 	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
 	chmod -R 755 "$TEMP_DIR"
 
+	cd "$TEMP_DIR"
 	:;
 }
 
 _test() {
-	PACK_PATH="$TEMP_DIR/stem.tar.gz"
+
+	PACK_PATH="stem.tar.gz"
 	touch "$PACK_PATH"
 
 	set +e

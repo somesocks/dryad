@@ -12,14 +12,17 @@ _setup() {
 }
 
 _prepare() {
+
 	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
 	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
 }
 
 _test() {
-	EDITOR_PATH="$TEMP_DIR/dyd/roots/root-01/dyd/commands/dev-editor"
-	OUTPUT_FILE="$TEMP_DIR/dyd/heap/root-develop-15/output"
-	mkdir -p "$TEMP_DIR/dyd/heap/root-develop-15"
+
+	EDITOR_PATH="$PWD/dyd/roots/root-01/dyd/commands/dev-editor"
+	OUTPUT_FILE="dyd/heap/root-develop-15/output"
+	mkdir -p "dyd/heap/root-develop-15"
 	(cd "$TEMP_DIR" && dryad root develop start dyd/roots/root-01 --editor="$EDITOR_PATH" --on-exit=discard --on-exit=discard --log-level="$DYD_LOG_LEVEL" < /dev/null) 2> "$OUTPUT_FILE"
 }
 

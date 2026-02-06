@@ -26,10 +26,13 @@ _setup() {
 }
 
 _prepare() {
+
+	cd "$TEMP_DIR"
 	:;
 }
 
 _test() {
+
 	# echo "[INFO] creating garden" 1>&2;
 	(cd "$TEMP_DIR" && dryad garden create)
 }

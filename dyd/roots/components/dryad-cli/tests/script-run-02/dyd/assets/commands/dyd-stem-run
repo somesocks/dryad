@@ -26,14 +26,17 @@ _setup() {
 }
 
 _prepare() {
+
 	# copy the sample garden to the working directory
 	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
 	chmod -R 755 "$TEMP_DIR"
 
+	cd "$TEMP_DIR"
 	:;
 }
 
 _test() {
+
 	(cd "$TEMP_DIR" && dryad script run hello --log-level="$DYD_LOG_LEVEL" -- arg1 arg2) 1>&2;
 }
 

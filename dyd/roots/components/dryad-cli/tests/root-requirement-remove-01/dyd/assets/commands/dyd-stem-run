@@ -26,10 +26,13 @@ _setup() {
 }
 
 _prepare() {
+
+	cd "$TEMP_DIR"
 	:;
 }
 
 _test() {
+
 	HELP_TEXT=$(cd "$TEMP_DIR" && dryad root requirement remove --help);
 }
 

@@ -26,10 +26,13 @@ _setup() {
 }
 
 _prepare() {
+
+	cd "$TEMP_DIR"
 	:;
 }
 
 _test() {
+
 	STOP_OUTPUT=$(cd "$TEMP_DIR" && dryad root develop stop 2>&1 || true)
 }
 

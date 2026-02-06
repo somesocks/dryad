@@ -26,6 +26,7 @@ _setup() {
 }
 
 _prepare() {
+
 	# echo "[INFO] creating garden" 1>&2;
 
 	# copy the sample garden to the working directory
@@ -35,10 +36,12 @@ _prepare() {
 	# delete the heap if it exists
 	rm -rf "$TEMP_DIR/dyd/heap"
 
+	cd "$TEMP_DIR"
 	:;
 }
 
 _test() {
+
 	(cd "$TEMP_DIR" && dryad roots build --log-level="$DYD_LOG_LEVEL") 1>&2;
 }
 

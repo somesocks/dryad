@@ -26,10 +26,12 @@ _setup() {
 }
 
 _prepare() {
+
 	# copy the sample garden to the working directory
 	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
 	chmod -R 755 "$TEMP_DIR"
 
+	cd "$TEMP_DIR"
 	:;
 }
 
@@ -45,6 +47,7 @@ _resolve_temp_dir() {
 }
 
 _test() {
+
 	(cd "$TEMP_DIR" && dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL") 1>&2;
 	_resolve_temp_dir
 
@@ -76,7 +79,7 @@ _test() {
 	esac
 
 	# logging disables join
-	LOG_DIR="$TEMP_DIR/logs"
+	LOG_DIR="logs"
 	mkdir -p "$LOG_DIR"
 	set +e
 	OUTPUT_LOGGED=$(cd "$TEMP_DIR" && dryad sprout run "dyd/sprouts/root-01" \
