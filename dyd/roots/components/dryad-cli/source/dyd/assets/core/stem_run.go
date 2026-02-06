@@ -119,6 +119,9 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 	if info.IsDir() {
 		return nil, fmt.Errorf("stem main is a directory %q", command)
 	}
+	if info.Mode()&0o111 == 0 {
+		return nil, fmt.Errorf("stem main is not executable %q", command)
+	}
 
 	cmd := exec.Command(
 		command,
