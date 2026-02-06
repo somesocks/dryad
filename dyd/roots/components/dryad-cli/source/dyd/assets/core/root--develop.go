@@ -482,10 +482,6 @@ func rootDevelop_stage2(workspacePath string) error {
 	if err != nil {
 		return err
 	}
-	err = rootBuild_requirementsPrepare(workspacePath)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 

@@ -159,15 +159,35 @@ var rootBuild_stage0 = func () (func (ctx *task.ExecutionContext, req rootBuild_
 		return err, req	
 	}
 
-	var mkRequirementsDir = func (ctx *task.ExecutionContext, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
+	var linkRequirementsDir = func (ctx *task.ExecutionContext, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
 		zlog.Trace().
-			Msg("RootBuild/stage0/mkRequirementsDir")
+			Msg("RootBuild/stage0/linkRequirementsDir")
 
-			err := os.MkdirAll(
-			filepath.Join(req.WorkspacePath, "dyd", "requirements"),
-			os.ModePerm,
-		)
-		return err, req	
+		requirementsPath := filepath.Join(req.RootPath, "dyd", "requirements")
+		exists, err := fileExists(requirementsPath)
+		if err != nil {
+			return err, req
+		}
+
+		if exists {
+			err = os.Symlink(
+				requirementsPath,
+				filepath.Join(req.WorkspacePath, "dyd", "requirements"),
+			)
+			if err != nil {
+				return err, req
+			}
+		} else {
+			err = os.MkdirAll(
+				filepath.Join(req.WorkspacePath, "dyd", "requirements"),
+				os.ModePerm,
+			)
+			if err != nil {
+				return err, req
+			}
+		}
+
+		return nil, req
 	}
 
 	var rootBuild_stage0 = task.Series4(
@@ -175,7 +195,7 @@ var rootBuild_stage0 = func () (func (ctx *task.ExecutionContext, req rootBuild_
 		mkBaseDir,
 		task.Parallel7(
 			mkDependenciesDir,
-			mkRequirementsDir,
+			linkRequirementsDir,
 			linkAssetsDir,
 			linkCommandsDir,
 			linkSecretsDir,

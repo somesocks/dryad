@@ -18,8 +18,7 @@ type rootBuild_stage2_request struct {
 	GardenPath string
 }
 
-// stage 2 - generate the artificial links to all executable stems for the path,
-// and prepare the requirements
+// stage 2 - generate the artificial links to all executable stems for the path
 var rootBuild_stage2 func (ctx *task.ExecutionContext, req rootBuild_stage2_request) (error, any)
 
 func init () {
@@ -38,10 +37,6 @@ func init () {
 
 		
 		err = rootBuild_pathPrepare(req.WorkspacePath)
-		if err != nil {
-			return err, nil
-		}
-		err = rootBuild_requirementsPrepare(req.WorkspacePath)
 		if err != nil {
 			return err, nil
 		}

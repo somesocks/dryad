@@ -179,23 +179,29 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 		return err, nil
 	}
 
-	// walk the requirements and convert them to dependencies
-	requirementsPath := filepath.Join(finalStemPath, "dyd", "requirements")
+	// rebuild dependency links from the source stem dependencies.
+	// requirements are manifest files and should not be interpreted as stem paths.
+	sourceDependenciesPath := filepath.Join(stemPath, "dyd", "dependencies")
 	dependenciesPath := filepath.Join(finalStemPath, "dyd", "dependencies")
-	requirements, err := filepath.Glob(filepath.Join(requirementsPath, "*"))
+	dependencies, err := filepath.Glob(filepath.Join(sourceDependenciesPath, "*"))
 	if err != nil {
 		return err, nil
 	}
 
-	for _, requirementPath := range requirements {
-		targetFingerprintFile := filepath.Join(requirementPath, "dyd", "fingerprint")
+	for _, dependencySourcePath := range dependencies {
+		targetStemPath, err := filepath.EvalSymlinks(dependencySourcePath)
+		if err != nil {
+			return err, nil
+		}
+
+		targetFingerprintFile := filepath.Join(targetStemPath, "dyd", "fingerprint")
 		targetFingerprintBytes, err := ioutil.ReadFile(targetFingerprintFile)
 		if err != nil {
 			return err, nil
 		}
 		targetFingerprint := string(targetFingerprintBytes)
 
-		dependencyPath := filepath.Join(dependenciesPath, filepath.Base(requirementPath))
+		dependencyPath := filepath.Join(dependenciesPath, filepath.Base(dependencySourcePath))
 		dependencyGardenPath := filepath.Join(heapStemsPath, targetFingerprint)
 		relPath, err := filepath.Rel(dependenciesPath, dependencyGardenPath)
 		if err != nil {

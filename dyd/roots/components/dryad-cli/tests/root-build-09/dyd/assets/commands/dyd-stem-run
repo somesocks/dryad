@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+assert_symlink_exists() {
+	path=$1
+	if [ ! -L "$path" ]; then
+		echo "[ERROR] Fail: expected symlink '$path'" 1>&2
+		return 1
+	fi
+}
+
+_setup() {
+	TEMP_DIR=''
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	(dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL") 1>&2
+}
+
+_verify() {
+	requirements_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/requirements/root-02"
+	dependency_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/root-02"
+	dependency_target=$(readlink -f "$dependency_path")
+	root2_sprout_target=$(readlink -f "$TEMP_DIR/dyd/sprouts/root-02")
+
+	assert_file_content_equals "$requirements_path" "root:../../../root-02"
+	assert_file_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/root-01.txt"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/root-01.txt" "root-01"
+
+	assert_symlink_exists "$dependency_path"
+	assert_directory_exists "$dependency_target"
+	assert_file_content_equals "$dependency_target/dyd/type" "stem"
+	assert_file_content_equals "$dependency_target/dyd/assets/root-02.txt" "root-02"
+
+	if [ "$dependency_target" != "$root2_sprout_target" ]; then
+		echo "[ERROR] Fail: dependency link should resolve to the same stem as sprout root-02" 1>&2
+		return 1
+	fi
+
+	dependency_fingerprint=$(cat "$dependency_target/dyd/fingerprint")
+	if [ "$(basename "$dependency_target")" != "$dependency_fingerprint" ]; then
+		echo "[ERROR] Fail: dependency stem path basename should match dyd/fingerprint" 1>&2
+		return 1
+	fi
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

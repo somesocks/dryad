@@ -82,12 +82,6 @@ var rootBuild_stage5 func (ctx *task.ExecutionContext, req rootBuild_stage5_requ
 			return err, ""
 		}
 
-		// prepare the requirements dir
-		err = rootBuild_requirementsPrepare(req.StemBuildPath)
-		if err != nil {
-			return err, ""
-		}
-
 		err, stemBuildFingerprint := stemFinalize(ctx, req.StemBuildPath)
 		if err != nil {
 			return err, ""
