@@ -14,6 +14,7 @@ var scriptRunAction = func(req clib.ActionRequest) int {
 	var command = req.Args[0]
 	var args = req.Args[1:]
 	var options = req.Opts
+	var parallel = PARALLEL_COUNT_DEFAULT
 
 	basePath, err := os.Getwd()
 	if err != nil {
@@ -21,9 +22,14 @@ var scriptRunAction = func(req clib.ActionRequest) int {
 		return 1
 	}
 
+	if options["parallel"] != nil {
+		parallel = int(options["parallel"].(int64))
+	}
+
+	ctx := task.NewContext(parallel)
 	unsafeGarden := dryad.Garden(basePath)
-	
-	err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
+
+	err, garden := unsafeGarden.Resolve(ctx)
 	if err != nil {
 		return 1
 	}
@@ -74,11 +80,11 @@ var scriptRunAction = func(req clib.ActionRequest) int {
 	}
 
 	err = dryad.ScriptRun(dryad.ScriptRunRequest{
-		Garden: garden,
-		Scope:      scope,
-		Setting:    "script-run-" + command,
-		Args:       args,
-		Env:        env,
+		Garden:  garden,
+		Scope:   scope,
+		Setting: "script-run-" + command,
+		Args:    args,
+		Env:     env,
 	})
 	if err != nil {
 		zlog.Fatal().Err(err).Msg("error while running script")
@@ -100,9 +106,9 @@ var scriptRunCommand = func() clib.Command {
 		WithArg(clib.NewArg("-- args", "args to pass to the script").AsOptional()).
 		WithAction(scriptRunAction)
 
+	command = ParallelCommand(command)
 	command = ScopedCommand(command)
 	command = LoggingCommand(command)
-
 
 	return command
 }()
