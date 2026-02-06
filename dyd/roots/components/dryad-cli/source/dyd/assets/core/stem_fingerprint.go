@@ -45,9 +45,11 @@ func StemFingerprintShouldMatch(ctx *task.ExecutionContext, node fs2.Walk6Node) 
 			return err, false
 		}
 
-		// clean up relative links
+		// Resolve relative link targets against the virtual path.
+		// During root build stage 0 we walk through symlinked directories,
+		// so node.Path may point outside BasePath even for package-internal links.
 		if !filepath.IsAbs(linkTarget) {
-			linkTarget = filepath.Clean(filepath.Join(filepath.Dir(node.Path), linkTarget))
+			linkTarget = filepath.Clean(filepath.Join(filepath.Dir(node.VPath), linkTarget))
 		}
 
 		isDescendant, err := fileIsDescendant(linkTarget, node.BasePath)

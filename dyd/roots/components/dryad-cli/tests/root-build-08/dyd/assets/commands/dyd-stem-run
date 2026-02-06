@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+FINGERPRINT_INITIAL=''
+FINGERPRINT_AFTER_ASSETS=''
+FINGERPRINT_AFTER_SECRETS=''
+FINGERPRINT_AFTER_TRAITS=''
+
+# import assertion functions
+. $SRC_DIR/dyd/assets/assertions.sh
+
+assert_broken_symlink_target() {
+	link_path=$1
+	expected_target=$2
+
+	if [ ! -L "$link_path" ]; then
+		echo "[ERROR] Fail: '$link_path' is not a symlink" 1>&2
+		return 1
+	fi
+
+	actual_target=$(readlink "$link_path")
+	if [ "$actual_target" != "$expected_target" ]; then
+		echo "[ERROR] Fail: symlink '$link_path' target expected ($expected_target), got ($actual_target)" 1>&2
+		return 1
+	fi
+
+	if [ -e "$link_path" ]; then
+		echo "[ERROR] Fail: expected symlink '$link_path' to be broken" 1>&2
+		return 1
+	fi
+}
+
+update_broken_symlink() {
+	link_path=$1
+	target=$2
+
+	rm -f "$link_path"
+	ln -s "$target" "$link_path"
+}
+
+_setup() {
+	#
+	# make a temporary working directory
+	# this command is linux / osx agnostic
+	# https://unix.stackexchange.com/questions/30091/fix-or-alternative-for-mktemp-in-os-x
+	# echo "\[INFO\] creating temporary working directory" 1>&2;
+	TEMP_DIR=''
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+
+	# echo "[INFO] creating garden" 1>&2;
+
+	# copy the sample garden to the working directory
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR" 
+	chmod -R 755 "$TEMP_DIR"
+
+	cd "$TEMP_DIR"
+	:;
+}
+
+_test() {
+
+	(dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL") 1>&2;
+
+	FINGERPRINT_INITIAL=$(cat "dyd/sprouts/root-01/dyd/fingerprint")
+	if [ -z "$FINGERPRINT_INITIAL" ]; then
+		echo "[ERROR] Fail: initial fingerprint should not be empty" 1>&2
+		return 1
+	fi
+
+	update_broken_symlink "dyd/roots/root-01/dyd/assets/link-broken-asset" "./missing-asset-target-2"
+
+	(dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL") 1>&2;
+
+	FINGERPRINT_AFTER_ASSETS=$(cat "dyd/sprouts/root-01/dyd/fingerprint")
+	if [ -z "$FINGERPRINT_AFTER_ASSETS" ]; then
+		echo "[ERROR] Fail: fingerprint after assets symlink update should not be empty" 1>&2
+		return 1
+	fi
+
+	update_broken_symlink "dyd/roots/root-01/dyd/secrets/link-broken-secret" "./missing-secret-target-2"
+
+	(dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL") 1>&2;
+
+	FINGERPRINT_AFTER_SECRETS=$(cat "dyd/sprouts/root-01/dyd/fingerprint")
+	if [ -z "$FINGERPRINT_AFTER_SECRETS" ]; then
+		echo "[ERROR] Fail: fingerprint after secrets symlink update should not be empty" 1>&2
+		return 1
+	fi
+
+	update_broken_symlink "dyd/roots/root-01/dyd/traits/link-broken-trait" "./missing-trait-target-2"
+
+	(dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL") 1>&2;
+
+	FINGERPRINT_AFTER_TRAITS=$(cat "dyd/sprouts/root-01/dyd/fingerprint")
+	if [ -z "$FINGERPRINT_AFTER_TRAITS" ]; then
+		echo "[ERROR] Fail: fingerprint after traits symlink update should not be empty" 1>&2
+		return 1
+	fi
+}
+
+_verify() {
+	assert_directory_exists "$TEMP_DIR/dyd"
+	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
+
+	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/type" "stem"
+
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/test-file-01" "test-file-01"
+	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/test-dir-01"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/test-dir-01/test-file-02" "test-file-02"
+	assert_broken_symlink_target "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/link-broken-asset" "./missing-asset-target-2"
+
+	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/secrets/"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/secrets/test-secret-01" "test-secret-01"
+	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/secrets/test-secret-02"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/secrets/test-secret-02/test-secret-02" "test-secret-02"
+	assert_broken_symlink_target "$TEMP_DIR/dyd/sprouts/root-01/dyd/secrets/link-broken-secret" "./missing-secret-target-2"
+
+	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/traits"
+	assert_broken_symlink_target "$TEMP_DIR/dyd/sprouts/root-01/dyd/traits/link-broken-trait" "./missing-trait-target-2"
+
+	if [ "$FINGERPRINT_INITIAL" = "$FINGERPRINT_AFTER_ASSETS" ]; then
+		echo "[ERROR] Fail: expected stem fingerprint to change after assets symlink update" 1>&2
+		return 1
+	fi
+
+	if [ "$FINGERPRINT_AFTER_ASSETS" = "$FINGERPRINT_AFTER_SECRETS" ]; then
+		echo "[ERROR] Fail: expected stem fingerprint to change after secrets symlink update" 1>&2
+		return 1
+	fi
+
+	if [ "$FINGERPRINT_AFTER_SECRETS" = "$FINGERPRINT_AFTER_TRAITS" ]; then
+		echo "[ERROR] Fail: expected stem fingerprint to change after traits symlink update" 1>&2
+		return 1
+	fi
+
+	:;
+}
+
+_teardown() {
+	# echo "\[INFO\] tearing down fixtures" 1>&2;
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
