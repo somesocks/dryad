@@ -10,31 +10,37 @@ import (
 )
 
 var gardenPathCommand = func() clib.Command {
-
 	type ParsedArgs struct {
 		GardenPath string
+		Parallel   int
 	}
 
-	var parseArgs = task.From(
-		func(req clib.ActionRequest) (error, ParsedArgs) {
-			var args = req.Args
+	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+		var args = req.Args
+		var options = req.Opts
 
-			var path string
-			// var err error
+		var path string
+		var parallel int
 
-			if len(args) > 0 {
-				path = args[0]
-			}
+		if len(args) > 0 {
+			path = args[0]
+		}
 
-			return nil, ParsedArgs{
-				GardenPath: path,
-			}
-		},
-	)
+		if options["parallel"] != nil {
+			parallel = int(options["parallel"].(int64))
+		} else {
+			parallel = PARALLEL_COUNT_DEFAULT
+		}
 
-	var printGardenPath = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+		return nil, ParsedArgs{
+			GardenPath: path,
+			Parallel:   parallel,
+		}
+	}
+
+	var printGardenPath = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
 		unsafeGarden := dryad.Garden(args.GardenPath)
-		
+
 		err, garden := unsafeGarden.Resolve(ctx)
 		if err != nil {
 			return err, nil
@@ -46,8 +52,8 @@ var gardenPathCommand = func() clib.Command {
 
 	printGardenPath = task.WithContext(
 		printGardenPath,
-		func (ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, ctx
+		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
+			return nil, task.NewContext(args.Parallel)
 		},
 	)
 
@@ -56,7 +62,7 @@ var gardenPathCommand = func() clib.Command {
 			parseArgs,
 			printGardenPath,
 		),
-		func (err error, val any) int {
+		func(err error, val any) int {
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while finding garden path")
 				return 1
@@ -65,7 +71,6 @@ var gardenPathCommand = func() clib.Command {
 			return 0
 		},
 	)
-
 
 	command := clib.NewCommand("path", "return the base path for a garden").
 		WithArg(
@@ -76,8 +81,8 @@ var gardenPathCommand = func() clib.Command {
 		).
 		WithAction(action)
 
+	command = ParallelCommand(command)
 	command = LoggingCommand(command)
-
 
 	return command
 }()
