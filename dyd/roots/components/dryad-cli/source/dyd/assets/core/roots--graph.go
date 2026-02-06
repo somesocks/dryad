@@ -2,6 +2,7 @@ package core
 
 import (
 	"path/filepath"
+	"sync"
 
 	"dryad/task"
 )
@@ -51,7 +52,7 @@ func (g TRootsGraph) Descendants(results TStringSet, roots []string) TStringSet 
 }
 
 type rootsGraphRequest struct {
-	Roots *SafeRootsReference
+	Roots    *SafeRootsReference
 	Relative bool
 }
 
@@ -63,8 +64,9 @@ func rootsGraph(
 	var relative bool = req.Relative
 
 	graph := make(TRootsGraph)
+	var graphMux sync.Mutex
 
-	var onRootRequirement = func (ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
+	var onRootRequirement = func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
 		var rootPath string = requirement.Requirements.Root.BasePath
 		var targetPath string
 		var target *SafeRootReference
@@ -74,7 +76,7 @@ func rootsGraph(
 		if err != nil {
 			return err, nil
 		}
-		
+
 		targetPath = target.BasePath
 
 		if relative {
@@ -89,12 +91,14 @@ func rootsGraph(
 			}
 		}
 
+		graphMux.Lock()
 		graph.AddEdge(rootPath, targetPath)
+		graphMux.Unlock()
 
 		return nil, nil
 	}
 
-	var onRoot = func (ctx *task.ExecutionContext, root *SafeRootReference) (error, any) {
+	var onRoot = func(ctx *task.ExecutionContext, root *SafeRootReference) (error, any) {
 		var requirements *SafeRootRequirementsReference
 		var err error
 
@@ -120,7 +124,7 @@ func rootsGraph(
 	}
 
 	err = req.Roots.Walk(
-		task.SERIAL_CONTEXT,
+		ctx,
 		RootsWalkRequest{
 			OnMatch: onRoot,
 		},
@@ -141,7 +145,7 @@ func (roots *SafeRootsReference) Graph(ctx *task.ExecutionContext, req RootsGrap
 	err, graph := rootsGraph(
 		ctx,
 		rootsGraphRequest{
-			Roots: roots,
+			Roots:    roots,
 			Relative: req.Relative,
 		},
 	)
