@@ -12,6 +12,7 @@ import (
 
 var rootDevelopStartCommand = func() clib.Command {
 	type ParsedArgs struct {
+		Parallel   int
 		Path       string
 		Editor     string
 		EditorArgs []string
@@ -24,6 +25,7 @@ var rootDevelopStartCommand = func() clib.Command {
 		var opts = req.Opts
 
 		var path string
+		var parallel int
 		var editor string
 		var editorArgs []string
 		var inherit bool
@@ -31,6 +33,12 @@ var rootDevelopStartCommand = func() clib.Command {
 
 		if len(args) > 0 {
 			path = args[0]
+		}
+
+		if opts["parallel"] != nil {
+			parallel = int(opts["parallel"].(int64))
+		} else {
+			parallel = PARALLEL_COUNT_DEFAULT
 		}
 
 		if opts["editor"] != nil {
@@ -50,6 +58,7 @@ var rootDevelopStartCommand = func() clib.Command {
 		}
 
 		return nil, ParsedArgs{
+			Parallel:   parallel,
 			Path:       path,
 			Editor:     editor,
 			EditorArgs: editorArgs,
@@ -99,8 +108,7 @@ var rootDevelopStartCommand = func() clib.Command {
 	runStart = task.WithContext(
 		runStart,
 		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			// root develop internals are not concurrency-safe yet
-			return nil, task.SERIAL_CONTEXT
+			return nil, task.NewContext(args.Parallel)
 		},
 	)
 
@@ -132,6 +140,7 @@ var rootDevelopStartCommand = func() clib.Command {
 		WithOption(clib.NewOption("inherit", "inherit env variables from the host environment").WithType(clib.OptionTypeBool)).
 		WithAction(action)
 
+	command = ParallelCommand(command)
 	command = ScopedCommand(command)
 	command = LoggingCommand(command)
 

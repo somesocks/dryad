@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sync"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -36,6 +37,7 @@ func rootDevelop_collectState(
 ) (map[string]rootDevelopFileState, error) {
 	var err error
 	var states = make(map[string]rootDevelopFileState)
+	var statesMutex sync.Mutex
 
 	if ctx == nil {
 		ctx = task.DEFAULT_CONTEXT
@@ -125,22 +127,26 @@ func rootDevelop_collectState(
 			if err != nil {
 				return err, nil
 			}
+			statesMutex.Lock()
 			states[key] = rootDevelopFileState{
 				Kind:       "symlink",
 				Hash:       hash,
 				Mode:       mode,
 				LinkTarget: linkTarget,
 			}
+			statesMutex.Unlock()
 		case mode.IsRegular():
 			_, hash, err := fileHash(node.Path)
 			if err != nil {
 				return err, nil
 			}
+			statesMutex.Lock()
 			states[key] = rootDevelopFileState{
 				Kind: "file",
 				Hash: hash,
 				Mode: mode,
 			}
+			statesMutex.Unlock()
 		default:
 			return fmt.Errorf("rootDevelop_collectState: unsupported file type: %s", node.Path), nil
 		}
