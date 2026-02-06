@@ -3,14 +3,91 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	"dryad/task"
 	dydfs "dryad/filesystem"
+	"dryad/task"
 	"fmt"
 
 	zlog "github.com/rs/zerolog/log"
 )
 
 var rootPathCommand = func() clib.Command {
+	type ParsedArgs struct {
+		Path     string
+		Parallel int
+	}
+
+	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+		var args = req.Args
+		var options = req.Opts
+
+		var path string
+
+		if len(args) > 0 {
+			path = args[0]
+		}
+
+		var parallel int
+
+		if options["parallel"] != nil {
+			parallel = int(options["parallel"].(int64))
+		} else {
+			parallel = PARALLEL_COUNT_DEFAULT
+		}
+
+		err, path := dydfs.PartialEvalSymlinks(ctx, path)
+		if err != nil {
+			return err, ParsedArgs{}
+		}
+
+		return nil, ParsedArgs{
+			Path:     path,
+			Parallel: parallel,
+		}
+	}
+
+	var printRootPath = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+		path := args.Path
+
+		err, garden := dryad.Garden(path).Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		err, roots := garden.Roots().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		err, root := roots.Root(path).Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		fmt.Println(root.BasePath)
+		return nil, nil
+	}
+
+	printRootPath = task.WithContext(
+		printRootPath,
+		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
+			return nil, task.NewContext(args.Parallel)
+		},
+	)
+
+	var action = task.Return(
+		task.Series2(
+			parseArgs,
+			printRootPath,
+		),
+		func(err error, val any) int {
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error while resolving root path")
+				return 1
+			}
+			return 0
+		},
+	)
+
 	command := clib.NewCommand("path", "return the base path of the current root").
 		WithArg(
 			clib.
@@ -18,47 +95,10 @@ var rootPathCommand = func() clib.Command {
 				AsOptional().
 				WithAutoComplete(ArgAutoCompletePath),
 		).
-		WithAction(func(req clib.ActionRequest) int {
-			var args = req.Args
+		WithAction(action)
 
-			var path string
-			var err error
-
-			if len(args) > 0 {
-				path = args[0]
-			}
-
-			err, path = dydfs.PartialEvalSymlinks(task.SERIAL_CONTEXT, path)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while cleaning root path")
-				return 1
-			}
-
-			err, garden := dryad.Garden(path).Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while resolving garden")
-				return 1
-			}
-
-			err, roots := garden.Roots().Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while resolving roots")
-				return 1
-			}
-
-			err, root := roots.Root(path).Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while resolving root")
-				return 1
-			}
-
-			fmt.Println(root.BasePath)
-
-			return 0
-		})
-
+	command = ParallelCommand(command)
 	command = LoggingCommand(command)
-
 
 	return command
 }()

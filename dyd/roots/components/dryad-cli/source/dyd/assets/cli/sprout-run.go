@@ -51,157 +51,206 @@ var sproutRunCommand = func() clib.Command {
 		WithOption(clib.NewOption("log-stderr", "log the stderr of child processes to a file in the specified directory. disables joining").WithType(clib.OptionTypeString)).
 		WithArg(clib.NewArg("-- args", "args to pass to the stem").AsOptional()).
 		WithAction(func(req clib.ActionRequest) int {
-			var args = req.Args
-			var options = req.Opts
-
-			var context string
-			var override string
-			var inherit bool
-			var confirm string
-			var joinStdout bool
-			var joinStderr bool
-			var logStdout string
-			var logStderr string
-
-			if options["context"] != nil {
-				context = options["context"].(string)
+			type ParsedArgs struct {
+				Path       string
+				Extras     []string
+				Context    string
+				Override   string
+				Inherit    bool
+				Confirm    string
+				JoinStdout bool
+				JoinStderr bool
+				LogStdout  string
+				LogStderr  string
+				Parallel   int
 			}
 
-			if options["inherit"] != nil {
-				inherit = options["inherit"].(bool)
-			}
+			var parseArgs = task.From(
+				func(req clib.ActionRequest) (error, ParsedArgs) {
+					var args = req.Args
+					var opts = req.Opts
+					var context string
+					var override string
+					var inherit bool
+					var confirm string
+					var joinStdout bool
+					var joinStderr bool
+					var logStdout string
+					var logStderr string
+					var parallel int
 
-			if options["override"] != nil {
-				override = options["override"].(string)
-			}
-
-			if options["confirm"] != nil {
-				confirm = options["confirm"].(string)
-			}
-
-			if options["join-stdout"] != nil {
-				joinStdout = options["join-stdout"].(bool)
-			} else {
-				joinStdout = true
-			}
-
-			if options["join-stderr"] != nil {
-				joinStderr = options["join-stderr"].(bool)
-			} else {
-				joinStderr = true
-			}
-
-			if options["log-stdout"] != nil {
-				logStdout = options["log-stdout"].(string)
-				joinStdout = false
-			}
-
-			if options["log-stderr"] != nil {
-				logStderr = options["log-stderr"].(string)
-				joinStderr = false
-			}
-
-			// if confirm is set, we want to print the list
-			// of sprouts to run
-			if confirm != "" {
-				fmt.Println("this package will be executed:")
-				fmt.Println(args[0])
-				fmt.Println("are you sure? type '" + confirm + "' to continue")
-
-				reader := bufio.NewReader(os.Stdin)
-
-				input, err := reader.ReadString('\n')
-				if err != nil {
-					zlog.Fatal().Err(err).Msg("error while reading input")
-					return 1
-				}
-
-				input = strings.TrimSuffix(input, "\n")
-
-				if input != confirm {
-					zlog.Fatal().Msg("input does not match confirmation, aborting")
-					return 1
-				}
-
-			}
-
-			var env = map[string]string{}
-
-			// pull
-			if inherit {
-				for _, e := range os.Environ() {
-					if i := strings.Index(e, "="); i >= 0 {
-						env[e[:i]] = e[i+1:]
+					if opts["context"] != nil {
+						context = opts["context"].(string)
 					}
-				}
-			} else {
-				// copy a few variables over from parent env for convenience
-				env["TERM"] = os.Getenv("TERM")
-			}
 
-			var err error
-			path := args[0]
-			extras := args[1:]
+					if opts["inherit"] != nil {
+						inherit = opts["inherit"].(bool)
+					}
 
-			err, path = resolveSproutPath(path)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error resolving path")
-				return 1
-			}
-			
-			err, garden := dryad.Garden(path).Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error resolving garden")
-				return 1
-			}
+					if opts["override"] != nil {
+						override = opts["override"].(string)
+					}
 
-			err, sprouts := garden.Sprouts().Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error resolving sprouts")
-				return 1
-			}
+					if opts["confirm"] != nil {
+						confirm = opts["confirm"].(string)
+					}
 
-			err, sprout := sprouts.Sprout(path).Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error resolving sprout")
-				return 1
-			}
+					if opts["join-stdout"] != nil {
+						joinStdout = opts["join-stdout"].(bool)
+					} else {
+						joinStdout = true
+					}
 
-			err = sprout.Run(
-				task.SERIAL_CONTEXT,
-				dryad.SproutRunRequest{
-					MainOverride: override,
-					Env:          env,
-					Args:         extras,
-					JoinStdout:   joinStdout,
-					LogStdout:    struct {
-						Path string
-						Name string
-					}{
-						Path: logStdout,
-						Name: "",
-					},
-					JoinStderr:   joinStderr,
-					LogStderr:    struct {
-						Path string
-						Name string
-					}{
-						Path: logStderr,
-						Name: "",
-					},
-					Context:      context,
+					if opts["join-stderr"] != nil {
+						joinStderr = opts["join-stderr"].(bool)
+					} else {
+						joinStderr = true
+					}
+
+					if opts["log-stdout"] != nil {
+						logStdout = opts["log-stdout"].(string)
+						joinStdout = false
+					}
+
+					if opts["log-stderr"] != nil {
+						logStderr = opts["log-stderr"].(string)
+						joinStderr = false
+					}
+
+					if opts["parallel"] != nil {
+						parallel = int(opts["parallel"].(int64))
+					} else {
+						parallel = PARALLEL_COUNT_DEFAULT
+					}
+
+					return nil, ParsedArgs{
+						Path:       args[0],
+						Extras:     args[1:],
+						Context:    context,
+						Override:   override,
+						Inherit:    inherit,
+						Confirm:    confirm,
+						JoinStdout: joinStdout,
+						JoinStderr: joinStderr,
+						LogStdout:  logStdout,
+						LogStderr:  logStderr,
+						Parallel:   parallel,
+					}
 				},
 			)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error executing stem")
-				return 1
+
+			var runSprout = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+				// if confirm is set, we want to print the list
+				// of sprouts to run
+				if args.Confirm != "" {
+					fmt.Println("this package will be executed:")
+					fmt.Println(args.Path)
+					fmt.Println("are you sure? type '" + args.Confirm + "' to continue")
+
+					reader := bufio.NewReader(os.Stdin)
+
+					input, err := reader.ReadString('\n')
+					if err != nil {
+						return err, nil
+					}
+
+					input = strings.TrimSuffix(input, "\n")
+
+					if input != args.Confirm {
+						return fmt.Errorf("input does not match confirmation, aborting"), nil
+					}
+				}
+
+				var env = map[string]string{}
+
+				// pull
+				if args.Inherit {
+					for _, e := range os.Environ() {
+						if i := strings.Index(e, "="); i >= 0 {
+							env[e[:i]] = e[i+1:]
+						}
+					}
+				} else {
+					// copy a few variables over from parent env for convenience
+					env["TERM"] = os.Getenv("TERM")
+				}
+
+				err, path := resolveSproutPath(args.Path)
+				if err != nil {
+					return err, nil
+				}
+
+				err, garden := dryad.Garden(path).Resolve(ctx)
+				if err != nil {
+					return err, nil
+				}
+
+				err, sprouts := garden.Sprouts().Resolve(ctx)
+				if err != nil {
+					return err, nil
+				}
+
+				err, sprout := sprouts.Sprout(path).Resolve(ctx)
+				if err != nil {
+					return err, nil
+				}
+
+				err = sprout.Run(
+					ctx,
+					dryad.SproutRunRequest{
+						MainOverride: args.Override,
+						Env:          env,
+						Args:         args.Extras,
+						JoinStdout:   args.JoinStdout,
+						LogStdout: struct {
+							Path string
+							Name string
+						}{
+							Path: args.LogStdout,
+							Name: "",
+						},
+						JoinStderr: args.JoinStderr,
+						LogStderr: struct {
+							Path string
+							Name string
+						}{
+							Path: args.LogStderr,
+							Name: "",
+						},
+						Context: args.Context,
+					},
+				)
+				if err != nil {
+					return err, nil
+				}
+
+				return nil, nil
 			}
 
-			return 0
+			runSprout = task.WithContext(
+				runSprout,
+				func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
+					return nil, task.NewContext(args.Parallel)
+				},
+			)
+
+			return task.Return(
+				task.Series2(
+					parseArgs,
+					runSprout,
+				),
+				func(err error, val any) int {
+					if err != nil {
+						zlog.Fatal().Err(err).Msg("error executing stem")
+						return 1
+					}
+					return 0
+				},
+			)(req)
 		})
 
+	command = ParallelCommand(command)
 	command = LoggingCommand(command)
-
 
 	return command
 }()

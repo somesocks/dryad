@@ -3,13 +3,122 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	"dryad/task"
 	dydfs "dryad/filesystem"
+	"dryad/task"
 
 	zlog "github.com/rs/zerolog/log"
 )
 
 var rootReplaceCommand = func() clib.Command {
+	type ParsedArgs struct {
+		SourcePath           string
+		DestPath             string
+		Parallel             int
+		FromStdinFilter      func(*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
+		IncludeExcludeFilter func(*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
+	}
+
+	var parseArgs = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+		var args = req.Args
+		var options = req.Opts
+
+		var source string = args[0]
+		var dest string = args[1]
+		var err error
+		var parallel int
+
+		if options["parallel"] != nil {
+			parallel = int(options["parallel"].(int64))
+		} else {
+			parallel = PARALLEL_COUNT_DEFAULT
+		}
+
+		err, includeExcludeFilter := ArgRootFilterFromIncludeExclude(ctx, req)
+		if err != nil {
+			return err, ParsedArgs{}
+		}
+
+		err, fromStdinFilter := ArgRootFilterFromStdin(ctx, req)
+		if err != nil {
+			return err, ParsedArgs{}
+		}
+
+		err, source = dydfs.PartialEvalSymlinks(ctx, source)
+		if err != nil {
+			return err, ParsedArgs{}
+		}
+
+		err, dest = dydfs.PartialEvalSymlinks(ctx, dest)
+		if err != nil {
+			return err, ParsedArgs{}
+		}
+
+		return nil, ParsedArgs{
+			SourcePath:           source,
+			DestPath:             dest,
+			Parallel:             parallel,
+			FromStdinFilter:      fromStdinFilter,
+			IncludeExcludeFilter: includeExcludeFilter,
+		}
+	}
+
+	var replaceRoot = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+		err, garden := dryad.Garden(args.SourcePath).Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		err, roots := garden.Roots().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		err, safeSourceRoot := roots.Root(args.SourcePath).Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		err, safeDestRoot := roots.Root(args.DestPath).Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		err = safeSourceRoot.Replace(
+			ctx,
+			dryad.RootReplaceRequest{
+				Filter: dryad.RootFiltersCompose(
+					args.FromStdinFilter,
+					args.IncludeExcludeFilter,
+				),
+				Dest: &safeDestRoot,
+			},
+		)
+
+		return err, nil
+	}
+
+	replaceRoot = task.WithContext(
+		replaceRoot,
+		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
+			return nil, task.NewContext(args.Parallel)
+		},
+	)
+
+	var action = task.Return(
+		task.Series2(
+			parseArgs,
+			replaceRoot,
+		),
+		func(err error, val any) int {
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error while replacing root")
+				return 1
+			}
+
+			return 0
+		},
+	)
+
 	command := clib.NewCommand("replace", "replace all references to one root with references to another").
 		WithArg(
 			clib.
@@ -35,87 +144,15 @@ var rootReplaceCommand = func() clib.Command {
 		).
 		WithOption(
 			clib.NewOption(
-				"from-stdin", 
+				"from-stdin",
 				"if set, read a list of roots from stdin to use as a base list, instead of all roots. include and exclude filters will be applied to this list. default false",
 			).
-			WithType(clib.OptionTypeBool),
+				WithType(clib.OptionTypeBool),
 		).
-		WithAction(func(req clib.ActionRequest) int {
-			var args = req.Args
+		WithAction(action)
 
-			var source string = args[0]
-			var dest string = args[1]
-			var err error
-
-			err, includeExcludeFilter := ArgRootFilterFromIncludeExclude(task.SERIAL_CONTEXT, req)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error parsing include/exclude filters")
-				return 1
-			}
-
-			err, fromStdinFilter := ArgRootFilterFromStdin(task.SERIAL_CONTEXT, req)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error parsing --from-stdin filter")
-				return 1
-			}			
-
-			err, source = dydfs.PartialEvalSymlinks(task.SERIAL_CONTEXT, source)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while source root path")
-				return 1
-			}
-
-			err, dest = dydfs.PartialEvalSymlinks(task.SERIAL_CONTEXT, dest)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while dest root path")
-				return 1
-			}
-
-			err, garden := dryad.Garden(source).Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while resolving garden")
-				return 1
-			}	
-
-			err, roots := garden.Roots().Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error resolving garden roots")
-				return 1
-			}
-
-			err, safeSourceRoot := roots.Root(source).Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while resolving source root")
-				return 1
-			}
-	
-			err, safeDestRoot := roots.Root(dest).Resolve(task.SERIAL_CONTEXT)
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while resolving dest root")
-				return 1
-			}	
-
-			err = safeSourceRoot.Replace(
-				task.SERIAL_CONTEXT,
-				dryad.RootReplaceRequest{
-					Filter: dryad.RootFiltersCompose(
-						fromStdinFilter,
-						includeExcludeFilter,
-					),
-					Dest: &safeDestRoot,
-				},
-			)
-
-			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while replacing root")
-				return 1
-			}
-
-			return 0
-		})
-
+	command = ParallelCommand(command)
 	command = LoggingCommand(command)
-
 
 	return command
 }()

@@ -17,8 +17,8 @@ var runCommand = func() clib.Command {
 		WithArg(clib.NewArg("-- args", "args to pass to the command").AsOptional()).
 		WithAction(scriptRunAction)
 
+	command = ParallelCommand(command)
 	command = LoggingCommand(command)
-
 
 	return command
 }()

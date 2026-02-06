@@ -18,14 +18,20 @@ var ScopedCommand = func(
 	wrapper := func(req clib.ActionRequest) int {
 		invocation := req.Invocation
 		options := req.Opts
+		parallel := PARALLEL_COUNT_DEFAULT
+
+		if options["parallel"] != nil {
+			parallel = int(options["parallel"].(int64))
+		}
 
 		unsafeGarden := dryad.Garden("")
-		
-		err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
+
+		ctx := task.NewContext(parallel)
+		err, garden := unsafeGarden.Resolve(ctx)
 		if err != nil {
 			return 1
 		}
-	
+
 		var scope string
 		if options["scope"] != nil {
 			scope = options["scope"].(string)

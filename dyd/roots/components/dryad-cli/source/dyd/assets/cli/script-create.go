@@ -15,9 +15,9 @@ var scriptCreateCommand = func() clib.Command {
 		WithOption(clib.NewOption("editor", "set the editor to use")).
 		WithAction(scriptEditAction)
 
+	command = ParallelCommand(command)
 	command = ScopedCommand(command)
 	command = LoggingCommand(command)
-
 
 	return command
 }()

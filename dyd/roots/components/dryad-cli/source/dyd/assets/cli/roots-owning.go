@@ -29,84 +29,116 @@ var _rootsOwningDependencyCorrection = func(path string) string {
 }
 
 var rootsOwningCommand = func() clib.Command {
+	type ParsedArgs struct {
+		Relative bool
+		Parallel int
+	}
+
+	var parseArgs = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+		var options = req.Opts
+
+		var relative bool = true
+		var parallel int
+
+		if options["relative"] != nil {
+			relative = options["relative"].(bool)
+		} else {
+			relative = true
+		}
+
+		if options["parallel"] != nil {
+			parallel = int(options["parallel"].(int64))
+		} else {
+			parallel = PARALLEL_COUNT_DEFAULT
+		}
+
+		return nil, ParsedArgs{
+			Relative: relative,
+			Parallel: parallel,
+		}
+	}
+
+	var findOwningRoots = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+		err, garden := dryad.Garden("").Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		err, roots := garden.Roots().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		rootSet := make(map[string]bool)
+
+		scanner := bufio.NewScanner(os.Stdin)
+
+		for scanner.Scan() {
+			path := scanner.Text()
+			path, err := filepath.Abs(path)
+			if err != nil {
+				return err, nil
+			}
+			path = _rootsOwningDependencyCorrection(path)
+			err, root := roots.Root(path).Resolve(ctx)
+			if err == nil {
+				rootSet[root.BasePath] = true
+			}
+		}
+
+		// Check for any errors during scanning
+		if err := scanner.Err(); err != nil {
+			return err, nil
+		}
+
+		// Print the resulting roots
+		if args.Relative {
+			for key := range rootSet {
+				// calculate the relative path to the root from the base of the garden
+				relPath, err := filepath.Rel(garden.BasePath, key)
+				if err != nil {
+					return err, nil
+				}
+				fmt.Println(relPath)
+			}
+		} else {
+			for key := range rootSet {
+				fmt.Println(key)
+			}
+		}
+
+		return nil, nil
+	}
+
+	findOwningRoots = task.WithContext(
+		findOwningRoots,
+		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
+			return nil, task.NewContext(args.Parallel)
+		},
+	)
+
+	var action = task.Return(
+		task.Series2(
+			parseArgs,
+			findOwningRoots,
+		),
+		func(err error, val any) int {
+			if err != nil {
+				zlog.Fatal().Err(err).Msg("error while finding owning roots")
+				return 1
+			}
+
+			return 0
+		},
+	)
+
 	command := clib.NewCommand("owning", "list all roots that are owners of the provided files. The files to check should be provided as relative or absolute paths through stdin.").
 		WithOption(clib.NewOption("relative", "print roots relative to the base garden path. default true").WithType(clib.OptionTypeBool)).
-		WithAction(
-			func(req clib.ActionRequest) int {
-				var options = req.Opts
+		WithAction(action)
 
-				var path string = ""
-
-				var relative bool = true
-
-				if options["relative"] != nil {
-					relative = options["relative"].(bool)
-				} else {
-					relative = true
-				}
-
-				err, garden := dryad.Garden(path).Resolve(task.SERIAL_CONTEXT)
-				if err != nil {
-					zlog.Fatal().Err(err).Msg("error resolving garden")
-					return 1
-				}
-
-				err, roots := garden.Roots().Resolve(task.SERIAL_CONTEXT)
-				if err != nil {
-					zlog.Fatal().Err(err).Msg("error resolving garden roots")
-					return 1
-				}
-					
-				rootSet := make(map[string]bool)
-
-				scanner := bufio.NewScanner(os.Stdin)
-
-				for scanner.Scan() {
-					path := scanner.Text()
-					path, err := filepath.Abs(path)
-					if err != nil {
-						zlog.Error().
-							Err(err).
-							Msg("")
-						return 1
-					}
-					path = _rootsOwningDependencyCorrection(path)
-					err, root := roots.Root(path).Resolve(task.SERIAL_CONTEXT)
-					if err == nil {
-						rootSet[root.BasePath] = true
-					}
-				}
-
-				// Check for any errors during scanning
-				if err := scanner.Err(); err != nil {
-					zlog.Fatal().Err(err).Msg("error reading stdin")
-					return 1
-				}
-
-				// Print the resulting roots
-				if relative {
-					for key := range rootSet {
-						// calculate the relative path to the root from the base of the garden
-						relPath, err := filepath.Rel(garden.BasePath, key)
-						if err != nil {
-							zlog.Fatal().Err(err).Msg("error while finding root")
-							return 1
-						}
-						fmt.Println(relPath)
-					}
-				} else {
-					for key := range rootSet {
-						fmt.Println(key)
-					}
-				}
-
-				return 0
-			},
-		)
-
+	command = ParallelCommand(command)
 	command = ScopedCommand(command)
 	command = LoggingCommand(command)
-
 
 	return command
 }()
