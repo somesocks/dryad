@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+OUT_DIR="$DYD_GARDEN/dyd/heap/root-develop-stop-03"
+mkdir -p "$OUT_DIR"
+printf "ok\n" > "$OUT_DIR/started"

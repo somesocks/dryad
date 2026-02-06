@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+# import assertion functions
+. $SRC_DIR/dyd/assets/assertions.sh
+
+_setup() {
+	#
+	# make a temporary working directory
+	# this command is linux / osx agnostic
+	# https://unix.stackexchange.com/questions/30091/fix-or-alternative-for-mktemp-in-os-x
+	# echo "\[INFO\] creating temporary working directory" 1>&2;
+	TEMP_DIR=''
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+
+	# copy the sample garden to the working directory
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+
+	cd "$TEMP_DIR"
+	:;
+}
+
+_test() {
+
+	EDITOR_PATH="$PWD/dyd/roots/root-01/dyd/commands/dev-editor"
+	(dryad root develop start dyd/roots/root-01 --editor="$EDITOR_PATH" --log-level="$DYD_LOG_LEVEL") 1>&2;
+}
+
+_verify() {
+	assert_directory_exists "$TEMP_DIR/dyd"
+	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
+
+	assert_file_content_equals "$TEMP_DIR/dyd/heap/root-develop-stop-02/started" "ok"
+	assert_file_content_equals "$TEMP_DIR/dyd/heap/root-develop-stop-02/stopped" "ok"
+	if [ -f "$TEMP_DIR/dyd/heap/root-develop-stop-02/editor-ran" ]; then
+		echo "[ERROR] Fail: editor should not have run" 1>&2
+		return 1
+	fi
+
+	:;
+}
+
+_teardown() {
+	# echo "\[INFO\] tearing down fixtures" 1>&2;
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

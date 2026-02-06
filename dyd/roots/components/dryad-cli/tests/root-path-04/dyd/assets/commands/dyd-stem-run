@@ -13,7 +13,7 @@ SRC_DIR=$DYD_STEM
 TEMP_DIR=''
 
 ROOTS=("root-01" "root-02" "root-03" "root-04" "root-05")
-declare -A ROOT_PATHS
+ROOT_PATHS=()
 
 # import assertion functions
 . $SRC_DIR/dyd/assets/assertions.sh
@@ -29,19 +29,22 @@ _setup() {
 }
 
 _prepare() {
+
 	# echo "[INFO] creating garden" 1>&2;
 
 	# copy the sample garden to the working directory
 	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR" 
 	chmod -R 755 "$TEMP_DIR"
 
+	cd "$TEMP_DIR"
 	:;
 }
 
 _test() {
-	cd "$TEMP_DIR/dyd/roots";
+
+	cd "dyd/roots";
 	for root_name in "${ROOTS[@]}"; do
-		ROOT_PATHS["$root_name"]=$(dryad root path "$root_name" --log-level="$DYD_LOG_LEVEL");
+		ROOT_PATHS+=("$(dryad root path "$root_name" --log-level="$DYD_LOG_LEVEL")");
 	done
 }
 
@@ -51,8 +54,8 @@ _verify() {
 	# so in this test case we need to make sure that we do the same
 	TEMP_DIR=$(readlink -f "$TEMP_DIR")
 
-	for root_name in "${ROOTS[@]}"; do
-		assert_all_equal "${ROOT_PATHS[$root_name]}" "$TEMP_DIR/dyd/roots/$root_name"
+	for index in "${!ROOTS[@]}"; do
+		assert_all_equal "${ROOT_PATHS[$index]}" "$TEMP_DIR/dyd/roots/${ROOTS[$index]}"
 	done
 
 	:;

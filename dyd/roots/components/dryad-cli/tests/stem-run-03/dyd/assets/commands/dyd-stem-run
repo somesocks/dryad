@@ -26,32 +26,35 @@ _setup() {
 }
 
 _prepare() {
+
 	# copy the sample garden to the working directory
 	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
 	chmod -R 755 "$TEMP_DIR"
 
+	cd "$TEMP_DIR"
 	:;
 }
 
 _test() {
-	(cd "$TEMP_DIR" && dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL") 1>&2;
+
+	(dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL") 1>&2;
 
 	# reject incorrect confirmation
 	set +e
-	printf "%s\n" "nope" | dryad stem run --confirm=YES "$TEMP_DIR/dyd/sprouts/root-01" --log-level="$DYD_LOG_LEVEL" -- 1>&2
+	printf "%s\n" "nope" | dryad stem run --confirm=YES "dyd/sprouts/root-01" --log-level="$DYD_LOG_LEVEL" -- 1>&2
 	STATUS=$?
 	set -e
 	if [ "$STATUS" -eq 0 ]; then
 		echo "[ERROR] Fail: expected stem run to fail with wrong confirmation" 1>&2
 		return 1
 	fi
-	if [ -f "$TEMP_DIR/dyd/heap/stem-run-03/ran" ]; then
+	if [ -f "dyd/heap/stem-run-03/ran" ]; then
 		echo "[ERROR] Fail: stem main should not run on wrong confirmation" 1>&2
 		return 1
 	fi
 
 	# accept correct confirmation
-	printf "%s\n" "YES" | dryad stem run --confirm=YES "$TEMP_DIR/dyd/sprouts/root-01" --log-level="$DYD_LOG_LEVEL" -- 1>&2
+	printf "%s\n" "YES" | dryad stem run --confirm=YES "dyd/sprouts/root-01" --log-level="$DYD_LOG_LEVEL" -- 1>&2
 }
 
 _verify() {

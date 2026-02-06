@@ -29,17 +29,31 @@ _prepare() {
 	# copy the sample garden to the working directory
 	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
 	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
 
 	:;
 }
 
 _test() {
-	(cd "$TEMP_DIR" && dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL") 1>&2;
+	dryad root build dyd/roots/root-01 --join-stdout=true --join-stderr=true --log-level="$DYD_LOG_LEVEL" 1>&2;
+
+	echo "[DEBUG] DYD_LOG_LEVEL=$DYD_LOG_LEVEL" 1>&2
+	echo "[DEBUG] sprout dir listing:" 1>&2
+	ls -la "dyd/sprouts/root-01" 1>&2 || true
+	echo "[DEBUG] sprout commands dir listing:" 1>&2
+	ls -la "dyd/sprouts/root-01/dyd/commands" 1>&2 || true
+	if [ -e "dyd/sprouts/root-01/dyd/commands/dyd-stem-run" ]; then
+		echo "[DEBUG] dyd-stem-run stat:" 1>&2
+		stat "dyd/sprouts/root-01/dyd/commands/dyd-stem-run" 1>&2 || true
+	fi
 
 	set +e
-	OUTPUT=$(dryad sprout run "$TEMP_DIR/dyd/sprouts/root-01" --log-level="$DYD_LOG_LEVEL" -- 2>&1)
+	OUTPUT=$(dryad sprout run "dyd/sprouts/root-01" --log-level="$DYD_LOG_LEVEL" -- 2>&1)
 	STATUS=$?
 	set -e
+
+	echo "[DEBUG] sprout run output:" 1>&2
+	printf '%s\n' "$OUTPUT" 1>&2
 
 	if [ "$STATUS" -eq 0 ]; then
 		echo "[ERROR] Fail: expected sprout run to fail with missing main" 1>&2

@@ -26,16 +26,19 @@ _setup() {
 }
 
 _prepare() {
+
 	# copy the sample garden to the working directory
 	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
 	chmod -R 755 "$TEMP_DIR"
 
+	cd "$TEMP_DIR"
 	:;
 }
 
 _test() {
-	ROOT_1="$TEMP_DIR/dyd/roots/root-01"
-	ROOT_2="$TEMP_DIR/dyd/roots/root-02"
+
+	ROOT_1="$PWD/dyd/roots/root-01"
+	ROOT_2="$PWD/dyd/roots/root-02"
 
 	(cd "$ROOT_1" && dryad root requirement add "$ROOT_2" dep-02) 1>&2;
 

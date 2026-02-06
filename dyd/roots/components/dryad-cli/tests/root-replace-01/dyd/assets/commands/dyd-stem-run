@@ -26,11 +26,14 @@ _setup() {
 }
 
 _prepare() {
+
+	cd "$TEMP_DIR"
 	:;
 }
 
 _test() {
-	HELP_TEXT=$(cd "$TEMP_DIR" && dryad root replace --help);
+
+	HELP_TEXT=$(dryad root replace --help);
 }
 
 _verify() {

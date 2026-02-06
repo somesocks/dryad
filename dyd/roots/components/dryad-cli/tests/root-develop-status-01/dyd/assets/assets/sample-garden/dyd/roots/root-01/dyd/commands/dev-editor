@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+OUT_DIR="$DYD_GARDEN/dyd/heap/root-develop-status-01"
+mkdir -p "$OUT_DIR"
+
+"$DYD_CLI_BIN" root develop status > "$OUT_DIR/status"

@@ -26,18 +26,41 @@ _setup() {
 }
 
 _prepare() {
+
 	# copy the sample garden to the working directory
 	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
 	chmod -R 755 "$TEMP_DIR"
 
+	cd "$TEMP_DIR"
 	:;
 }
 
+_resolve_temp_dir() {
+	if command -v realpath >/dev/null 2>&1; then
+		TEMP_DIR=$(realpath "$TEMP_DIR")
+		return
+	fi
+	if readlink -f "$TEMP_DIR" >/dev/null 2>&1; then
+		TEMP_DIR=$(readlink -f "$TEMP_DIR")
+		return
+	fi
+}
+
 _test() {
-	(cd "$TEMP_DIR" && dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL") 1>&2;
+
+	(dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL") 1>&2;
+	_resolve_temp_dir
 
 	# stdout/stderr should be joined by default
-	OUTPUT_JOINED=$(dryad sprout run "$TEMP_DIR/dyd/sprouts/root-01" --log-level="$DYD_LOG_LEVEL" -- 2>&1)
+	set +e
+	OUTPUT_JOINED=$(dryad sprout run "dyd/sprouts/root-01" --log-level="$DYD_LOG_LEVEL" -- 2>&1)
+	STATUS=$?
+	set -e
+	if [ "$STATUS" -ne 0 ]; then
+		echo "$OUTPUT_JOINED" 1>&2
+		echo "[ERROR] Fail: sprout run (joined) exited with status $STATUS" 1>&2
+		return 1
+	fi
 	case "$OUTPUT_JOINED" in
 		*"STDOUT-OK"*)
 			;;
@@ -56,12 +79,20 @@ _test() {
 	esac
 
 	# logging disables join
-	LOG_DIR="$TEMP_DIR/logs"
+	LOG_DIR="logs"
 	mkdir -p "$LOG_DIR"
-	OUTPUT_LOGGED=$(dryad sprout run "$TEMP_DIR/dyd/sprouts/root-01" \
+	set +e
+	OUTPUT_LOGGED=$(dryad sprout run "dyd/sprouts/root-01" \
 		--log-stdout="$LOG_DIR" \
 		--log-stderr="$LOG_DIR" \
 		--log-level="$DYD_LOG_LEVEL" -- 2>&1)
+	STATUS=$?
+	set -e
+	if [ "$STATUS" -ne 0 ]; then
+		echo "$OUTPUT_LOGGED" 1>&2
+		echo "[ERROR] Fail: sprout run (logged) exited with status $STATUS" 1>&2
+		return 1
+	fi
 	case "$OUTPUT_LOGGED" in
 		*"STDOUT-OK"*)
 			echo "[ERROR] Fail: expected logged output to omit STDOUT-OK" 1>&2

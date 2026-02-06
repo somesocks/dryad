@@ -26,19 +26,22 @@ _setup() {
 }
 
 _prepare() {
+
 	# copy the sample garden to the working directory
 	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
 	chmod -R 755 "$TEMP_DIR"
 
+	cd "$TEMP_DIR"
 	:;
 }
 
 _test() {
-	(cd "$TEMP_DIR" && dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL") 1>&2;
+
+	(dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL") 1>&2;
 
 	set +e
-	OUTPUT=$(dryad stem run "$TEMP_DIR/dyd/sprouts/root-01" \
-		--override="$TEMP_DIR/does-not-exist" \
+	OUTPUT=$(dryad stem run "dyd/sprouts/root-01" \
+		--override="does-not-exist" \
 		--log-level="$DYD_LOG_LEVEL" -- 2>&1)
 	STATUS=$?
 	set -e

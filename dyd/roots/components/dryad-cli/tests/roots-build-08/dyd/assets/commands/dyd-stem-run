@@ -46,7 +46,7 @@ _prepare() {
 }
 
 _test() {
-	(cd "$TEMP_DIR" && dryad roots build --join-stderr) 1>&2;
+	(dryad roots build --join-stderr) 1>&2;
 }
 
 _verify() {

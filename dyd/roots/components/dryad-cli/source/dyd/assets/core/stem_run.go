@@ -1,6 +1,8 @@
 package core
 
 import (
+	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -58,13 +60,19 @@ func stemRun_prepContext(request StemRunRequest) (string, error) {
 	return contextPath, nil
 }
 
-func StemRun(request StemRunRequest) error {
+type StemRunInstance struct {
+	Cmd   *exec.Cmd
+	Close func() error
+}
+
+func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 	var workingPath = request.WorkingPath
 	var stemPath = request.StemPath
 	var env = request.Env
 	var args = request.Args
 	var gardenPath string
 	var err error
+	var closers []io.Closer
 
 	if env == nil {
 		env = make(map[string]string)
@@ -73,7 +81,7 @@ func StemRun(request StemRunRequest) error {
 	if !filepath.IsAbs(stemPath) {
 		cwd, err := os.Getwd()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		stemPath = filepath.Join(cwd, stemPath)
 	}
@@ -82,18 +90,19 @@ func StemRun(request StemRunRequest) error {
 
 	contextPath, err := stemRun_prepContext(request)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// prepare by getting the executable path
 	dryadPath, err := os.Executable()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	dryadPath, err = filepath.EvalSymlinks(dryadPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	dryadBin := dryadPath
 	dryadPath = filepath.Dir(dryadPath)
 
 	var command string
@@ -101,6 +110,17 @@ func StemRun(request StemRunRequest) error {
 		command = request.MainOverride
 	} else {
 		command = stemPath + "/dyd/commands/dyd-stem-run"
+	}
+
+	info, err := os.Stat(command)
+	if err != nil {
+		return nil, fmt.Errorf("missing stem main %q: %w", command, err)
+	}
+	if info.IsDir() {
+		return nil, fmt.Errorf("stem main is a directory %q", command)
+	}
+	if info.Mode()&0o111 == 0 {
+		return nil, fmt.Errorf("stem main is not executable %q", command)
 	}
 
 	cmd := exec.Command(
@@ -135,7 +155,7 @@ func StemRun(request StemRunRequest) error {
 		} else {
 			relStemPath, err := filepath.Rel(gardenPath, stemPath)
 			if err != nil {
-				return err
+				return nil, err
 			}
 	
 			logFile := "dyd-stem-run--" + sanitizePathSegment(relStemPath) + ".out"
@@ -144,10 +164,10 @@ func StemRun(request StemRunRequest) error {
 
 		file, err := os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		defer file.Close()
 		cmd.Stdout = file
+		closers = append(closers, file)
 	}
 
 	// optionally pipe the exec stderr to us
@@ -161,7 +181,7 @@ func StemRun(request StemRunRequest) error {
 		} else {
 			relStemPath, err := filepath.Rel(gardenPath, stemPath)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		
 			logFile := "dyd-stem-run--" + sanitizePathSegment(relStemPath) + ".err"
@@ -170,10 +190,10 @@ func StemRun(request StemRunRequest) error {
 
 		file, err := os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		defer file.Close()
 		cmd.Stderr = file
+		closers = append(closers, file)
 	}
 
 	envPath := "PATH=" + BuildPlatformPath(stemPath, dryadPath)
@@ -184,6 +204,7 @@ func StemRun(request StemRunRequest) error {
 		"DYD_CONTEXT="+contextPath,
 		"DYD_STEM="+stemPath,
 		"DYD_GARDEN="+gardenPath,
+		"DYD_CLI_BIN="+dryadBin,
 		"DYD_OS="+runtime.GOOS,
 		"DYD_ARCH="+runtime.GOARCH,
 		"DYD_LOG_LEVEL="+zerolog.GlobalLevel().String(),
@@ -194,7 +215,32 @@ func StemRun(request StemRunRequest) error {
 		cmd.Env = append(cmd.Env, "DOCKER_HOST=unix://"+dockerSock)
 	}
 
-	err = cmd.Run()
+	instance := &StemRunInstance{
+		Cmd: cmd,
+		Close: func() error {
+			var firstErr error
+			for _, closer := range closers {
+				if err := closer.Close(); err != nil && firstErr == nil {
+					firstErr = err
+				}
+			}
+			return firstErr
+		},
+	}
+
+	return instance, nil
+}
+
+func StemRun(request StemRunRequest) error {
+	instance, err := StemRunCommand(request)
+	if err != nil {
+		return err
+	}
+	if instance.Close != nil {
+		defer instance.Close()
+	}
+
+	err = instance.Cmd.Run()
 	if err != nil {
 		return err
 	}

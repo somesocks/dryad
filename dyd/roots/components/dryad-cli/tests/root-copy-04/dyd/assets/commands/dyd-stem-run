@@ -26,17 +26,19 @@ _setup() {
 }
 
 _prepare() {
+
 	# echo "[INFO] creating garden" 1>&2;
 
 	# copy the sample garden to the working directory
 	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR" 
 	chmod -R 755 "$TEMP_DIR"
 
+	cd "$TEMP_DIR"
 	:;
 }
 
 _test() {
-	cd "$TEMP_DIR";
+
 	# NOTE: this root is copied several times, to attempt to trigger
 	# any pathological concurrency issues in the build
 	dryad root copy dyd/roots/root-01 dyd/roots/root-02 --log-level="$DYD_LOG_LEVEL" 1>&2;

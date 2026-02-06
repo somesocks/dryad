@@ -13,6 +13,7 @@ func BuildCLI(
 
 	app = app.
 		WithCommand(gardenCommand).
+		WithCommand(developCommand).
 		WithCommand(rootCommand).
 		WithCommand(rootsCommand).
 		WithCommand(runCommand).

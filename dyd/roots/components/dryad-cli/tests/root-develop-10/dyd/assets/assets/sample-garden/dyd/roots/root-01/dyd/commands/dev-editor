@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+mkdir -p "$DYD_STEM/dyd/assets/newdir/subdir"
+printf "hello\n" > "$DYD_STEM/dyd/assets/newdir/subdir/file.txt"
+
+"$DYD_CLI_BIN" root develop save

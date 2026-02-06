@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+ROOT_PATH="$DYD_GARDEN/dyd/roots/root-01/dyd/assets/external.txt"
+printf "external\n" > "$ROOT_PATH"
+
+"$DYD_CLI_BIN" root develop save

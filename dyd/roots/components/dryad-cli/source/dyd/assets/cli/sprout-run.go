@@ -7,11 +7,32 @@ import (
 	"dryad/task"
 	"fmt"
 	"os"
-	"strings"
 	"path/filepath"
+	"strings"
 
 	zlog "github.com/rs/zerolog/log"
 )
+
+func resolveSproutPath(path string) (error, string) {
+	// Resolve symlinks in the parent path, but preserve the final segment.
+	// This keeps sprout symlinks under dyd/sprouts intact while still
+	// normalizing paths like /tmp -> /private/tmp on macOS.
+	cleanPath := filepath.Clean(path)
+	absPath, err := filepath.Abs(cleanPath)
+	if err != nil {
+		return err, ""
+	}
+
+	parent := filepath.Dir(absPath)
+	base := filepath.Base(absPath)
+
+	parent, err = filepath.EvalSymlinks(parent)
+	if err != nil {
+		return err, ""
+	}
+
+	return nil, filepath.Join(parent, base)
+}
 
 var sproutRunCommand = func() clib.Command {
 	command := clib.NewCommand("run", "execute the main for a sprout").
@@ -118,10 +139,11 @@ var sproutRunCommand = func() clib.Command {
 				env["TERM"] = os.Getenv("TERM")
 			}
 
+			var err error
 			path := args[0]
 			extras := args[1:]
 
-			path, err := filepath.Abs(path)
+			err, path = resolveSproutPath(path)
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error resolving path")
 				return 1
@@ -141,7 +163,7 @@ var sproutRunCommand = func() clib.Command {
 
 			err, sprout := sprouts.Sprout(path).Resolve(task.SERIAL_CONTEXT)
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error resolving sprouts")
+				zlog.Fatal().Err(err).Msg("error resolving sprout")
 				return 1
 			}
 

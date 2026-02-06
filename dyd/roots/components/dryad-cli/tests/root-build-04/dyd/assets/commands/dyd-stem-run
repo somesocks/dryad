@@ -27,18 +27,21 @@ _setup() {
 }
 
 _prepare() {
+
 	# echo "[INFO] creating garden" 1>&2;
 
 	# copy the sample garden to the working directory
 	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR" 
 	chmod -R 755 "$TEMP_DIR"
 
+	cd "$TEMP_DIR"
 	:;
 }
 
 _test() {
+
 	for root_name in "${ROOTS[@]}"; do
-		(cd "$TEMP_DIR" && dryad root build "dyd/roots/$root_name" --log-level="$DYD_LOG_LEVEL") 1>&2;
+		(dryad root build "dyd/roots/$root_name" --log-level="$DYD_LOG_LEVEL") 1>&2;
 	done
 }
 

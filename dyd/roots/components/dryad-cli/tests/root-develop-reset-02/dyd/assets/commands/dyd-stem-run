@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. $SRC_DIR/dyd/assets/assertions.sh
+
+_setup() {
+	TEMP_DIR=''
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+
+	EDITOR_PATH="$PWD/dyd/roots/root-01/dyd/commands/dev-editor"
+	(dryad root develop start dyd/roots/root-01 --editor="$EDITOR_PATH" --log-level="$DYD_LOG_LEVEL") 1>&2
+}
+
+_verify() {
+	STATUS_FILE="$TEMP_DIR/dyd/heap/root-develop-reset-02/status"
+	if [ -s "$STATUS_FILE" ]; then
+		CONTENT=$(cat "$STATUS_FILE")
+		echo "[ERROR] Fail: expected empty status, got ($CONTENT)" 1>&2
+		return 1
+	fi
+
+	FILE_CONTENT=$(cat "$TEMP_DIR/dyd/heap/root-develop-reset-02/file")
+	if [ "$FILE_CONTENT" != "first" ]; then
+		echo "[ERROR] Fail: expected file content (first), got ($FILE_CONTENT)" 1>&2
+		return 1
+	fi
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

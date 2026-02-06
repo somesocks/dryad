@@ -29,13 +29,14 @@ _prepare() {
 	# copy the sample garden to the working directory
 	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
 	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
 
 	:;
 }
 
 _test() {
-	(cd "$TEMP_DIR" && dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL") 1>&2;
-	(dryad stem run "$TEMP_DIR/dyd/sprouts/root-01" --context=testctx --log-level="$DYD_LOG_LEVEL" -- argX argY) 1>&2;
+	dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL" 1>&2;
+	dryad stem run "dyd/sprouts/root-01" --context=testctx --log-level="$DYD_LOG_LEVEL" -- argX argY 1>&2;
 }
 
 _verify() {
@@ -43,8 +44,9 @@ _verify() {
 	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
 
 	assert_directory_exists "$TEMP_DIR/dyd/heap/contexts/testctx"
-	assert_file_content_equals "$TEMP_DIR/dyd/heap/contexts/testctx/home" "$TEMP_DIR/dyd/heap/contexts/testctx"
-	assert_file_content_equals "$TEMP_DIR/dyd/heap/contexts/testctx/context" "$TEMP_DIR/dyd/heap/contexts/testctx"
+	EXPECTED_CONTEXT=$(cd "$TEMP_DIR/dyd/heap/contexts/testctx" && pwd -P)
+	assert_file_content_equals "$TEMP_DIR/dyd/heap/contexts/testctx/home" "$EXPECTED_CONTEXT"
+	assert_file_content_equals "$TEMP_DIR/dyd/heap/contexts/testctx/context" "$EXPECTED_CONTEXT"
 	assert_file_content_equals "$TEMP_DIR/dyd/heap/contexts/testctx/args" "argX argY"
 	assert_file_content_equals "$TEMP_DIR/dyd/heap/contexts/testctx/stem" "$TEMP_DIR/dyd/sprouts/root-01"
 
