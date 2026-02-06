@@ -4,6 +4,7 @@ import (
 	fs2 "dryad/filesystem"
 	"dryad/task"
 	"fmt"
+	"path/filepath"
 	"regexp"
 )
 
@@ -12,12 +13,21 @@ type StemFilesArgs struct {
 	MatchDeny *regexp.Regexp
 }
 
-func StemFiles(args StemFilesArgs) error {
-	StemWalk(
-		task.DEFAULT_CONTEXT,
+func StemFiles(ctx *task.ExecutionContext, args StemFilesArgs) error {
+	err, _ := StemWalk(
+		ctx,
 		StemWalkRequest{
 			BasePath: args.BasePath,
 			OnMatch: func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, any) {
+				relPath, err := filepath.Rel(node.BasePath, node.VPath)
+				if err != nil {
+					return err, nil
+				}
+
+				if args.MatchDeny != nil && args.MatchDeny.Match([]byte(relPath)) {
+					return nil, nil
+				}
+
 				if !node.Info.IsDir() {
 					fmt.Println(node.VPath)
 				}
@@ -25,5 +35,10 @@ func StemFiles(args StemFilesArgs) error {
 			},
 		},
 	)
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
