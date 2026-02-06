@@ -17,7 +17,6 @@ var rootDevelopStartCommand = func() clib.Command {
 		EditorArgs []string
 		Inherit    bool
 		OnExit     string
-		Parallel   int
 	}
 
 	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
@@ -29,7 +28,6 @@ var rootDevelopStartCommand = func() clib.Command {
 		var editorArgs []string
 		var inherit bool
 		var onExit string
-		var parallel int
 
 		if len(args) > 0 {
 			path = args[0]
@@ -51,19 +49,12 @@ var rootDevelopStartCommand = func() clib.Command {
 			inherit = opts["inherit"].(bool)
 		}
 
-		if opts["parallel"] != nil {
-			parallel = int(opts["parallel"].(int64))
-		} else {
-			parallel = PARALLEL_COUNT_DEFAULT
-		}
-
 		return nil, ParsedArgs{
 			Path:       path,
 			Editor:     editor,
 			EditorArgs: editorArgs,
 			Inherit:    inherit,
 			OnExit:     onExit,
-			Parallel:   parallel,
 		}
 	}
 
@@ -108,7 +99,8 @@ var rootDevelopStartCommand = func() clib.Command {
 	runStart = task.WithContext(
 		runStart,
 		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+			// root develop internals are not concurrency-safe yet
+			return nil, task.SERIAL_CONTEXT
 		},
 	)
 
@@ -141,7 +133,6 @@ var rootDevelopStartCommand = func() clib.Command {
 		WithAction(action)
 
 	command = ScopedCommand(command)
-	command = ParallelCommand(command)
 	command = LoggingCommand(command)
 
 	return command
