@@ -47,7 +47,8 @@ _prepare() {
 
 _test() {
 	( \
-	dryad garden prune --log-level="$DYD_LOG_LEVEL" \
+	cd "$TEMP_DIR" \
+		&& dryad garden prune --log-level="$DYD_LOG_LEVEL" \
 	) 1>&2;
 }
 
