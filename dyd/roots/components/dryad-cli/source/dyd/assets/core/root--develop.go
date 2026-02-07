@@ -844,12 +844,8 @@ func rootDevelop(
 	}
 	defer devServer.Close()
 
-	// otherwise run the root in a build env
-	stemBuildPath, err := os.MkdirTemp("", "dryad-*")
-	if err != nil {
-		return "", err
-	}
-	defer dydfs.RemoveAll(ctx, stemBuildPath)
+	// use a disposable build directory at the root of the development workspace.
+	stemBuildPath := filepath.Join(workspacePath, "out")
 
 	stemBuildFingerprint, onDevelopErr := rootDevelop_stage5(
 		workspacePath,
