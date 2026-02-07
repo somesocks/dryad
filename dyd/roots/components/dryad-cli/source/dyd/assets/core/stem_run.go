@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strings"
 
 	zerolog "github.com/rs/zerolog"
 )
@@ -112,15 +113,19 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 		command = stemPath + "/dyd/commands/dyd-stem-run"
 	}
 
-	info, err := os.Stat(command)
-	if err != nil {
-		return nil, fmt.Errorf("missing stem main %q: %w", command, err)
-	}
-	if info.IsDir() {
-		return nil, fmt.Errorf("stem main is a directory %q", command)
-	}
-	if info.Mode()&0o111 == 0 {
-		return nil, fmt.Errorf("stem main is not executable %q", command)
+	// For explicit paths, validate directly. For bare command names, let exec
+	// resolve from PATH at start time.
+	if filepath.IsAbs(command) || strings.ContainsRune(command, os.PathSeparator) {
+		info, err := os.Stat(command)
+		if err != nil {
+			return nil, fmt.Errorf("missing stem main %q: %w", command, err)
+		}
+		if info.IsDir() {
+			return nil, fmt.Errorf("stem main is a directory %q", command)
+		}
+		if info.Mode()&0o111 == 0 {
+			return nil, fmt.Errorf("stem main is not executable %q", command)
+		}
 	}
 
 	cmd := exec.Command(

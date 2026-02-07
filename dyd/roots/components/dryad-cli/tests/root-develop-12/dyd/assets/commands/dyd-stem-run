@@ -23,7 +23,7 @@ _test() {
 	EDITOR_PATH="$PWD/dyd/roots/root-01/dyd/commands/dev-editor"
 	OUTPUT_FILE="dyd/heap/root-develop-12/output"
 	mkdir -p "dyd/heap/root-develop-12"
-	(dryad root develop start dyd/roots/root-01 --editor="$EDITOR_PATH" --on-exit=discard --log-level="$DYD_LOG_LEVEL" < /dev/null 2> "$OUTPUT_FILE") 1>&2
+	(dryad root develop start dyd/roots/root-01 --shell="$EDITOR_PATH" --on-exit=discard --log-level="$DYD_LOG_LEVEL" < /dev/null 2> "$OUTPUT_FILE") 1>&2
 }
 
 _verify() {

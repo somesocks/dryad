@@ -6,18 +6,19 @@ import (
 	dydfs "dryad/filesystem"
 	"dryad/task"
 	"fmt"
+	"strings"
 
 	zlog "github.com/rs/zerolog/log"
 )
 
 var rootDevelopStartCommand = func() clib.Command {
 	type ParsedArgs struct {
-		Parallel   int
-		Path       string
-		Editor     string
-		EditorArgs []string
-		Inherit    bool
-		OnExit     string
+		Parallel  int
+		Path      string
+		Shell     string
+		ShellArgs []string
+		Inherit   bool
+		OnExit    string
 	}
 
 	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
@@ -26,13 +27,18 @@ var rootDevelopStartCommand = func() clib.Command {
 
 		var path string
 		var parallel int
-		var editor string
-		var editorArgs []string
+		var shell string
+		var shellArgs []string
 		var inherit bool
 		var onExit string
 
 		if len(args) > 0 {
-			path = args[0]
+			if strings.HasPrefix(args[0], "-") {
+				shellArgs = args
+			} else {
+				path = args[0]
+				shellArgs = args[1:]
+			}
 		}
 
 		if opts["parallel"] != nil {
@@ -41,12 +47,8 @@ var rootDevelopStartCommand = func() clib.Command {
 			parallel = PARALLEL_COUNT_DEFAULT
 		}
 
-		if opts["editor"] != nil {
-			editor = opts["editor"].(string)
-		}
-
-		if opts["arg"] != nil {
-			editorArgs = opts["arg"].([]string)
+		if opts["shell"] != nil {
+			shell = opts["shell"].(string)
 		}
 
 		if opts["on-exit"] != nil {
@@ -58,12 +60,12 @@ var rootDevelopStartCommand = func() clib.Command {
 		}
 
 		return nil, ParsedArgs{
-			Parallel:   parallel,
-			Path:       path,
-			Editor:     editor,
-			EditorArgs: editorArgs,
-			Inherit:    inherit,
-			OnExit:     onExit,
+			Parallel:  parallel,
+			Path:      path,
+			Shell:     shell,
+			ShellArgs: shellArgs,
+			Inherit:   inherit,
+			OnExit:    onExit,
 		}
 	}
 
@@ -91,10 +93,10 @@ var rootDevelopStartCommand = func() clib.Command {
 		err, rootFingerprint := safeRootRef.Develop(
 			ctx,
 			dryad.RootDevelopRequest{
-				Editor:     args.Editor,
-				EditorArgs: args.EditorArgs,
-				Inherit:    args.Inherit,
-				OnExit:     args.OnExit,
+				Shell:     args.Shell,
+				ShellArgs: args.ShellArgs,
+				Inherit:   args.Inherit,
+				OnExit:    args.OnExit,
 			},
 		)
 		if err != nil {
@@ -134,10 +136,10 @@ var rootDevelopStartCommand = func() clib.Command {
 				AsOptional().
 				WithAutoComplete(ArgAutoCompletePath),
 		).
-		WithOption(clib.NewOption("editor", "choose the editor to run in the root development environment").WithType(clib.OptionTypeString)).
-		WithOption(clib.NewOption("arg", "argument to pass to the editor").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("shell", "choose the shell command to run in the root development environment").WithType(clib.OptionTypeString)).
 		WithOption(clib.NewOption("on-exit", "action to take when exiting with unsaved changes: ask, save, discard").WithType(clib.OptionTypeString)).
 		WithOption(clib.NewOption("inherit", "inherit env variables from the host environment").WithType(clib.OptionTypeBool)).
+		WithArg(clib.NewArg("-- args", "args to pass to the shell").AsOptional()).
 		WithAction(action)
 
 	command = ParallelCommand(command)

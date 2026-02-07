@@ -493,110 +493,6 @@ func rootDevelop_stage3(rootPath string, workspacePath string) (string, error) {
 	return stemFingerprint, err
 }
 
-// stage 4 - execute the `dyd-root-develop-start` command if it exists
-func rootDevelop_stage4(
-	rootStemPath string,
-	stemBuildPath string,
-	rootFingerprint string,
-	garden *SafeGardenReference,
-	editor string,
-	editorArgs []string,
-	inherit bool,
-	devSocket string,
-) error {
-	var err error
-
-	err = StemInit(stemBuildPath)
-	if err != nil {
-		return err
-	}
-
-	onDevelopStartPath := filepath.Join(rootStemPath, "dyd", "commands", "dyd-root-develop-start")
-
-	onDevelopStartExists, err := fileExists(onDevelopStartPath)
-	if err != nil {
-		return err
-	}
-
-	if !onDevelopStartExists {
-		return nil
-	}
-
-	env := map[string]string{
-		"DYD_BUILD": stemBuildPath,
-	}
-	if devSocket != "" {
-		env["DYD_DEV_SOCKET"] = devSocket
-	}
-
-	err = StemRun(StemRunRequest{
-		Garden: garden,
-		StemPath:     rootStemPath,
-		WorkingPath:  rootStemPath,
-		MainOverride: onDevelopStartPath,
-		Env:         env,
-		Args:       editorArgs,
-		JoinStdout: true,
-		JoinStderr: true,
-		InheritEnv: inherit,
-	})
-
-	return err
-
-}
-
-// stage 6 - execute the `dyd-root-develop-stop` command if it exists
-func rootDevelop_stage6(
-	rootStemPath string,
-	stemBuildPath string,
-	rootFingerprint string,
-	garden *SafeGardenReference,
-	editor string,
-	editorArgs []string,
-	inherit bool,
-	devSocket string,
-) error {
-	var err error
-
-	err = StemInit(stemBuildPath)
-	if err != nil {
-		return err
-	}
-
-	onDevelopStopPath := filepath.Join(rootStemPath, "dyd", "commands", "dyd-root-develop-stop")
-
-	onDevelopStopExists, err := fileExists(onDevelopStopPath)
-	if err != nil {
-		return err
-	}
-
-	if !onDevelopStopExists {
-		return nil
-	}
-
-	env := map[string]string{
-		"DYD_BUILD": stemBuildPath,
-	}
-	if devSocket != "" {
-		env["DYD_DEV_SOCKET"] = devSocket
-	}
-
-	err = StemRun(StemRunRequest{
-		Garden:   garden,
-		StemPath:     rootStemPath,
-		WorkingPath:  rootStemPath,
-		MainOverride: onDevelopStopPath,
-		Env:         env,
-		Args:       editorArgs,
-		JoinStdout: true,
-		JoinStderr: true,
-		InheritEnv: inherit,
-	})
-
-	return err
-
-}
-
 type rootDevelopEditorProcess struct {
 	mu            sync.Mutex
 	cmd           *exec.Cmd
@@ -651,7 +547,7 @@ func (proc *rootDevelopEditorProcess) requestStop() error {
 	return nil
 }
 
-// stage 5 - execute the editor in the root to build its stem
+// stage 5 - execute the shell command in the root development environment
 func rootDevelop_stage5(
 	rootStemPath string,
 	stemBuildPath string,
@@ -664,23 +560,8 @@ func rootDevelop_stage5(
 	editorProcess *rootDevelopEditorProcess,
 ) (string, error) {
 	// fmt.Println("rootDevelop_stage5 ", rootStemPath, stemBuildPath)
-
-	// find default development editor if not passed in
-	// fallback to 'sh' if no dyd-root-develop command exists
 	if editor == "" {
-
-		onDevelopPath := filepath.Join(rootStemPath, "dyd", "commands", "dyd-root-develop")
-		onDevelopExists, err := fileExists(onDevelopPath)
-		if err != nil {
-			return "", err
-		}
-
-		if onDevelopExists {
-			editor = onDevelopPath
-		} else {
-			editor = "sh"
-		}
-
+		editor = "sh"
 	}
 
 	if editorProcess != nil && editorProcess.wasStopRequested() {
@@ -830,8 +711,8 @@ func rootDevelop_handleUnsavedChanges(
 
 type rootDevelopRequest struct {
 	Root *SafeRootReference
-	Editor string
-	EditorArgs []string
+	Shell string
+	ShellArgs []string
 	Inherit bool
 	OnExit string
 }
@@ -842,8 +723,8 @@ func rootDevelop(
 ) (string, error) {
 
 	gardenPath := req.Root.Roots.Garden.BasePath
-	editor := req.Editor
-	editorArgs := req.EditorArgs
+	shell := req.Shell
+	shellArgs := req.ShellArgs
 	inherit := req.Inherit
 
 	rootPath := req.Root.BasePath
@@ -966,41 +847,16 @@ func rootDevelop(
 	}
 	defer dydfs.RemoveAll(ctx, stemBuildPath)
 
-	err = rootDevelop_stage4(
-		workspacePath,
-		stemBuildPath,
-		rootFingerprint,
-		req.Root.Roots.Garden,
-		editor,
-		editorArgs,
-		inherit,
-		devSocketPath,
-	)
-	if err != nil {
-		return "", err
-	}
-
 	stemBuildFingerprint, onDevelopErr := rootDevelop_stage5(
 		workspacePath,
 		stemBuildPath,
 		rootFingerprint,
 		req.Root.Roots.Garden,
-		editor,
-		editorArgs,
+		shell,
+		shellArgs,
 		inherit,
 		devSocketPath,
 		editorProcess,
-	)
-
-	onStopErr := rootDevelop_stage6(
-		workspacePath,
-		stemBuildPath,
-		rootFingerprint,
-		req.Root.Roots.Garden,
-		editor,
-		editorArgs,
-		inherit,
-		devSocketPath,
 	)
 
 	promptErr := rootDevelop_handleUnsavedChanges(ctx, rootPath, workspacePath, req.Root.Roots.Garden, req.OnExit)
@@ -1010,8 +866,6 @@ func rootDevelop(
 
 	if onDevelopErr != nil {
 		return "", onDevelopErr
-	} else if onStopErr != nil {
-		return "", onStopErr
 	} else {
 		return stemBuildFingerprint, nil
 	}
@@ -1019,8 +873,8 @@ func rootDevelop(
 }
 
 type RootDevelopRequest struct {
-	Editor string
-	EditorArgs []string
+	Shell string
+	ShellArgs []string
 	Inherit bool
 	OnExit string
 }
@@ -1030,8 +884,8 @@ func (root *SafeRootReference) Develop(ctx *task.ExecutionContext, req RootDevel
 		ctx,
 		rootDevelopRequest{
 			Root: root,
-			Editor: req.Editor,
-			EditorArgs: req.EditorArgs,
+			Shell: req.Shell,
+			ShellArgs: req.ShellArgs,
 			Inherit: req.Inherit,
 			OnExit: req.OnExit,
 		},
