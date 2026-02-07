@@ -12,7 +12,11 @@ func Chtimes(path string, at time.Time, mt time.Time) error {
 		unix.NsecToTimespec(at.UnixNano()),
 		unix.NsecToTimespec(mt.UnixNano()),
 	}
-	if err := unix.UtimesNanoAt(unix.AT_FDCWD, path, ts, unix.AT_SYMLINK_NOFOLLOW); err == unix.ENOSYS {
+	if err := unix.UtimesNanoAt(unix.AT_FDCWD, path, ts, unix.AT_SYMLINK_NOFOLLOW); err != nil {
+		if err != unix.ENOSYS {
+			return err
+		}
+
 		// Older macOS: fall back to Lutimes
 		tv := []unix.Timeval{
 			unix.NsecToTimeval(at.UnixNano()),
