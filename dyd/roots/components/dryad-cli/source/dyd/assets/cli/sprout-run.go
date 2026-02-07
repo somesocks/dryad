@@ -43,7 +43,7 @@ var sproutRunCommand = func() clib.Command {
 		).
 		WithOption(clib.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
 		WithOption(clib.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(clib.OptionTypeBool)).
-		WithOption(clib.NewOption("override", "run this executable in the stem run envinronment instead of the main")).
+		WithOption(clib.NewOption("command", "run this command in the stem run environment instead of the main")).
 		WithOption(clib.NewOption("confirm", "ask for a confirmation string to be entered to execute this command").WithType(clib.OptionTypeString)).
 		WithOption(clib.NewOption("join-stdout", "join the stdout of child processes to the stderr of the parent dryad process. default true").WithType(clib.OptionTypeBool)).
 		WithOption(clib.NewOption("join-stderr", "join the stderr of child processes to the stderr of the parent dryad process. default true").WithType(clib.OptionTypeBool)).
@@ -55,7 +55,7 @@ var sproutRunCommand = func() clib.Command {
 				Path       string
 				Extras     []string
 				Context    string
-				Override   string
+				Command    string
 				Inherit    bool
 				Confirm    string
 				JoinStdout bool
@@ -70,7 +70,7 @@ var sproutRunCommand = func() clib.Command {
 					var args = req.Args
 					var opts = req.Opts
 					var context string
-					var override string
+					var command string
 					var inherit bool
 					var confirm string
 					var joinStdout bool
@@ -87,8 +87,8 @@ var sproutRunCommand = func() clib.Command {
 						inherit = opts["inherit"].(bool)
 					}
 
-					if opts["override"] != nil {
-						override = opts["override"].(string)
+					if opts["command"] != nil {
+						command = opts["command"].(string)
 					}
 
 					if opts["confirm"] != nil {
@@ -127,7 +127,7 @@ var sproutRunCommand = func() clib.Command {
 						Path:       args[0],
 						Extras:     args[1:],
 						Context:    context,
-						Override:   override,
+						Command:    command,
 						Inherit:    inherit,
 						Confirm:    confirm,
 						JoinStdout: joinStdout,
@@ -195,11 +195,11 @@ var sproutRunCommand = func() clib.Command {
 					return err, nil
 				}
 
-				err = sprout.Run(
-					ctx,
-					dryad.SproutRunRequest{
-						MainOverride: args.Override,
-						Env:          env,
+					err = sprout.Run(
+						ctx,
+						dryad.SproutRunRequest{
+							MainOverride: args.Command,
+							Env:          env,
 						Args:         args.Extras,
 						JoinStdout:   args.JoinStdout,
 						LogStdout: struct {

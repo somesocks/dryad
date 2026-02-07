@@ -41,13 +41,13 @@ _test() {
 
 	set +e
 	OUTPUT=$(dryad stem run "dyd/sprouts/root-01" \
-		--override="does-not-exist" \
+		--command="does-not-exist" \
 		--log-level="$DYD_LOG_LEVEL" -- 2>&1)
 	STATUS=$?
 	set -e
 
 	if [ "$STATUS" -eq 0 ]; then
-		echo "[ERROR] Fail: expected stem run to fail with invalid override" 1>&2
+		echo "[ERROR] Fail: expected stem run to fail with invalid command" 1>&2
 		return 1
 	fi
 
@@ -55,7 +55,7 @@ _test() {
 		*"error"*)
 			;;
 		*)
-			echo "[ERROR] Fail: expected error output for invalid override" 1>&2
+			echo "[ERROR] Fail: expected error output for invalid command" 1>&2
 			return 1
 			;;
 	esac

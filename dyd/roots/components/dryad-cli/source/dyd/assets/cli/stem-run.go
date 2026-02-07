@@ -16,7 +16,7 @@ var stemRunCommand = func() clib.Command {
 	type ParsedArgs struct {
 		Path     string
 		Context  string
-		Override string
+		Command  string
 		Inherit  bool
 		Confirm  string
 		Extras   []string
@@ -28,7 +28,7 @@ var stemRunCommand = func() clib.Command {
 		var options = req.Opts
 
 		var context string
-		var override string
+		var command string
 		var inherit bool
 		var confirm string
 		var parallel int
@@ -41,8 +41,8 @@ var stemRunCommand = func() clib.Command {
 			inherit = options["inherit"].(bool)
 		}
 
-		if options["override"] != nil {
-			override = options["override"].(string)
+		if options["command"] != nil {
+			command = options["command"].(string)
 		}
 
 		if options["confirm"] != nil {
@@ -58,7 +58,7 @@ var stemRunCommand = func() clib.Command {
 		return nil, ParsedArgs{
 			Path:     args[0],
 			Context:  context,
-			Override: override,
+			Command:  command,
 			Inherit:  inherit,
 			Confirm:  confirm,
 			Extras:   args[1:],
@@ -105,7 +105,7 @@ var stemRunCommand = func() clib.Command {
 		err = dryad.StemRun(dryad.StemRunRequest{
 			Garden:       garden,
 			StemPath:     args.Path,
-			MainOverride: args.Override,
+			MainOverride: args.Command,
 			Env:          env,
 			Args:         args.Extras,
 			JoinStdout:   true,
@@ -148,7 +148,7 @@ var stemRunCommand = func() clib.Command {
 		).
 		WithOption(clib.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
 		WithOption(clib.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(clib.OptionTypeBool)).
-		WithOption(clib.NewOption("override", "run this executable in the stem run envinronment instead of the main")).
+		WithOption(clib.NewOption("command", "run this command in the stem run environment instead of the main")).
 		WithOption(clib.NewOption("confirm", "ask for a confirmation string to be entered to execute this command").WithType(clib.OptionTypeString)).
 		WithArg(clib.NewArg("-- args", "args to pass to the stem").AsOptional()).
 		WithAction(action)

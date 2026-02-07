@@ -39,9 +39,9 @@ _test() {
 
 	(dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL") 1>&2;
 
-	# run with override executable
+	# run with command executable
 	(dryad sprout run "dyd/sprouts/root-01" \
-		--override="alt-run" \
+		--command="alt-run" \
 		--log-level="$DYD_LOG_LEVEL" --) 1>&2;
 
 	# run default main with stdout/stderr logging
