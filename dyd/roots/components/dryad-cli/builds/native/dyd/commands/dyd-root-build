@@ -39,8 +39,10 @@ _build_package () {
 	GOOS="$OS" \
 	GOWORK=off \
 	go build \
+		-trimpath \
+		-buildvcs=false \
 		-o $DEST_MAIN \
-		-ldflags "-X=main.Version=$VERSION,-X=main.Fingerprint=$FINGERPRINT,-s,-w"
+		-ldflags "-X main.Version=$VERSION -X main.Fingerprint=$FINGERPRINT -s -w"
 }
 
 _setup_logging
