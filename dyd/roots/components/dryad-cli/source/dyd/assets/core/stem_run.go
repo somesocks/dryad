@@ -19,6 +19,30 @@ func sanitizePathSegment(s string) string {
 	return invalidChars.ReplaceAllString(s, "-")
 }
 
+func resolveCommandOnPath(command string, pathValue string) (string, error) {
+	for _, dir := range strings.Split(pathValue, string(os.PathListSeparator)) {
+		if dir == "" {
+			continue
+		}
+
+		candidate := filepath.Join(dir, command)
+		info, err := os.Stat(candidate)
+		if err != nil {
+			continue
+		}
+		if info.IsDir() {
+			continue
+		}
+		if info.Mode()&0o111 == 0 {
+			continue
+		}
+
+		return candidate, nil
+	}
+
+	return "", fmt.Errorf("executable file not found in PATH: %s", command)
+}
+
 type StemRunRequest struct {
 	Garden *SafeGardenReference
 	StemPath     string
@@ -106,26 +130,33 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 	dryadBin := dryadPath
 	dryadPath = filepath.Dir(dryadPath)
 
+	stemPathEnv := BuildPlatformPath(stemPath, dryadPath)
+
 	var command string
 	if request.MainOverride != "" {
-		command = request.MainOverride
+		override := request.MainOverride
+		if filepath.IsAbs(override) || strings.ContainsRune(override, os.PathSeparator) {
+			command = override
+		} else {
+			resolved, err := resolveCommandOnPath(override, stemPathEnv)
+			if err != nil {
+				return nil, fmt.Errorf("missing stem main %q: %w", override, err)
+			}
+			command = resolved
+		}
 	} else {
 		command = stemPath + "/dyd/commands/dyd-stem-run"
 	}
 
-	// For explicit paths, validate directly. For bare command names, let exec
-	// resolve from PATH at start time.
-	if filepath.IsAbs(command) || strings.ContainsRune(command, os.PathSeparator) {
-		info, err := os.Stat(command)
-		if err != nil {
-			return nil, fmt.Errorf("missing stem main %q: %w", command, err)
-		}
-		if info.IsDir() {
-			return nil, fmt.Errorf("stem main is a directory %q", command)
-		}
-		if info.Mode()&0o111 == 0 {
-			return nil, fmt.Errorf("stem main is not executable %q", command)
-		}
+	info, err := os.Stat(command)
+	if err != nil {
+		return nil, fmt.Errorf("missing stem main %q: %w", command, err)
+	}
+	if info.IsDir() {
+		return nil, fmt.Errorf("stem main is a directory %q", command)
+	}
+	if info.Mode()&0o111 == 0 {
+		return nil, fmt.Errorf("stem main is not executable %q", command)
 	}
 
 	cmd := exec.Command(
@@ -201,7 +232,7 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 		closers = append(closers, file)
 	}
 
-	envPath := "PATH=" + BuildPlatformPath(stemPath, dryadPath)
+	envPath := "PATH=" + stemPathEnv
 	cmd.Env = append(
 		cmd.Env,
 		envPath,

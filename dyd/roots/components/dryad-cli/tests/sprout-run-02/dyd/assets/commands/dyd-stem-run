@@ -41,7 +41,7 @@ _test() {
 
 	# run with override executable
 	(dryad sprout run "dyd/sprouts/root-01" \
-		--override="dyd/sprouts/root-01/dyd/commands/alt-run" \
+		--override="alt-run" \
 		--log-level="$DYD_LOG_LEVEL" --) 1>&2;
 
 	# run default main with stdout/stderr logging
