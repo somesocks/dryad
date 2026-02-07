@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+FINGERPRINT_INITIAL=''
+FINGERPRINT_AFTER=''
+DEPENDENCY_TARGET_INITIAL=''
+DEPENDENCY_TARGET_AFTER=''
+DEPENDENCY_FINGERPRINT_INITIAL=''
+DEPENDENCY_FINGERPRINT_AFTER=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+assert_symlink_exists() {
+	path=$1
+	if [ ! -L "$path" ]; then
+		echo "[ERROR] Fail: expected symlink '$path'" 1>&2
+		return 1
+	fi
+}
+
+_setup() {
+	TEMP_DIR=''
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	(dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL") 1>&2
+
+	FINGERPRINT_INITIAL=$(cat "$TEMP_DIR/dyd/sprouts/root-01/dyd/fingerprint")
+	if [ -z "$FINGERPRINT_INITIAL" ]; then
+		echo "[ERROR] Fail: initial root-01 fingerprint should not be empty" 1>&2
+		return 1
+	fi
+
+	DEPENDENCY_TARGET_INITIAL=$(readlink -f "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/root-02")
+	DEPENDENCY_FINGERPRINT_INITIAL=$(cat "$DEPENDENCY_TARGET_INITIAL/dyd/fingerprint")
+	if [ -z "$DEPENDENCY_FINGERPRINT_INITIAL" ]; then
+		echo "[ERROR] Fail: initial dependency fingerprint should not be empty" 1>&2
+		return 1
+	fi
+
+	printf "unstable" > "$TEMP_DIR/dyd/roots/root-02/dyd/traits/channel"
+
+	(dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL") 1>&2
+
+	FINGERPRINT_AFTER=$(cat "$TEMP_DIR/dyd/sprouts/root-01/dyd/fingerprint")
+	if [ -z "$FINGERPRINT_AFTER" ]; then
+		echo "[ERROR] Fail: updated root-01 fingerprint should not be empty" 1>&2
+		return 1
+	fi
+
+	DEPENDENCY_TARGET_AFTER=$(readlink -f "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/root-02")
+	DEPENDENCY_FINGERPRINT_AFTER=$(cat "$DEPENDENCY_TARGET_AFTER/dyd/fingerprint")
+	if [ -z "$DEPENDENCY_FINGERPRINT_AFTER" ]; then
+		echo "[ERROR] Fail: updated dependency fingerprint should not be empty" 1>&2
+		return 1
+	fi
+}
+
+_verify() {
+	requirements_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/requirements/root-02"
+	dependency_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/root-02"
+	dependency_target="$DEPENDENCY_TARGET_AFTER"
+	root2_sprout_target=$(readlink -f "$TEMP_DIR/dyd/sprouts/root-02")
+
+	if [ "$FINGERPRINT_INITIAL" = "$FINGERPRINT_AFTER" ]; then
+		echo "[ERROR] Fail: expected root-01 fingerprint to change after root-02 trait update" 1>&2
+		return 1
+	fi
+
+	if [ "$DEPENDENCY_TARGET_INITIAL" = "$DEPENDENCY_TARGET_AFTER" ]; then
+		echo "[ERROR] Fail: expected root-01 dependency target to update after root-02 trait change" 1>&2
+		return 1
+	fi
+
+	if [ "$DEPENDENCY_FINGERPRINT_INITIAL" = "$DEPENDENCY_FINGERPRINT_AFTER" ]; then
+		echo "[ERROR] Fail: expected root-02 dependency fingerprint to change after trait update" 1>&2
+		return 1
+	fi
+
+	assert_directory_exists "$requirements_path"
+	assert_file_exists "$requirements_path/dyd/fingerprint"
+	assert_file_content_equals "$requirements_path/dyd/fingerprint" "$DEPENDENCY_FINGERPRINT_AFTER"
+	assert_file_exists "$requirements_path/dyd/traits/channel"
+	assert_file_content_equals "$requirements_path/dyd/traits/channel" "unstable"
+	assert_file_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/root-01.txt"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/root-01.txt" "root-01"
+
+	assert_symlink_exists "$dependency_path"
+	assert_directory_exists "$dependency_target"
+	assert_file_content_equals "$dependency_target/dyd/type" "stem"
+	assert_file_content_equals "$dependency_target/dyd/traits/channel" "unstable"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-02/dyd/traits/channel" "unstable"
+
+	if [ "$dependency_target" != "$root2_sprout_target" ]; then
+		echo "[ERROR] Fail: dependency link should resolve to the same stem as sprout root-02" 1>&2
+		return 1
+	fi
+
+	if [ "$(basename "$dependency_target")" != "$DEPENDENCY_FINGERPRINT_AFTER" ]; then
+		echo "[ERROR] Fail: dependency stem path basename should match dyd/fingerprint" 1>&2
+		return 1
+	fi
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

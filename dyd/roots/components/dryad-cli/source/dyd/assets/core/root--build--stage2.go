@@ -13,17 +13,17 @@ import (
 )
 
 type rootBuild_stage2_request struct {
-	RootPath string
+	RootPath      string
 	WorkspacePath string
-	GardenPath string
+	GardenPath    string
 }
 
 // stage 2 - generate the artificial links to all executable stems for the path
-var rootBuild_stage2 func (ctx *task.ExecutionContext, req rootBuild_stage2_request) (error, any)
+var rootBuild_stage2 func(ctx *task.ExecutionContext, req rootBuild_stage2_request) (error, any)
 
-func init () {
+func init() {
 
-	rootBuild_stage2 = func (ctx *task.ExecutionContext, req rootBuild_stage2_request) (error, any) {
+	rootBuild_stage2 = func(ctx *task.ExecutionContext, req rootBuild_stage2_request) (error, any) {
 		relRootPath, err := filepath.Rel(
 			filepath.Join(req.GardenPath, "dyd", "roots"),
 			req.RootPath,
@@ -35,12 +35,16 @@ func init () {
 			Str("path", relRootPath).
 			Msg("RootBuild/stage2")
 
-		
+		err = rootBuild_requirementsPrepare(req.WorkspacePath)
+		if err != nil {
+			return err, nil
+		}
+
 		err = rootBuild_pathPrepare(req.WorkspacePath)
 		if err != nil {
 			return err, nil
 		}
 		return nil, nil
 	}
-	
+
 }

@@ -18,5 +18,8 @@ else
 	mkdir -p "$DEST_DIR/dyd/assets"
 fi
 
-mkdir -p "$DEST_DIR/dyd/traits"
-printf "stable" > "$DEST_DIR/dyd/traits/channel"
+if [ -d "$SRC_DIR/dyd/traits" ]; then
+	cp -R "$SRC_DIR/dyd/traits/." "$DEST_DIR/dyd/traits/"
+else
+	mkdir -p "$DEST_DIR/dyd/traits"
+fi

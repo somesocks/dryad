@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+DEST_DIR=$DYD_BUILD
+
+if [ -d "$SRC_DIR/dyd/assets" ]; then
+	mkdir -p "$DEST_DIR/dyd/assets"
+	cp -R "$SRC_DIR/dyd/assets/." "$DEST_DIR/dyd/assets/"
+else
+	mkdir -p "$DEST_DIR/dyd/assets"
+fi
+
+if [ -d "$SRC_DIR/dyd/requirements" ]; then
+	mkdir -p "$DEST_DIR/dyd/requirements"
+	cp -R "$SRC_DIR/dyd/requirements/." "$DEST_DIR/dyd/requirements/"
+else
+	mkdir -p "$DEST_DIR/dyd/requirements"
+fi
+
+ln -s "$SRC_DIR/dyd/dependencies/root-02" "$DEST_DIR/dyd/dependencies/root-02"

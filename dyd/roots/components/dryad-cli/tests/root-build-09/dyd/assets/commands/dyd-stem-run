@@ -37,7 +37,10 @@ _verify() {
 	dependency_target=$(readlink -f "$dependency_path")
 	root2_sprout_target=$(readlink -f "$TEMP_DIR/dyd/sprouts/root-02")
 
-	assert_file_content_equals "$requirements_path" "root:../../../root-02"
+	assert_directory_exists "$requirements_path"
+	assert_file_exists "$requirements_path/dyd/fingerprint"
+	assert_file_exists "$requirements_path/dyd/traits/channel"
+	assert_file_content_equals "$requirements_path/dyd/traits/channel" "stable"
 	assert_file_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/root-01.txt"
 	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/root-01.txt" "root-01"
 
@@ -45,6 +48,7 @@ _verify() {
 	assert_directory_exists "$dependency_target"
 	assert_file_content_equals "$dependency_target/dyd/type" "stem"
 	assert_file_content_equals "$dependency_target/dyd/assets/root-02.txt" "root-02"
+	assert_file_content_equals "$dependency_target/dyd/traits/channel" "stable"
 
 	if [ "$dependency_target" != "$root2_sprout_target" ]; then
 		echo "[ERROR] Fail: dependency link should resolve to the same stem as sprout root-02" 1>&2
@@ -52,6 +56,8 @@ _verify() {
 	fi
 
 	dependency_fingerprint=$(cat "$dependency_target/dyd/fingerprint")
+	assert_file_content_equals "$requirements_path/dyd/fingerprint" "$dependency_fingerprint"
+
 	if [ "$(basename "$dependency_target")" != "$dependency_fingerprint" ]; then
 		echo "[ERROR] Fail: dependency stem path basename should match dyd/fingerprint" 1>&2
 		return 1

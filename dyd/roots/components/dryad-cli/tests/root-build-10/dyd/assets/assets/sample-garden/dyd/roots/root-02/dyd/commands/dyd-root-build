@@ -17,6 +17,3 @@ if [ -d "$SRC_DIR/dyd/assets" ]; then
 else
 	mkdir -p "$DEST_DIR/dyd/assets"
 fi
-
-mkdir -p "$DEST_DIR/dyd/traits"
-printf "stable" > "$DEST_DIR/dyd/traits/channel"

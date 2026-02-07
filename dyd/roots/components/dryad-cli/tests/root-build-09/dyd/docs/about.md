@@ -1,9 +1,10 @@
 # root-build-09
 
-This test verifies that built stems keep `dyd/requirements` as manifest files and
-set up `dyd/dependencies` as stem symlinks.
+This test verifies that built stems pin dependency metadata into `dyd/requirements`
+and set up `dyd/dependencies` as stem symlinks.
 
 Coverage:
-- `dyd/requirements/root-02` stays as plain-text `root:../../../root-02`
+- `dyd/requirements/root-02` is a pinned directory copied from the dependency stem
+- pinned requirements include `dyd/fingerprint` and selected `dyd/traits/*` data
 - `dyd/dependencies/root-02` is a symlink to a built dependency stem
 - dependency stem path basename matches its `dyd/fingerprint`

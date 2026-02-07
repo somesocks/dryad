@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+DEST_DIR=$DYD_BUILD
+
+# copy assets
+cp -R "$SRC_DIR/dyd/assets/." "$DEST_DIR/dyd/assets/"
+
+# copy secrets
+cp -R "$SRC_DIR/dyd/secrets/." "$DEST_DIR/dyd/secrets/"
+
+# copy traits
+cp -R "$SRC_DIR/dyd/traits/." "$DEST_DIR/dyd/traits/"
+
+# copy docs
+cp -R "$SRC_DIR/dyd/docs/." "$DEST_DIR/dyd/docs/"
