@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+ROOT_PATH="$DYD_STEM/dyd/assets/keep.txt"
+printf "edited\n" > "$ROOT_PATH"
+
+NEW_PATH="$DYD_STEM/dyd/assets/new.txt"
+printf "new\n" > "$NEW_PATH"

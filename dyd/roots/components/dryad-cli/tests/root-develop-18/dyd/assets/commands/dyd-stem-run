@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. $SRC_DIR/dyd/assets/assertions.sh
+
+_setup() {
+	TEMP_DIR=''
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	local script_file="$TEMP_DIR/bash-script.sh"
+	cat > "$script_file" <<'EOF'
+set -euf -o pipefail
+[[ -n "${BASH_VERSION:-}" ]]
+touch dyd/assets/bash-only.txt
+EOF
+	(dryad root develop start dyd/roots/root-01 --shell=bash --on-exit=save --log-level="$DYD_LOG_LEVEL" < "$script_file") 1>&2
+}
+
+_verify() {
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-01/dyd/assets/keep.txt" "keep"
+	assert_file_exists "$TEMP_DIR/dyd/roots/root-01/dyd/assets/bash-only.txt"
+	assert_file_not_exists "$TEMP_DIR/dyd/roots/root-01/dyd/assets/new.txt"
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

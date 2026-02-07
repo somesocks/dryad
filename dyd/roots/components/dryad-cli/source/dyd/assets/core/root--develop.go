@@ -432,10 +432,10 @@ func rootDevelop_stage1(
 	workspacePath string,
 	roots *SafeRootsReference,
 ) error {
-	
+
 	rootRef := SafeRootReference{
 		BasePath: rootPath,
-		Roots: roots,
+		Roots:    roots,
 	}
 
 	err, requirementsRef := rootRef.Requirements().Resolve(ctx)
@@ -444,7 +444,7 @@ func rootDevelop_stage1(
 	}
 
 	err = requirementsRef.Walk(task.SERIAL_CONTEXT, RootRequirementsWalkRequest{
-		OnMatch: func (ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
+		OnMatch: func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
 			err, safeDepReference := requirement.Target(ctx)
 			if err != nil {
 				return err, nil
@@ -457,18 +457,18 @@ func rootDevelop_stage1(
 			if err != nil {
 				return err, nil
 			}
-	
+
 			dependencyHeapPath := filepath.Join(requirement.Requirements.Root.Roots.Garden.BasePath, "dyd", "heap", "stems", dependencyFingerprint)
-	
+
 			dependencyName := filepath.Base(requirement.BasePath)
-		
+
 			targetDepPath := filepath.Join(workspacePath, "dyd", "dependencies", dependencyName)
-		
+
 			err = os.Symlink(dependencyHeapPath, targetDepPath)
 
 			return err, nil
 		},
-	});
+	})
 	if err != nil {
 		return err
 	}
@@ -493,13 +493,13 @@ func rootDevelop_stage3(rootPath string, workspacePath string) (string, error) {
 	return stemFingerprint, err
 }
 
-type rootDevelopEditorProcess struct {
+type rootDevelopShellProcess struct {
 	mu            sync.Mutex
 	cmd           *exec.Cmd
 	stopRequested bool
 }
 
-func (proc *rootDevelopEditorProcess) setCmd(cmd *exec.Cmd) {
+func (proc *rootDevelopShellProcess) setCmd(cmd *exec.Cmd) {
 	if proc == nil {
 		return
 	}
@@ -508,7 +508,7 @@ func (proc *rootDevelopEditorProcess) setCmd(cmd *exec.Cmd) {
 	proc.cmd = cmd
 }
 
-func (proc *rootDevelopEditorProcess) clearCmd() {
+func (proc *rootDevelopShellProcess) clearCmd() {
 	if proc == nil {
 		return
 	}
@@ -517,7 +517,7 @@ func (proc *rootDevelopEditorProcess) clearCmd() {
 	proc.cmd = nil
 }
 
-func (proc *rootDevelopEditorProcess) wasStopRequested() bool {
+func (proc *rootDevelopShellProcess) wasStopRequested() bool {
 	if proc == nil {
 		return false
 	}
@@ -526,7 +526,7 @@ func (proc *rootDevelopEditorProcess) wasStopRequested() bool {
 	return proc.stopRequested
 }
 
-func (proc *rootDevelopEditorProcess) requestStop() error {
+func (proc *rootDevelopShellProcess) requestStop() error {
 	if proc == nil {
 		return nil
 	}
@@ -553,18 +553,22 @@ func rootDevelop_stage5(
 	stemBuildPath string,
 	rootFingerprint string,
 	garden *SafeGardenReference,
-	editor string,
-	editorArgs []string,
+	shell string,
+	shellArgs []string,
 	inherit bool,
 	devSocket string,
-	editorProcess *rootDevelopEditorProcess,
+	shellProcess *rootDevelopShellProcess,
 ) (string, error) {
 	// fmt.Println("rootDevelop_stage5 ", rootStemPath, stemBuildPath)
-	if editor == "" {
-		editor = "sh"
+	if shell == "" {
+		shell = "sh"
+	}
+	if len(shellArgs) > 0 {
+		// Preserve passthrough arg boundaries when routing through shell execution.
+		shellArgs = append([]string{"-c", "exec \"$@\"", shell}, shellArgs...)
 	}
 
-	if editorProcess != nil && editorProcess.wasStopRequested() {
+	if shellProcess != nil && shellProcess.wasStopRequested() {
 		return "", nil
 	}
 
@@ -583,15 +587,15 @@ func rootDevelop_stage5(
 	}
 
 	instance, err := StemRunCommand(StemRunRequest{
-		Garden: garden,
+		Garden:       garden,
 		StemPath:     rootStemPath,
 		WorkingPath:  rootStemPath,
-		MainOverride: editor,
-		Env:         env,
-		Args:       editorArgs,
-		JoinStdout: true,
-		JoinStderr: true,
-		InheritEnv: inherit,
+		MainOverride: shell,
+		Env:          env,
+		Args:         shellArgs,
+		JoinStdout:   true,
+		JoinStderr:   true,
+		InheritEnv:   inherit,
 	})
 	if err != nil {
 		return "", err
@@ -600,20 +604,20 @@ func rootDevelop_stage5(
 		defer instance.Close()
 	}
 
-	if editorProcess != nil {
-		editorProcess.setCmd(instance.Cmd)
+	if shellProcess != nil {
+		shellProcess.setCmd(instance.Cmd)
 	}
 	if err := instance.Cmd.Start(); err != nil {
-		if editorProcess != nil {
-			editorProcess.clearCmd()
+		if shellProcess != nil {
+			shellProcess.clearCmd()
 		}
 		return "", err
 	}
 
 	err = instance.Cmd.Wait()
-	if editorProcess != nil {
-		editorProcess.clearCmd()
-		if err != nil && editorProcess.wasStopRequested() {
+	if shellProcess != nil {
+		shellProcess.clearCmd()
+		if err != nil && shellProcess.wasStopRequested() {
 			return "", nil
 		}
 	}
@@ -710,11 +714,11 @@ func rootDevelop_handleUnsavedChanges(
 }
 
 type rootDevelopRequest struct {
-	Root *SafeRootReference
-	Shell string
+	Root      *SafeRootReference
+	Shell     string
 	ShellArgs []string
-	Inherit bool
-	OnExit string
+	Inherit   bool
+	OnExit    string
 }
 
 func rootDevelop(
@@ -789,7 +793,7 @@ func rootDevelop(
 		return "", err
 	}
 
-	editorProcess := &rootDevelopEditorProcess{}
+	shellProcess := &rootDevelopShellProcess{}
 
 	devSocketPath := filepath.Join(devDir, "host.sock")
 	devServer, err := rootDevelopIPC_start(devSocketPath, rootDevelopIPCHandlers{
@@ -832,7 +836,7 @@ func rootDevelop(
 			return rootDevelop_resetWorkspace(ctx, currentSnapshotPath, workspacePath)
 		},
 		OnStop: func() error {
-			return editorProcess.requestStop()
+			return shellProcess.requestStop()
 		},
 	})
 	if err != nil {
@@ -856,7 +860,7 @@ func rootDevelop(
 		shellArgs,
 		inherit,
 		devSocketPath,
-		editorProcess,
+		shellProcess,
 	)
 
 	promptErr := rootDevelop_handleUnsavedChanges(ctx, rootPath, workspacePath, req.Root.Roots.Garden, req.OnExit)
@@ -873,21 +877,21 @@ func rootDevelop(
 }
 
 type RootDevelopRequest struct {
-	Shell string
+	Shell     string
 	ShellArgs []string
-	Inherit bool
-	OnExit string
+	Inherit   bool
+	OnExit    string
 }
 
 func (root *SafeRootReference) Develop(ctx *task.ExecutionContext, req RootDevelopRequest) (error, string) {
 	res, err := rootDevelop(
 		ctx,
 		rootDevelopRequest{
-			Root: root,
-			Shell: req.Shell,
+			Root:      root,
+			Shell:     req.Shell,
 			ShellArgs: req.ShellArgs,
-			Inherit: req.Inherit,
-			OnExit: req.OnExit,
+			Inherit:   req.Inherit,
+			OnExit:    req.OnExit,
 		},
 	)
 	return err, res

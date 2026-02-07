@@ -129,17 +129,17 @@ var rootDevelopStartCommand = func() clib.Command {
 		},
 	)
 
-	command := clib.NewCommand("start", "start a temporary development environment for a root").
+	command := clib.NewCommand("start", "start a temporary development shell environment for a root").
 		WithArg(
 			clib.
 				NewArg("path", "path to the root to develop").
 				AsOptional().
 				WithAutoComplete(ArgAutoCompletePath),
 		).
-		WithOption(clib.NewOption("shell", "choose the shell command to run in the root development environment").WithType(clib.OptionTypeString)).
+		WithOption(clib.NewOption("shell", "shell command to run in the development environment (must be POSIX-compatible when using '-- args')").WithType(clib.OptionTypeString)).
 		WithOption(clib.NewOption("on-exit", "action to take when exiting with unsaved changes: ask, save, discard").WithType(clib.OptionTypeString)).
 		WithOption(clib.NewOption("inherit", "inherit env variables from the host environment").WithType(clib.OptionTypeBool)).
-		WithArg(clib.NewArg("-- args", "args to pass to the shell").AsOptional()).
+		WithArg(clib.NewArg("-- args", "command args to execute via the shell; if omitted, starts an interactive shell").AsOptional()).
 		WithAction(action)
 
 	command = ParallelCommand(command)
