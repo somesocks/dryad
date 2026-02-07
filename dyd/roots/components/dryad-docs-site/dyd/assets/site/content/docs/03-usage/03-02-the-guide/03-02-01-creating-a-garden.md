@@ -7,7 +7,7 @@ layout: single
 
 # Creating a garden
 
-Once dryad is installed, a garden can be created in the current directory by running `dryad garden init`.
+Once dryad is installed, a garden can be created in the current directory by running `dryad garden create`.
 
 This should create a file structure that looks something like:
 
@@ -18,7 +18,7 @@ This should create a file structure that looks something like:
     roots/
     shed/
     sprouts/
-    garden
+    type
 ```
 
 In order to take advantage of the filesystem, dryad enforces a strict structure for workspaces and packages:
@@ -27,9 +27,9 @@ In order to take advantage of the filesystem, dryad enforces a strict structure 
 - gardens have a `roots` directory for the source packages to be built
 - gardens have a `shed` for storing garden configurations
 - gardens have a `sprouts` directory, where built packages are linked
-- gardens have an empty `/dyd/type` file at the base with the content `garden` (to flag the directory as a garden)
+- gardens have a `/dyd/type` file at the base with the content `garden` (to flag the directory as a garden)
 
-You can read more about the heap, roots, the shed, and sprouts in the [Concepts]({{ site.baseurl }}{% link concepts/index.md %}).  But, the heap and the sprouts are build artifacts (or links to build artifacts).  So, if this project is going to be stored in a version control system, you should likely ignore them.
+You can read more about the heap, roots, the shed, and sprouts in the [Concepts](../../02-concepts/_index.html).  But, the heap and the sprouts are build artifacts (or links to build artifacts).  So, if this project is going to be stored in a version control system, you should likely ignore them.
 
 Here is an example gitignore for ignoring the heap and sprouts in a git project:
 
@@ -38,4 +38,3 @@ Here is an example gitignore for ignoring the heap and sprouts in a git project:
 /**/dyd/heap/
 /**/dyd/sprouts/
 ```
-

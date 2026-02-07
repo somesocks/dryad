@@ -7,17 +7,23 @@ layout: single
 
 # Root development
 
-When you want to work on a root without mutating the source tree directly, you can use a root development environment.  This creates a temporary workspace with a snapshot of the root, then runs your editor inside that workspace.
+When you want to work on a root without mutating the source tree directly, you can use a root development environment.  This creates a temporary workspace with a snapshot of the root, then runs a shell inside that workspace.
 
 To start a development session for the server root:
 
 ```
-$ dryad root develop start dyd/roots/server --editor=sh
+$ dryad root develop start dyd/roots/server
 ```
 
-If you do not pass `--editor`, dryad will use `dyd/commands/dyd-root-develop` from the root if it exists, otherwise it falls back to `sh`.
+By default, dryad uses `sh` as the development shell. You can override this with `--shell=<shell>`.
 
-The editor runs inside the dev workspace, so any changes you make there do not touch the source root until you save them.
+You can also ask dryad to run a command in the development shell instead of opening an interactive session:
+
+```
+$ dryad root develop start dyd/roots/server --on-exit=save -- touch dyd/assets/new.txt
+```
+
+The shell runs inside the dev workspace, so any changes you make there do not touch the source root until you save them.
 
 The dev environment also includes the built dependencies of the root, so you can develop and test against the same toolchain and libraries used by the build.
 
@@ -58,15 +64,13 @@ $ dryad root develop reset
 
 `reset` overlays the workspace with the snapshot state.  It restores tracked files, and it leaves extra files in place.
 
-## Stopping the editor
+## Stopping the shell
 
 To stop the development session:
 
 ```
 $ dryad root develop stop
 ```
-
-If the root provides `dyd/commands/dyd-root-develop-start` or `dyd/commands/dyd-root-develop-stop`, those hooks run before and after the editor session.
 
 ## Notes
 

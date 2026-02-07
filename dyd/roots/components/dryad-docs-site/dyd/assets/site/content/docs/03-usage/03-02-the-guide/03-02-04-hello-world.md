@@ -43,16 +43,16 @@ require (
 
 ```
 
-Now that those are in place, we want to add our go root as a dependency for the server root.  We can do so by navigating to our server root and using `dryad root link`: `cd ./dyd/roots/server && dryad root link .tools/go`.
+Now that those are in place, we want to add our go root as a dependency for the server root.  We can do so by navigating to our server root and using `dryad root requirement add`: `cd ./dyd/roots/server && dryad root requirement add ../tools/go go`.
 
-Finally, we want to update our build script for the root to actually build our server.  In `dyd/roots/server/dyd/commands/default`:
+Finally, we want to update our build script for the root to actually build our server.  In `dyd/roots/server/dyd/commands/dyd-root-build`:
 
 ```sh
 #!/usr/bin/env sh
 
 SRC_DIR=$DYD_STEM
-DEST_DIR=$1
-DEST_MAIN=$DEST_DIR/dyd/commands/default
+DEST_DIR=$DYD_BUILD
+DEST_MAIN=$DEST_DIR/dyd/commands/dyd-stem-run
 
 BUILD_VERSION="0.0.1"
 BUILD_FINGERPRINT="$(cat $SRC_DIR/dyd/fingerprint)"
@@ -67,7 +67,7 @@ echo -n "$DYD_ARCH" > $DEST_DIR/dyd/traits/arch
 
 
 # run go build for specified arch
-# diable workspace mode to avoid "missing module" errors
+# disable workspace mode to avoid "missing module" errors
 cd $SRC_DIR/dyd/assets/ && \
 GOARCH="$DYD_ARCH" \
 GOOS="$DYD_OS" \
@@ -79,4 +79,3 @@ go build \
 ```
 
 With these in place, `dryad roots build` should build successfully, and `dryad sprouts run --include=server` should start our server.  We can visit `localhost:8080` in the browser to confirm.
-

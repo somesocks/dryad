@@ -11,9 +11,9 @@ We need the go toolchain and compiler in order to be able to compile our server 
 
 Instead, we can create a root to "install" go as a package in our workspace, so that we can use our specific go version for the project.
 
-We can start by adding a new root for the go package, by running `dryad root init ./dyd/roots/tools/go`.
+We can start by adding a new root for the go package, by running `dryad root create ./dyd/roots/tools/go`.
 
-In order to create a go package, we need to download a go release for the system os and architecture.  dryad passes the env vars DYD_OS and DYD_ARCH to stems on execution, which we can use to choose the go release we want to download.  In `./dyd/roots/tools/go/dyd/commands/default`, we can write a script to download the go binaries and extract them into the stem we're building.
+In order to create a go package, we need to download a go release for the system os and architecture.  dryad passes the env vars DYD_OS and DYD_ARCH to stems on execution, which we can use to choose the go release we want to download.  In `./dyd/roots/tools/go/dyd/commands/dyd-root-build`, we can write a script to download the go binaries and extract them into the stem we're building.
 
 ```sh
 #!/usr/bin/env bash
@@ -28,7 +28,7 @@ In order to create a go package, we need to download a go release for the system
 set -euf -o pipefail
 
 SRC_DIR=$DYD_STEM
-DEST_DIR="$1"
+DEST_DIR="$DYD_BUILD"
 
 SYSTEM="$DYD_OS-$DYD_ARCH"
 
@@ -53,7 +53,7 @@ mkdir -p $DEST_DIR/dyd/assets
 tar -xf $TEMP_DIR/go.tar -C $DEST_DIR/dyd/assets
 rm -rf $TEMP_DIR
 
-cat $SRC_DIR/dyd/assets/main > $DEST_DIR/dyd/commands/default
+cat $SRC_DIR/dyd/assets/main > $DEST_DIR/dyd/commands/dyd-stem-run
 
 ```
 
@@ -89,4 +89,3 @@ _exit
 ```
 
 With these two scripts in place, `dryad roots build` should correctly download and extract the go toolchain into a stem.  You can verify this by running `dryad sprouts run --include=go -- version`, which should print out the go version.
-
