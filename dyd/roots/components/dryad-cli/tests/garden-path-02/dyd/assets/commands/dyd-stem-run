@@ -13,6 +13,8 @@ SRC_DIR=$DYD_STEM
 TEMP_DIR=''
 
 TEST_GARDEN_PATH=''
+EXPECTED_GARDEN_TYPE_HEX='67617264656e0a'
+GARDEN_PATH_LOG_FILE=''
 
 # import assertion functions
 . $SRC_DIR/dyd/assets/assertions.sh
@@ -25,6 +27,7 @@ _setup() {
 	# echo "\[INFO\] creating temporary working directory" 1>&2;
 	TEMP_DIR=''
 	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+	GARDEN_PATH_LOG_FILE="$TEMP_DIR/garden-path.log"
 }
 
 _prepare() {
@@ -32,14 +35,15 @@ _prepare() {
 	# copy the sample garden to the working directory
 	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR" 
 	chmod -R 755 "$TEMP_DIR"
+	printf 'garden\n' > "$TEMP_DIR/dyd/type"
 
 	cd "$TEMP_DIR"
 	:;	
 }
 
 _test() {
-
-	TEST_GARDEN_PATH=$(dryad garden path --log-level="$DYD_LOG_LEVEL");
+	: > "$GARDEN_PATH_LOG_FILE"
+	TEST_GARDEN_PATH=$(dryad garden path --log-level="$DYD_LOG_LEVEL" 2>>"$GARDEN_PATH_LOG_FILE");
 }
 
 _verify() {
@@ -49,6 +53,19 @@ _verify() {
 	TEMP_DIR=$(readlink -f "$TEMP_DIR")
 
 	assert_all_equal "$TEST_GARDEN_PATH" "$TEMP_DIR"
+	garden_type_hex=$(od -An -t x1 "$TEMP_DIR/dyd/type" | tr -d ' \n')
+	if [ "$garden_type_hex" != "$EXPECTED_GARDEN_TYPE_HEX" ]; then
+		echo "[ERROR] Fail: garden type file '$TEMP_DIR/dyd/type' was modified (expected $EXPECTED_GARDEN_TYPE_HEX, got $garden_type_hex)" 1>&2
+		return 1
+	fi
+	if ! grep -Fq "dyd/type" "$GARDEN_PATH_LOG_FILE"; then
+		echo "[ERROR] Fail: expected warning to mention relative sentinel path for garden type file" 1>&2
+		return 1
+	fi
+	if ! grep -Fq "malformed sentinel file" "$GARDEN_PATH_LOG_FILE"; then
+		echo "[ERROR] Fail: expected malformed sentinel warning for garden type file whitespace" 1>&2
+		return 1
+	fi
 	:;
 }
 

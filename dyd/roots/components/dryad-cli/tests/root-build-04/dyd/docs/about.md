@@ -1,7 +1,8 @@
 # root-build-04
 
 This test case verifies that `dryad root build` tolerates whitespace in
-`dyd/type` files inside a fixture garden and sanitizes them during build.
+`dyd/type` files inside a fixture garden without mutating source sentinels.
+It also verifies a warning is logged with the relative sentinel path.
 
 Whitespace cases covered:
 - leading space

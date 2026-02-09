@@ -13,7 +13,9 @@ SRC_DIR=$DYD_STEM
 TEMP_DIR=''
 
 ROOTS=("root-01" "root-02" "root-03" "root-04" "root-05")
+EXPECTED_ROOT_TYPE_HEX=("726f6f740a" "20726f6f74" "726f6f7420" "0a726f6f74" "09726f6f7409")
 ROOT_PATHS=()
+ROOT_PATH_LOG_FILE=''
 
 # import assertion functions
 . $SRC_DIR/dyd/assets/assertions.sh
@@ -26,6 +28,7 @@ _setup() {
 	# echo "\[INFO\] creating temporary working directory" 1>&2;
 	TEMP_DIR=''
 	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+	ROOT_PATH_LOG_FILE="$TEMP_DIR/root-path.log"
 }
 
 _prepare() {
@@ -43,8 +46,9 @@ _prepare() {
 _test() {
 
 	cd "dyd/roots";
+	: > "$ROOT_PATH_LOG_FILE"
 	for root_name in "${ROOTS[@]}"; do
-		ROOT_PATHS+=("$(dryad root path "$root_name" --log-level="$DYD_LOG_LEVEL")");
+		ROOT_PATHS+=("$(dryad root path "$root_name" --log-level="$DYD_LOG_LEVEL" 2>>"$ROOT_PATH_LOG_FILE")");
 	done
 }
 
@@ -56,7 +60,24 @@ _verify() {
 
 	for index in "${!ROOTS[@]}"; do
 		assert_all_equal "${ROOT_PATHS[$index]}" "$TEMP_DIR/dyd/roots/${ROOTS[$index]}"
+
+		root_type_path="$TEMP_DIR/dyd/roots/${ROOTS[$index]}/dyd/type"
+		root_type_hex=$(od -An -t x1 "$root_type_path" | tr -d ' \n')
+		if [ "$root_type_hex" != "${EXPECTED_ROOT_TYPE_HEX[$index]}" ]; then
+			echo "[ERROR] Fail: root type file '$root_type_path' was modified (expected ${EXPECTED_ROOT_TYPE_HEX[$index]}, got $root_type_hex)" 1>&2
+			return 1
+		fi
+
+		if ! grep -Fq "dyd/roots/${ROOTS[$index]}/dyd/type" "$ROOT_PATH_LOG_FILE"; then
+			echo "[ERROR] Fail: expected warning to mention relative sentinel path for ${ROOTS[$index]}" 1>&2
+			return 1
+		fi
 	done
+
+	if ! grep -Fq "malformed sentinel file" "$ROOT_PATH_LOG_FILE"; then
+		echo "[ERROR] Fail: expected warning about badly formatted sentinel whitespace" 1>&2
+		return 1
+	fi
 
 	:;
 }
