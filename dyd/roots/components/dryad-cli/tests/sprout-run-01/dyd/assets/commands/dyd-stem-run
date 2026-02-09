@@ -38,6 +38,14 @@ _test() {
 
 _verify() {
 	assert_not_empty "$HELP_TEXT" "help text"
+	case "$HELP_TEXT" in
+		*"--scope"*)
+			;;
+		*)
+			echo "[ERROR] Fail: expected --scope in help output" 1>&2
+			return 1
+			;;
+	esac
 	:;
 }
 
