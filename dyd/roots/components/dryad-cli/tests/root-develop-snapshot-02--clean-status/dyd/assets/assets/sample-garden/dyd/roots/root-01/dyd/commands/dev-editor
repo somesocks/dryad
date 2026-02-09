@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+OUT_DIR="$DYD_GARDEN/dyd/heap/root-develop-snapshot-02--clean-status"
+mkdir -p "$OUT_DIR"
+
+printf "extra\n" > "$DYD_STEM/dyd/assets/extra.txt"
+"$DYD_CLI_BIN" root develop snapshot > "$OUT_DIR/snapshot"
+"$DYD_CLI_BIN" root develop status > "$OUT_DIR/status"

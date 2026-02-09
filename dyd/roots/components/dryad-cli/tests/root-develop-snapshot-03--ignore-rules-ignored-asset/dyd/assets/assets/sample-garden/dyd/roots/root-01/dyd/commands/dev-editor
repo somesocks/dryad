@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+printf "changed\n" > "$DYD_STEM/dyd/assets/ignored.txt"
+
+OUT_DIR="$DYD_GARDEN/dyd/heap/root-develop-snapshot-03--ignore-rules-ignored-asset"
+mkdir -p "$OUT_DIR"
+
+"$DYD_CLI_BIN" root develop snapshot > "$OUT_DIR/snapshot"
+rm -f "$DYD_STEM/dyd/assets/.dyd-ignore"
+"$DYD_CLI_BIN" root develop status > "$OUT_DIR/status"

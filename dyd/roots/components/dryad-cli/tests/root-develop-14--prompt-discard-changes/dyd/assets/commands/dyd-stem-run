@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. $SRC_DIR/dyd/assets/assertions.sh
+
+_setup() {
+	TEMP_DIR=''
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+
+	EDITOR_PATH="$PWD/dyd/roots/root-01/dyd/commands/dev-editor"
+	OUTPUT_FILE="dyd/heap/root-develop-14--prompt-discard-changes/output"
+	mkdir -p "dyd/heap/root-develop-14--prompt-discard-changes"
+	(dryad root develop start dyd/roots/root-01 --shell="$EDITOR_PATH" --on-exit=discard --on-exit=discard --log-level="$DYD_LOG_LEVEL" < /dev/null) 2> "$OUTPUT_FILE"
+}
+
+_verify() {
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-01/dyd/assets/keep.txt" "keep"
+	assert_file_not_exists "$TEMP_DIR/dyd/roots/root-01/dyd/assets/new.txt"
+
+	if ! grep -q "warning: discarded unsaved changes; snapshot " "$OUTPUT_FILE"; then
+		echo "[ERROR] Fail: expected warning about discarded changes" 1>&2
+		return 1
+	fi
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

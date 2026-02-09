@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+printf "ALT-OK\n"
+
+OUT_DIR="$DYD_GARDEN/dyd/heap/sprout-run-02--supports-executables-and-log--executes-a-scoped-script"
+mkdir -p "$OUT_DIR"
+printf "override\n" > "$OUT_DIR/which"
+printf "ok\n" > "$OUT_DIR/override-ran"

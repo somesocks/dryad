@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+OUT_DIR="$DYD_GARDEN/dyd/heap/root-develop-stop-01--interrupts-the-editor"
+mkdir -p "$OUT_DIR"
+
+(
+  sleep 1
+  "$DYD_CLI_BIN" root develop stop
+) &
+
+trap 'printf "ok\n" > "$OUT_DIR/editor-stopped"; exit 0' INT
+
+while true; do
+  sleep 1
+done
