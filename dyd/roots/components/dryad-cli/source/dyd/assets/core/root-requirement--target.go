@@ -1,4 +1,3 @@
-
 package core
 
 import (
@@ -7,6 +6,7 @@ import (
 
 	"os"
 	"path/filepath"
+	"strings"
 
 	"net/url"
 
@@ -14,10 +14,9 @@ import (
 	// zlog "github.com/rs/zerolog/log"
 )
 
-func (rootRequirement *SafeRootRequirementReference) Target(ctx * task.ExecutionContext) (error, *SafeRootReference) {
+func (rootRequirement *SafeRootRequirementReference) Target(ctx *task.ExecutionContext) (error, *SafeRootReference) {
 	var err error
 	var safeRef SafeRootReference
-
 
 	linkInfo, err := os.Lstat(rootRequirement.BasePath)
 	if err != nil {
@@ -51,7 +50,17 @@ func (rootRequirement *SafeRootRequirementReference) Target(ctx * task.Execution
 			return err, nil
 		}
 
-		linkString := string(linkBytes)
+		linkRaw := string(linkBytes)
+		linkString := strings.TrimSpace(linkRaw)
+		warnRequirementFileWhitespace(
+			sentinelLogPath(
+				rootRequirement.BasePath,
+				rootRequirement.Requirements.Root.Roots.Garden.BasePath,
+			),
+			linkRaw,
+			linkString,
+		)
+
 		linkUrl, err := url.Parse(linkString)
 		if err != nil {
 			return err, nil

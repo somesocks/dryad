@@ -8,3 +8,5 @@ Coverage:
 - pinned requirements include `dyd/fingerprint` and selected `dyd/traits/*` data
 - `dyd/dependencies/root-02` is a symlink to a built dependency stem
 - dependency stem path basename matches its `dyd/fingerprint`
+- source requirement files tolerate trailing whitespace and are not rewritten
+- malformed requirement whitespace logs a warning with a relative requirement path
