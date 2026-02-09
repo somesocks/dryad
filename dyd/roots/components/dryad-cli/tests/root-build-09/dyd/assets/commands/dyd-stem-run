@@ -4,6 +4,8 @@ set -euf -o pipefail
 
 SRC_DIR=$DYD_STEM
 TEMP_DIR=''
+BUILD_LOG_FILE=''
+EXPECTED_REQUIREMENT_HEX='726f6f743a2e2e2f2e2e2f2e2e2f726f6f742d30320a'
 
 . "$SRC_DIR/dyd/assets/assertions.sh"
 
@@ -18,6 +20,7 @@ assert_symlink_exists() {
 _setup() {
 	TEMP_DIR=''
 	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+	BUILD_LOG_FILE="$TEMP_DIR/build.log"
 }
 
 _prepare() {
@@ -28,12 +31,14 @@ _prepare() {
 }
 
 _test() {
-	(dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL") 1>&2
+	: > "$BUILD_LOG_FILE"
+	(dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL") >> "$BUILD_LOG_FILE" 2>&1
 }
 
 _verify() {
 	requirements_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/requirements/root-02"
 	dependency_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/root-02"
+	requirement_source_path="$TEMP_DIR/dyd/roots/root-01/dyd/requirements/root-02"
 	dependency_target=$(readlink -f "$dependency_path")
 	root2_sprout_target=$(readlink -f "$TEMP_DIR/dyd/sprouts/root-02")
 
@@ -60,6 +65,22 @@ _verify() {
 
 	if [ "$(basename "$dependency_target")" != "$dependency_fingerprint" ]; then
 		echo "[ERROR] Fail: dependency stem path basename should match dyd/fingerprint" 1>&2
+		return 1
+	fi
+
+	requirement_hex=$(od -An -t x1 "$requirement_source_path" | tr -d ' \n')
+	if [ "$requirement_hex" != "$EXPECTED_REQUIREMENT_HEX" ]; then
+		echo "[ERROR] Fail: requirement file '$requirement_source_path' was modified (expected $EXPECTED_REQUIREMENT_HEX, got $requirement_hex)" 1>&2
+		return 1
+	fi
+
+	if ! grep -Fq "dyd/roots/root-01/dyd/requirements/root-02" "$BUILD_LOG_FILE"; then
+		echo "[ERROR] Fail: expected warning to include requirement file path" 1>&2
+		return 1
+	fi
+
+	if ! grep -Fq "malformed requirement file" "$BUILD_LOG_FILE"; then
+		echo "[ERROR] Fail: expected warning for malformed requirement file whitespace" 1>&2
 		return 1
 	fi
 }
