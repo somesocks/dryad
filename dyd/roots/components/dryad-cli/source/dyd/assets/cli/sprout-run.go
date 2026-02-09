@@ -195,11 +195,11 @@ var sproutRunCommand = func() clib.Command {
 					return err, nil
 				}
 
-					err = sprout.Run(
-						ctx,
-						dryad.SproutRunRequest{
-							MainOverride: args.Command,
-							Env:          env,
+				err = sprout.Run(
+					ctx,
+					dryad.SproutRunRequest{
+						MainOverride: args.Command,
+						Env:          env,
 						Args:         args.Extras,
 						JoinStdout:   args.JoinStdout,
 						LogStdout: struct {
@@ -250,6 +250,7 @@ var sproutRunCommand = func() clib.Command {
 		})
 
 	command = ParallelCommand(command)
+	command = ScopedCommand(command)
 	command = LoggingCommand(command)
 
 	return command
