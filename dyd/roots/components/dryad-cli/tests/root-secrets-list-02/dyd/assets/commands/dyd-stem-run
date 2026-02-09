@@ -1,0 +1,170 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+SETTING_FILE='root-secrets-list'
+MISSING_COMMAND='dryad root secrets list dyd/roots/root-01'
+PLAIN_COMMAND='dryad root secrets list dyd/roots/root-01'
+TUNED_COMMAND='dryad root secrets list dyd/roots/root-01'
+PLAIN_CWD_REL='.'
+TUNED_CWD_REL='.'
+
+# import assertion functions
+. $SRC_DIR/dyd/assets/assertions.sh
+
+_setup() {
+	TEMP_DIR=''
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_create_root() {
+	ROOT_PATH="$1"
+	ROOT_DIR="$TEMP_DIR/dyd/roots/$ROOT_PATH"
+
+	mkdir -p "$ROOT_DIR/dyd/assets"
+	mkdir -p "$ROOT_DIR/dyd/commands"
+	mkdir -p "$ROOT_DIR/dyd/docs"
+	mkdir -p "$ROOT_DIR/dyd/requirements"
+	mkdir -p "$ROOT_DIR/dyd/secrets"
+	mkdir -p "$ROOT_DIR/dyd/traits"
+
+	printf 'root' > "$ROOT_DIR/dyd/type"
+	printf '%s' "$ROOT_PATH" > "$ROOT_DIR/dyd/traits/name"
+	printf 'sample-doc\n' > "$ROOT_DIR/dyd/docs/about.md"
+	printf 'sample-asset\n' > "$ROOT_DIR/dyd/assets/value.txt"
+	printf 'sample-secret\n' > "$ROOT_DIR/dyd/secrets/value.txt"
+
+	cat > "$ROOT_DIR/dyd/commands/dyd-root-build" <<'EOB'
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+DEST_DIR=$DYD_BUILD
+
+mkdir -p "$DEST_DIR/dyd/assets"
+mkdir -p "$DEST_DIR/dyd/commands"
+mkdir -p "$DEST_DIR/dyd/docs"
+mkdir -p "$DEST_DIR/dyd/secrets"
+mkdir -p "$DEST_DIR/dyd/traits"
+
+cp -R "$SRC_DIR/dyd/assets/." "$DEST_DIR/dyd/assets/"
+cp -R "$SRC_DIR/dyd/commands/." "$DEST_DIR/dyd/commands/"
+cp -R "$SRC_DIR/dyd/docs/." "$DEST_DIR/dyd/docs/"
+cp -R "$SRC_DIR/dyd/secrets/." "$DEST_DIR/dyd/secrets/"
+cp -R "$SRC_DIR/dyd/traits/." "$DEST_DIR/dyd/traits/"
+EOB
+	chmod +x "$ROOT_DIR/dyd/commands/dyd-root-build"
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+
+	mkdir -p "$TEMP_DIR/dyd/roots"
+	_create_root root-01
+	_create_root root-02
+	_create_root root-03
+	_create_root root-04
+
+	printf 'root:../../../root-02' > "$TEMP_DIR/dyd/roots/root-01/dyd/requirements/dep-02"
+	printf 'root:../../../root-03' > "$TEMP_DIR/dyd/roots/root-01/dyd/requirements/dep-03"
+	printf 'root:../../../root-03' > "$TEMP_DIR/dyd/roots/root-02/dyd/requirements/dep-03"
+
+	mkdir -p "$TEMP_DIR/dyd/shed/scopes/plain"
+	mkdir -p "$TEMP_DIR/dyd/shed/scopes/tuned"
+	printf '%s' '--parallel=1' > "$TEMP_DIR/dyd/shed/scopes/tuned/$SETTING_FILE"
+
+	cd "$TEMP_DIR"
+	:;
+}
+
+_run_expect_failure() {
+	COMMAND="$1"
+	CWD_REL="$2"
+
+	set +e
+	OUTPUT=$(cd "$TEMP_DIR/$CWD_REL" && bash -c "$COMMAND --scope=missing --log-level=debug" 2>&1)
+	STATUS=$?
+	set -e
+
+	if [ "$STATUS" -eq 0 ]; then
+		echo "[ERROR] Fail: expected command to fail for missing scope: $COMMAND" 1>&2
+		return 1
+	fi
+
+	LOWER_OUTPUT=$(printf "%s" "$OUTPUT" | tr '[:upper:]' '[:lower:]')
+	case "$LOWER_OUTPUT" in
+		*"scope"*)
+			;;
+		*)
+			echo "[ERROR] Fail: expected scope-related error output" 1>&2
+			echo "$OUTPUT" 1>&2
+			return 1
+			;;
+	esac
+}
+
+_run_expect_success() {
+	COMMAND="$1"
+	SCOPE_NAME="$2"
+	CWD_REL="$3"
+	EXPECT_REWRITE="$4"
+
+	set +e
+	OUTPUT=$(cd "$TEMP_DIR/$CWD_REL" && bash -c "$COMMAND --scope=$SCOPE_NAME --log-level=debug" 2>&1)
+	STATUS=$?
+	set -e
+
+	if [ "$STATUS" -ne 0 ]; then
+		echo "[ERROR] Fail: expected command to succeed for scope $SCOPE_NAME: $COMMAND" 1>&2
+		echo "$OUTPUT" 1>&2
+		return 1
+	fi
+
+	if [ "$EXPECT_REWRITE" = "1" ]; then
+		case "$OUTPUT" in
+			*"rewriting args to:"*)
+				;;
+			*)
+				echo "[ERROR] Fail: expected rewrite log output for command setting" 1>&2
+				echo "$OUTPUT" 1>&2
+				return 1
+				;;
+		esac
+	fi
+}
+
+_test() {
+	_run_expect_failure "$MISSING_COMMAND" "$PLAIN_CWD_REL"
+	_run_expect_success "$PLAIN_COMMAND" plain "$PLAIN_CWD_REL" 0
+	_run_expect_success "$TUNED_COMMAND" tuned "$TUNED_CWD_REL" 1
+}
+
+_verify() {
+	assert_directory_exists "$TEMP_DIR/dyd"
+	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
+	:;
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

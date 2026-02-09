@@ -139,6 +139,7 @@ var rootDescendantsCommand = func() clib.Command {
 		WithAction(action)
 
 	command = ParallelCommand(command)
+	command = ScopedCommand(command)
 	command = LoggingCommand(command)
 
 	return command

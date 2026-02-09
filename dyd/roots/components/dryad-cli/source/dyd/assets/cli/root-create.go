@@ -3,8 +3,8 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	"dryad/task"
 	dydfs "dryad/filesystem"
+	"dryad/task"
 
 	"fmt"
 
@@ -18,67 +18,65 @@ var rootCreateCommand = func() clib.Command {
 		Parallel int
 	}
 
-	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = 
-		func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
-			var args = req.Args
-			var options = req.Opts
-			var err error 
+	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+		var args = req.Args
+		var options = req.Opts
+		var err error
 
-			var rootPath string
+		var rootPath string
 
-			if len(args) > 0 {
-				rootPath = args[0]
-			}
-
-			var parallel int
-
-			if options["parallel"] != nil {
-				parallel = int(options["parallel"].(int64))
-			} else {
-				parallel = PARALLEL_COUNT_DEFAULT
-			}
-
-			err, rootPath = dydfs.PartialEvalSymlinks(ctx, rootPath)
-			if err != nil {
-				return err, ParsedArgs{}
-			}
-	
-			return nil, ParsedArgs{
-				RootPath: rootPath,
-				Parallel: parallel,
-			}
+		if len(args) > 0 {
+			rootPath = args[0]
 		}
 
-	var createRoot task.Task[ParsedArgs, any] =
-		func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+		var parallel int
 
-			err, garden := dryad.Garden("").Resolve(ctx)
-			if err != nil {
-				return err, nil
-			}
-
-			err, roots := garden.Roots().Resolve(ctx)
-			if err != nil {
-				return err, nil
-			}
-
-			unsafeRoot := roots.Root(args.RootPath)
-	
-			err, safeRoot := unsafeRoot.Create(
-				ctx,
-			)
-			if err != nil {
-				return err, nil
-			}
-
-			fmt.Println(safeRoot.BasePath)
-
-			return nil, nil
+		if options["parallel"] != nil {
+			parallel = int(options["parallel"].(int64))
+		} else {
+			parallel = PARALLEL_COUNT_DEFAULT
 		}
+
+		err, rootPath = dydfs.PartialEvalSymlinks(ctx, rootPath)
+		if err != nil {
+			return err, ParsedArgs{}
+		}
+
+		return nil, ParsedArgs{
+			RootPath: rootPath,
+			Parallel: parallel,
+		}
+	}
+
+	var createRoot task.Task[ParsedArgs, any] = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+
+		err, garden := dryad.Garden("").Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		err, roots := garden.Roots().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		unsafeRoot := roots.Root(args.RootPath)
+
+		err, safeRoot := unsafeRoot.Create(
+			ctx,
+		)
+		if err != nil {
+			return err, nil
+		}
+
+		fmt.Println(safeRoot.BasePath)
+
+		return nil, nil
+	}
 
 	createRoot = task.WithContext(
 		createRoot,
-		func (ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
+		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
 			return nil, task.NewContext(args.Parallel)
 		},
 	)
@@ -88,7 +86,7 @@ var rootCreateCommand = func() clib.Command {
 			parseArgs,
 			createRoot,
 		),
-		func (err error, val any) int {
+		func(err error, val any) int {
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while creating root")
 				return 1
@@ -107,6 +105,7 @@ var rootCreateCommand = func() clib.Command {
 		WithAction(action)
 
 	command = ParallelCommand(command)
+	command = ScopedCommand(command)
 	command = LoggingCommand(command)
 
 	return command
