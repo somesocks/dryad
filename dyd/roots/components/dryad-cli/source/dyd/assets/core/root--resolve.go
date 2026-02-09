@@ -1,4 +1,3 @@
-
 package core
 
 import (
@@ -11,6 +10,14 @@ import (
 
 	zlog "github.com/rs/zerolog/log"
 )
+
+func sentinelLogPath(flagPath string, limit string) string {
+	relPath, err := filepath.Rel(limit, flagPath)
+	if err != nil || strings.HasPrefix(relPath, "..") {
+		return flagPath
+	}
+	return relPath
+}
 
 func rootPath(path string, limit string) (string, error) {
 	zlog.Trace().
@@ -39,7 +46,7 @@ func rootPath(path string, limit string) (string, error) {
 	var flagPath = filepath.Join(workingPath, "dyd", "type")
 	var fileBytes, fileInfoErr = os.ReadFile(flagPath)
 	if fileInfoErr == nil {
-		warnTypeFileWhitespace(flagPath, SentinelRoot.String(), string(fileBytes))
+		warnTypeFileWhitespace(sentinelLogPath(flagPath, limit), SentinelRoot.String(), string(fileBytes))
 	}
 	var sentinel Sentinel = SentinelFromString(strings.TrimSpace(string(fileBytes)))
 
@@ -47,8 +54,8 @@ func rootPath(path string, limit string) (string, error) {
 		if fileInfoErr == nil {
 			if sentinel == SentinelRoot {
 				zlog.Trace().
-				Str("result", workingPath).
-				Msg("RootPath success")
+					Str("result", workingPath).
+					Msg("RootPath success")
 
 				return workingPath, nil
 			} else {
@@ -68,7 +75,7 @@ func rootPath(path string, limit string) (string, error) {
 		flagPath = filepath.Join(workingPath, "dyd", "type")
 		fileBytes, fileInfoErr = os.ReadFile(flagPath)
 		if fileInfoErr == nil {
-			warnTypeFileWhitespace(flagPath, SentinelRoot.String(), string(fileBytes))
+			warnTypeFileWhitespace(sentinelLogPath(flagPath, limit), SentinelRoot.String(), string(fileBytes))
 		}
 		sentinel = SentinelFromString(strings.TrimSpace(string(fileBytes)))
 	}
@@ -79,7 +86,7 @@ func rootPath(path string, limit string) (string, error) {
 	return "", errors.New("dyd root path not found starting from " + path)
 }
 
-func (ur *UnsafeRootReference) Resolve(ctx * task.ExecutionContext) (error, SafeRootReference) {
+func (ur *UnsafeRootReference) Resolve(ctx *task.ExecutionContext) (error, SafeRootReference) {
 	var gardenPath string = ur.Roots.Garden.BasePath
 	var basePath string = ur.BasePath
 	var err error
@@ -89,12 +96,12 @@ func (ur *UnsafeRootReference) Resolve(ctx * task.ExecutionContext) (error, Safe
 	}
 
 	// resolve the path to the base of the root
-	basePath, err = rootPath(basePath, gardenPath) 
+	basePath, err = rootPath(basePath, gardenPath)
 	if err != nil {
 		return err, SafeRootReference{}
 	}
 	return nil, SafeRootReference{
 		BasePath: basePath,
-		Roots: ur.Roots,
+		Roots:    ur.Roots,
 	}
 }

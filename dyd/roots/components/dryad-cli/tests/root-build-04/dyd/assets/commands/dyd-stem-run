@@ -12,6 +12,8 @@ set -euf -o pipefail
 SRC_DIR=$DYD_STEM
 TEMP_DIR=''
 ROOTS=("root-01" "root-02" "root-03" "root-04" "root-05")
+EXPECTED_ROOT_TYPE_HEX=("726f6f740a" "20726f6f74" "726f6f7420" "0a726f6f74" "09726f6f7409")
+BUILD_LOG_FILE=''
 
 # import assertion functions
 . $SRC_DIR/dyd/assets/assertions.sh
@@ -24,6 +26,7 @@ _setup() {
 	# echo "\[INFO\] creating temporary working directory" 1>&2;
 	TEMP_DIR=''
 	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+	BUILD_LOG_FILE="$TEMP_DIR/build.log"
 }
 
 _prepare() {
@@ -40,8 +43,9 @@ _prepare() {
 
 _test() {
 
+	: > "$BUILD_LOG_FILE"
 	for root_name in "${ROOTS[@]}"; do
-		(dryad root build "dyd/roots/$root_name" --log-level="$DYD_LOG_LEVEL") 1>&2;
+		(dryad root build "dyd/roots/$root_name" --log-level="$DYD_LOG_LEVEL") >> "$BUILD_LOG_FILE" 2>&1;
 	done
 }
 
@@ -49,18 +53,28 @@ _verify() {
 	assert_directory_exists "$TEMP_DIR/dyd"
 	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
 
-	for root_name in "${ROOTS[@]}"; do
+	for index in "${!ROOTS[@]}"; do
+		root_name="${ROOTS[$index]}"
 		root_type_path="$TEMP_DIR/dyd/roots/$root_name/dyd/type"
-		root_type_bytes=$(wc -c < "$root_type_path" | tr -d ' ')
-		if [ "$root_type_bytes" -ne 4 ]; then
-			echo "[ERROR] Fail: root type file should be exactly 4 bytes (expected 4, got $root_type_bytes)" 1>&2
+		root_type_hex=$(od -An -t x1 "$root_type_path" | tr -d ' \n')
+		if [ "$root_type_hex" != "${EXPECTED_ROOT_TYPE_HEX[$index]}" ]; then
+			echo "[ERROR] Fail: root type file '$root_type_path' was modified (expected ${EXPECTED_ROOT_TYPE_HEX[$index]}, got $root_type_hex)" 1>&2
 			return 1
 		fi
-		assert_file_content_equals "$root_type_path" "root"
+
+		if ! grep -Fq "dyd/roots/$root_name/dyd/type" "$BUILD_LOG_FILE"; then
+			echo "[ERROR] Fail: expected warning to mention relative sentinel path for $root_name" 1>&2
+			return 1
+		fi
 
 		assert_directory_exists "$TEMP_DIR/dyd/sprouts/$root_name"
 		assert_file_content_equals "$TEMP_DIR/dyd/sprouts/$root_name/dyd/type" "stem"
 	done
+
+	if ! grep -Fq "malformed sentinel file" "$BUILD_LOG_FILE"; then
+		echo "[ERROR] Fail: expected warning about badly formatted sentinel whitespace" 1>&2
+		return 1
+	fi
 
 	:;
 }
