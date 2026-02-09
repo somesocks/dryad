@@ -3,8 +3,8 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	"dryad/task"
 	dydfs "dryad/filesystem"
+	"dryad/task"
 	"fmt"
 	"path/filepath"
 
@@ -19,50 +19,49 @@ var rootAncestorsCommand = func() clib.Command {
 		Parallel int
 	}
 
-	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = 
-		func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
-			var args = req.Args
-			var options = req.Opts
-			var err error 
+	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+		var args = req.Args
+		var options = req.Opts
+		var err error
 
-			var rootPath string
+		var rootPath string
 
-			if len(args) > 0 {
-				rootPath = args[0]
-			}
-
-			var relative bool = true
-
-			if options["relative"] != nil {
-				relative = options["relative"].(bool)
-			} else {
-				relative = true
-			}
-
-			var parallel int
-
-			if options["parallel"] != nil {
-				parallel = int(options["parallel"].(int64))
-			} else {
-				parallel = PARALLEL_COUNT_DEFAULT
-			}
-
-			err, rootPath = dydfs.PartialEvalSymlinks(ctx, rootPath)
-			if err != nil {
-				return err, ParsedArgs{}
-			}
-	
-			return nil, ParsedArgs{
-				RootPath: rootPath,
-				Relative: relative,
-				Parallel: parallel,
-			}
+		if len(args) > 0 {
+			rootPath = args[0]
 		}
 
-	var findAncestors = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+		var relative bool = true
+
+		if options["relative"] != nil {
+			relative = options["relative"].(bool)
+		} else {
+			relative = true
+		}
+
+		var parallel int
+
+		if options["parallel"] != nil {
+			parallel = int(options["parallel"].(int64))
+		} else {
+			parallel = PARALLEL_COUNT_DEFAULT
+		}
+
+		err, rootPath = dydfs.PartialEvalSymlinks(ctx, rootPath)
+		if err != nil {
+			return err, ParsedArgs{}
+		}
+
+		return nil, ParsedArgs{
+			RootPath: rootPath,
+			Relative: relative,
+			Parallel: parallel,
+		}
+	}
+
+	var findAncestors = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
 		var rootPath string = args.RootPath
 		var relative bool = args.Relative
-		
+
 		err, garden := dryad.Garden(args.RootPath).Resolve(ctx)
 		if err != nil {
 			return err, nil
@@ -107,7 +106,7 @@ var rootAncestorsCommand = func() clib.Command {
 
 	findAncestors = task.WithContext(
 		findAncestors,
-		func (ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
+		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
 			return nil, task.NewContext(args.Parallel)
 		},
 	)
@@ -117,7 +116,7 @@ var rootAncestorsCommand = func() clib.Command {
 			parseArgs,
 			findAncestors,
 		),
-		func (err error, val any) int {
+		func(err error, val any) int {
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while finding root ancestors")
 				return 1
@@ -138,6 +137,7 @@ var rootAncestorsCommand = func() clib.Command {
 		WithAction(action)
 
 	command = ParallelCommand(command)
+	command = ScopedCommand(command)
 	command = LoggingCommand(command)
 
 	return command

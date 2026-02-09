@@ -3,8 +3,8 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	"dryad/task"
 	dydfs "dryad/filesystem"
+	"dryad/task"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -13,55 +13,54 @@ var rootMoveCommand = func() clib.Command {
 
 	type ParsedArgs struct {
 		SourcePath string
-		DestPath string
-		Parallel int
-		Unpin bool
-	}	
+		DestPath   string
+		Parallel   int
+		Unpin      bool
+	}
 
-	var parseArgs =
-		func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
-			var args = req.Args
-			var options = req.Opts
+	var parseArgs = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+		var args = req.Args
+		var options = req.Opts
 
-			var source string = args[0]
-			var dest string = args[1]
-			var err error
+		var source string = args[0]
+		var dest string = args[1]
+		var err error
 
-			var parallel int
-			var unpin bool
+		var parallel int
+		var unpin bool
 
-			if options["parallel"] != nil {
-				parallel = int(options["parallel"].(int64))
-			} else {
-				parallel = PARALLEL_COUNT_DEFAULT
-			}
-
-			if options["unpin"] != nil {
-				unpin = options["unpin"].(bool)
-			} else {
-				unpin = false
-			}
-
-			err, source = dydfs.PartialEvalSymlinks(ctx, source)
-			if err != nil {
-				return err, ParsedArgs{}
-			}			
-
-			err, dest = dydfs.PartialEvalSymlinks(ctx, dest)
-			if err != nil {
-				return err, ParsedArgs{}
-			}
-			
-			return nil, ParsedArgs{
-				SourcePath: source,
-				DestPath: dest,
-				Parallel: parallel,
-				Unpin: unpin,
-			}
+		if options["parallel"] != nil {
+			parallel = int(options["parallel"].(int64))
+		} else {
+			parallel = PARALLEL_COUNT_DEFAULT
 		}
 
-	var moveRoot = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
-		
+		if options["unpin"] != nil {
+			unpin = options["unpin"].(bool)
+		} else {
+			unpin = false
+		}
+
+		err, source = dydfs.PartialEvalSymlinks(ctx, source)
+		if err != nil {
+			return err, ParsedArgs{}
+		}
+
+		err, dest = dydfs.PartialEvalSymlinks(ctx, dest)
+		if err != nil {
+			return err, ParsedArgs{}
+		}
+
+		return nil, ParsedArgs{
+			SourcePath: source,
+			DestPath:   dest,
+			Parallel:   parallel,
+			Unpin:      unpin,
+		}
+	}
+
+	var moveRoot = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+
 		err, garden := dryad.Garden(args.SourcePath).Resolve(ctx)
 		if err != nil {
 			return err, nil
@@ -82,7 +81,7 @@ var rootMoveCommand = func() clib.Command {
 		err = safeSourceRoot.Move(
 			ctx,
 			dryad.RootMoveRequest{
-				Dest: unsafeDestRoot,
+				Dest:  unsafeDestRoot,
 				Unpin: args.Unpin,
 			},
 		)
@@ -91,7 +90,7 @@ var rootMoveCommand = func() clib.Command {
 
 	moveRoot = task.WithContext(
 		moveRoot,
-		func (ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
+		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
 			return nil, task.NewContext(args.Parallel)
 		},
 	)
@@ -101,7 +100,7 @@ var rootMoveCommand = func() clib.Command {
 			parseArgs,
 			moveRoot,
 		),
-		func (err error, val any) int {
+		func(err error, val any) int {
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error during root move")
 				return 1
@@ -124,16 +123,16 @@ var rootMoveCommand = func() clib.Command {
 		).
 		WithOption(
 			clib.NewOption(
-				"unpin", 
+				"unpin",
 				"move the root with 'unpinned' requirements, i.e. treat requirement links as relative links instead of absolute (if possible).",
 			).
-			WithType(clib.OptionTypeBool),
+				WithType(clib.OptionTypeBool),
 		).
 		WithAction(action)
 
 	command = ParallelCommand(command)
+	command = ScopedCommand(command)
 	command = LoggingCommand(command)
-
 
 	return command
 }()
