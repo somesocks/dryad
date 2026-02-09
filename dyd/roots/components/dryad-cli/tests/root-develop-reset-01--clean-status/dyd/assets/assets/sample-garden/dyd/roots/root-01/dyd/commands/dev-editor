@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+OUT_DIR="$DYD_GARDEN/dyd/heap/root-develop-reset-01--clean-status"
+mkdir -p "$OUT_DIR"
+
+printf "changed\n" > "$DYD_STEM/dyd/assets/file.txt"
+printf "extra\n" > "$DYD_STEM/dyd/assets/extra.txt"
+
+"$DYD_CLI_BIN" root develop reset > "$OUT_DIR/reset"
+"$DYD_CLI_BIN" root develop status > "$OUT_DIR/status"
+cat "$DYD_STEM/dyd/assets/file.txt" > "$OUT_DIR/file"
+if [ -f "$DYD_STEM/dyd/assets/extra.txt" ]; then
+  printf "ok\n" > "$OUT_DIR/extra"
+fi

@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+# import assertion functions
+. $SRC_DIR/dyd/assets/assertions.sh
+
+_setup() {
+	TEMP_DIR=''
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	# copy the sample garden to the working directory
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+
+	# create scopes for plain and tuned execution paths
+	mkdir -p "$TEMP_DIR/dyd/shed/scopes/plain"
+	mkdir -p "$TEMP_DIR/dyd/shed/scopes/tuned"
+	printf '%s' '--command=alt-run' > "$TEMP_DIR/dyd/shed/scopes/tuned/sprout-run"
+
+	cd "$TEMP_DIR"
+	:;
+}
+
+_run_expect_failure() {
+	set +e
+	OUTPUT=$(dryad sprout run "dyd/sprouts/root-01" --scope=missing --log-level=debug -- 2>&1)
+	STATUS=$?
+	set -e
+
+	if [ "$STATUS" -eq 0 ]; then
+		echo "[ERROR] Fail: expected sprout run to fail for missing scope" 1>&2
+		return 1
+	fi
+
+	LOWER_OUTPUT=$(printf "%s" "$OUTPUT" | tr '[:upper:]' '[:lower:]')
+	case "$LOWER_OUTPUT" in
+		*"scope"*)
+			;;
+		*)
+			echo "[ERROR] Fail: expected scope-related error output" 1>&2
+			echo "$OUTPUT" 1>&2
+			return 1
+			;;
+	esac
+}
+
+_run_expect_success_plain() {
+	set +e
+	OUTPUT=$(dryad sprout run "dyd/sprouts/root-01" --scope=plain --log-level=debug -- 2>&1)
+	STATUS=$?
+	set -e
+
+	if [ "$STATUS" -ne 0 ]; then
+		echo "[ERROR] Fail: expected sprout run to succeed for plain scope" 1>&2
+		echo "$OUTPUT" 1>&2
+		return 1
+	fi
+}
+
+_run_expect_success_tuned() {
+	set +e
+	OUTPUT=$(dryad sprout run "dyd/sprouts/root-01" --scope=tuned --log-level=debug -- 2>&1)
+	STATUS=$?
+	set -e
+
+	if [ "$STATUS" -ne 0 ]; then
+		echo "[ERROR] Fail: expected sprout run to succeed for tuned scope" 1>&2
+		echo "$OUTPUT" 1>&2
+		return 1
+	fi
+
+	case "$OUTPUT" in
+		*"rewriting args to:"*)
+			;;
+		*)
+			echo "[ERROR] Fail: expected rewrite log output for tuned scope" 1>&2
+			echo "$OUTPUT" 1>&2
+			return 1
+			;;
+	esac
+}
+
+_test() {
+	(dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL") 1>&2
+
+	_run_expect_failure
+	_run_expect_success_plain
+	_run_expect_success_tuned
+}
+
+_verify() {
+	assert_directory_exists "$TEMP_DIR/dyd"
+	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
+
+	assert_file_content_equals "$TEMP_DIR/dyd/heap/sprout-run-07--scope-phases/which" "override"
+	assert_file_content_equals "$TEMP_DIR/dyd/heap/sprout-run-07--scope-phases/override-ran" "ok"
+
+	:;
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

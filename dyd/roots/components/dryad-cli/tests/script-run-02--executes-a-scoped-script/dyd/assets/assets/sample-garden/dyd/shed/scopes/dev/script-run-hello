@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+OUT_DIR="$DYD_GARDEN/dyd/heap/script-run-02--executes-a-scoped-script"
+mkdir -p "$OUT_DIR"
+
+printf "%s\n" "$DYD_SCOPE" > "$OUT_DIR/scope"
+printf "%s\n" "$DYD_GARDEN" > "$OUT_DIR/garden"
+printf "%s\n" "$*" > "$OUT_DIR/args"

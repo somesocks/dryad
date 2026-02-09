@@ -1,0 +1,12 @@
+# root-build-04--warns-on-type-whitespace
+
+This test case verifies that `dryad root build` tolerates whitespace in
+`dyd/type` files inside a fixture garden without mutating source sentinels.
+It also verifies a warning is logged with the relative sentinel path.
+
+Whitespace cases covered:
+- leading space
+- trailing space
+- leading newline
+- trailing newline
+- leading/trailing tab
