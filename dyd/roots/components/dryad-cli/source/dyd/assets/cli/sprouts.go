@@ -8,4 +8,5 @@ var sproutsCommand = clib.NewCommand("sprouts", "commands to work with dryad spr
 	WithCommand(sproutsListCommand).
 	WithCommand(sproutsPathCommand).
 	WithCommand(sproutsPruneCommand).
+	WithCommand(sproutsWipeCommand).
 	WithCommand(sproutsRunCommand)
