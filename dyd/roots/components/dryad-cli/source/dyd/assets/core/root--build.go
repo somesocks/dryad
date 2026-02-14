@@ -8,15 +8,16 @@ import (
 
 	"os"
 	"path/filepath"
+	"strings"
 
 	zlog "github.com/rs/zerolog/log"
 )
 
 type rootBuildRequest struct {
-	Root *SafeRootReference
+	Root       *SafeRootReference
 	JoinStdout bool
 	JoinStderr bool
-	LogStdout struct {
+	LogStdout  struct {
 		Path string
 		Name string
 	}
@@ -55,7 +56,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 	err, _ = rootBuild_stage0(
 		ctx,
 		rootBuild_stage0_request{
-			RootPath: rootPath,
+			RootPath:      rootPath,
 			WorkspacePath: workspacePath,
 		},
 	)
@@ -66,13 +67,13 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 	err, _ = rootBuild_stage1(
 		ctx,
 		rootBuild_stage1_request{
-			Roots: req.Root.Roots,
-			RootPath: rootPath,
+			Roots:         req.Root.Roots,
+			RootPath:      rootPath,
 			WorkspacePath: workspacePath,
-			JoinStdout: req.JoinStdout,
-			JoinStderr: req.JoinStderr,
-			LogStdout: req.LogStdout,
-			LogStderr: req.LogStderr,
+			JoinStdout:    req.JoinStdout,
+			JoinStderr:    req.JoinStderr,
+			LogStdout:     req.LogStdout,
+			LogStderr:     req.LogStderr,
 		},
 	)
 	if err != nil {
@@ -82,9 +83,9 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 	err, _ = rootBuild_stage2(
 		ctx,
 		rootBuild_stage2_request{
-			RootPath: rootPath,
+			RootPath:      rootPath,
 			WorkspacePath: workspacePath,
-			GardenPath: gardenPath,
+			GardenPath:    gardenPath,
 		},
 	)
 	if err != nil {
@@ -94,9 +95,9 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 	err, rootFingerprint := rootBuild_stage3(
 		ctx,
 		rootBuild_stage3_request{
-			RootPath: rootPath,
+			RootPath:      rootPath,
 			WorkspacePath: workspacePath,
-			GardenPath: gardenPath,
+			GardenPath:    gardenPath,
 		},
 	)
 	if err != nil {
@@ -106,8 +107,8 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 	err, rootStem := rootBuild_stage4(
 		ctx,
 		rootBuild_stage4_request{
-			Garden: req.Root.Roots.Garden,
-			RootPath: rootPath,
+			Garden:        req.Root.Roots.Garden,
+			RootPath:      rootPath,
 			WorkspacePath: workspacePath,
 		},
 	)
@@ -169,15 +170,15 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		err, stemBuildFingerprint = rootBuild_stage5(
 			ctx,
 			rootBuild_stage5_request{
-				Garden: req.Root.Roots.Garden,
-				RelRootPath: relRootPath,
-				RootStemPath: rootStem.BasePath,
-				StemBuildPath: stemBuildPath,
+				Garden:          req.Root.Roots.Garden,
+				RelRootPath:     relRootPath,
+				RootStemPath:    rootStem.BasePath,
+				StemBuildPath:   stemBuildPath,
 				RootFingerprint: rootFingerprint,
-				JoinStdout: req.JoinStdout,
-				JoinStderr: req.JoinStderr,
-				LogStdout: req.LogStdout,
-				LogStderr: req.LogStderr,	
+				JoinStdout:      req.JoinStdout,
+				JoinStderr:      req.JoinStderr,
+				LogStdout:       req.LogStdout,
+				LogStderr:       req.LogStderr,
 			},
 		)
 		if err != nil {
@@ -187,8 +188,8 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		err, _ = rootBuild_stage6(
 			ctx,
 			rootBuild_stage6_request{
-				Garden: req.Root.Roots.Garden,
-				RelRootPath: relRootPath,
+				Garden:        req.Root.Roots.Garden,
+				RelRootPath:   relRootPath,
 				StemBuildPath: stemBuildPath,
 			},
 		)
@@ -213,9 +214,10 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 			Msg("root build - done building root")
 	}
 
-	relSproutPath := filepath.Join("dyd", "sprouts", relRootPath) 
+	relSproutPath := filepath.Join("dyd", "sprouts", relRootPath)
 	sproutPath := filepath.Join(gardenPath, relSproutPath)
 	sproutParent := filepath.Dir(sproutPath)
+	sproutsPath := filepath.Join(gardenPath, "dyd", "sprouts")
 	sproutHeapPath := filepath.Join(gardenPath, "dyd", "heap", "stems", stemBuildFingerprint)
 	relSproutLink, err := filepath.Rel(
 		sproutParent,
@@ -228,11 +230,38 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 	zlog.Info().
 		Str("path", relSproutPath).
 		Msg("root build - linking sprout")
+
+	relSproutParentPath := filepath.Dir(relRootPath)
+	if relSproutParentPath != "." {
+		var currentPath = sproutsPath
+		for _, part := range strings.Split(relSproutParentPath, string(filepath.Separator)) {
+			if part == "" || part == "." {
+				continue
+			}
+
+			currentPath = filepath.Join(currentPath, part)
+			currentInfo, currentErr := os.Lstat(currentPath)
+			if currentErr != nil {
+				if os.IsNotExist(currentErr) {
+					continue
+				}
+				return currentErr, ""
+			}
+
+			if !currentInfo.IsDir() {
+				currentErr, _ = dydfs.Remove(ctx, currentPath)
+				if currentErr != nil {
+					return currentErr, ""
+				}
+			}
+		}
+	}
+
 	err, _ = dydfs.Mkdir2(
 		ctx,
 		dydfs.MkdirRequest{
-			Path: sproutParent,
-			Mode: 0o551,
+			Path:      sproutParent,
+			Mode:      0o551,
 			Recursive: true,
 		},
 	)
@@ -253,7 +282,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		ctx,
 		dydfs.SymlinkRequest{
 			Target: relSproutLink,
-			Path: sproutPath,
+			Path:   sproutPath,
 		},
 	)
 	if err != nil {
@@ -273,7 +302,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 
 var rootBuild2 = task.OnFailure(
 	rootBuild,
-	func (ctx * task.ExecutionContext, args task.Tuple2[rootBuildRequest, error]) (error, any) {
+	func(ctx *task.ExecutionContext, args task.Tuple2[rootBuildRequest, error]) (error, any) {
 		var req = args.A
 		var err = args.B
 
@@ -289,30 +318,29 @@ var rootBuild2 = task.OnFailure(
 
 var memoRootBuild = task.Memoize(
 	rootBuild2,
-	func (ctx * task.ExecutionContext, req rootBuildRequest) (error, any) {
+	func(ctx *task.ExecutionContext, req rootBuildRequest) (error, any) {
 		var res = struct {
-			Group string
+			Group      string
 			GardenPath string
-			RootPath string
+			RootPath   string
 		}{
-			Group: "RootBuild",
+			Group:      "RootBuild",
 			GardenPath: req.Root.Roots.Garden.BasePath,
-			RootPath: req.Root.BasePath,
+			RootPath:   req.Root.BasePath,
 		}
 		return nil, res
 	},
 )
 
-var rootBuildWrapper = func (ctx *task.ExecutionContext, req rootBuildRequest) (error, string) {
+var rootBuildWrapper = func(ctx *task.ExecutionContext, req rootBuildRequest) (error, string) {
 	err, res := memoRootBuild(ctx, req)
 	return err, res
 }
 
-
 type RootBuildRequest struct {
 	JoinStdout bool
 	JoinStderr bool
-	LogStdout struct {
+	LogStdout  struct {
 		Path string
 		Name string
 	}
@@ -326,11 +354,11 @@ func (root *SafeRootReference) Build(ctx *task.ExecutionContext, req RootBuildRe
 	err, res := rootBuildWrapper(
 		ctx,
 		rootBuildRequest{
-			Root: root,
+			Root:       root,
 			JoinStdout: req.JoinStdout,
 			JoinStderr: req.JoinStderr,
-			LogStdout: req.LogStdout,
-			LogStderr: req.LogStderr,
+			LogStdout:  req.LogStdout,
+			LogStderr:  req.LogStderr,
 		},
 	)
 	return err, res
