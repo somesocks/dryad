@@ -50,10 +50,10 @@ _verify() {
 
 	assert_directory_exists "$TEMP_DIR/dyd/sprouts"
 
-	SPROUTS_CHILD_COUNT=$(find "$TEMP_DIR/dyd/sprouts" -mindepth 1 -maxdepth 1 | wc -l)
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-01/dyd/type" "root"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-01/dyd/assets/test-file-01" "test-file-01"
-	if [ "$SPROUTS_CHILD_COUNT" != "0" ]; then
+	SPROUTS_FIRST_CHILD=$(find "$TEMP_DIR/dyd/sprouts" -mindepth 1 -maxdepth 1 -print -quit)
+	if [ -n "$SPROUTS_FIRST_CHILD" ]; then
 		echo "[ERROR] Fail: expected sprouts directory to be empty after wipe" 1>&2
 		return 1
 	fi
