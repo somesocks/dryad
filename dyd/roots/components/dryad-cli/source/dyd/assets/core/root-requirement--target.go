@@ -78,9 +78,9 @@ func (rootRequirement *SafeRootRequirementReference) Target(ctx *task.ExecutionC
 			linkPath = linkUrl.Path
 		}
 
-		if filepath.IsAbs(linkPath) {
-			return fmt.Errorf("root requirement path must be relative", linkScheme), nil
-		}
+			if filepath.IsAbs(linkPath) {
+				return fmt.Errorf("root requirement path must be relative: %s", linkPath), nil
+			}
 
 		linkPath = filepath.Join(
 			filepath.Dir(rootRequirement.BasePath),
