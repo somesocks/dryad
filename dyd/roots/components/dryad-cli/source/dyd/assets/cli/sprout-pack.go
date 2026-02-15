@@ -9,9 +9,9 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-var stemPackCommand = func() clib.Command {
+var sproutPackCommand = func() clib.Command {
 	type ParsedArgs struct {
-		StemPath   string
+		SproutPath string
 		TargetPath string
 		Format     string
 		Parallel   int
@@ -23,7 +23,7 @@ var stemPackCommand = func() clib.Command {
 		var format string
 		var parallel int
 
-		stemPath := args[0]
+		sproutPath := args[0]
 		targetPath := args[1]
 
 		if options["format"] != nil {
@@ -39,7 +39,7 @@ var stemPackCommand = func() clib.Command {
 		}
 
 		return nil, ParsedArgs{
-			StemPath:   stemPath,
+			SproutPath: sproutPath,
 			TargetPath: targetPath,
 			Format:     format,
 			Parallel:   parallel,
@@ -47,12 +47,12 @@ var stemPackCommand = func() clib.Command {
 	}
 
 	var runPack = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
-		targetPath, err := dryad.StemPack(
+		targetPath, err := dryad.SproutPack(
 			ctx,
-			dryad.StemPackRequest{
-				SourceStemPath: args.StemPath,
-				TargetPath:     args.TargetPath,
-				Format:         args.Format,
+			dryad.SproutPackRequest{
+				SourceSproutPath: args.SproutPath,
+				TargetPath:       args.TargetPath,
+				Format:           args.Format,
 			},
 		)
 		if err != nil {
@@ -77,7 +77,7 @@ var stemPackCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while packing stem")
+				zlog.Fatal().Err(err).Msg("error while packing sprout")
 				return 1
 			}
 
@@ -85,10 +85,10 @@ var stemPackCommand = func() clib.Command {
 		},
 	)
 
-	command := clib.NewCommand("pack", "export the stem at the target path into a new folder or archive").
+	command := clib.NewCommand("pack", "export the sprout at the target path into a new folder or archive").
 		WithArg(
 			clib.
-				NewArg("stemPath", "the path to the stem to pack").
+				NewArg("sproutPath", "the path to the sprout to pack").
 				WithAutoComplete(ArgAutoCompletePath),
 		).
 		WithArg(

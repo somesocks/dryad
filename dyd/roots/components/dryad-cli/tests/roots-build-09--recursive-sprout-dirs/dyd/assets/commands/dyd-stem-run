@@ -54,7 +54,7 @@ _verify() {
 	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
 
 	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01"
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/type" "stem"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/type" "sprout"
 
 	:;
 }

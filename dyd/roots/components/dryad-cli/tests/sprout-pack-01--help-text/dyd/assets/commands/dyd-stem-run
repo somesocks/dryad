@@ -33,7 +33,7 @@ _prepare() {
 
 _test() {
 
-	HELP_TEXT=$(dryad stem pack --help);
+	HELP_TEXT=$(dryad sprout pack --help);
 }
 
 _verify() {

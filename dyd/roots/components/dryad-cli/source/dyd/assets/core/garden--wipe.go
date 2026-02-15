@@ -7,8 +7,7 @@ import (
 	"path/filepath"
 )
 
-
-func (sg *SafeGardenReference) Wipe(ctx *task.ExecutionContext) (error) {
+func (sg *SafeGardenReference) Wipe(ctx *task.ExecutionContext) error {
 	var err error
 	var gardenPath string = sg.BasePath
 
@@ -26,6 +25,12 @@ func (sg *SafeGardenReference) Wipe(ctx *task.ExecutionContext) (error) {
 
 	stemsPath := filepath.Join(gardenPath, "dyd", "heap", "stems")
 	err, _ = fs2.RemoveAll(ctx, stemsPath)
+	if err != nil {
+		return err
+	}
+
+	heapSproutsPath := filepath.Join(gardenPath, "dyd", "heap", "sprouts")
+	err, _ = fs2.RemoveAll(ctx, heapSproutsPath)
 	if err != nil {
 		return err
 	}

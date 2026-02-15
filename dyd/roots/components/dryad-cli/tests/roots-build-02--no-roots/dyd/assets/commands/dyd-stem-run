@@ -32,7 +32,10 @@ _prepare() {
 }
 
 _test() {
-	(dryad roots build) 1>&2;
+	(
+		cd "$TEMP_DIR" && \
+		dryad roots build
+	) 1>&2;
 }
 
 _verify() {

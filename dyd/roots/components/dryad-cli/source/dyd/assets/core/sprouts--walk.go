@@ -3,8 +3,10 @@ package core
 import (
 	fs2 "dryad/filesystem"
 	"dryad/task"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 var sproutsWalk_ShouldWalk = func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
@@ -14,15 +16,25 @@ var sproutsWalk_ShouldWalk = func(ctx *task.ExecutionContext, node fs2.Walk6Node
 }
 
 var sproutsWalk_ShouldMatch = func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
-	var dydPath = filepath.Join(node.Path, "dyd", "fingerprint")
-	var _, dydInfoErr = os.Stat(dydPath)
-	var isSprout = dydInfoErr == nil
+	typePath := filepath.Join(node.Path, "dyd", "type")
+	typeRaw, err := ioutil.ReadFile(typePath)
+	if err == nil {
+		sentinel := strings.TrimSpace(string(typeRaw))
+		if sentinel == SentinelSprout.String() || sentinel == SentinelStem.String() {
+			return nil, true
+		}
+	}
+
+	// Legacy fallback: old sprouts were direct links to stems.
+	fingerprintPath := filepath.Join(node.Path, "dyd", "fingerprint")
+	_, fingerprintErr := os.Stat(fingerprintPath)
+	isSprout := fingerprintErr == nil
 
 	return nil, isSprout
 }
 
 type sproutsWalkRequest struct {
-	Sprouts *SafeSproutsReference
+	Sprouts  *SafeSproutsReference
 	OnSprout func(*task.ExecutionContext, *SafeSproutReference) (error, any)
 }
 
@@ -31,7 +43,7 @@ func sproutsWalk(ctx *task.ExecutionContext, req sproutsWalkRequest) (error, any
 	var onMatch = func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, any) {
 		var unsafeRef = UnsafeSproutReference{
 			BasePath: node.Path,
-			Sprouts: req.Sprouts,
+			Sprouts:  req.Sprouts,
 		}
 		var safeRef *SafeSproutReference
 		var err error
@@ -58,11 +70,11 @@ func sproutsWalk(ctx *task.ExecutionContext, req sproutsWalkRequest) (error, any
 	err, _ = fs2.Walk6(
 		ctx,
 		fs2.Walk6Request{
-			BasePath:     req.Sprouts.BasePath,
-			Path:     req.Sprouts.BasePath,
-			VPath:     req.Sprouts.BasePath,
+			BasePath:   req.Sprouts.BasePath,
+			Path:       req.Sprouts.BasePath,
+			VPath:      req.Sprouts.BasePath,
 			ShouldWalk: sproutsWalk_ShouldWalk,
-			OnPreMatch:      onMatch,
+			OnPreMatch: onMatch,
 		},
 	)
 	if err != nil {
@@ -79,11 +91,11 @@ type SproutsWalkRequest struct {
 func (sprouts *SafeSproutsReference) Walk(
 	ctx *task.ExecutionContext,
 	req SproutsWalkRequest,
-) (error) {
+) error {
 	err, _ := sproutsWalk(
 		ctx,
 		sproutsWalkRequest{
-			Sprouts: sprouts,
+			Sprouts:  sprouts,
 			OnSprout: req.OnSprout,
 		},
 	)

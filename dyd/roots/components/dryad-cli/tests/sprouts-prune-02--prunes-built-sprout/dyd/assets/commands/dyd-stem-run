@@ -39,6 +39,7 @@ _prepare() {
 
 _test() {
 	( \
+	cd "$TEMP_DIR" && \
 	dryad sprouts prune --log-level="$DYD_LOG_LEVEL" \
 	) 1>&2;
 }
@@ -48,11 +49,11 @@ _verify() {
 	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
 
 	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01"
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/type" "stem"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/type" "sprout"
 
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/test-file-01" "test-file-01"
-	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/test-dir-01"
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/test-dir-01/test-file-02" "test-file-02"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-file-01" "test-file-01"
+	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-dir-01"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-dir-01/test-file-02" "test-file-02"
 	:;
 }
 

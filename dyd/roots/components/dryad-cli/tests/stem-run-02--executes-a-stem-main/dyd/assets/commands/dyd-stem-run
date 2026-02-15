@@ -36,7 +36,7 @@ _prepare() {
 
 _test() {
 	dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL" 1>&2;
-	dryad stem run "dyd/sprouts/root-01" --context=testctx --log-level="$DYD_LOG_LEVEL" -- argX argY 1>&2;
+	dryad sprout run "dyd/sprouts/root-01" --context=testctx --log-level="$DYD_LOG_LEVEL" -- argX argY 1>&2;
 }
 
 _verify() {
@@ -45,10 +45,11 @@ _verify() {
 
 	assert_directory_exists "$TEMP_DIR/dyd/heap/contexts/testctx"
 	EXPECTED_CONTEXT=$(cd "$TEMP_DIR/dyd/heap/contexts/testctx" && pwd -P)
+	EXPECTED_STEM=$(readlink -f "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem")
 	assert_file_content_equals "$TEMP_DIR/dyd/heap/contexts/testctx/home" "$EXPECTED_CONTEXT"
 	assert_file_content_equals "$TEMP_DIR/dyd/heap/contexts/testctx/context" "$EXPECTED_CONTEXT"
 	assert_file_content_equals "$TEMP_DIR/dyd/heap/contexts/testctx/args" "argX argY"
-	assert_file_content_equals "$TEMP_DIR/dyd/heap/contexts/testctx/stem" "$TEMP_DIR/dyd/sprouts/root-01"
+	assert_file_content_equals "$TEMP_DIR/dyd/heap/contexts/testctx/stem" "$EXPECTED_STEM"
 
 	:;
 }

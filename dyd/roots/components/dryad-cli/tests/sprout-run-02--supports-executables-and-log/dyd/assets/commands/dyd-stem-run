@@ -60,10 +60,12 @@ _verify() {
 	assert_file_content_equals "$TEMP_DIR/dyd/heap/sprout-run-02--supports-executables-and-log--executes-a-scoped-script/override-ran" "ok"
 	assert_file_content_equals "$TEMP_DIR/dyd/heap/sprout-run-02--supports-executables-and-log--executes-a-scoped-script/which" "main"
 
-	assert_file_exists "$TEMP_DIR/logs/dyd-stem-run--dyd-sprouts-root-01.out"
-	assert_file_exists "$TEMP_DIR/logs/dyd-stem-run--dyd-sprouts-root-01.err"
-	assert_file_content_equals "$TEMP_DIR/logs/dyd-stem-run--dyd-sprouts-root-01.out" "STDOUT-OK"
-	assert_file_content_equals "$TEMP_DIR/logs/dyd-stem-run--dyd-sprouts-root-01.err" "STDERR-OK"
+	OUT_LOG="$TEMP_DIR/logs/dyd-sprout-run--dyd-sprouts-root-01.out"
+	ERR_LOG="$TEMP_DIR/logs/dyd-sprout-run--dyd-sprouts-root-01.err"
+	assert_file_exists "$OUT_LOG"
+	assert_file_exists "$ERR_LOG"
+	assert_file_content_equals "$OUT_LOG" "STDOUT-OK"
+	assert_file_content_equals "$ERR_LOG" "STDERR-OK"
 
 	:;
 }

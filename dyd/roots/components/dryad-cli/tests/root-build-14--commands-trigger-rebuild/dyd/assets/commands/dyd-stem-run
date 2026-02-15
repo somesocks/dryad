@@ -65,14 +65,14 @@ _verify() {
 	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
 
 	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01"
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/type" "stem"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/type" "sprout"
 
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/test-file-01" "test-file-01"
-	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/test-dir-01"
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/test-dir-01/test-file-02" "test-file-02"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-file-01" "test-file-01"
+	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-dir-01"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-dir-01/test-file-02" "test-file-02"
 
-	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/commands"
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/commands/custom-cmd" "custom-v2"
+	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/commands"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/commands/custom-cmd" "custom-v2"
 
 	if [ "$FINGERPRINT_BEFORE" = "$FINGERPRINT_AFTER" ]; then
 		echo "[ERROR] Fail: expected stem fingerprint to change after commands update" 1>&2
