@@ -37,18 +37,30 @@ func (sprout *SafeSproutReference) Run(
 	logStdout := req.LogStdout
 	logStderr := req.LogStderr
 
-	// Preserve legacy default log naming semantics for sprout runs.
 	if logStdout.Path != "" && logStdout.Name == "" {
-		relSproutPath, relErr := filepath.Rel(sprout.Sprouts.Garden.BasePath, sprout.BasePath)
-		if relErr == nil {
-			logStdout.Name = "dyd-stem-run--" + sanitizePathSegment(relSproutPath) + ".out"
+		relSproutPath, relErr := filepath.Rel(
+			sprout.Sprouts.Garden.BasePath,
+			sprout.BasePath,
+		)
+		if relErr != nil {
+			return relErr
 		}
+		logStdout.Name = "dyd-sprout-run--" +
+			sanitizePathSegment(relSproutPath) +
+			".out"
 	}
+
 	if logStderr.Path != "" && logStderr.Name == "" {
-		relSproutPath, relErr := filepath.Rel(sprout.Sprouts.Garden.BasePath, sprout.BasePath)
-		if relErr == nil {
-			logStderr.Name = "dyd-stem-run--" + sanitizePathSegment(relSproutPath) + ".err"
+		relSproutPath, relErr := filepath.Rel(
+			sprout.Sprouts.Garden.BasePath,
+			sprout.BasePath,
+		)
+		if relErr != nil {
+			return relErr
 		}
+		logStderr.Name = "dyd-sprout-run--" +
+			sanitizePathSegment(relSproutPath) +
+			".err"
 	}
 
 	err = StemRun(
