@@ -29,6 +29,25 @@ type rootBuild_stage1_request struct {
 	}
 }
 
+func rootBuild_stage1DependencyName(
+	requirementName string,
+	target RootRequirementResolvedTarget,
+	totalTargets int,
+) (error, string) {
+	dependencyName := requirementName
+	if totalTargets > 1 || target.ForceVariantSuffix {
+		err, descriptorSuffix := variantDescriptorEncodeFilesystem(target.VariantDescriptor)
+		if err != nil {
+			return err, ""
+		}
+		if descriptorSuffix != "" {
+			dependencyName = dependencyName + "," + descriptorSuffix
+		}
+	}
+
+	return nil, dependencyName
+}
+
 // stage 1 - walk through the root dependencies, build them if necessary,
 // and add the fingerprint as a dependency
 var rootBuild_stage1 func(ctx *task.ExecutionContext, req rootBuild_stage1_request) (error, any)
@@ -95,15 +114,9 @@ func init() {
 				}
 
 				for _, target := range targets {
-					dependencyName := requirementName
-					if len(targets) > 1 {
-						err, descriptorSuffix := variantDescriptorEncodeFilesystem(target.VariantDescriptor)
-						if err != nil {
-							return err, nil
-						}
-						if descriptorSuffix != "" {
-							dependencyName = dependencyName + "," + descriptorSuffix
-						}
+					err, dependencyName := rootBuild_stage1DependencyName(requirementName, target, len(targets))
+					if err != nil {
+						return err, nil
 					}
 
 					err, dependencyVariantDescriptor := variantDescriptorEncodeFilesystem(target.VariantDescriptor)

@@ -120,6 +120,7 @@ func TestRootRequirementResolveTargets_InheritAndConcrete(t *testing.T) {
 	})
 	assert.Nil(err)
 	assert.Len(targets, 1)
+	assert.False(targets[0].ForceVariantSuffix)
 
 	err, variant := variantDescriptorEncodeFilesystem(targets[0].VariantDescriptor)
 	assert.Nil(err)
@@ -182,6 +183,9 @@ func TestRootRequirementResolveTargets_AnyExpandsCartesianProduct(t *testing.T) 
 	})
 	assert.Nil(err)
 	assert.Len(targets, 4)
+	for _, target := range targets {
+		assert.True(target.ForceVariantSuffix)
+	}
 
 	variants := make([]string, 0, len(targets))
 	for _, target := range targets {
@@ -196,6 +200,36 @@ func TestRootRequirementResolveTargets_AnyExpandsCartesianProduct(t *testing.T) 
 		"arch=arm64,os=darwin",
 		"arch=arm64,os=linux",
 	}, variants)
+}
+
+func TestRootRequirementResolveTargets_AnySingleTargetStillForcesSuffix(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	sourceRootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
+	targetRootPath := createRootForVariantRequirementTest(t, gardenPath, "dep")
+
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "dimensions", "os", "linux"), "true")
+
+	createRequirementForVariantRequirementTest(
+		t,
+		sourceRootPath,
+		"dep",
+		targetRootPath,
+		"?os=any",
+	)
+
+	requirement := resolveRequirementForVariantRequirementTest(t, gardenPath, sourceRootPath, "dep")
+	err, targets := requirement.ResolveTargets(task.SERIAL_CONTEXT, RootRequirementResolveTargetsRequest{
+		ParentVariant: VariantDescriptor{},
+	})
+	assert.Nil(err)
+	assert.Len(targets, 1)
+	assert.True(targets[0].ForceVariantSuffix)
+
+	err, variant := variantDescriptorEncodeFilesystem(targets[0].VariantDescriptor)
+	assert.Nil(err)
+	assert.Equal("os=linux", variant)
 }
 
 func TestRootRequirementResolveTargets_UnderspecifiedFails(t *testing.T) {

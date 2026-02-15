@@ -23,8 +23,9 @@ type RootRequirementResolveTargetsRequest struct {
 }
 
 type RootRequirementResolvedTarget struct {
-	Root              *SafeRootReference
-	VariantDescriptor VariantDescriptor
+	Root               *SafeRootReference
+	VariantDescriptor  VariantDescriptor
+	ForceVariantSuffix bool
 }
 
 type rootRequirementOptionChoice struct {
@@ -251,11 +252,20 @@ func (rootRequirement *SafeRootRequirementReference) ResolveTargets(
 		return err, nil
 	}
 
+	forceVariantSuffix := false
+	for _, option := range targetSpec.VariantSelector {
+		if option == VariantOptionAny {
+			forceVariantSuffix = true
+			break
+		}
+	}
+
 	results := make([]RootRequirementResolvedTarget, 0, len(variants))
 	for _, variant := range variants {
 		results = append(results, RootRequirementResolvedTarget{
-			Root:              targetSpec.Root,
-			VariantDescriptor: variant,
+			Root:               targetSpec.Root,
+			VariantDescriptor:  variant,
+			ForceVariantSuffix: forceVariantSuffix,
 		})
 	}
 
