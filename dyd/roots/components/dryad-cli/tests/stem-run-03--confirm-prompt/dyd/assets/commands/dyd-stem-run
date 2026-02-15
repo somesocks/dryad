@@ -41,7 +41,7 @@ _test() {
 
 	# reject incorrect confirmation
 	set +e
-	printf "%s\n" "nope" | dryad stem run --confirm=YES "dyd/sprouts/root-01" --log-level="$DYD_LOG_LEVEL" -- 1>&2
+	printf "%s\n" "nope" | dryad stem run --confirm=YES "dyd/sprouts/root-01/dyd/dependencies/stem" --log-level="$DYD_LOG_LEVEL" -- 1>&2
 	STATUS=$?
 	set -e
 	if [ "$STATUS" -eq 0 ]; then
@@ -54,7 +54,7 @@ _test() {
 	fi
 
 	# accept correct confirmation
-	printf "%s\n" "YES" | dryad stem run --confirm=YES "dyd/sprouts/root-01" --log-level="$DYD_LOG_LEVEL" -- 1>&2
+	printf "%s\n" "YES" | dryad stem run --confirm=YES "dyd/sprouts/root-01/dyd/dependencies/stem" --log-level="$DYD_LOG_LEVEL" -- 1>&2
 }
 
 _verify() {

@@ -4,12 +4,12 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	// "errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
-	"fmt"
 	"strings"
 
 	fs2 "dryad/filesystem"
@@ -20,14 +20,14 @@ import (
 
 type stemPackRequest struct {
 	SourceStemPath string
-	TargetGarden *SafeGardenReference
+	TargetGarden   *SafeGardenReference
 }
 
 func stemPack(
 	ctx *task.ExecutionContext,
 	context BuildContext,
 	request stemPackRequest,
-) (string, error) {	
+) (string, error) {
 
 	var stemPath = request.SourceStemPath
 	var err error
@@ -39,7 +39,7 @@ func stemPack(
 		Msg("StemPack packing stem")
 
 	// convert relative stem path to absolute
-	stemPath, err = filepath.Abs(stemPath) 
+	stemPath, err = filepath.Abs(stemPath)
 	if err != nil {
 		return "", err
 	}
@@ -61,7 +61,7 @@ func stemPack(
 		return stemPath, nil
 	}
 
-	context.Fingerprints[stemPath] = stemFingerprint	
+	context.Fingerprints[stemPath] = stemFingerprint
 
 	// walk through the dependencies, and add them to the archive
 	dependenciesPath := filepath.Join(stemPath, "dyd", "dependencies")
@@ -77,14 +77,17 @@ func stemPack(
 			return "", err
 		}
 
-		stemPack(
+		_, err = stemPack(
 			ctx,
 			context,
 			stemPackRequest{
 				SourceStemPath: dependencyPath,
-				TargetGarden: request.TargetGarden,
+				TargetGarden:   request.TargetGarden,
 			},
 		)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	err, targetHeap := request.TargetGarden.Heap().Resolve(ctx)
@@ -176,7 +179,6 @@ func _stripFirstSegment(path string) string {
 	return ""
 }
 
-
 func stemArchive(request StemPackRequest) (string, error) {
 	zlog.
 		Debug().
@@ -203,7 +205,7 @@ func stemArchive(request StemPackRequest) (string, error) {
 				return "", err
 			}
 			defer outputWriter.Close()
-	
+
 			var gzw = gzip.NewWriter(outputWriter)
 			defer gzw.Close()
 
@@ -216,7 +218,7 @@ func stemArchive(request StemPackRequest) (string, error) {
 				return "", err
 			}
 			defer outputWriter.Close()
-	
+
 			tarWriter = tar.NewWriter(outputWriter)
 			defer tarWriter.Close()
 		}
@@ -243,7 +245,6 @@ func stemArchive(request StemPackRequest) (string, error) {
 			// remove the name of the base directory
 			relativePath = _stripFirstSegment(relativePath)
 
-
 			if node.Info.IsDir() {
 				// create a new dir/file header
 				header, err := tar.FileInfoHeader(node.Info, relativePath)
@@ -252,19 +253,19 @@ func stemArchive(request StemPackRequest) (string, error) {
 				}
 				header.Name = relativePath
 				header.Typeflag = tar.TypeDir
-	
+
 				err = tarWriter.WriteHeader(header)
 				if err != nil {
 					return err, nil
 				}
-	
+
 			} else if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
 				// if it's a symlink, read the link target
 				linkPath, err := os.Readlink(node.Path)
 				if err != nil {
 					return err, nil
 				}
-	
+
 				// create a new dir/file header
 				header, err := tar.FileInfoHeader(node.Info, relativePath)
 				if err != nil {
@@ -273,7 +274,7 @@ func stemArchive(request StemPackRequest) (string, error) {
 				header.Name = relativePath
 				header.Typeflag = tar.TypeSymlink
 				header.Linkname = linkPath
-	
+
 				err = tarWriter.WriteHeader(header)
 				if err != nil {
 					return err, nil
@@ -302,7 +303,7 @@ func stemArchive(request StemPackRequest) (string, error) {
 					}
 
 				} else {
-				// create a new dir/file header
+					// create a new dir/file header
 					header, err := tar.FileInfoHeader(node.Info, relativePath)
 					if err != nil {
 						return err, nil
@@ -328,7 +329,7 @@ func stemArchive(request StemPackRequest) (string, error) {
 					if err != nil {
 						return err, nil
 					}
-				}				
+				}
 			}
 
 			return nil, nil
@@ -338,10 +339,10 @@ func stemArchive(request StemPackRequest) (string, error) {
 		err, _ = fs2.Walk6(
 			task.SERIAL_CONTEXT,
 			fs2.Walk6Request{
-				BasePath:    request.TargetPath,
-				Path:        request.TargetPath,
-				VPath:       request.TargetPath,
-				OnPreMatch:     onMatch,
+				BasePath:   request.TargetPath,
+				Path:       request.TargetPath,
+				VPath:      request.TargetPath,
+				OnPreMatch: onMatch,
 				ShouldWalk: shouldWalk,
 			},
 		)
@@ -362,14 +363,13 @@ func stemArchive(request StemPackRequest) (string, error) {
 		return "", fmt.Errorf("unrecognized pack format %s", request.Format)
 	}
 
-
 }
 
 type StemPackRequest struct {
-	SourceGarden *SafeGardenReference
+	SourceGarden   *SafeGardenReference
 	SourceStemPath string
-	TargetPath string
-	Format string
+	TargetPath     string
+	Format         string
 }
 
 func StemPack(
@@ -390,8 +390,8 @@ func StemPack(
 	err := os.MkdirAll(request.TargetPath, os.ModePerm)
 	if err != nil {
 		return "", err
-	}	
-	
+	}
+
 	var unsafeTargetGardenRef = Garden(request.TargetPath)
 	// var targetGardenRef *SafeGardenReference
 
@@ -404,7 +404,7 @@ func StemPack(
 		ctx,
 		buildContext,
 		stemPackRequest{
-			TargetGarden: safeTargetGardenRef,
+			TargetGarden:   safeTargetGardenRef,
 			SourceStemPath: request.SourceStemPath,
 		},
 	)

@@ -40,7 +40,7 @@ _prepare() {
 _test() {
 
 	dryad roots build --log-level="$DYD_LOG_LEVEL" 1>&2;
-	dryad stem pack dyd/sprouts/root-01 ./foo --format=dir
+	dryad sprout pack dyd/sprouts/root-01 ./foo --format=dir
 }
 
 _verify() {
@@ -49,20 +49,20 @@ _verify() {
 	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
 
 	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01"
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/type" "stem"
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/test-file-01" "test-file-01"
-	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/test-dir-01"
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/test-dir-01/test-file-02" "test-file-02"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/type" "sprout"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-file-01" "test-file-01"
+	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-dir-01"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-dir-01/test-file-02" "test-file-02"
 
 	# check the packed garden
 	assert_directory_exists "$TEMP_DIR/foo/dyd"
 	assert_file_content_equals "$TEMP_DIR/foo/dyd/type" "garden"
 
 	assert_directory_exists "$TEMP_DIR/foo/dyd/sprouts/main"
-	assert_file_content_equals "$TEMP_DIR/foo/dyd/sprouts/main/dyd/type" "stem"
-	assert_file_content_equals "$TEMP_DIR/foo/dyd/sprouts/main/dyd/assets/test-file-01" "test-file-01"
-	assert_directory_exists "$TEMP_DIR/foo/dyd/sprouts/main/dyd/assets/test-dir-01"
-	assert_file_content_equals "$TEMP_DIR/foo/dyd/sprouts/main/dyd/assets/test-dir-01/test-file-02" "test-file-02"
+	assert_file_content_equals "$TEMP_DIR/foo/dyd/sprouts/main/dyd/type" "sprout"
+	assert_file_content_equals "$TEMP_DIR/foo/dyd/sprouts/main/dyd/dependencies/stem/dyd/assets/test-file-01" "test-file-01"
+	assert_directory_exists "$TEMP_DIR/foo/dyd/sprouts/main/dyd/dependencies/stem/dyd/assets/test-dir-01"
+	assert_file_content_equals "$TEMP_DIR/foo/dyd/sprouts/main/dyd/dependencies/stem/dyd/assets/test-dir-01/test-file-02" "test-file-02"
 
 	:;
 }

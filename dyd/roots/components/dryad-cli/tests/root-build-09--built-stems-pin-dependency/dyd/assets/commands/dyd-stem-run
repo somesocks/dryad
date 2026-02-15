@@ -36,18 +36,18 @@ _test() {
 }
 
 _verify() {
-	requirements_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/requirements/root-02"
-	dependency_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/root-02"
+	requirements_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/requirements/root-02"
+	dependency_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/dependencies/root-02"
 	requirement_source_path="$TEMP_DIR/dyd/roots/root-01/dyd/requirements/root-02"
 	dependency_target=$(readlink -f "$dependency_path")
-	root2_sprout_target=$(readlink -f "$TEMP_DIR/dyd/sprouts/root-02")
+	root2_stem_target=$(readlink -f "$TEMP_DIR/dyd/sprouts/root-02/dyd/dependencies/stem")
 
 	assert_directory_exists "$requirements_path"
 	assert_file_exists "$requirements_path/dyd/fingerprint"
 	assert_file_exists "$requirements_path/dyd/traits/channel"
 	assert_file_content_equals "$requirements_path/dyd/traits/channel" "stable"
-	assert_file_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/root-01.txt"
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/root-01.txt" "root-01"
+	assert_file_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/root-01.txt"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/root-01.txt" "root-01"
 
 	assert_symlink_exists "$dependency_path"
 	assert_directory_exists "$dependency_target"
@@ -55,7 +55,7 @@ _verify() {
 	assert_file_content_equals "$dependency_target/dyd/assets/root-02.txt" "root-02"
 	assert_file_content_equals "$dependency_target/dyd/traits/channel" "stable"
 
-	if [ "$dependency_target" != "$root2_sprout_target" ]; then
+	if [ "$dependency_target" != "$root2_stem_target" ]; then
 		echo "[ERROR] Fail: dependency link should resolve to the same stem as sprout root-02" 1>&2
 		return 1
 	fi

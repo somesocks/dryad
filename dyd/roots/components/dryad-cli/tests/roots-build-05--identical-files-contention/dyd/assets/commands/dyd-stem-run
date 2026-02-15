@@ -47,12 +47,12 @@ _verify() {
 	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
 
 	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01"
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/type" "stem"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/type" "sprout"
 
 
 	for i1 in $(seq -w 1 100);
 	do
-		assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/$i1" "test-file"
+		assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/$i1" "test-file"
 	done
 
 	:;

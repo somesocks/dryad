@@ -5,4 +5,5 @@ import (
 )
 
 var sproutCommand = clib.NewCommand("sprout", "commands to work with a single dryad sprout").
+	WithCommand(sproutPackCommand).
 	WithCommand(sproutRunCommand)

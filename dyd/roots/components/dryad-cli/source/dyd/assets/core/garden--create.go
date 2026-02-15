@@ -60,6 +60,15 @@ func gardenCreateHeapStems(
 	return err, req
 }
 
+func gardenCreateHeapSprouts(
+	ctx *task.ExecutionContext,
+	req gardenCreateRequest,
+) (error, gardenCreateRequest) {
+	path := filepath.Join(req.BasePath, "dyd", "heap", "sprouts")
+	err := os.MkdirAll(path, os.ModePerm)
+	return err, req
+}
+
 func gardenCreateHeapDerivations(
 	ctx *task.ExecutionContext,
 	req gardenCreateRequest,
@@ -150,16 +159,17 @@ var gardenCreate = task.Series4(
 	task.Parallel5(
 		task.Series3(
 			gardenCreateHeap,
-			task.Parallel5(
+			task.Parallel6(
 				gardenCreateHeapFiles,
 				gardenCreateHeapStems,
+				gardenCreateHeapSprouts,
 				gardenCreateHeapDerivations,
 				gardenCreateHeapContexts,
 				gardenCreateHeapSecrets,
 			),
-			func (
+			func(
 				ctx *task.ExecutionContext,
-				res task.Tuple5[gardenCreateRequest, gardenCreateRequest, gardenCreateRequest, gardenCreateRequest, gardenCreateRequest],
+				res task.Tuple6[gardenCreateRequest, gardenCreateRequest, gardenCreateRequest, gardenCreateRequest, gardenCreateRequest, gardenCreateRequest],
 			) (error, gardenCreateRequest) {
 				return nil, res.A
 			},
@@ -172,7 +182,7 @@ var gardenCreate = task.Series4(
 		gardenCreateSprouts,
 		gardenCreateTypeFile,
 	),
-	func (
+	func(
 		ctx *task.ExecutionContext,
 		res task.Tuple5[gardenCreateRequest, gardenCreateRequest, gardenCreateRequest, gardenCreateRequest, gardenCreateRequest],
 	) (error, gardenCreateRequest) {

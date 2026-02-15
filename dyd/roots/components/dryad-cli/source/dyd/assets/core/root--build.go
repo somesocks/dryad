@@ -214,11 +214,76 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 			Msg("root build - done building root")
 	}
 
+	// build and publish a sprout package for this root
+	sproutBuildPath, err := os.MkdirTemp("", "dryad-*")
+	if err != nil {
+		return err, ""
+	}
+	defer dydfs.RemoveAll(ctx, sproutBuildPath)
+
+	err = SproutInit(sproutBuildPath)
+	if err != nil {
+		return errors.New("error preparing sprout workspace"), ""
+	}
+
+	rootTraitsPath := filepath.Join(rootPath, "dyd", "traits")
+	rootTraitsExists, err := fileExists(rootTraitsPath)
+	if err != nil {
+		return err, ""
+	}
+	if rootTraitsExists {
+		err = rootDevelop_copyDir(
+			task.SERIAL_CONTEXT,
+			rootTraitsPath,
+			filepath.Join(sproutBuildPath, "dyd", "traits"),
+			rootDevelopCopyOptions{ApplyIgnore: false},
+		)
+		if err != nil {
+			return errors.New("error copying root traits into sprout"), ""
+		}
+	}
+
+	builtStemPath := filepath.Join(gardenPath, "dyd", "heap", "stems", stemBuildFingerprint)
+	sproutDependenciesPath := filepath.Join(sproutBuildPath, "dyd", "dependencies")
+
+	err = os.Symlink(
+		builtStemPath,
+		filepath.Join(sproutDependenciesPath, "stem"),
+	)
+	if err != nil {
+		return errors.New("error linking stem dependency for sprout"), ""
+	}
+
+	err = sproutRequirementsPrepare(sproutBuildPath)
+	if err != nil {
+		return errors.New("error preparing sprout requirements"), ""
+	}
+
+	err, _ = sproutFinalize(ctx, sproutBuildPath)
+	if err != nil {
+		return errors.New("error finalizing sprout package"), ""
+	}
+
+	err, heapSprouts := heap.Sprouts().Resolve(ctx)
+	if err != nil {
+		return err, ""
+	}
+
+	err, heapSprout := heapSprouts.AddSprout(
+		ctx,
+		HeapAddSproutRequest{
+			SproutPath: sproutBuildPath,
+		},
+	)
+	if err != nil {
+		return errors.New("error packing sprout into heap"), ""
+	}
+
 	relSproutPath := filepath.Join("dyd", "sprouts", relRootPath)
 	sproutPath := filepath.Join(gardenPath, relSproutPath)
 	sproutParent := filepath.Dir(sproutPath)
 	sproutsPath := filepath.Join(gardenPath, "dyd", "sprouts")
-	sproutHeapPath := filepath.Join(gardenPath, "dyd", "heap", "stems", stemBuildFingerprint)
+	sproutHeapPath := heapSprout.BasePath
 	relSproutLink, err := filepath.Rel(
 		sproutParent,
 		sproutHeapPath,

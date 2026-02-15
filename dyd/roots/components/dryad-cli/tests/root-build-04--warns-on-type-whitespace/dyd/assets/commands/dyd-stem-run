@@ -68,7 +68,7 @@ _verify() {
 		fi
 
 		assert_directory_exists "$TEMP_DIR/dyd/sprouts/$root_name"
-		assert_file_content_equals "$TEMP_DIR/dyd/sprouts/$root_name/dyd/type" "stem"
+		assert_file_content_equals "$TEMP_DIR/dyd/sprouts/$root_name/dyd/type" "sprout"
 	done
 
 	if ! grep -Fq "malformed sentinel file" "$BUILD_LOG_FILE"; then

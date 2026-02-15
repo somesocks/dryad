@@ -65,16 +65,16 @@ _verify() {
 	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
 
 	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01"
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/type" "stem"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/type" "sprout"
 
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/test-file-01" "test-file-01"
-	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/test-dir-01"
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/assets/test-dir-01/test-file-02" "test-file-02"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-file-01" "test-file-01"
+	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-dir-01"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-dir-01/test-file-02" "test-file-02"
 
-	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/secrets/"
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/secrets/test-secret-01" "test-secret-01-updated"
-	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/secrets/test-secret-02"
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/secrets/test-secret-02/test-secret-02" "test-secret-02"
+	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/secrets/"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/secrets/test-secret-01" "test-secret-01-updated"
+	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/secrets/test-secret-02"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/secrets/test-secret-02/test-secret-02" "test-secret-02"
 
 	if [ "$FINGERPRINT_BEFORE" = "$FINGERPRINT_AFTER" ]; then
 		echo "[ERROR] Fail: expected stem fingerprint to change after secrets update" 1>&2
