@@ -14,10 +14,11 @@ import (
 )
 
 type rootBuildRequest struct {
-	Root       *SafeRootReference
-	JoinStdout bool
-	JoinStderr bool
-	LogStdout  struct {
+	Root              *SafeRootReference
+	VariantDescriptor string
+	JoinStdout        bool
+	JoinStderr        bool
+	LogStdout         struct {
 		Path string
 		Name string
 	}
@@ -67,13 +68,14 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 	err, _ = rootBuild_stage1(
 		ctx,
 		rootBuild_stage1_request{
-			Roots:         req.Root.Roots,
-			RootPath:      rootPath,
-			WorkspacePath: workspacePath,
-			JoinStdout:    req.JoinStdout,
-			JoinStderr:    req.JoinStderr,
-			LogStdout:     req.LogStdout,
-			LogStderr:     req.LogStderr,
+			Roots:             req.Root.Roots,
+			RootPath:          rootPath,
+			WorkspacePath:     workspacePath,
+			VariantDescriptor: req.VariantDescriptor,
+			JoinStdout:        req.JoinStdout,
+			JoinStderr:        req.JoinStderr,
+			LogStdout:         req.LogStdout,
+			LogStderr:         req.LogStderr,
 		},
 	)
 	if err != nil {
@@ -385,13 +387,15 @@ var memoRootBuild = task.Memoize(
 	rootBuild2,
 	func(ctx *task.ExecutionContext, req rootBuildRequest) (error, any) {
 		var res = struct {
-			Group      string
-			GardenPath string
-			RootPath   string
+			Group             string
+			GardenPath        string
+			RootPath          string
+			VariantDescriptor string
 		}{
-			Group:      "RootBuild",
-			GardenPath: req.Root.Roots.Garden.BasePath,
-			RootPath:   req.Root.BasePath,
+			Group:             "RootBuild",
+			GardenPath:        req.Root.Roots.Garden.BasePath,
+			RootPath:          req.Root.BasePath,
+			VariantDescriptor: req.VariantDescriptor,
 		}
 		return nil, res
 	},
@@ -403,9 +407,10 @@ var rootBuildWrapper = func(ctx *task.ExecutionContext, req rootBuildRequest) (e
 }
 
 type RootBuildRequest struct {
-	JoinStdout bool
-	JoinStderr bool
-	LogStdout  struct {
+	VariantDescriptor string
+	JoinStdout        bool
+	JoinStderr        bool
+	LogStdout         struct {
 		Path string
 		Name string
 	}
@@ -416,14 +421,24 @@ type RootBuildRequest struct {
 }
 
 func (root *SafeRootReference) Build(ctx *task.ExecutionContext, req RootBuildRequest) (error, string) {
+	err, variantContext := RootVariantContextFromFilesystem(req.VariantDescriptor)
+	if err != nil {
+		return err, ""
+	}
+	err, variantDescriptor := variantContext.Filesystem()
+	if err != nil {
+		return err, ""
+	}
+
 	err, res := rootBuildWrapper(
 		ctx,
 		rootBuildRequest{
-			Root:       root,
-			JoinStdout: req.JoinStdout,
-			JoinStderr: req.JoinStderr,
-			LogStdout:  req.LogStdout,
-			LogStderr:  req.LogStderr,
+			Root:              root,
+			VariantDescriptor: variantDescriptor,
+			JoinStdout:        req.JoinStdout,
+			JoinStderr:        req.JoinStderr,
+			LogStdout:         req.LogStdout,
+			LogStderr:         req.LogStderr,
 		},
 	)
 	return err, res

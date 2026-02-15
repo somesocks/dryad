@@ -13,12 +13,13 @@ import (
 )
 
 type rootBuild_stage1_request struct {
-	Roots *SafeRootsReference
-	RootPath string
-	WorkspacePath string
-	JoinStdout bool
-	JoinStderr bool
-	LogStdout struct {
+	Roots             *SafeRootsReference
+	RootPath          string
+	WorkspacePath     string
+	VariantDescriptor string
+	JoinStdout        bool
+	JoinStderr        bool
+	LogStdout         struct {
 		Path string
 		Name string
 	}
@@ -30,21 +31,21 @@ type rootBuild_stage1_request struct {
 
 // stage 1 - walk through the root dependencies, build them if necessary,
 // and add the fingerprint as a dependency
-var rootBuild_stage1 func (ctx *task.ExecutionContext, req rootBuild_stage1_request) (error, any)
+var rootBuild_stage1 func(ctx *task.ExecutionContext, req rootBuild_stage1_request) (error, any)
 
-
-func init () {
+func init() {
 
 	// the initialization for rootBuild_stage1 has to be deferred in an init block,
 	// in order to avoid an init cycle with RootBuild
 	type rootBuild_stage1_buildDependencyRequest struct {
-		Roots *SafeRootsReference
-		BaseRequest rootBuild_stage1_request
-		DependencyName string
-		DependencyPath string
-		JoinStdout bool
-		JoinStderr bool
-		LogStdout struct {
+		Roots                       *SafeRootsReference
+		BaseRequest                 rootBuild_stage1_request
+		DependencyName              string
+		DependencyPath              string
+		DependencyVariantDescriptor string
+		JoinStdout                  bool
+		JoinStderr                  bool
+		LogStdout                   struct {
 			Path string
 			Name string
 		}
@@ -53,23 +54,28 @@ func init () {
 			Name string
 		}
 	}
-	
-	var rootBuild_stage1_prepReq = func (ctx *task.ExecutionContext, req rootBuild_stage1_request) (error, rootBuild_stage1_request) {
+
+	var rootBuild_stage1_prepReq = func(ctx *task.ExecutionContext, req rootBuild_stage1_request) (error, rootBuild_stage1_request) {
 		zlog.Trace().
 			Msg("RootBuild/stage1")
-	
+
 		return nil, req
 	}
-	
-	var rootBuild_stage1_generateRequests = func (
-		ctx *task.ExecutionContext, 
+
+	var rootBuild_stage1_generateRequests = func(
+		ctx *task.ExecutionContext,
 		req rootBuild_stage1_request,
 	) (error, []rootBuild_stage1_buildDependencyRequest) {
 		var buildDependencyRequests []rootBuild_stage1_buildDependencyRequest
 
 		rootRef := SafeRootReference{
 			BasePath: req.RootPath,
-			Roots: req.Roots,
+			Roots:    req.Roots,
+		}
+
+		err, parentVariantContext := RootVariantContextFromFilesystem(req.VariantDescriptor)
+		if err != nil {
+			return err, buildDependencyRequests
 		}
 
 		err, requirementsRef := rootRef.Requirements().Resolve(ctx)
@@ -78,37 +84,60 @@ func init () {
 		}
 
 		err = requirementsRef.Walk(task.SERIAL_CONTEXT, RootRequirementsWalkRequest{
-			OnMatch: func (ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
-				err, target := requirement.Target(ctx)
+			OnMatch: func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
+				requirementName := filepath.Base(requirement.BasePath)
+
+				err, targets := requirement.ResolveTargets(ctx, RootRequirementResolveTargetsRequest{
+					ParentVariant: parentVariantContext.Descriptor,
+				})
 				if err != nil {
 					return err, nil
 				}
 
-				buildDependencyRequests = append(buildDependencyRequests, rootBuild_stage1_buildDependencyRequest{
-					Roots: req.Roots,
-					BaseRequest: req,
-					DependencyName: filepath.Base(requirement.BasePath),
-					DependencyPath: target.BasePath,
-					JoinStdout: req.JoinStdout,
-					JoinStderr: req.JoinStderr,
-					LogStdout: req.LogStdout,
-					LogStderr: req.LogStderr,
-				})	
+				for _, target := range targets {
+					dependencyName := requirementName
+					if len(targets) > 1 {
+						err, descriptorSuffix := variantDescriptorEncodeFilesystem(target.VariantDescriptor)
+						if err != nil {
+							return err, nil
+						}
+						if descriptorSuffix != "" {
+							dependencyName = dependencyName + "," + descriptorSuffix
+						}
+					}
+
+					err, dependencyVariantDescriptor := variantDescriptorEncodeFilesystem(target.VariantDescriptor)
+					if err != nil {
+						return err, nil
+					}
+
+					buildDependencyRequests = append(buildDependencyRequests, rootBuild_stage1_buildDependencyRequest{
+						Roots:                       req.Roots,
+						BaseRequest:                 req,
+						DependencyName:              dependencyName,
+						DependencyPath:              target.Root.BasePath,
+						DependencyVariantDescriptor: dependencyVariantDescriptor,
+						JoinStdout:                  req.JoinStdout,
+						JoinStderr:                  req.JoinStderr,
+						LogStdout:                   req.LogStdout,
+						LogStderr:                   req.LogStderr,
+					})
+				}
 
 				return nil, nil
 			},
-		});
+		})
 		if err != nil {
 			return err, buildDependencyRequests
 		}
-	
+
 		return nil, buildDependencyRequests
 	}
-	
-	var rootBuild_stage1_buildDependency = func (ctx *task.ExecutionContext, req rootBuild_stage1_buildDependencyRequest) (error, string) {
-	
+
+	var rootBuild_stage1_buildDependency = func(ctx *task.ExecutionContext, req rootBuild_stage1_buildDependencyRequest) (error, string) {
+
 		var unsafeDepReference = UnsafeRootReference{
-			Roots: req.Roots,
+			Roots:    req.Roots,
 			BasePath: req.DependencyPath,
 		}
 
@@ -120,48 +149,47 @@ func init () {
 		if err != nil {
 			return err, ""
 		}
-	
+
 		err, dependencyFingerprint := safeDepReference.Build(
 			ctx,
 			RootBuildRequest{
-				JoinStdout: req.JoinStdout,
-				JoinStderr: req.JoinStderr,
-				LogStdout: req.LogStdout,
-				LogStderr: req.LogStderr,
+				VariantDescriptor: req.DependencyVariantDescriptor,
+				JoinStdout:        req.JoinStdout,
+				JoinStderr:        req.JoinStderr,
+				LogStdout:         req.LogStdout,
+				LogStderr:         req.LogStderr,
 			},
 		)
 		if err != nil {
 			return err, ""
 		}
-	
 
-		
 		dependencyHeapPath := filepath.Join(req.BaseRequest.Roots.Garden.BasePath, "dyd", "heap", "stems", dependencyFingerprint)
-	
+
 		dependencyName := req.DependencyName
-	
+
 		targetDepPath := filepath.Join(req.BaseRequest.WorkspacePath, "dyd", "dependencies", dependencyName)
-	
+
 		err = os.Symlink(dependencyHeapPath, targetDepPath)
-	
+
 		if err != nil {
 			return err, ""
 		}
-	
+
 		return nil, ""
 	}
-	
+
 	var rootBuild_stage1_buildDependencies = task.ParallelMap(rootBuild_stage1_buildDependency)
-	
-	var rootBuild_stage1_processResults = func (ctx *task.ExecutionContext, req []string) (error, any) {
+
+	var rootBuild_stage1_processResults = func(ctx *task.ExecutionContext, req []string) (error, any) {
 		return nil, nil
 	}
-	
+
 	rootBuild_stage1 = task.Series4(
 		rootBuild_stage1_prepReq,
 		rootBuild_stage1_generateRequests,
 		rootBuild_stage1_buildDependencies,
 		rootBuild_stage1_processResults,
 	)
-	
+
 }
