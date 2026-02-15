@@ -57,8 +57,9 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 	err, _ = rootBuild_stage0(
 		ctx,
 		rootBuild_stage0_request{
-			RootPath:      rootPath,
-			WorkspacePath: workspacePath,
+			RootPath:          rootPath,
+			WorkspacePath:     workspacePath,
+			VariantDescriptor: req.VariantDescriptor,
 		},
 	)
 	if err != nil {
