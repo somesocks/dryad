@@ -21,7 +21,7 @@ _test() {
 }
 
 _verify() {
-	marker="$TEMP_DIR/dyd/sprouts/root-mid/dyd/dependencies/stem/dyd/assets/inherited-root-leaf-os"
+	marker="$TEMP_DIR/dyd/sprouts/root-top/dyd/dependencies/stem/dyd/dependencies/root-mid/dyd/assets/inherited-root-leaf-os"
 	assert_file_exists "$marker"
 	assert_file_content_equals "$marker" "linux"
 }

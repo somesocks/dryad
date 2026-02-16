@@ -6,9 +6,6 @@ import (
 	dydfs "dryad/filesystem"
 	"dryad/task"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -101,9 +98,9 @@ var rootBuildCommand = func() clib.Command {
 			return err, nil
 		}
 
-		err, _ = safeRootRef.Build(
+		err, sproutFingerprint := safeRootRef.BuildSprout(
 			ctx,
-			dryad.RootBuildRequest{
+			dryad.RootBuildSproutRequest{
 				JoinStdout: args.JoinStdout,
 				JoinStderr: args.JoinStderr,
 				LogStdout: struct {
@@ -125,34 +122,6 @@ var rootBuildCommand = func() clib.Command {
 		if err != nil {
 			return err, nil
 		}
-
-		relRootPath, err := filepath.Rel(roots.BasePath, safeRootRef.BasePath)
-		if err != nil {
-			return err, nil
-		}
-
-		err, sprouts := garden.Sprouts().Resolve(ctx)
-		if err != nil {
-			return err, nil
-		}
-
-		err, safeSproutRef := sprouts.Sprout(relRootPath).Resolve(ctx)
-		if err != nil {
-			return err, nil
-		}
-
-		sproutFingerprintBytes, err := os.ReadFile(
-			filepath.Join(safeSproutRef.BasePath, "dyd", "fingerprint"),
-		)
-		if err != nil {
-			return err, nil
-		}
-
-		sproutFingerprint := strings.TrimSpace(string(sproutFingerprintBytes))
-		if sproutFingerprint == "" {
-			return fmt.Errorf("root build produced sprout with empty fingerprint: %s", safeSproutRef.BasePath), nil
-		}
-
 		fmt.Println(sproutFingerprint)
 
 		return nil, nil

@@ -163,9 +163,9 @@ func init() {
 			return err, ""
 		}
 
-		err, dependencyFingerprint := safeDepReference.Build(
+		err, dependencyFingerprint := safeDepReference.BuildStem(
 			ctx,
-			RootBuildRequest{
+			RootBuildStemRequest{
 				VariantDescriptor: req.DependencyVariantDescriptor,
 				JoinStdout:        req.JoinStdout,
 				JoinStderr:        req.JoinStderr,

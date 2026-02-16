@@ -450,9 +450,9 @@ func rootDevelop_stage1(
 				return err, nil
 			}
 
-			err, dependencyFingerprint := safeDepReference.Build(
+			err, dependencyFingerprint := safeDepReference.BuildStem(
 				ctx,
-				RootBuildRequest{},
+				RootBuildStemRequest{},
 			)
 			if err != nil {
 				return err, nil
