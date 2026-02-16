@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+expected_os_from_uname() {
+	case "$(uname -s)" in
+		Linux) echo "linux" ;;
+		Darwin) echo "darwin" ;;
+		*) echo "" ;;
+	esac
+}
+
+expected_arch_from_uname() {
+	case "$(uname -m)" in
+		x86_64|amd64) echo "amd64" ;;
+		arm64|aarch64) echo "arm64" ;;
+		*) echo "" ;;
+	esac
+}
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	dryad root build "dyd/roots/root-top" --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+_verify() {
+	expected_os=$(expected_os_from_uname)
+	expected_arch=$(expected_arch_from_uname)
+	if [ -z "$expected_os" ] || [ -z "$expected_arch" ]; then
+		echo "[ERROR] Fail: unsupported host platform for this test" 1>&2
+		return 1
+	fi
+
+	os_marker="$TEMP_DIR/dyd/sprouts/root-top/dyd/dependencies/stem/dyd/assets/host-resolved-os"
+	arch_marker="$TEMP_DIR/dyd/sprouts/root-top/dyd/dependencies/stem/dyd/assets/host-resolved-arch"
+	assert_file_exists "$os_marker"
+	assert_file_exists "$arch_marker"
+	assert_file_content_equals "$os_marker" "$expected_os"
+	assert_file_content_equals "$arch_marker" "$expected_arch"
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

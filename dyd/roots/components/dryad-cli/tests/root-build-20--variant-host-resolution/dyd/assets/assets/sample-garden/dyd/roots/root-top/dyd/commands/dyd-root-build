@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -eu -o pipefail
+
+SRC_DIR=$DYD_STEM
+DEST_DIR=$DYD_BUILD
+
+if [ -d "$SRC_DIR/dyd/assets" ]; then
+	mkdir -p "$DEST_DIR/dyd/assets"
+	cp -R "$SRC_DIR/dyd/assets/." "$DEST_DIR/dyd/assets/"
+else
+	mkdir -p "$DEST_DIR/dyd/assets"
+fi
+
+if [ -d "$SRC_DIR/dyd/traits" ]; then
+	mkdir -p "$DEST_DIR/dyd/traits"
+	cp -R "$SRC_DIR/dyd/traits/." "$DEST_DIR/dyd/traits/"
+else
+	mkdir -p "$DEST_DIR/dyd/traits"
+fi
+
+if [ -d "$SRC_DIR/dyd/requirements" ]; then
+	mkdir -p "$DEST_DIR/dyd/requirements"
+	cp -R "$SRC_DIR/dyd/requirements/." "$DEST_DIR/dyd/requirements/"
+else
+	mkdir -p "$DEST_DIR/dyd/requirements"
+fi
+
+# Record host-resolved variant traits for verification in the test harness.
+if [ -f "$SRC_DIR/dyd/requirements/foo/dyd/traits/os" ]; then
+	mkdir -p "$DEST_DIR/dyd/assets"
+	cp "$SRC_DIR/dyd/requirements/foo/dyd/traits/os" \
+		"$DEST_DIR/dyd/assets/host-resolved-os"
+fi
+if [ -f "$SRC_DIR/dyd/requirements/foo/dyd/traits/arch" ]; then
+	mkdir -p "$DEST_DIR/dyd/assets"
+	cp "$SRC_DIR/dyd/requirements/foo/dyd/traits/arch" \
+		"$DEST_DIR/dyd/assets/host-resolved-arch"
+fi
+
+mkdir -p "$DEST_DIR/dyd/dependencies"
+if [ -d "$SRC_DIR/dyd/dependencies" ]; then
+	for dep in "$SRC_DIR"/dyd/dependencies/*; do
+		if [ ! -e "$dep" ] && [ ! -L "$dep" ]; then
+			continue
+		fi
+		dep_name=$(basename "$dep")
+		ln -s "$dep" "$DEST_DIR/dyd/dependencies/$dep_name"
+	done
+fi
