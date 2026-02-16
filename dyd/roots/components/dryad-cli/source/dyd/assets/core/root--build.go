@@ -497,27 +497,51 @@ func (root *SafeRootReference) BuildSprout(ctx *task.ExecutionContext, req RootB
 		return err, ""
 	}
 
-	err, stemFingerprint := root.BuildStem(
+	err, variantSelector := variantDescriptorParseFilesystem(variantDescriptor)
+	if err != nil {
+		return err, ""
+	}
+
+	err, variants := root.ResolveBuildVariants(
 		ctx,
-		RootBuildStemRequest{
-			VariantDescriptor: variantDescriptor,
-			JoinStdout:        req.JoinStdout,
-			JoinStderr:        req.JoinStderr,
-			LogStdout:         req.LogStdout,
-			LogStderr:         req.LogStderr,
+		RootResolveBuildVariantsRequest{
+			Selector:                variantSelector,
+			IgnoreUnknownDimensions: true,
 		},
 	)
 	if err != nil {
 		return err, ""
 	}
 
+	stemByVariant := map[string]string{}
+	for _, variant := range variants {
+		err, concreteDescriptor := variantDescriptorEncodeFilesystem(variant)
+		if err != nil {
+			return err, ""
+		}
+
+		err, stemFingerprint := root.BuildStem(
+			ctx,
+			RootBuildStemRequest{
+				VariantDescriptor: concreteDescriptor,
+				JoinStdout:        req.JoinStdout,
+				JoinStderr:        req.JoinStderr,
+				LogStdout:         req.LogStdout,
+				LogStderr:         req.LogStderr,
+			},
+		)
+		if err != nil {
+			return err, ""
+		}
+
+		stemByVariant[concreteDescriptor] = stemFingerprint
+	}
+
 	err, sproutFingerprint := rootMaterializeSprout(
 		ctx,
 		rootMaterializeSproutRequest{
-			Root: root,
-			StemByVariant: map[string]string{
-				variantDescriptor: stemFingerprint,
-			},
+			Root:          root,
+			StemByVariant: stemByVariant,
 		},
 	)
 	if err != nil {
