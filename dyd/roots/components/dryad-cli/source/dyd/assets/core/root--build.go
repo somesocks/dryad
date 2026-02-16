@@ -4,7 +4,7 @@ import (
 	dydfs "dryad/filesystem"
 	"dryad/task"
 
-	"errors"
+	"fmt"
 
 	"os"
 	"path/filepath"
@@ -63,7 +63,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		},
 	)
 	if err != nil {
-		return errors.New("error preparing root for build"), ""
+		return fmt.Errorf("error preparing root for build: %w", err), ""
 	}
 
 	err, _ = rootBuild_stage1(
@@ -80,7 +80,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		},
 	)
 	if err != nil {
-		return errors.New("error resolving root dependencies"), ""
+		return fmt.Errorf("error resolving root dependencies: %w", err), ""
 	}
 
 	err, _ = rootBuild_stage2(
@@ -92,7 +92,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		},
 	)
 	if err != nil {
-		return errors.New("error preparing root execution path"), ""
+		return fmt.Errorf("error preparing root execution path: %w", err), ""
 	}
 
 	err, rootFingerprint := rootBuild_stage3(
@@ -104,7 +104,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		},
 	)
 	if err != nil {
-		return errors.New("error generating root fingerprint"), ""
+		return fmt.Errorf("error generating root fingerprint: %w", err), ""
 	}
 
 	err, rootStem := rootBuild_stage4(
@@ -116,7 +116,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		},
 	)
 	if err != nil {
-		return errors.New("error packing root into heap"), ""
+		return fmt.Errorf("error packing root into heap: %w", err), ""
 	}
 
 	isUnstableRoot, err := fileExists(
@@ -185,7 +185,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 			},
 		)
 		if err != nil {
-			return errors.New("error executing root to build stem"), ""
+			return fmt.Errorf("error executing root to build stem: %w", err), ""
 		}
 
 		err, _ = rootBuild_stage6(
@@ -197,7 +197,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 			},
 		)
 		if err != nil {
-			return errors.New("error packing stem into heap"), ""
+			return fmt.Errorf("error packing stem into heap: %w", err), ""
 		}
 
 		if !isUnstableRoot {
@@ -226,7 +226,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 
 	err = SproutInit(sproutBuildPath)
 	if err != nil {
-		return errors.New("error preparing sprout workspace"), ""
+		return fmt.Errorf("error preparing sprout workspace: %w", err), ""
 	}
 
 	rootTraitsPath := filepath.Join(rootPath, "dyd", "traits")
@@ -242,7 +242,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 			rootDevelopCopyOptions{ApplyIgnore: false},
 		)
 		if err != nil {
-			return errors.New("error copying root traits into sprout"), ""
+			return fmt.Errorf("error copying root traits into sprout: %w", err), ""
 		}
 	}
 
@@ -254,17 +254,17 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		filepath.Join(sproutDependenciesPath, "stem"),
 	)
 	if err != nil {
-		return errors.New("error linking stem dependency for sprout"), ""
+		return fmt.Errorf("error linking stem dependency for sprout: %w", err), ""
 	}
 
 	err = sproutRequirementsPrepare(sproutBuildPath)
 	if err != nil {
-		return errors.New("error preparing sprout requirements"), ""
+		return fmt.Errorf("error preparing sprout requirements: %w", err), ""
 	}
 
 	err, _ = sproutFinalize(ctx, sproutBuildPath)
 	if err != nil {
-		return errors.New("error finalizing sprout package"), ""
+		return fmt.Errorf("error finalizing sprout package: %w", err), ""
 	}
 
 	err, heapSprouts := heap.Sprouts().Resolve(ctx)
@@ -279,7 +279,7 @@ func rootBuild(ctx *task.ExecutionContext, req rootBuildRequest) (error, string)
 		},
 	)
 	if err != nil {
-		return errors.New("error packing sprout into heap"), ""
+		return fmt.Errorf("error packing sprout into heap: %w", err), ""
 	}
 
 	relSproutPath := filepath.Join("dyd", "sprouts", relRootPath)

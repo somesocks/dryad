@@ -21,6 +21,7 @@ _prepare() {
 
 expect_build_failure() {
 	root_path="$1"
+	expected_msg="$2"
 	log_path="$LOG_DIR/$(basename "$root_path").log"
 
 	if dryad root build "$root_path" --log-level="$DYD_LOG_LEVEL" >"$log_path" 2>&1; then
@@ -34,6 +35,12 @@ expect_build_failure() {
 		return 1
 	fi
 
+	if ! grep -Fq "$expected_msg" "$log_path"; then
+		echo "[ERROR] Fail: expected error '$expected_msg' for '$root_path'" 1>&2
+		cat "$log_path" 1>&2
+		return 1
+	fi
+
 	if ! grep -Fq "$root_path" "$log_path"; then
 		echo "[ERROR] Fail: expected root path in failure output for '$root_path'" 1>&2
 		cat "$log_path" 1>&2
@@ -42,10 +49,10 @@ expect_build_failure() {
 }
 
 _test() {
-	expect_build_failure "dyd/roots/root-under"
-	expect_build_failure "dyd/roots/root-over"
-	expect_build_failure "dyd/roots/root-wrong"
-	expect_build_failure "dyd/roots/root-disabled"
+	expect_build_failure "dyd/roots/root-under" "under-specified requirement variant dimension"
+	expect_build_failure "dyd/roots/root-over" "over-specified requirement variant dimension"
+	expect_build_failure "dyd/roots/root-wrong" "wrongly-specified requirement variant option"
+	expect_build_failure "dyd/roots/root-disabled" "disabled requirement variant option"
 }
 
 _teardown() {
