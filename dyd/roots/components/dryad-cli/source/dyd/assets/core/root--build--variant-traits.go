@@ -79,7 +79,18 @@ func rootBuild_materializeVariantTraits(
 	}
 
 	for _, dimension := range dimensions {
+		optionByName := map[string]VariantDimensionOption{}
+		for _, option := range dimension.Options {
+			optionByName[option.Name] = option
+		}
+
 		selectedOption, specified := variantContext.Descriptor[dimension.Name]
+		if !specified {
+			if noneOption, hasNone := optionByName[VariantOptionNone]; hasNone && noneOption.Enabled {
+				selectedOption = VariantOptionNone
+				specified = true
+			}
+		}
 		if !specified {
 			return fmt.Errorf("under-specified root variant descriptor dimension: %s", dimension.Name)
 		}
@@ -87,11 +98,6 @@ func rootBuild_materializeVariantTraits(
 		switch selectedOption {
 		case VariantOptionInherit, VariantOptionAny, VariantOptionHost:
 			return fmt.Errorf("invalid concrete root variant option for %s: %s", dimension.Name, selectedOption)
-		}
-
-		optionByName := map[string]VariantDimensionOption{}
-		for _, option := range dimension.Options {
-			optionByName[option.Name] = option
 		}
 
 		option, exists := optionByName[selectedOption]

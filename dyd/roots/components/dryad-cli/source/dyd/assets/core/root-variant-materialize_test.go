@@ -103,6 +103,31 @@ func TestRootBuildMaterializeVariantTraits_NoneConflictsWithExistingTrait(t *tes
 	assert.Contains(err.Error(), "requires omitted trait")
 }
 
+func TestRootBuildMaterializeVariantTraits_OmittedDimensionUsesEnabledNone(t *testing.T) {
+	assert := assert.New(t)
+
+	rootPath := t.TempDir()
+	workspacePath := t.TempDir()
+
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "name"), "demo")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "dimensions", "os", "none"), "true")
+
+	err := rootBuild_materializeVariantTraits(task.SERIAL_CONTEXT, rootPath, workspacePath, "")
+	assert.Nil(err)
+
+	assert.Equal("demo", readTrimmedFileForTest(t, filepath.Join(workspacePath, "dyd", "traits", "name")))
+
+	osTraitPath := filepath.Join(workspacePath, "dyd", "traits", "os")
+	osTraitExists, err := fileExists(osTraitPath)
+	assert.Nil(err)
+	assert.False(osTraitExists)
+
+	workspaceVariantsPath := filepath.Join(workspacePath, "dyd", "traits", "variants")
+	workspaceVariantsExists, err := fileExists(workspaceVariantsPath)
+	assert.Nil(err)
+	assert.False(workspaceVariantsExists)
+}
+
 func TestRootBuildMaterializeVariantTraits_RejectsNonConcreteKeywords(t *testing.T) {
 	assert := assert.New(t)
 
