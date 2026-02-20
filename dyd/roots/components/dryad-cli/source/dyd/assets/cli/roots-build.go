@@ -8,20 +8,20 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-
 var rootsBuildCommand = func() clib.Command {
 
 	type ParsedArgs struct {
-		Filter func (*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
-		Parallel int
-		Path string
-		JoinStdout bool
-		JoinStderr bool
-		LogStdout string
-		LogStderr string
+		Filter            func(*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
+		VariantDescriptor string
+		Parallel          int
+		Path              string
+		JoinStdout        bool
+		JoinStderr        bool
+		LogStdout         string
+		LogStderr         string
 	}
 
-	var parseArgs = func (ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
 		// var args = req.Args
 		var options = req.Opts
 
@@ -30,6 +30,7 @@ var rootsBuildCommand = func() clib.Command {
 
 		var parallel int
 
+		var variantDescriptor string
 		var joinStdout bool
 		var joinStderr bool
 		var logStdout string
@@ -43,6 +44,10 @@ var rootsBuildCommand = func() clib.Command {
 			parallel = int(options["parallel"].(int64))
 		} else {
 			parallel = PARALLEL_COUNT_DEFAULT
+		}
+
+		if options["variant"] != nil {
+			variantDescriptor = options["variant"].(string)
 		}
 
 		if options["join-stdout"] != nil {
@@ -77,7 +82,7 @@ var rootsBuildCommand = func() clib.Command {
 			return err, ParsedArgs{}
 		}
 
-		var compositeFilter = func (ctx *task.ExecutionContext, root *dryad.SafeRootReference) (error, bool) {
+		var compositeFilter = func(ctx *task.ExecutionContext, root *dryad.SafeRootReference) (error, bool) {
 			var err error
 			var shouldMatch bool
 
@@ -93,19 +98,20 @@ var rootsBuildCommand = func() clib.Command {
 		}
 
 		return nil, ParsedArgs{
-			Filter: compositeFilter,
-			Path: path,
-			Parallel: parallel,
-			JoinStdout: joinStdout,
-			JoinStderr: joinStderr,
-			LogStdout: logStdout,
-			LogStderr: logStderr,
+			Filter:            compositeFilter,
+			VariantDescriptor: variantDescriptor,
+			Path:              path,
+			Parallel:          parallel,
+			JoinStdout:        joinStdout,
+			JoinStderr:        joinStderr,
+			LogStdout:         logStdout,
+			LogStderr:         logStderr,
 		}
 	}
 
-	var buildGarden = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var buildGarden = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
 		unsafeGarden := dryad.Garden(args.Path)
-		
+
 		err, garden := unsafeGarden.Resolve(ctx)
 		if err != nil {
 			return err, nil
@@ -119,17 +125,18 @@ var rootsBuildCommand = func() clib.Command {
 		err = roots.Build(
 			ctx,
 			dryad.RootsBuildRequest{
-				Filter: args.Filter,
-				JoinStdout: args.JoinStdout,
-				JoinStderr: args.JoinStderr,
-				LogStdout:    struct {
+				Filter:            args.Filter,
+				VariantDescriptor: args.VariantDescriptor,
+				JoinStdout:        args.JoinStdout,
+				JoinStderr:        args.JoinStderr,
+				LogStdout: struct {
 					Path string
 					Name string
 				}{
 					Path: args.LogStdout,
 					Name: "",
 				},
-				LogStderr:    struct {
+				LogStderr: struct {
 					Path string
 					Name string
 				}{
@@ -144,7 +151,7 @@ var rootsBuildCommand = func() clib.Command {
 
 	buildGarden = task.WithContext(
 		buildGarden,
-		func (ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
+		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
 			return nil, task.NewContext(args.Parallel)
 		},
 	)
@@ -154,7 +161,7 @@ var rootsBuildCommand = func() clib.Command {
 			parseArgs,
 			buildGarden,
 		),
-		func (err error, val any) int {
+		func(err error, val any) int {
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while building garden")
 				return 1
@@ -163,35 +170,43 @@ var rootsBuildCommand = func() clib.Command {
 			return 0
 		},
 	)
-	
+
 	command := clib.NewCommand("build", "build selected roots in a garden").
 		WithOption(
 			clib.
 				NewOption("path", "the target path for the garden to build").
 				WithType(clib.OptionTypeString),
 		).
+		WithOption(
+			clib.
+				NewOption(
+					"variant",
+					"select a root variant descriptor for all matched roots (filesystem form: dimension=option,dimension=option). defaults to all enabled variants per root",
+				).
+				WithType(clib.OptionTypeString),
+		).
 		WithOption(clib.NewOption("include", "choose which roots are included in the build. the include filter is a CEL expression with access to a 'root' object that can be used to filter on properties of the root.").WithType(clib.OptionTypeMultiString)).
 		WithOption(clib.NewOption("exclude", "choose which roots are excluded from the build.  the exclude filter is a CEL expression with access to a 'root' object that can be used to filter on properties of the root.").WithType(clib.OptionTypeMultiString)).
 		WithOption(
 			clib.NewOption(
-				"from-stdin", 
+				"from-stdin",
 				"if set, read a list of roots from stdin to use as a base list of roots to build instead of all roots. include and exclude filters will be applied after this list. default false",
 			).
-			WithType(clib.OptionTypeBool),
+				WithType(clib.OptionTypeBool),
 		).
 		WithOption(
 			clib.NewOption(
 				"join-stdout",
 				"join the stdout of child processes to the stderr of the parent dryad process. default false",
 			).
-			WithType(clib.OptionTypeBool),
+				WithType(clib.OptionTypeBool),
 		).
 		WithOption(
 			clib.NewOption(
 				"join-stderr",
 				"join the stderr of child processes to the stderr of the parent dryad process. default false",
 			).
-			WithType(clib.OptionTypeBool),
+				WithType(clib.OptionTypeBool),
 		).
 		WithOption(clib.NewOption("log-stdout", "log the stdout of child processes to a file in the specified directory. disables joining").WithType(clib.OptionTypeString)).
 		WithOption(clib.NewOption("log-stderr", "log the stderr of child processes to a file in the specified directory. disables joining").WithType(clib.OptionTypeString)).

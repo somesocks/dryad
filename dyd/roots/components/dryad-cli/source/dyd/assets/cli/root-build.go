@@ -13,12 +13,13 @@ import (
 var rootBuildCommand = func() clib.Command {
 
 	type ParsedArgs struct {
-		RootPath   string
-		Parallel   int
-		JoinStdout bool
-		JoinStderr bool
-		LogStdout  string
-		LogStderr  string
+		RootPath          string
+		VariantDescriptor string
+		Parallel          int
+		JoinStdout        bool
+		JoinStderr        bool
+		LogStdout         string
+		LogStderr         string
 	}
 
 	var parseArgs = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
@@ -27,6 +28,7 @@ var rootBuildCommand = func() clib.Command {
 
 		var path string
 		var parallel int
+		var variantDescriptor string
 		var joinStdout bool
 		var joinStderr bool
 		var logStdout string
@@ -42,6 +44,10 @@ var rootBuildCommand = func() clib.Command {
 			parallel = int(options["parallel"].(int64))
 		} else {
 			parallel = PARALLEL_COUNT_DEFAULT
+		}
+
+		if options["variant"] != nil {
+			variantDescriptor = options["variant"].(string)
 		}
 
 		if options["join-stdout"] != nil {
@@ -72,12 +78,13 @@ var rootBuildCommand = func() clib.Command {
 		}
 
 		return nil, ParsedArgs{
-			RootPath:   path,
-			Parallel:   parallel,
-			JoinStdout: joinStdout,
-			JoinStderr: joinStderr,
-			LogStdout:  logStdout,
-			LogStderr:  logStderr,
+			RootPath:          path,
+			VariantDescriptor: variantDescriptor,
+			Parallel:          parallel,
+			JoinStdout:        joinStdout,
+			JoinStderr:        joinStderr,
+			LogStdout:         logStdout,
+			LogStderr:         logStderr,
 		}
 	}
 
@@ -101,8 +108,9 @@ var rootBuildCommand = func() clib.Command {
 		err, sproutFingerprint := safeRootRef.BuildSprout(
 			ctx,
 			dryad.RootBuildSproutRequest{
-				JoinStdout: args.JoinStdout,
-				JoinStderr: args.JoinStderr,
+				VariantDescriptor: args.VariantDescriptor,
+				JoinStdout:        args.JoinStdout,
+				JoinStderr:        args.JoinStderr,
 				LogStdout: struct {
 					Path string
 					Name string
@@ -156,6 +164,13 @@ var rootBuildCommand = func() clib.Command {
 				NewArg("path", "path to the root to build").
 				AsOptional().
 				WithAutoComplete(ArgAutoCompletePath),
+		).
+		WithOption(
+			clib.NewOption(
+				"variant",
+				"select a root variant descriptor to build (filesystem form: dimension=option,dimension=option). defaults to all enabled variants",
+			).
+				WithType(clib.OptionTypeString),
 		).
 		WithOption(
 			clib.NewOption(

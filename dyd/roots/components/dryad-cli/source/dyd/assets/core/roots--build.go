@@ -9,11 +9,12 @@ import (
 )
 
 type rootsBuildRequest struct {
-	Roots      *SafeRootsReference
-	Filter     func(*task.ExecutionContext, *SafeRootReference) (error, bool)
-	JoinStdout bool
-	JoinStderr bool
-	LogStdout  struct {
+	Roots             *SafeRootsReference
+	Filter            func(*task.ExecutionContext, *SafeRootReference) (error, bool)
+	VariantDescriptor string
+	JoinStdout        bool
+	JoinStderr        bool
+	LogStdout         struct {
 		Path string
 		Name string
 	}
@@ -57,10 +58,11 @@ func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, a
 			err, _ = root.BuildSprout(
 				ctx,
 				RootBuildSproutRequest{
-					JoinStdout: request.JoinStdout,
-					JoinStderr: request.JoinStderr,
-					LogStdout:  request.LogStdout,
-					LogStderr:  request.LogStderr,
+					VariantDescriptor: request.VariantDescriptor,
+					JoinStdout:        request.JoinStdout,
+					JoinStderr:        request.JoinStderr,
+					LogStdout:         request.LogStdout,
+					LogStderr:         request.LogStderr,
 				},
 			)
 			return err, nil
@@ -81,10 +83,11 @@ func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, a
 }
 
 type RootsBuildRequest struct {
-	Filter     func(*task.ExecutionContext, *SafeRootReference) (error, bool)
-	JoinStdout bool
-	JoinStderr bool
-	LogStdout  struct {
+	Filter            func(*task.ExecutionContext, *SafeRootReference) (error, bool)
+	VariantDescriptor string
+	JoinStdout        bool
+	JoinStderr        bool
+	LogStdout         struct {
 		Path string
 		Name string
 	}
@@ -98,12 +101,13 @@ func (roots *SafeRootsReference) Build(ctx *task.ExecutionContext, req RootsBuil
 	err, _ := rootsBuild(
 		ctx,
 		rootsBuildRequest{
-			Roots:      roots,
-			Filter:     req.Filter,
-			JoinStdout: req.JoinStdout,
-			JoinStderr: req.JoinStderr,
-			LogStdout:  req.LogStdout,
-			LogStderr:  req.LogStderr,
+			Roots:             roots,
+			Filter:            req.Filter,
+			VariantDescriptor: req.VariantDescriptor,
+			JoinStdout:        req.JoinStdout,
+			JoinStderr:        req.JoinStderr,
+			LogStdout:         req.LogStdout,
+			LogStderr:         req.LogStderr,
 		},
 	)
 
