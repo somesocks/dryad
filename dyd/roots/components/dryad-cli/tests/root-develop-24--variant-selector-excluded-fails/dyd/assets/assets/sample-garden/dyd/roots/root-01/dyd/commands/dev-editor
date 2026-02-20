@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+OUT_DIR="$DYD_GARDEN/dyd/heap/root-develop-24--variant-selector-excluded-fails"
+mkdir -p "$OUT_DIR"
+printf "ran\n" > "$OUT_DIR/editor-ran"

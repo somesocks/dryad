@@ -431,6 +431,7 @@ func rootDevelop_stage1(
 	rootPath string,
 	workspacePath string,
 	roots *SafeRootsReference,
+	variantDescriptor string,
 ) error {
 
 	rootRef := SafeRootReference{
@@ -443,30 +444,60 @@ func rootDevelop_stage1(
 		return err
 	}
 
+	err, parentVariantContext := RootVariantContextFromFilesystem(variantDescriptor)
+	if err != nil {
+		return err
+	}
+
 	err = requirementsRef.Walk(task.SERIAL_CONTEXT, RootRequirementsWalkRequest{
 		OnMatch: func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
-			err, safeDepReference := requirement.Target(ctx)
+			requirementName := filepath.Base(requirement.BasePath)
+
+			err, targets := requirement.ResolveTargets(ctx, RootRequirementResolveTargetsRequest{
+				ParentVariant: parentVariantContext.Descriptor,
+			})
 			if err != nil {
 				return err, nil
 			}
 
-			err, dependencyFingerprint := safeDepReference.BuildStem(
-				ctx,
-				RootBuildStemRequest{},
-			)
-			if err != nil {
-				return err, nil
+			for _, target := range targets {
+				err, dependencyName := rootBuild_stage1DependencyName(requirementName, target, len(targets))
+				if err != nil {
+					return err, nil
+				}
+
+				err, dependencyVariantDescriptor := variantDescriptorEncodeFilesystem(target.VariantDescriptor)
+				if err != nil {
+					return err, nil
+				}
+
+				err, dependencyFingerprint := target.Root.BuildStem(
+					ctx,
+					RootBuildStemRequest{
+						VariantDescriptor: dependencyVariantDescriptor,
+					},
+				)
+				if err != nil {
+					return err, nil
+				}
+
+				dependencyHeapPath := filepath.Join(
+					requirement.Requirements.Root.Roots.Garden.BasePath,
+					"dyd",
+					"heap",
+					"stems",
+					dependencyFingerprint,
+				)
+
+				targetDepPath := filepath.Join(workspacePath, "dyd", "dependencies", dependencyName)
+
+				err = os.Symlink(dependencyHeapPath, targetDepPath)
+				if err != nil {
+					return err, nil
+				}
 			}
 
-			dependencyHeapPath := filepath.Join(requirement.Requirements.Root.Roots.Garden.BasePath, "dyd", "heap", "stems", dependencyFingerprint)
-
-			dependencyName := filepath.Base(requirement.BasePath)
-
-			targetDepPath := filepath.Join(workspacePath, "dyd", "dependencies", dependencyName)
-
-			err = os.Symlink(dependencyHeapPath, targetDepPath)
-
-			return err, nil
+			return nil, nil
 		},
 	})
 	if err != nil {
@@ -714,11 +745,12 @@ func rootDevelop_handleUnsavedChanges(
 }
 
 type rootDevelopRequest struct {
-	Root      *SafeRootReference
-	Shell     string
-	ShellArgs []string
-	Inherit   bool
-	OnExit    string
+	Root              *SafeRootReference
+	VariantDescriptor string
+	Shell             string
+	ShellArgs         []string
+	Inherit           bool
+	OnExit            string
 }
 
 func rootDevelop(
@@ -732,6 +764,10 @@ func rootDevelop(
 	inherit := req.Inherit
 
 	rootPath := req.Root.BasePath
+	err, variantDescriptor := rootDevelop_resolveVariant(ctx, req.Root, req.VariantDescriptor)
+	if err != nil {
+		return "", err
+	}
 
 	absRootPath, err := filepath.EvalSymlinks(rootPath)
 	if err != nil {
@@ -778,7 +814,7 @@ func rootDevelop(
 		return "", err
 	}
 
-	err = rootDevelop_stage1(ctx, rootPath, workspacePath, req.Root.Roots)
+	err = rootDevelop_stage1(ctx, rootPath, workspacePath, req.Root.Roots, variantDescriptor)
 	if err != nil {
 		return "", err
 	}
@@ -873,21 +909,23 @@ func rootDevelop(
 }
 
 type RootDevelopRequest struct {
-	Shell     string
-	ShellArgs []string
-	Inherit   bool
-	OnExit    string
+	VariantDescriptor string
+	Shell             string
+	ShellArgs         []string
+	Inherit           bool
+	OnExit            string
 }
 
 func (root *SafeRootReference) Develop(ctx *task.ExecutionContext, req RootDevelopRequest) (error, string) {
 	res, err := rootDevelop(
 		ctx,
 		rootDevelopRequest{
-			Root:      root,
-			Shell:     req.Shell,
-			ShellArgs: req.ShellArgs,
-			Inherit:   req.Inherit,
-			OnExit:    req.OnExit,
+			Root:              root,
+			VariantDescriptor: req.VariantDescriptor,
+			Shell:             req.Shell,
+			ShellArgs:         req.ShellArgs,
+			Inherit:           req.Inherit,
+			OnExit:            req.OnExit,
 		},
 	)
 	return err, res

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+dep_os_file="$DYD_STEM/dyd/dependencies/dep/dyd/traits/os"
+if [ ! -f "$dep_os_file" ]; then
+	echo "[ERROR] missing dependency os trait: $dep_os_file" 1>&2
+	exit 1
+fi
+
+OUT_DIR="$DYD_GARDEN/dyd/heap/root-develop-19--variant-selector-unique-and-dependency"
+mkdir -p "$OUT_DIR"
+cat "$dep_os_file" > "$OUT_DIR/dep-os"

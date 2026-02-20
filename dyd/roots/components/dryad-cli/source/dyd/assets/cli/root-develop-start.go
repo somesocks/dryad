@@ -15,6 +15,7 @@ var rootDevelopStartCommand = func() clib.Command {
 	type ParsedArgs struct {
 		Parallel  int
 		Path      string
+		Variant   string
 		Shell     string
 		ShellArgs []string
 		Inherit   bool
@@ -29,6 +30,7 @@ var rootDevelopStartCommand = func() clib.Command {
 		var parallel int
 		var shell string
 		var shellArgs []string
+		var variant string
 		var inherit bool
 		var onExit string
 
@@ -47,6 +49,10 @@ var rootDevelopStartCommand = func() clib.Command {
 			parallel = PARALLEL_COUNT_DEFAULT
 		}
 
+		if opts["variant"] != nil {
+			variant = opts["variant"].(string)
+		}
+
 		if opts["shell"] != nil {
 			shell = opts["shell"].(string)
 		}
@@ -62,6 +68,7 @@ var rootDevelopStartCommand = func() clib.Command {
 		return nil, ParsedArgs{
 			Parallel:  parallel,
 			Path:      path,
+			Variant:   variant,
 			Shell:     shell,
 			ShellArgs: shellArgs,
 			Inherit:   inherit,
@@ -93,10 +100,11 @@ var rootDevelopStartCommand = func() clib.Command {
 		err, rootFingerprint := safeRootRef.Develop(
 			ctx,
 			dryad.RootDevelopRequest{
-				Shell:     args.Shell,
-				ShellArgs: args.ShellArgs,
-				Inherit:   args.Inherit,
-				OnExit:    args.OnExit,
+				VariantDescriptor: args.Variant,
+				Shell:             args.Shell,
+				ShellArgs:         args.ShellArgs,
+				Inherit:           args.Inherit,
+				OnExit:            args.OnExit,
 			},
 		)
 		if err != nil {
@@ -135,6 +143,12 @@ var rootDevelopStartCommand = func() clib.Command {
 				NewArg("path", "path to the root to develop").
 				AsOptional().
 				WithAutoComplete(ArgAutoCompletePath),
+		).
+		WithOption(
+			clib.NewOption(
+				"variant",
+				"select a root variant descriptor to develop (filesystem form: dimension=option,dimension=option). must resolve to exactly one concrete variant",
+			).WithType(clib.OptionTypeString),
 		).
 		WithOption(clib.NewOption("shell", "shell command to run in the development environment (must be POSIX-compatible when using '-- args')").WithType(clib.OptionTypeString)).
 		WithOption(clib.NewOption("on-exit", "action to take when exiting with unsaved changes: ask, save, discard").WithType(clib.OptionTypeString)).
