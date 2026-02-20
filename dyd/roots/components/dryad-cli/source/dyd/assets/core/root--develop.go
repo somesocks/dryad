@@ -797,19 +797,34 @@ func rootDevelop(
 		return "", err
 	}
 
-	snapshotFingerprint, err := rootDevelop_createSnapshotStem(ctx, rootPath, req.Root.Roots.Garden)
+	initialSnapshotFingerprint, err := rootDevelop_createSnapshotStem(ctx, rootPath, req.Root.Roots.Garden)
 	if err != nil {
 		return "", err
 	}
 
-	err = os.WriteFile(rootDevelop_snapshotFile(workspacePath), []byte(snapshotFingerprint), 0o644)
+	err = os.WriteFile(rootDevelop_snapshotFile(workspacePath), []byte(initialSnapshotFingerprint), 0o644)
 	if err != nil {
 		return "", err
 	}
 
-	snapshotStemPath := filepath.Join(req.Root.Roots.Garden.BasePath, "dyd", "heap", "stems", snapshotFingerprint)
+	snapshotStemPath := filepath.Join(req.Root.Roots.Garden.BasePath, "dyd", "heap", "stems", initialSnapshotFingerprint)
 
 	err = rootDevelop_stage0(ctx, snapshotStemPath, workspacePath)
+	if err != nil {
+		return "", err
+	}
+
+	err = rootDevelop_materializeVariantTraits(ctx, rootPath, workspacePath, variantDescriptor)
+	if err != nil {
+		return "", err
+	}
+
+	materializedSnapshotFingerprint, err := rootDevelop_createSnapshotStem(ctx, workspacePath, req.Root.Roots.Garden)
+	if err != nil {
+		return "", err
+	}
+
+	err = os.WriteFile(rootDevelop_snapshotFile(workspacePath), []byte(materializedSnapshotFingerprint), 0o644)
 	if err != nil {
 		return "", err
 	}

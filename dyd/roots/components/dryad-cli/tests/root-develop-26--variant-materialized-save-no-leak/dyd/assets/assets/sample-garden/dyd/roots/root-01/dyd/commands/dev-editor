@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+os_trait_file="$DYD_STEM/dyd/traits/os"
+if [ ! -f "$os_trait_file" ]; then
+	echo "[ERROR] missing materialized os trait in develop workspace: $os_trait_file" 1>&2
+	exit 1
+fi
+
+if [ -e "$DYD_STEM/dyd/traits/variants" ]; then
+	echo "[ERROR] variant catalog should be removed in materialized develop workspace" 1>&2
+	exit 1
+fi
+
+OUT_DIR="$DYD_GARDEN/dyd/heap/root-develop-26--variant-materialized-save-no-leak"
+mkdir -p "$OUT_DIR"
+cat "$os_trait_file" > "$OUT_DIR/workspace-os"
+
+printf "updated\n" > "$DYD_STEM/dyd/assets/file.txt"
+
+"$DYD_CLI_BIN" root develop save
