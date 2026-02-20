@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+arch="$(cat "$DYD_STEM/dyd/traits/arch")"
+os_name="$(cat "$DYD_STEM/dyd/traits/os")"
+
+out_dir="$DYD_GARDEN/dyd/heap/sprout-run-08--variant-any-runs-set"
+mkdir -p "$out_dir"
+printf "ok\n" > "$out_dir/$arch-$os_name"
