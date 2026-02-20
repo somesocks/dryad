@@ -309,3 +309,72 @@ func TestRootRequirementResolveTargets_HostUnsupportedDimensionFails(t *testing.
 	assert.NotNil(err)
 	assert.Contains(err.Error(), "host option is only supported")
 }
+
+func TestRootRequirementResolveTargets_ExclusionsFilterResolvedVariants(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	sourceRootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
+	targetRootPath := createRootForVariantRequirementTest(t, gardenPath, "dep")
+
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "dimensions", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "dimensions", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "dimensions", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "dimensions", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "exclude", "arch=amd64,os=darwin"), "true")
+
+	createRequirementForVariantRequirementTest(
+		t,
+		sourceRootPath,
+		"dep",
+		targetRootPath,
+		"?arch=any#os=any",
+	)
+
+	requirement := resolveRequirementForVariantRequirementTest(t, gardenPath, sourceRootPath, "dep")
+	err, targets := requirement.ResolveTargets(task.SERIAL_CONTEXT, RootRequirementResolveTargetsRequest{
+		ParentVariant: VariantDescriptor{},
+	})
+	assert.Nil(err)
+	assert.Len(targets, 3)
+
+	variants := make([]string, 0, len(targets))
+	for _, target := range targets {
+		err, variant := variantDescriptorEncodeFilesystem(target.VariantDescriptor)
+		assert.Nil(err)
+		variants = append(variants, variant)
+	}
+	sort.Strings(variants)
+	assert.Equal([]string{
+		"arch=amd64,os=linux",
+		"arch=arm64,os=darwin",
+		"arch=arm64,os=linux",
+	}, variants)
+}
+
+func TestRootRequirementResolveTargets_FailsWhenSelectionIsExcluded(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	sourceRootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
+	targetRootPath := createRootForVariantRequirementTest(t, gardenPath, "dep")
+
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "dimensions", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "dimensions", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "exclude", "arch=amd64,os=darwin"), "true")
+
+	createRequirementForVariantRequirementTest(
+		t,
+		sourceRootPath,
+		"dep",
+		targetRootPath,
+		"?arch=amd64#os=darwin",
+	)
+
+	requirement := resolveRequirementForVariantRequirementTest(t, gardenPath, sourceRootPath, "dep")
+	err, _ := requirement.ResolveTargets(task.SERIAL_CONTEXT, RootRequirementResolveTargetsRequest{
+		ParentVariant: VariantDescriptor{},
+	})
+	assert.NotNil(err)
+	assert.Contains(err.Error(), "resolved requirement variants are excluded by variants/exclude")
+}

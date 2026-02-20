@@ -93,6 +93,10 @@ func (root *SafeRootReference) ResolveBuildVariants(
 	if err != nil {
 		return err, nil
 	}
+	err, exclusions := root.VariantExclusions(ctx)
+	if err != nil {
+		return err, nil
+	}
 
 	dimensionsByName := map[string]VariantDimension{}
 	dimensionNames := make([]string, 0, len(dimensions))
@@ -113,10 +117,6 @@ func (root *SafeRootReference) ResolveBuildVariants(
 		}
 
 		effectiveSelector[selectorDimension] = selectorOption
-	}
-
-	if len(dimensionNames) == 0 {
-		return nil, []VariantDescriptor{{}}
 	}
 
 	resolvedVariants := []VariantDescriptor{{}}
@@ -168,6 +168,14 @@ func (root *SafeRootReference) ResolveBuildVariants(
 	results := make([]VariantDescriptor, 0, len(keys))
 	for _, key := range keys {
 		results = append(results, byKey[key])
+	}
+
+	err, results = applyVariantExclusions(dimensions, exclusions, results)
+	if err != nil {
+		return err, nil
+	}
+	if len(results) == 0 {
+		return fmt.Errorf("resolved root build variants are excluded by variants/exclude"), nil
 	}
 
 	return nil, results

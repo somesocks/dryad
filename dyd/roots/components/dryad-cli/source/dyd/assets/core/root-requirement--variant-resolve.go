@@ -161,6 +161,10 @@ func (targetSpec *RootRequirementTargetSpec) ResolveVariants(
 	if err != nil {
 		return err, nil
 	}
+	err, exclusions := targetSpec.Root.VariantExclusions(ctx)
+	if err != nil {
+		return err, nil
+	}
 
 	dimensionsByName := map[string]VariantDimension{}
 	dimensionNames := make([]string, 0, len(dimensions))
@@ -175,10 +179,6 @@ func (targetSpec *RootRequirementTargetSpec) ResolveVariants(
 		if !exists {
 			return fmt.Errorf("over-specified requirement variant dimension: %s", requirementDimension), nil
 		}
-	}
-
-	if len(dimensionNames) == 0 {
-		return nil, []VariantDescriptor{{}}
 	}
 
 	resolvedVariants := []VariantDescriptor{{}}
@@ -231,6 +231,14 @@ func (targetSpec *RootRequirementTargetSpec) ResolveVariants(
 	results := make([]VariantDescriptor, 0, len(keys))
 	for _, key := range keys {
 		results = append(results, byKey[key])
+	}
+
+	err, results = applyVariantExclusions(dimensions, exclusions, results)
+	if err != nil {
+		return err, nil
+	}
+	if len(results) == 0 {
+		return fmt.Errorf("resolved requirement variants are excluded by variants/exclude"), nil
 	}
 
 	return nil, results

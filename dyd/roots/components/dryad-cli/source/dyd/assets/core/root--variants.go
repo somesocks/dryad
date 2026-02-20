@@ -23,3 +23,14 @@ func (root *SafeRootReference) VariantDimensions(ctx *task.ExecutionContext) (er
 	}
 	return variants.Dimensions(ctx)
 }
+
+func (root *SafeRootReference) VariantExclusions(ctx *task.ExecutionContext) (error, []VariantExclusion) {
+	err, variants := root.Variants().Resolve(ctx)
+	if err != nil {
+		return err, nil
+	}
+	if variants == nil {
+		return nil, []VariantExclusion{}
+	}
+	return variants.Exclusions(ctx)
+}

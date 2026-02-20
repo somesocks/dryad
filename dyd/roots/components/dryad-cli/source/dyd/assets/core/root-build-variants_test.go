@@ -150,3 +150,41 @@ func TestRootResolveBuildVariants_InheritIsRejected(t *testing.T) {
 	assert.NotNil(err)
 	assert.Contains(err.Error(), "inherit option is not supported")
 }
+
+func TestRootResolveBuildVariants_AppliesExclusions(t *testing.T) {
+	assert := assert.New(t)
+
+	rootPath := t.TempDir()
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "dimensions", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "dimensions", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "dimensions", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "dimensions", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "exclude", "arch=amd64,os=linux"), "false")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "exclude", "arch=arm64,os=darwin"), "true")
+
+	root := SafeRootReference{BasePath: rootPath}
+	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
+	assert.Nil(err)
+
+	assert.Equal([]string{
+		"arch=amd64,os=darwin",
+		"arch=amd64,os=linux",
+		"arch=arm64,os=linux",
+	}, encodeVariantDescriptorsForTest(t, variants))
+}
+
+func TestRootResolveBuildVariants_FailsWhenSelectionIsExcluded(t *testing.T) {
+	assert := assert.New(t)
+
+	rootPath := t.TempDir()
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "dimensions", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "dimensions", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "exclude", "arch=amd64,os=linux"), "true")
+
+	root := SafeRootReference{BasePath: rootPath}
+	err, _ := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{
+		Selector: variantDescriptorFromFilesystemForTest(t, "arch=amd64,os=linux"),
+	})
+	assert.NotNil(err)
+	assert.Contains(err.Error(), "resolved root build variants are excluded by variants/exclude")
+}
