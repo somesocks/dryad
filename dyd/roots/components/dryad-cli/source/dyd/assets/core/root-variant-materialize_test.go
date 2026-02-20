@@ -115,3 +115,20 @@ func TestRootBuildMaterializeVariantTraits_RejectsNonConcreteKeywords(t *testing
 	assert.NotNil(err)
 	assert.Contains(err.Error(), "invalid concrete root variant option")
 }
+
+func TestRootBuildMaterializeVariantTraits_OverwritesMismatchedTraitInWorkspace(t *testing.T) {
+	assert := assert.New(t)
+
+	rootPath := t.TempDir()
+	workspacePath := t.TempDir()
+
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "os"), "linux")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "dimensions", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "dimensions", "os", "darwin"), "true")
+
+	err := rootBuild_materializeVariantTraits(task.SERIAL_CONTEXT, rootPath, workspacePath, "os=darwin")
+	assert.Nil(err)
+
+	assert.Equal("darwin", readTrimmedFileForTest(t, filepath.Join(workspacePath, "dyd", "traits", "os")))
+	assert.Equal("linux", readTrimmedFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "os")))
+}

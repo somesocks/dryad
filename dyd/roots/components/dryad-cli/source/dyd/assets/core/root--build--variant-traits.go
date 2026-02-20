@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 func rootBuild_materializeVariantTraits(
@@ -119,14 +122,18 @@ func rootBuild_materializeVariantTraits(
 			}
 			rawValue := strings.TrimSpace(string(rawBytes))
 			if rawValue != selectedOption {
-				return fmt.Errorf(
-					"variant trait conflict for %s: expected %s but found %s",
-					dimension.Name,
-					selectedOption,
+				warnVariantTraitOverwrite(
+					filepath.Join(rootPath, "dyd", "traits", dimension.Name),
 					rawValue,
+					selectedOption,
 				)
+				err = os.Remove(traitPath)
+				if err != nil {
+					return err
+				}
+			} else {
+				continue
 			}
-			continue
 		}
 
 		err = os.WriteFile(traitPath, []byte(selectedOption), 0o644)
@@ -148,4 +155,12 @@ func rootBuild_materializeVariantTraits(
 	}
 
 	return nil
+}
+
+func warnVariantTraitOverwrite(path string, found string, selected string) {
+	zlog.Warn().
+		Str("path", path).
+		Str("found", strconv.QuoteToASCII(found)).
+		Str("selected", strconv.QuoteToASCII(selected)).
+		Msg("variant option overrides existing trait value")
 }

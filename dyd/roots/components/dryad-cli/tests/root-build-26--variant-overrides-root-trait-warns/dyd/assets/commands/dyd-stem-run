@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	log_path="$TEMP_DIR/root-build.log"
+	dryad root build "dyd/roots/root-top" --log-level="$DYD_LOG_LEVEL" >"$log_path" 2>&1
+}
+
+_verify() {
+	log_path="$TEMP_DIR/root-build.log"
+	deps_path="$TEMP_DIR/dyd/sprouts/root-top/dyd/dependencies"
+	assert_directory_exists "$deps_path"
+
+	expected=(
+		"stem,arch=amd64,os=darwin"
+		"stem,arch=amd64,os=linux"
+		"stem,arch=arm64,os=darwin"
+		"stem,arch=arm64,os=linux"
+	)
+
+	for dep_name in "${expected[@]}"; do
+		dep_path="$deps_path/$dep_name"
+		if [ ! -L "$dep_path" ]; then
+			echo "[ERROR] Fail: expected sprout dependency symlink '$dep_name'" 1>&2
+			find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+			return 1
+		fi
+	done
+
+	if [ -e "$deps_path/stem" ] || [ -L "$deps_path/stem" ]; then
+		echo "[ERROR] Fail: unexpected default stem dependency for fully-variant root" 1>&2
+		find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		return 1
+	fi
+
+	dep_count=$(find "$deps_path" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')
+	if [ "$dep_count" != "4" ]; then
+		echo "[ERROR] Fail: expected exactly 4 variant stem dependencies, got $dep_count" 1>&2
+		find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		return 1
+	fi
+
+	assert_file_content_equals "$deps_path/stem,arch=amd64,os=linux/dyd/traits/os" "linux"
+	assert_file_content_equals "$deps_path/stem,arch=amd64,os=darwin/dyd/traits/os" "darwin"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-top/dyd/traits/os" "linux"
+
+	if ! grep -Fq "variant option overrides existing trait value" "$log_path"; then
+		echo "[ERROR] Fail: expected override warning when variant selection conflicts with root trait" 1>&2
+		cat "$log_path" 1>&2
+		return 1
+	fi
+
+	if ! grep -Fq "dyd/traits/os" "$log_path"; then
+		echo "[ERROR] Fail: expected override warning to include the overridden trait path" 1>&2
+		cat "$log_path" 1>&2
+		return 1
+	fi
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
