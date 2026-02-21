@@ -4,12 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 type VariantDescriptor map[string]string
 
 func variantDescriptorParse(raw string, separator string, supportsLeadingQuestion bool) (error, VariantDescriptor) {
+	originalRaw := raw
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return nil, VariantDescriptor{}
@@ -24,6 +28,7 @@ func variantDescriptorParse(raw string, separator string, supportsLeadingQuestio
 
 	segments := strings.Split(raw, separator)
 	descriptor := VariantDescriptor{}
+	previousDimension := ""
 	for _, segment := range segments {
 		if segment == "" {
 			return errors.New("malformed variant descriptor"), nil
@@ -47,7 +52,17 @@ func variantDescriptorParse(raw string, separator string, supportsLeadingQuestio
 		if exists {
 			return fmt.Errorf("duplicate variant dimension in descriptor: %s", dimension), nil
 		}
+
+		if previousDimension != "" && dimension <= previousDimension {
+			zlog.Warn().
+				Str("descriptor", strconv.QuoteToASCII(strings.TrimSpace(originalRaw))).
+				Str("previous_dimension", previousDimension).
+				Str("dimension", dimension).
+				Msg("variant descriptor dimensions should be sorted alphabetically (ascending)")
+		}
+
 		descriptor[dimension] = option
+		previousDimension = dimension
 	}
 
 	return nil, descriptor
