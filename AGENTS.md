@@ -32,7 +32,7 @@
 	- `dyd/type` is a sentinel file containing the text `garden` (no newline). This indicates that this is a dryad garden.
 	- `dyd/roots` is the collection of all the source packages. A `root` is source for a package to be built.
 	- `dyd/heap` is where all build artifacts live. This should not be version-controlled.
-	- `dyd/sprouts` contains symlinks to stems (built packages), following the same directory structure as the roots. If `dyd/roots/foo` is a root, then the built version of that root can be found at `dyd/sprouts/foo`. This should not be version-controlled.
+	- `dyd/sprouts` contains symlinks to built sprout packages in the heap, following the same directory structure as the roots. If `dyd/roots/foo` is a root, then the built version of that root can be found at `dyd/sprouts/foo`. This should not be version-controlled.
 	- `dyd/shed` contains configurations for the garden.
 - Common garden commands include:
 	- `dryad garden create` - create a new blank garden.
@@ -46,6 +46,7 @@
 - The _heap_ is where all build artifacts in the garden live. It has a well-defined filesystem structure:
 	- `dyd/heap/files` - content-addressed file store, each file is named for its fingerprint.
 	- `dyd/heap/stems` - content-addressed package store. A _stem_ is a built package. Each stem in the heap is a directory named for its fingerprint, with hardlinks to heap files.
+	- `dyd/heap/sprouts` - content-addressed package store for built sprouts.
 	- `dyd/heap/secrets` - a secondary content-addressed file store for heap files marked as secrets.
 	- `dyd/heap/derivations` - a cache layer linking source fingerprints to build fingerprints, used for fast rebuild checks.
 	- `dyd/heap/contexts` - a collection of "execution context" directories, or disposable home directories used during package builds and package runs. dryad replaces the home directory during executions to prevent home dir pollution.
@@ -86,16 +87,23 @@
   - `<root>/dyd/docs` - _docs_ - documentation files for the root.
   - `<root>/dyd/secrets` - _secrets_ - secret assets for the root (deployment secrets, signing keys, etc.).
   - `<root>/dyd/requirements` - _requirements_ - the specification for dependencies of the root.
-    - each requirement is a single file containing the relative path to another root in URL format (no newline), like so: `root:../../../foo`
-    - the name of the requirement can be used to alias the name of a dependency. If `<root>/dyd/requirements/bar` has the URL `root:../../../foo`, then the built `foo` root will be linked in under the name `bar`.
-- The root build process is a two-stage process.
-  - First, the source of the root is packed into a _stem_ (a build package), stored into the heap.
-    - This part of the process also converts requirements into dependencies, and links them to the stem under `<stem>/dyd/dependencies/<name>`
-  - Second, the build stem is executed in a disposable build environment to build the resulting package
+    - each requirement filename is either `<alias>` or `<alias>+<condition_descriptor>`.
+      - Example unconditional requirement name: `foo`
+      - Example conditional requirement name: `foo+arch=any,os=linux`
+    - each requirement file contains a root target URL (no newline), like `root:../../../foo`.
+    - target variant selectors are URL query params (`?` and `&`), for example `root:../../../foo?arch=amd64&os=linux`.
+- The root build process has variant-aware stem builds plus sprout aggregation.
+  - First, one or more concrete root variants are resolved and built as stems in `dyd/heap/stems`.
+    - This part of the process converts requirements into dependencies and links them to each stem under `<stem>/dyd/dependencies/<name>`.
+    - Dependency names can include a variant suffix, for example `foo+arch=amd64,os=linux`.
+  - Second, those built stems are aggregated into a sprout package in `dyd/heap/sprouts`.
+    - A sprout points to one or more stem variants via `dyd/dependencies/stem` and/or `dyd/dependencies/stem+<descriptor>`.
+  - The heap sprout is linked to `<garden>/dyd/sprouts/<root_path>`.
+  - Caching/derivation lookups are variant-aware (each concrete variant is cached independently).
+  - Concrete build stems are still produced by executing `dyd/commands/dyd-root-build` in a disposable build environment.
     - This build environment is given a DYD_BUILD env var to specify the destination location for the package.
     - The build script (`dyd/commands/dyd-root-build`) should create a new stem at the path in DYD_BUILD.
-  - Afterwards the built stem is packed into the heap, and then linked as a sprout under `<garden>/dyd/sprouts/<root_name>`
-  - This two-stage build process enforces correctness and improves caching behavior.
+  - This build process enforces correctness and improves caching behavior.
 - Common root commands include:
   - `dryad roots build` - build all roots
     - `--parallel=1` - run a serial build
@@ -117,17 +125,44 @@
     - Interactive developments are complex, you should read all `dryad root develop` sub-command help text before you use it.
 
 
+### Dryad concepts - root variants
+
+- Variant configuration lives under `<root>/dyd/traits/variants/`.
+  - Dimensions: `<root>/dyd/traits/variants/dimensions/<dimension>/`
+  - Options: files under each dimension with contents `true` or `false`
+- Valid names use `[A-Za-z0-9._-]+`.
+- Selector keywords:
+  - `none`: select omitted trait for a dimension (must be present as a dimension option file if you want it selectable).
+  - `any`: expand to all enabled options for a dimension.
+  - `inherit`: for requirement target selectors, inherit the parent root variant option for that dimension; if missing in parent, resolves to `none`.
+  - `host`: resolve to host values for `os`/`arch` dimensions.
+- Condition-side requirement selectors (`<alias>+<descriptor>`) use the same keywords with match semantics:
+  - `any` and `inherit` are wildcards.
+  - `none` matches when the parent variant omits that dimension.
+  - `host` matches the parent variant against host `os`/`arch`.
+- Reserved option names in dimension catalogs:
+  - `inherit`, `any`, and `host` are reserved and not allowed as dimension option files.
+- Exclusions:
+  - `<root>/dyd/traits/variants/exclude/<descriptor>` files toggle excluded concrete variants with `true`/`false`.
+  - Exclusion descriptor filenames must be canonical filesystem descriptors (sorted keys, comma-separated).
+- Descriptor forms:
+  - Filesystem form: `arch=amd64,os=linux` (used in filenames and dependency suffixes).
+  - URL form: `?arch=amd64&os=linux` (used in requirement target URLs).
+
+
 ### Dryad concepts - stems
 
 - _stems_ are content-addressed built packages stored in `dyd/heap/stems`.
 - A stem is an immutable, fingerprinted artifact produced from a root source state.
 - During packing/build prep, root requirements are linked into the stem under `<stem>/dyd/dependencies/<name>`.
+  - Dependency names may include variant suffixes, like `foo+arch=amd64,os=linux`.
 
 
 ### Dryad concepts - sprouts
 
-- _sprouts_ are generated links to stems.
+- _sprouts_ are content-addressed packages in `dyd/heap/sprouts`, linked into `dyd/sprouts`.
 - `dyd/sprouts/<path>` mirrors `dyd/roots/<path>` for built outputs.
+- A sprout contains metadata plus links to one or more stem variants (`stem` / `stem+<descriptor>`).
 - Sprouts are build artifacts, not source code: do not edit them directly.
 - `dyd/sprouts` should not be version-controlled.
 - If sprouts are stale or missing, regenerate them by rebuilding roots (for example `dryad roots build` or `dryad root build <path>`).

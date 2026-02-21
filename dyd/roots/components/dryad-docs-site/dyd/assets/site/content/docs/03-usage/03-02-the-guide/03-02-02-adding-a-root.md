@@ -41,7 +41,7 @@ $:~/work/dryad/tutorial$ dryad roots build
 [info] dryad checking root server
 ```
 
-Also note that the build created a new sprout, at `./dyd/sprouts/server`.  This is the resulting package from building the server root.  It has almost no content right now, just two files `dyd/fingerprint` and `dyd/traits/root-fingerprint`.
+Also note that the build created a new sprout at `./dyd/sprouts/server`. This is the resulting package from building the server root. At this point it mostly contains metadata and a dependency link to the built stem.
 
 dryad copies no content from roots to stems by default, which means all assets or traits we want in a stem should come from us.  We can update `./dyd/roots/server/dyd/commands/dyd-root-build` to add a little more content during the build, like adding name and version traits to the stem.
 
@@ -59,6 +59,5 @@ echo -n "0.0.1" > $DEST_DIR/dyd/traits/version
 ```
 
 After this, re-running the build will update the sprout and we should be able to see the two new trait files. 
-
 
 
