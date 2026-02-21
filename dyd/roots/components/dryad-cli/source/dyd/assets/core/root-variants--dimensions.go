@@ -7,7 +7,10 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var VARIANT_NAME_RE = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
@@ -46,7 +49,16 @@ func variantOptionEnabledFromFile(path string) (error, bool) {
 		return err, false
 	}
 
-	rawValue := strings.TrimSpace(string(rawBytes))
+	raw := string(rawBytes)
+	rawValue := strings.TrimSpace(raw)
+	if raw != rawValue {
+		zlog.Warn().
+			Str("path", path).
+			Str("found", strconv.QuoteToASCII(raw)).
+			Str("expected", strconv.QuoteToASCII(rawValue)).
+			Msg("malformed variant option file")
+	}
+
 	switch rawValue {
 	case "true":
 		return nil, true
