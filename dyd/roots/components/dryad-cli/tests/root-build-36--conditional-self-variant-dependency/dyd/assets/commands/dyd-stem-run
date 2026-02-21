@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	dryad root build "dyd/roots/root-top" --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+assert_link_target_fingerprint_equals() {
+	local link_path="$1"
+	local expected_target="$2"
+
+	if [ ! -L "$link_path" ]; then
+		echo "[ERROR] Fail: expected symlink '$link_path'" 1>&2
+		return 1
+	fi
+
+	local actual_target
+	actual_target=$(readlink "$link_path")
+	actual_fingerprint=$(basename "$actual_target")
+	expected_fingerprint=$(basename "$expected_target")
+	if [ "$actual_fingerprint" != "$expected_fingerprint" ]; then
+		echo "[ERROR] Fail: symlink target fingerprint mismatch for '$link_path'" 1>&2
+		echo "[ERROR] expected target: $expected_target" 1>&2
+		echo "[ERROR] actual target:   $actual_target" 1>&2
+		return 1
+	fi
+}
+
+_verify() {
+	deps_path="$TEMP_DIR/dyd/sprouts/root-top/dyd/dependencies"
+	assert_directory_exists "$deps_path"
+
+	stem_source="$deps_path/stem+stage=source"
+	stem_manifest="$deps_path/stem+stage=manifest"
+	stem_deps="$deps_path/stem+stage=deps"
+	stem_full="$deps_path/stem+stage=full"
+
+	for stem in "$stem_source" "$stem_manifest" "$stem_deps" "$stem_full"; do
+		if [ ! -L "$stem" ]; then
+			echo "[ERROR] Fail: expected stem dependency '$stem'" 1>&2
+			ls -1 "$deps_path" 1>&2 || true
+			return 1
+		fi
+	done
+
+	source_target=$(readlink "$stem_source")
+	manifest_target=$(readlink "$stem_manifest")
+	deps_target=$(readlink "$stem_deps")
+
+	assert_link_target_fingerprint_equals "$stem_manifest/dyd/dependencies/source" "$source_target"
+	assert_link_target_fingerprint_equals "$stem_deps/dyd/dependencies/manifest" "$manifest_target"
+	assert_link_target_fingerprint_equals "$stem_full/dyd/dependencies/deps" "$deps_target"
+
+	if [ -e "$stem_source/dyd/dependencies/source" ] || [ -L "$stem_source/dyd/dependencies/source" ]; then
+		echo "[ERROR] Fail: source variant should not self-depend" 1>&2
+		ls -1 "$stem_source/dyd/dependencies" 1>&2 || true
+		return 1
+	fi
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
