@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+dep_path="$DYD_STEM/dyd/dependencies/dep"
+if [ ! -L "$dep_path" ] && [ ! -e "$dep_path" ]; then
+	echo "[ERROR] expected dependency dep to be present" 1>&2
+	exit 1
+fi
+
+OUT_DIR="$DYD_GARDEN/dyd/heap/root-develop-27--conditional-requirement-selector"
+mkdir -p "$OUT_DIR"
+printf '%s' 'true' > "$OUT_DIR/present"
