@@ -22,9 +22,10 @@ _test() {
 
 _verify() {
 	variant_stem=''
-	mapfile -t req_fp_files < <(find "$TEMP_DIR/dyd/heap/stems" -type f -path '*/dyd/requirements/*/dyd/fingerprint')
-
-	for req_fp_file in "${req_fp_files[@]}"; do
+	while IFS= read -r req_fp_file; do
+		if [ -z "$req_fp_file" ]; then
+			continue
+		fi
 
 		candidate_fingerprint=$(cat "$req_fp_file")
 		candidate_stem="$TEMP_DIR/dyd/heap/stems/$candidate_fingerprint"
@@ -37,7 +38,7 @@ _verify() {
 
 		variant_stem="$candidate_stem"
 		break
-	done
+	done < <(find "$TEMP_DIR/dyd/heap/stems" -type f -path '*/dyd/requirements/*/dyd/fingerprint')
 
 	if [ -z "$variant_stem" ]; then
 		echo "[ERROR] Fail: expected to find resolved root-variant stem from packed requirements" 1>&2
