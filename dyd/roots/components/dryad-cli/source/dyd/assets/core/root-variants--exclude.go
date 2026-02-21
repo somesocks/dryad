@@ -14,7 +14,7 @@ type VariantExclusion struct {
 }
 
 func (rootVariants *SafeRootVariantsReference) Exclusions(ctx *task.ExecutionContext) (error, []VariantExclusion) {
-	exclusionsPath := filepath.Join(rootVariants.BasePath, "exclude")
+	exclusionsPath := filepath.Join(rootVariants.BasePath, "_exclude")
 
 	exclusionsExists, err := fileExists(exclusionsPath)
 	if err != nil {

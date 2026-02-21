@@ -15,8 +15,8 @@ func TestRootDevelopMaterializeVariantTraits_AppliesSelectionAndRemovesVariants(
 	workspacePath := t.TempDir()
 
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "name"), "demo")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "dimensions", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "dimensions", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
 
 	err := rootDevelop_copyDir(
 		task.SERIAL_CONTEXT,
@@ -64,7 +64,7 @@ func TestRootDevelopMaterializeVariantTraits_OmittedDimensionUsesEnabledNone(t *
 	workspacePath := t.TempDir()
 
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "name"), "demo")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "dimensions", "os", "none"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "none"), "true")
 
 	err := rootDevelop_copyDir(
 		task.SERIAL_CONTEXT,

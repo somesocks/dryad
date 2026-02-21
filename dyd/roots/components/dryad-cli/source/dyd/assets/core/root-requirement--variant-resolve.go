@@ -238,7 +238,7 @@ func (targetSpec *RootRequirementTargetSpec) ResolveVariants(
 		return err, nil
 	}
 	if len(results) == 0 {
-		return fmt.Errorf("resolved requirement variants are excluded by variants/exclude"), nil
+		return fmt.Errorf("resolved requirement variants are excluded by variants/_exclude"), nil
 	}
 
 	return nil, results

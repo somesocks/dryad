@@ -128,7 +128,7 @@
 ### Dryad concepts - root variants
 
 - Variant configuration lives under `<root>/dyd/traits/variants/`.
-  - Dimensions: `<root>/dyd/traits/variants/dimensions/<dimension>/`
+  - Dimensions: `<root>/dyd/traits/variants/<dimension>/`
   - Options: files under each dimension with contents `true` or `false`
 - Valid names use `[A-Za-z0-9._-]+`.
 - Selector keywords:
@@ -143,7 +143,7 @@
 - Reserved option names in dimension catalogs:
   - `inherit`, `any`, and `host` are reserved and not allowed as dimension option files.
 - Exclusions:
-  - `<root>/dyd/traits/variants/exclude/<descriptor>` files toggle excluded concrete variants with `true`/`false`.
+  - `<root>/dyd/traits/variants/_exclude/<descriptor>` files toggle excluded concrete variants with `true`/`false`.
   - Exclusion descriptor filenames must be canonical filesystem descriptors (sorted keys, comma-separated).
 - Descriptor forms:
   - Filesystem form: `arch=amd64,os=linux` (used in filenames and dependency suffixes).

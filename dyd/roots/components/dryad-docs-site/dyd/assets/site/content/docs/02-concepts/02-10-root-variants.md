@@ -13,7 +13,7 @@ Root variants let one root produce multiple concrete build outputs from variant 
 
 Variant configuration lives under:
 
-- `<root>/dyd/traits/variants/dimensions/<dimension>/<option>`
+- `<root>/dyd/traits/variants/<dimension>/<option>`
 
 Each option file must contain exactly `true` or `false`:
 
@@ -24,14 +24,15 @@ Example:
 
 ```text
 dyd/traits/variants/
-  dimensions/
-    os/
-      linux      # true
-      darwin     # true
-      none       # true
-    arch/
-      amd64      # true
-      arm64      # false
+  os/
+    linux      # true
+    darwin     # true
+    none       # true
+  arch/
+    amd64      # true
+    arm64      # false
+  _exclude/
+    arch=amd64,os=darwin  # true|false
 ```
 
 In that example, enabled concrete variants include:
@@ -103,7 +104,7 @@ In requirement *conditions*:
 
 Variant exclusions live under:
 
-- `<root>/dyd/traits/variants/exclude/<descriptor>`
+- `<root>/dyd/traits/variants/_exclude/<descriptor>`
 
 Each exclusion file also contains `true` or `false`:
 

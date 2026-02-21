@@ -12,8 +12,8 @@ func TestRootVariantsExclusionsLoad_Basic(t *testing.T) {
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "exclude", "arch=amd64,os=linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "exclude", "arch=arm64,os=darwin"), "false")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_exclude", "arch=amd64,os=linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_exclude", "arch=arm64,os=darwin"), "false")
 
 	root := SafeRootReference{
 		BasePath: rootPath,
@@ -46,7 +46,7 @@ func TestRootVariantsExclusionsLoad_RejectsNonCanonicalDescriptor(t *testing.T) 
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "exclude", "os=linux,arch=amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_exclude", "os=linux,arch=amd64"), "true")
 
 	root := SafeRootReference{
 		BasePath: rootPath,

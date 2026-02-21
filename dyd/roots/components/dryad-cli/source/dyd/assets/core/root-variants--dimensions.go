@@ -58,26 +58,26 @@ func variantOptionEnabledFromFile(path string) (error, bool) {
 }
 
 func (rootVariants *SafeRootVariantsReference) Dimensions(ctx *task.ExecutionContext) (error, []VariantDimension) {
-	dimensionsPath := filepath.Join(rootVariants.BasePath, "dimensions")
+	variantsPath := rootVariants.BasePath
 
-	dimensionsExists, err := fileExists(dimensionsPath)
+	variantsExists, err := fileExists(variantsPath)
 	if err != nil {
 		return err, nil
 	}
 
-	if !dimensionsExists {
+	if !variantsExists {
 		return nil, []VariantDimension{}
 	}
 
-	dimensionsInfo, err := os.Stat(dimensionsPath)
+	variantsInfo, err := os.Stat(variantsPath)
 	if err != nil {
 		return err, nil
 	}
-	if !dimensionsInfo.IsDir() {
-		return fmt.Errorf("variant dimensions path is not a directory: %s", dimensionsPath), nil
+	if !variantsInfo.IsDir() {
+		return fmt.Errorf("variant path is not a directory: %s", variantsPath), nil
 	}
 
-	dimensionEntries, err := os.ReadDir(dimensionsPath)
+	dimensionEntries, err := os.ReadDir(variantsPath)
 	if err != nil {
 		return err, nil
 	}
@@ -88,15 +88,20 @@ func (rootVariants *SafeRootVariantsReference) Dimensions(ctx *task.ExecutionCon
 	dimensions := make([]VariantDimension, 0, len(dimensionEntries))
 	for _, dimensionEntry := range dimensionEntries {
 		dimensionName := dimensionEntry.Name()
+
+		if dimensionName == "_exclude" {
+			continue
+		}
+
 		if !dimensionEntry.IsDir() {
-			return fmt.Errorf("variant dimension must be a directory: %s", filepath.Join(dimensionsPath, dimensionName)), nil
+			return fmt.Errorf("variant dimension must be a directory: %s", filepath.Join(variantsPath, dimensionName)), nil
 		}
 
 		if !variantNameValid(dimensionName) {
 			return fmt.Errorf("invalid variant dimension name: %s", dimensionName), nil
 		}
 
-		dimensionPath := filepath.Join(dimensionsPath, dimensionName)
+		dimensionPath := filepath.Join(variantsPath, dimensionName)
 		optionEntries, err := os.ReadDir(dimensionPath)
 		if err != nil {
 			return err, nil

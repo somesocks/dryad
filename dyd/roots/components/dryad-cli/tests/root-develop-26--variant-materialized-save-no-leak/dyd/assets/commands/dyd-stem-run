@@ -27,8 +27,8 @@ _test() {
 _verify() {
 	assert_file_content_equals "$TEMP_DIR/dyd/heap/root-develop-26--variant-materialized-save-no-leak/workspace-os" "linux"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-01/dyd/assets/file.txt" "updated"
-	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-01/dyd/traits/variants/dimensions/os/linux" "true"
-	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-01/dyd/traits/variants/dimensions/os/darwin" "true"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-01/dyd/traits/variants/os/linux" "true"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-01/dyd/traits/variants/os/darwin" "true"
 
 	if [ -e "$TEMP_DIR/dyd/roots/root-01/dyd/traits/os" ]; then
 		echo "[ERROR] Fail: root develop save should not persist materialized variant trait dyd/traits/os" 1>&2

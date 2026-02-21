@@ -175,7 +175,7 @@ func (root *SafeRootReference) ResolveBuildVariants(
 		return err, nil
 	}
 	if len(results) == 0 {
-		return fmt.Errorf("resolved root build variants are excluded by variants/exclude"), nil
+		return fmt.Errorf("resolved root build variants are excluded by variants/_exclude"), nil
 	}
 
 	return nil, results
