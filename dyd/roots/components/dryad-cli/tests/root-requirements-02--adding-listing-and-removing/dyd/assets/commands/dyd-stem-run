@@ -44,15 +44,30 @@ _test() {
 
 	LIST_OUTPUT=$(cd "$ROOT_1" && dryad root requirements list)
 	case "$LIST_OUTPUT" in
-		*"dyd/roots/root-01/dyd/requirements/dep-02"*)
+		*"dyd/roots/root-01/dyd/requirements/dep-02 -> root:../../../root-02"*)
 			;;
 		*)
 			echo "[ERROR] Fail: expected requirements list to include dep-02" 1>&2
+			echo "$LIST_OUTPUT" 1>&2
+			return 1
+			;;
+	esac
+
+	printf 'root:../../../root-02?os=linux&arch=amd64' > "$ROOT_1/dyd/requirements/dep-03"
+
+	LIST_OUTPUT_WITH_SELECTOR=$(cd "$ROOT_1" && dryad root requirements list)
+	case "$LIST_OUTPUT_WITH_SELECTOR" in
+		*"dyd/roots/root-01/dyd/requirements/dep-03 -> root:../../../root-02?arch=amd64&os=linux"*)
+			;;
+		*)
+			echo "[ERROR] Fail: expected requirements list to canonicalize selector query order" 1>&2
+			echo "$LIST_OUTPUT_WITH_SELECTOR" 1>&2
 			return 1
 			;;
 	esac
 
 	(cd "$ROOT_1" && dryad root requirement remove dep-02) 1>&2;
+	(cd "$ROOT_1" && dryad root requirement remove dep-03) 1>&2;
 
 	LIST_OUTPUT_AFTER=$(cd "$ROOT_1" && dryad root requirements list)
 	if [ -n "$LIST_OUTPUT_AFTER" ]; then
