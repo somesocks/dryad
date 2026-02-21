@@ -25,9 +25,9 @@ func TestVariantDescriptorNormalizeFilesystem_DuplicateDimensionFails(t *testing
 func TestVariantDescriptorNormalizeURL_SortsDimensions(t *testing.T) {
 	assert := assert.New(t)
 
-	err, normalized := variantDescriptorNormalizeURL("?os=linux#arch=amd64")
+	err, normalized := variantDescriptorNormalizeURL("?os=linux&arch=amd64")
 	assert.Nil(err)
-	assert.Equal("?arch=amd64#os=linux", normalized)
+	assert.Equal("?arch=amd64&os=linux", normalized)
 }
 
 func TestVariantDescriptorNormalizeURL_EmptyDescriptor(t *testing.T) {
@@ -41,7 +41,15 @@ func TestVariantDescriptorNormalizeURL_EmptyDescriptor(t *testing.T) {
 func TestVariantDescriptorNormalizeURL_InvalidCharactersFail(t *testing.T) {
 	assert := assert.New(t)
 
-	err, _ := variantDescriptorNormalizeURL("?arch=amd64&os=linux")
+	err, _ := variantDescriptorNormalizeURL("?arch=amd64&os=lin/ux")
+	assert.NotNil(err)
+	assert.Contains(err.Error(), "invalid variant option")
+}
+
+func TestVariantDescriptorNormalizeURL_FragmentSeparatorFails(t *testing.T) {
+	assert := assert.New(t)
+
+	err, _ := variantDescriptorNormalizeURL("?os=linux#arch=amd64")
 	assert.NotNil(err)
 	assert.Contains(err.Error(), "invalid variant option")
 }

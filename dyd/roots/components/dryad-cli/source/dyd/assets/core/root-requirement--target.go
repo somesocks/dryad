@@ -18,6 +18,10 @@ func rootRequirementVariantSelectorFromURL(linkURL *url.URL) (error, VariantDesc
 	hasQuery := linkURL.RawQuery != ""
 	hasFragment := linkURL.Fragment != ""
 
+	if hasFragment {
+		return fmt.Errorf("variant descriptor fragments are not supported; use query parameters with '&'"), nil
+	}
+
 	if !hasQuery && !hasFragment {
 		return nil, VariantDescriptor{}
 	}
@@ -25,12 +29,6 @@ func rootRequirementVariantSelectorFromURL(linkURL *url.URL) (error, VariantDesc
 	selectorRaw := "?"
 	if hasQuery {
 		selectorRaw += linkURL.RawQuery
-	}
-	if hasFragment {
-		if hasQuery {
-			selectorRaw += "#"
-		}
-		selectorRaw += linkURL.Fragment
 	}
 
 	return variantDescriptorParseURL(selectorRaw)

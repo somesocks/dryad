@@ -1,1 +1,1 @@
-root:../../../root-dep?arch=amd64#os=linux#flavor=dbg
+root:../../../root-dep?arch=amd64&os=linux&flavor=dbg

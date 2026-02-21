@@ -1,1 +1,1 @@
-root:../../../root-dep?arch=arm64#os=linux
+root:../../../root-dep?arch=arm64&os=linux

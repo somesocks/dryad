@@ -1,1 +1,1 @@
-root:../../../root-dep?arch=any#os=any
+root:../../../root-dep?arch=any&os=any

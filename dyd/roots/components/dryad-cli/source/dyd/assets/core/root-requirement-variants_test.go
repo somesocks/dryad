@@ -77,7 +77,7 @@ func TestRootRequirementTargetSpec_ParsesVariantSelector(t *testing.T) {
 		sourceRootPath,
 		"dep",
 		targetRootPath,
-		"?os=linux#arch=amd64",
+		"?os=linux&arch=amd64",
 	)
 
 	requirement := resolveRequirementForVariantRequirementTest(t, gardenPath, sourceRootPath, "dep")
@@ -89,6 +89,27 @@ func TestRootRequirementTargetSpec_ParsesVariantSelector(t *testing.T) {
 	err, selector := variantDescriptorEncodeFilesystem(targetSpec.VariantSelector)
 	assert.Nil(err)
 	assert.Equal("arch=amd64,os=linux", selector)
+}
+
+func TestRootRequirementTargetSpec_FragmentVariantSelectorFails(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	sourceRootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
+	targetRootPath := createRootForVariantRequirementTest(t, gardenPath, "dep")
+	createRequirementForVariantRequirementTest(
+		t,
+		sourceRootPath,
+		"dep",
+		targetRootPath,
+		"?os=linux#arch=amd64",
+	)
+
+	requirement := resolveRequirementForVariantRequirementTest(t, gardenPath, sourceRootPath, "dep")
+
+	err, _ := requirement.TargetSpec(task.SERIAL_CONTEXT)
+	assert.NotNil(err)
+	assert.Contains(err.Error(), "variant descriptor fragments are not supported")
 }
 
 func TestRootRequirementResolveTargets_InheritAndConcrete(t *testing.T) {
@@ -108,7 +129,7 @@ func TestRootRequirementResolveTargets_InheritAndConcrete(t *testing.T) {
 		sourceRootPath,
 		"dep",
 		targetRootPath,
-		"?arch=amd64#os=inherit",
+		"?arch=amd64&os=inherit",
 	)
 
 	requirement := resolveRequirementForVariantRequirementTest(t, gardenPath, sourceRootPath, "dep")
@@ -174,7 +195,7 @@ func TestRootRequirementResolveTargets_AnyExpandsCartesianProduct(t *testing.T) 
 		sourceRootPath,
 		"dep",
 		targetRootPath,
-		"?arch=any#os=any",
+		"?arch=any&os=any",
 	)
 
 	requirement := resolveRequirementForVariantRequirementTest(t, gardenPath, sourceRootPath, "dep")
@@ -328,7 +349,7 @@ func TestRootRequirementResolveTargets_ExclusionsFilterResolvedVariants(t *testi
 		sourceRootPath,
 		"dep",
 		targetRootPath,
-		"?arch=any#os=any",
+		"?arch=any&os=any",
 	)
 
 	requirement := resolveRequirementForVariantRequirementTest(t, gardenPath, sourceRootPath, "dep")
@@ -368,7 +389,7 @@ func TestRootRequirementResolveTargets_FailsWhenSelectionIsExcluded(t *testing.T
 		sourceRootPath,
 		"dep",
 		targetRootPath,
-		"?arch=amd64#os=darwin",
+		"?arch=amd64&os=darwin",
 	)
 
 	requirement := resolveRequirementForVariantRequirementTest(t, gardenPath, sourceRootPath, "dep")

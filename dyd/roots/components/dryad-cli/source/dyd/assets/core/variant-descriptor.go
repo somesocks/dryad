@@ -95,11 +95,11 @@ func variantDescriptorNormalizeFilesystem(raw string) (error, string) {
 }
 
 func variantDescriptorParseURL(raw string) (error, VariantDescriptor) {
-	return variantDescriptorParse(raw, "#", true)
+	return variantDescriptorParse(raw, "&", true)
 }
 
 func variantDescriptorEncodeURL(descriptor VariantDescriptor) (error, string) {
-	return variantDescriptorEncode(descriptor, "#", "?")
+	return variantDescriptorEncode(descriptor, "&", "?")
 }
 
 func variantDescriptorNormalizeURL(raw string) (error, string) {
