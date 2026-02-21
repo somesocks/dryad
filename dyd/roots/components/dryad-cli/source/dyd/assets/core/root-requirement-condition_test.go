@@ -1,0 +1,136 @@
+package core
+
+import (
+	"runtime"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestRootRequirementParseName_NoCondition(t *testing.T) {
+	assert := assert.New(t)
+
+	err, alias, condition := rootRequirementParseName("foo")
+	assert.Nil(err)
+	assert.Equal("foo", alias)
+	assert.Equal(VariantDescriptor{}, condition)
+}
+
+func TestRootRequirementParseName_WithCondition(t *testing.T) {
+	assert := assert.New(t)
+
+	err, alias, condition := rootRequirementParseName("foo+arch=any,os=linux")
+	assert.Nil(err)
+	assert.Equal("foo", alias)
+	assert.Equal(VariantDescriptor{
+		"os":   "linux",
+		"arch": "any",
+	}, condition)
+}
+
+func TestRootRequirementParseName_InvalidConditionFails(t *testing.T) {
+	assert := assert.New(t)
+
+	err, _, _ := rootRequirementParseName("foo+")
+	assert.NotNil(err)
+	assert.Contains(err.Error(), "malformed requirement condition descriptor")
+}
+
+func TestRootRequirementConditionMatches_ConcreteAnyAndNone(t *testing.T) {
+	assert := assert.New(t)
+
+	err, matches := rootRequirementConditionMatches(
+		VariantDescriptor{
+			"arch": "amd64",
+			"os":   "linux",
+		},
+		VariantDescriptor{
+			"arch": "any",
+			"os":   "linux",
+		},
+	)
+	assert.Nil(err)
+	assert.True(matches)
+
+	err, matches = rootRequirementConditionMatches(
+		VariantDescriptor{
+			"arch": "amd64",
+			"os":   "linux",
+		},
+		VariantDescriptor{
+			"arch": "arm64",
+		},
+	)
+	assert.Nil(err)
+	assert.False(matches)
+
+	err, matches = rootRequirementConditionMatches(
+		VariantDescriptor{},
+		VariantDescriptor{
+			"arch": "none",
+		},
+	)
+	assert.Nil(err)
+	assert.True(matches)
+
+	err, matches = rootRequirementConditionMatches(
+		VariantDescriptor{},
+		VariantDescriptor{
+			"arch": "any",
+		},
+	)
+	assert.Nil(err)
+	assert.True(matches)
+}
+
+func TestRootRequirementConditionMatches_InheritIsWildcard(t *testing.T) {
+	assert := assert.New(t)
+
+	err, matches := rootRequirementConditionMatches(
+		VariantDescriptor{
+			"arch": "amd64",
+		},
+		VariantDescriptor{
+			"arch": "inherit",
+		},
+	)
+	assert.Nil(err)
+	assert.True(matches)
+}
+
+func TestRootRequirementConditionMatches_Host(t *testing.T) {
+	assert := assert.New(t)
+
+	err, matches := rootRequirementConditionMatches(
+		VariantDescriptor{
+			"arch": runtime.GOARCH,
+		},
+		VariantDescriptor{
+			"arch": "host",
+		},
+	)
+	assert.Nil(err)
+	assert.True(matches)
+
+	err, matches = rootRequirementConditionMatches(
+		VariantDescriptor{
+			"arch": "amd64",
+		},
+		VariantDescriptor{
+			"os": "host",
+		},
+	)
+	assert.Nil(err)
+	assert.False(matches)
+
+	err, _ = rootRequirementConditionMatches(
+		VariantDescriptor{
+			"tool": "go",
+		},
+		VariantDescriptor{
+			"tool": "host",
+		},
+	)
+	assert.NotNil(err)
+	assert.Contains(err.Error(), "host option is only supported")
+}

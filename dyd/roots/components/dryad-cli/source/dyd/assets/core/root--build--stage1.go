@@ -8,7 +8,6 @@ import (
 	// "io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -105,8 +104,21 @@ func init() {
 
 		err = requirementsRef.Walk(task.SERIAL_CONTEXT, RootRequirementsWalkRequest{
 			OnMatch: func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
-				requirementName := filepath.Base(requirement.BasePath)
-				requirementName, _, _ = strings.Cut(requirementName, "+")
+				err, requirementName, condition := rootRequirementParseName(filepath.Base(requirement.BasePath))
+				if err != nil {
+					return err, nil
+				}
+
+				err, shouldInclude := rootRequirementConditionMatches(
+					parentVariantContext.Descriptor,
+					condition,
+				)
+				if err != nil {
+					return err, nil
+				}
+				if !shouldInclude {
+					return nil, nil
+				}
 
 				err, targets := requirement.ResolveTargets(ctx, RootRequirementResolveTargetsRequest{
 					ParentVariant: parentVariantContext.Descriptor,
