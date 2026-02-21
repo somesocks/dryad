@@ -69,15 +69,14 @@ func rootsGraph(
 	var onRootRequirement = func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
 		var rootPath string = requirement.Requirements.Root.BasePath
 		var targetPath string
-		var target *SafeRootReference
 		var err error
 
-		err, target = requirement.Target(ctx)
+		err, targetSpec := requirement.TargetSpec(ctx)
 		if err != nil {
 			return err, nil
 		}
 
-		targetPath = target.BasePath
+		targetPath = targetSpec.Root.BasePath
 
 		if relative {
 			var gardenPath string = requirement.Requirements.Root.Roots.Garden.BasePath
@@ -90,6 +89,11 @@ func rootsGraph(
 				return err, nil
 			}
 		}
+		err, targetSelectorRaw := variantDescriptorEncodeURL(targetSpec.VariantSelector)
+		if err != nil {
+			return err, nil
+		}
+		targetPath = targetPath + targetSelectorRaw
 
 		graphMux.Lock()
 		graph.AddEdge(rootPath, targetPath)

@@ -1,21 +1,22 @@
 package core
 
 import (
-	"path/filepath"
 	"dryad/task"
-
 	"net/url"
 	"os"
+	"path/filepath"
+	"strings"
 	// zlog "github.com/rs/zerolog/log"
 )
 
 type RootRequirementsAddRequest struct {
-	Dependency *SafeRootReference
-	Alias string
+	Dependency                *SafeRootReference
+	Alias                     string
+	DependencyVariantSelector string
 }
 
 func (requirements *SafeRootRequirementsReference) Add(
-	ctx * task.ExecutionContext,
+	ctx *task.ExecutionContext,
 	req RootRequirementsAddRequest,
 ) (error, *SafeRootRequirementReference) {
 
@@ -25,6 +26,20 @@ func (requirements *SafeRootRequirementsReference) Add(
 
 	if alias == "" {
 		alias = filepath.Base(depBasePath)
+	}
+
+	err, alias = RootRequirementNormalizeName(alias)
+	if err != nil {
+		return err, nil
+	}
+
+	err, depSelector := variantDescriptorParseURL(req.DependencyVariantSelector)
+	if err != nil {
+		return err, nil
+	}
+	err, depSelectorRaw := variantDescriptorEncodeURL(depSelector)
+	if err != nil {
+		return err, nil
 	}
 
 	var requirementPath = filepath.Join(requirements.BasePath, alias)
@@ -45,6 +60,7 @@ func (requirements *SafeRootRequirementsReference) Add(
 		Scheme: "root",
 		Opaque: linkPath,
 	}
+	linkUrl.RawQuery = strings.TrimPrefix(depSelectorRaw, "?")
 
 	err = os.WriteFile(requirementPath, []byte(linkUrl.String()), 0644)
 	if err != nil {
@@ -52,7 +68,7 @@ func (requirements *SafeRootRequirementsReference) Add(
 	}
 
 	var rootRequirementRef = SafeRootRequirementReference{
-		BasePath: requirementPath,
+		BasePath:     requirementPath,
 		Requirements: requirements,
 	}
 	return nil, &rootRequirementRef

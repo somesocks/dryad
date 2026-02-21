@@ -26,6 +26,28 @@ func rootRequirementParseName(raw string) (error, string, VariantDescriptor) {
 	return nil, alias, condition
 }
 
+func rootRequirementEncodeName(alias string, condition VariantDescriptor) (error, string) {
+	if len(condition) == 0 {
+		return nil, alias
+	}
+
+	err, conditionRaw := variantDescriptorEncodeFilesystem(condition)
+	if err != nil {
+		return err, ""
+	}
+
+	return nil, alias + "+" + conditionRaw
+}
+
+func RootRequirementNormalizeName(raw string) (error, string) {
+	err, alias, condition := rootRequirementParseName(raw)
+	if err != nil {
+		return err, ""
+	}
+
+	return rootRequirementEncodeName(alias, condition)
+}
+
 func rootRequirementConditionMatches(
 	parentVariant VariantDescriptor,
 	condition VariantDescriptor,

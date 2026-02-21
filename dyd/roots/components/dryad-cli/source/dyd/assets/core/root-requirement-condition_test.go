@@ -36,6 +36,22 @@ func TestRootRequirementParseName_InvalidConditionFails(t *testing.T) {
 	assert.Contains(err.Error(), "malformed requirement condition descriptor")
 }
 
+func TestRootRequirementNormalizeName_NoCondition(t *testing.T) {
+	assert := assert.New(t)
+
+	err, normalized := RootRequirementNormalizeName("foo")
+	assert.Nil(err)
+	assert.Equal("foo", normalized)
+}
+
+func TestRootRequirementNormalizeName_WithConditionCanonicalizesOrder(t *testing.T) {
+	assert := assert.New(t)
+
+	err, normalized := RootRequirementNormalizeName("foo+os=linux,arch=any")
+	assert.Nil(err)
+	assert.Equal("foo+arch=any,os=linux", normalized)
+}
+
 func TestRootRequirementConditionMatches_ConcreteAnyAndNone(t *testing.T) {
 	assert := assert.New(t)
 

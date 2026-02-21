@@ -110,17 +110,18 @@ var rootsGraphCommand = func() clib.Command {
 			}
 			fmt.Println(string(y))
 		case "json":
-			y, err := json.MarshalIndent(graph, "", "  ")
-			if err != nil {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetEscapeHTML(false)
+			enc.SetIndent("", "  ")
+			if err := enc.Encode(graph); err != nil {
 				return err, nil
 			}
-			fmt.Println(string(y))
 		case "json-compact":
-			y, err := json.Marshal(graph)
-			if err != nil {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetEscapeHTML(false)
+			if err := enc.Encode(graph); err != nil {
 				return err, nil
 			}
-			fmt.Println(string(y))
 		}
 
 		return nil, nil
