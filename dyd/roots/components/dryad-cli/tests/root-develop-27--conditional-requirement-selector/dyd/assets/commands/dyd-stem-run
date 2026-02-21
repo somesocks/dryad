@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	PRESENT_EDITOR="$PWD/dyd/roots/root-01/dyd/commands/dev-editor-present"
+	ABSENT_EDITOR="$PWD/dyd/roots/root-01/dyd/commands/dev-editor-absent"
+
+	(dryad root develop start dyd/roots/root-01 --variant="arch=amd64" --shell="$PRESENT_EDITOR" --log-level="$DYD_LOG_LEVEL") 1>&2
+	(dryad root develop start dyd/roots/root-01 --variant="arch=arm64" --shell="$ABSENT_EDITOR" --log-level="$DYD_LOG_LEVEL") 1>&2
+}
+
+_verify() {
+	base="$TEMP_DIR/dyd/heap/root-develop-27--conditional-requirement-selector"
+	assert_file_content_equals "$base/present" "true"
+	assert_file_content_equals "$base/absent" "true"
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

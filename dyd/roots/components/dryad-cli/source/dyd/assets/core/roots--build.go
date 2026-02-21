@@ -6,22 +6,22 @@ import (
 	"dryad/task"
 
 	zlog "github.com/rs/zerolog/log"
-
 )
 
 type rootsBuildRequest struct {
-	Roots *SafeRootsReference
-	Filter func (*task.ExecutionContext, *SafeRootReference) (error, bool)
-	JoinStdout bool
-	JoinStderr bool
-	LogStdout struct {
+	Roots             *SafeRootsReference
+	Filter            func(*task.ExecutionContext, *SafeRootReference) (error, bool)
+	VariantDescriptor string
+	JoinStdout        bool
+	JoinStderr        bool
+	LogStdout         struct {
 		Path string
 		Name string
 	}
 	LogStderr struct {
 		Path string
 		Name string
-	}	
+	}
 }
 
 func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, any) {
@@ -32,7 +32,6 @@ func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, a
 		Str("gardenPath", request.Roots.Garden.BasePath).
 		Msg("RootsBuild")
 
-	
 	err, sprouts = request.Roots.Garden.Sprouts().Resolve(ctx)
 	if err != nil {
 		return err, nil
@@ -44,7 +43,7 @@ func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, a
 		return err, nil
 	}
 
-	var buildRoot = func (ctx *task.ExecutionContext, root *SafeRootReference) (error, any) {
+	var buildRoot = func(ctx *task.ExecutionContext, root *SafeRootReference) (error, any) {
 
 		var err error
 		var shouldMatch bool
@@ -56,13 +55,14 @@ func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, a
 
 		// if the root isn't being excluded by a selector, build it
 		if shouldMatch {
-			err, _ = root.Build(
+			err, _ = root.BuildSprout(
 				ctx,
-				RootBuildRequest{
-					JoinStdout: request.JoinStdout,
-					JoinStderr: request.JoinStderr,
-					LogStdout: request.LogStdout,
-					LogStderr: request.LogStderr,
+				RootBuildSproutRequest{
+					VariantDescriptor: request.VariantDescriptor,
+					JoinStdout:        request.JoinStdout,
+					JoinStderr:        request.JoinStderr,
+					LogStdout:         request.LogStdout,
+					LogStderr:         request.LogStderr,
 				},
 			)
 			return err, nil
@@ -83,10 +83,11 @@ func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, a
 }
 
 type RootsBuildRequest struct {
-	Filter func (*task.ExecutionContext, *SafeRootReference) (error, bool)
-	JoinStdout bool
-	JoinStderr bool
-	LogStdout struct {
+	Filter            func(*task.ExecutionContext, *SafeRootReference) (error, bool)
+	VariantDescriptor string
+	JoinStdout        bool
+	JoinStderr        bool
+	LogStdout         struct {
 		Path string
 		Name string
 	}
@@ -96,17 +97,18 @@ type RootsBuildRequest struct {
 	}
 }
 
-func (roots *SafeRootsReference) Build(ctx *task.ExecutionContext, req RootsBuildRequest) (error) {
+func (roots *SafeRootsReference) Build(ctx *task.ExecutionContext, req RootsBuildRequest) error {
 	err, _ := rootsBuild(
 		ctx,
 		rootsBuildRequest{
-			Roots: roots,
-			Filter: req.Filter,
-			JoinStdout: req.JoinStdout,
-			JoinStderr: req.JoinStderr,
-			LogStdout: req.LogStdout,
-			LogStderr: req.LogStderr,
-},
+			Roots:             roots,
+			Filter:            req.Filter,
+			VariantDescriptor: req.VariantDescriptor,
+			JoinStdout:        req.JoinStdout,
+			JoinStderr:        req.JoinStderr,
+			LogStdout:         req.LogStdout,
+			LogStderr:         req.LogStderr,
+		},
 	)
 
 	return err

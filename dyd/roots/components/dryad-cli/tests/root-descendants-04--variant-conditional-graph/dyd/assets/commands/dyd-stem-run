@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	OUTPUT=$(dryad root descendants dyd/roots/root-base --log-level="$DYD_LOG_LEVEL")
+
+	if ! printf '%s\n' "$OUTPUT" | grep -Fxq 'dyd/roots/root-mid'; then
+		echo "[ERROR] Fail: expected root descendants to include dyd/roots/root-mid" 1>&2
+		echo "$OUTPUT" 1>&2
+		return 1
+	fi
+
+	if ! printf '%s\n' "$OUTPUT" | grep -Fxq 'dyd/roots/root-top'; then
+		echo "[ERROR] Fail: expected root descendants to include dyd/roots/root-top" 1>&2
+		echo "$OUTPUT" 1>&2
+		return 1
+	fi
+
+	if printf '%s\n' "$OUTPUT" | grep -Fxq 'dyd/roots/root-skip'; then
+		echo "[ERROR] Fail: expected root descendants to omit dyd/roots/root-skip for non-matching condition" 1>&2
+		echo "$OUTPUT" 1>&2
+		return 1
+	fi
+}
+
+_verify() {
+	assert_directory_exists "$TEMP_DIR/dyd"
+	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

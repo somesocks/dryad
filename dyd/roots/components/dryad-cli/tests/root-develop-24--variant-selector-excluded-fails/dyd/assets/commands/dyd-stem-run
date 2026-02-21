@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	EDITOR_PATH="$PWD/dyd/roots/root-01/dyd/commands/dev-editor"
+
+	set +e
+	OUTPUT=$(dryad root develop start dyd/roots/root-01 --variant="arch=amd64,os=linux" --shell="$EDITOR_PATH" --log-level="$DYD_LOG_LEVEL" 2>&1)
+	STATUS=$?
+	set -e
+
+	if [ "$STATUS" -eq 0 ]; then
+		echo "[ERROR] Fail: expected root develop start to fail for excluded variant" 1>&2
+		return 1
+	fi
+
+	case "$OUTPUT" in
+		*"resolved root build variants are excluded by variants/exclude"*)
+			;;
+		*)
+			echo "[ERROR] Fail: expected excluded-variant error" 1>&2
+			echo "$OUTPUT" 1>&2
+			return 1
+			;;
+	esac
+}
+
+_verify() {
+	if [ -e "$TEMP_DIR/dyd/heap/root-develop-24--variant-selector-excluded-fails/editor-ran" ]; then
+		echo "[ERROR] Fail: editor should not run when variant is excluded" 1>&2
+		return 1
+	fi
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

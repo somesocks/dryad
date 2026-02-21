@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	dryad root build "dyd/roots/root-top" --variant="os=linux" --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+_verify() {
+	deps_path="$TEMP_DIR/dyd/sprouts/root-top/dyd/dependencies"
+	assert_directory_exists "$deps_path"
+
+	assert_directory_exists "$deps_path/stem+arch=amd64,os=linux"
+	assert_directory_exists "$deps_path/stem+arch=arm64,os=linux"
+
+	if [ -e "$deps_path/stem+arch=amd64,os=darwin" ] || [ -L "$deps_path/stem+arch=amd64,os=darwin" ]; then
+		echo "[ERROR] Fail: unexpected darwin dependency stem+arch=amd64,os=darwin" 1>&2
+		return 1
+	fi
+	if [ -e "$deps_path/stem+arch=arm64,os=darwin" ] || [ -L "$deps_path/stem+arch=arm64,os=darwin" ]; then
+		echo "[ERROR] Fail: unexpected darwin dependency stem+arch=arm64,os=darwin" 1>&2
+		return 1
+	fi
+
+	dep_count=$(ls -1 "$deps_path" | wc -l | tr -d ' ')
+	if [ "$dep_count" != "2" ]; then
+		echo "[ERROR] Fail: expected exactly 2 dependencies for selector os=linux, got $dep_count" 1>&2
+		ls -1 "$deps_path" 1>&2
+		return 1
+	fi
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

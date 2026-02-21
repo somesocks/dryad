@@ -11,6 +11,8 @@ set -euf -o pipefail
 
 SRC_DIR=$DYD_STEM
 TEMP_DIR=''
+BUILD_OUTPUT=''
+SPROUT_FINGERPRINT=''
 
 # import assertion functions
 . $SRC_DIR/dyd/assets/assertions.sh
@@ -38,8 +40,7 @@ _prepare() {
 }
 
 _test() {
-
-	(dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL") 1>&2;
+	BUILD_OUTPUT=$(dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL")
 }
 
 _verify() {
@@ -52,6 +53,18 @@ _verify() {
 	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-file-01" "test-file-01"
 	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-dir-01"
 	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-dir-01/test-file-02" "test-file-02"
+
+	SPROUT_FINGERPRINT=$(cat "$TEMP_DIR/dyd/sprouts/root-01/dyd/fingerprint")
+	if [ -z "$BUILD_OUTPUT" ]; then
+		echo "[ERROR] Fail: dryad root build should print a fingerprint" 1>&2
+		return 1
+	fi
+	if [ "$BUILD_OUTPUT" != "$SPROUT_FINGERPRINT" ]; then
+		echo "[ERROR] Fail: dryad root build output should match sprout fingerprint" 1>&2
+		echo "[ERROR] expected: $SPROUT_FINGERPRINT" 1>&2
+		echo "[ERROR] got: $BUILD_OUTPUT" 1>&2
+		return 1
+	fi
 	:;
 }
 

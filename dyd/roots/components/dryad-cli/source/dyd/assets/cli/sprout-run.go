@@ -41,6 +41,7 @@ var sproutRunCommand = func() clib.Command {
 				NewArg("path", "path to the sprout").
 				WithAutoComplete(ArgAutoCompletePath),
 		).
+		WithOption(clib.NewOption("variant", "variant descriptor selector for sprout stems (filesystem form: dimension=option,dimension=option). supports none/any/host; inherit is invalid for sprout runs")).
 		WithOption(clib.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
 		WithOption(clib.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(clib.OptionTypeBool)).
 		WithOption(clib.NewOption("command", "run this command in the stem run environment instead of the main")).
@@ -52,17 +53,18 @@ var sproutRunCommand = func() clib.Command {
 		WithArg(clib.NewArg("-- args", "args to pass to the stem").AsOptional()).
 		WithAction(func(req clib.ActionRequest) int {
 			type ParsedArgs struct {
-				Path       string
-				Extras     []string
-				Context    string
-				Command    string
-				Inherit    bool
-				Confirm    string
-				JoinStdout bool
-				JoinStderr bool
-				LogStdout  string
-				LogStderr  string
-				Parallel   int
+				Path              string
+				Extras            []string
+				VariantDescriptor string
+				Context           string
+				Command           string
+				Inherit           bool
+				Confirm           string
+				JoinStdout        bool
+				JoinStderr        bool
+				LogStdout         string
+				LogStderr         string
+				Parallel          int
 			}
 
 			var parseArgs = task.From(
@@ -71,6 +73,7 @@ var sproutRunCommand = func() clib.Command {
 					var opts = req.Opts
 					var context string
 					var command string
+					var variantDescriptor string
 					var inherit bool
 					var confirm string
 					var joinStdout bool
@@ -78,6 +81,10 @@ var sproutRunCommand = func() clib.Command {
 					var logStdout string
 					var logStderr string
 					var parallel int
+
+					if opts["variant"] != nil {
+						variantDescriptor = opts["variant"].(string)
+					}
 
 					if opts["context"] != nil {
 						context = opts["context"].(string)
@@ -124,17 +131,18 @@ var sproutRunCommand = func() clib.Command {
 					}
 
 					return nil, ParsedArgs{
-						Path:       args[0],
-						Extras:     args[1:],
-						Context:    context,
-						Command:    command,
-						Inherit:    inherit,
-						Confirm:    confirm,
-						JoinStdout: joinStdout,
-						JoinStderr: joinStderr,
-						LogStdout:  logStdout,
-						LogStderr:  logStderr,
-						Parallel:   parallel,
+						Path:              args[0],
+						Extras:            args[1:],
+						VariantDescriptor: variantDescriptor,
+						Context:           context,
+						Command:           command,
+						Inherit:           inherit,
+						Confirm:           confirm,
+						JoinStdout:        joinStdout,
+						JoinStderr:        joinStderr,
+						LogStdout:         logStdout,
+						LogStderr:         logStderr,
+						Parallel:          parallel,
 					}
 				},
 			)
@@ -198,10 +206,11 @@ var sproutRunCommand = func() clib.Command {
 				err = sprout.Run(
 					ctx,
 					dryad.SproutRunRequest{
-						MainOverride: args.Command,
-						Env:          env,
-						Args:         args.Extras,
-						JoinStdout:   args.JoinStdout,
+						MainOverride:      args.Command,
+						VariantDescriptor: args.VariantDescriptor,
+						Env:               env,
+						Args:              args.Extras,
+						JoinStdout:        args.JoinStdout,
 						LogStdout: struct {
 							Path string
 							Name string

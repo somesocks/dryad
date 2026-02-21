@@ -7,9 +7,30 @@ import (
 	"dryad/task"
 	"fmt"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	zlog "github.com/rs/zerolog/log"
 )
+
+func rootRequirementsList_encodeVariantSelectorURL(selector dryad.VariantDescriptor) string {
+	if len(selector) == 0 {
+		return ""
+	}
+
+	keys := make([]string, 0, len(selector))
+	for key := range selector {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	parts := make([]string, 0, len(keys))
+	for _, key := range keys {
+		parts = append(parts, key+"="+selector[key])
+	}
+
+	return "?" + strings.Join(parts, "&")
+}
 
 var rootRequirementsListCommand = func() clib.Command {
 	type ParsedArgs struct {
@@ -84,19 +105,33 @@ var rootRequirementsListCommand = func() clib.Command {
 				Str("path", requirement.BasePath).
 				Msg("root requirements list / onRequirement")
 
+			err, targetSpec := requirement.TargetSpec(ctx)
+			if err != nil {
+				return err, nil
+			}
+
+			targetPath, err := filepath.Rel(
+				filepath.Dir(requirement.BasePath),
+				targetSpec.Root.BasePath,
+			)
+			if err != nil {
+				return err, nil
+			}
+			targetURL := "root:" + targetPath + rootRequirementsList_encodeVariantSelectorURL(targetSpec.VariantSelector)
+
+			requirementPath := requirement.BasePath
 			if args.Relative {
 				// calculate the relative path to the root from the base of the garden
-				relPath, err := filepath.Rel(
+				requirementPath, err = filepath.Rel(
 					requirement.Requirements.Root.Roots.Garden.BasePath,
 					requirement.BasePath,
 				)
 				if err != nil {
 					return err, nil
 				}
-				fmt.Println(relPath)
-			} else {
-				fmt.Println(requirement.BasePath)
 			}
+
+			fmt.Println(requirementPath + " -> " + targetURL)
 			return nil, nil
 		}
 

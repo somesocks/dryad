@@ -431,6 +431,7 @@ func rootDevelop_stage1(
 	rootPath string,
 	workspacePath string,
 	roots *SafeRootsReference,
+	variantDescriptor string,
 ) error {
 
 	rootRef := SafeRootReference{
@@ -443,30 +444,74 @@ func rootDevelop_stage1(
 		return err
 	}
 
+	err, parentVariantContext := RootVariantContextFromFilesystem(variantDescriptor)
+	if err != nil {
+		return err
+	}
+
 	err = requirementsRef.Walk(task.SERIAL_CONTEXT, RootRequirementsWalkRequest{
 		OnMatch: func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
-			err, safeDepReference := requirement.Target(ctx)
+			err, requirementName, condition := rootRequirementParseName(filepath.Base(requirement.BasePath))
 			if err != nil {
 				return err, nil
 			}
 
-			err, dependencyFingerprint := safeDepReference.Build(
-				ctx,
-				RootBuildRequest{},
+			err, shouldInclude := rootRequirementConditionMatches(
+				parentVariantContext.Descriptor,
+				condition,
 			)
 			if err != nil {
 				return err, nil
 			}
+			if !shouldInclude {
+				return nil, nil
+			}
 
-			dependencyHeapPath := filepath.Join(requirement.Requirements.Root.Roots.Garden.BasePath, "dyd", "heap", "stems", dependencyFingerprint)
+			err, targets := requirement.ResolveTargets(ctx, RootRequirementResolveTargetsRequest{
+				ParentVariant: parentVariantContext.Descriptor,
+			})
+			if err != nil {
+				return err, nil
+			}
 
-			dependencyName := filepath.Base(requirement.BasePath)
+			for _, target := range targets {
+				err, dependencyName := rootBuild_stage1DependencyName(requirementName, target, len(targets))
+				if err != nil {
+					return err, nil
+				}
 
-			targetDepPath := filepath.Join(workspacePath, "dyd", "dependencies", dependencyName)
+				err, dependencyVariantDescriptor := variantDescriptorEncodeFilesystem(target.VariantDescriptor)
+				if err != nil {
+					return err, nil
+				}
 
-			err = os.Symlink(dependencyHeapPath, targetDepPath)
+				err, dependencyFingerprint := target.Root.BuildStem(
+					ctx,
+					RootBuildStemRequest{
+						VariantDescriptor: dependencyVariantDescriptor,
+					},
+				)
+				if err != nil {
+					return err, nil
+				}
 
-			return err, nil
+				dependencyHeapPath := filepath.Join(
+					requirement.Requirements.Root.Roots.Garden.BasePath,
+					"dyd",
+					"heap",
+					"stems",
+					dependencyFingerprint,
+				)
+
+				targetDepPath := filepath.Join(workspacePath, "dyd", "dependencies", dependencyName)
+
+				err = os.Symlink(dependencyHeapPath, targetDepPath)
+				if err != nil {
+					return err, nil
+				}
+			}
+
+			return nil, nil
 		},
 	})
 	if err != nil {
@@ -714,11 +759,12 @@ func rootDevelop_handleUnsavedChanges(
 }
 
 type rootDevelopRequest struct {
-	Root      *SafeRootReference
-	Shell     string
-	ShellArgs []string
-	Inherit   bool
-	OnExit    string
+	Root              *SafeRootReference
+	VariantDescriptor string
+	Shell             string
+	ShellArgs         []string
+	Inherit           bool
+	OnExit            string
 }
 
 func rootDevelop(
@@ -732,6 +778,10 @@ func rootDevelop(
 	inherit := req.Inherit
 
 	rootPath := req.Root.BasePath
+	err, variantDescriptor := rootDevelop_resolveVariant(ctx, req.Root, req.VariantDescriptor)
+	if err != nil {
+		return "", err
+	}
 
 	absRootPath, err := filepath.EvalSymlinks(rootPath)
 	if err != nil {
@@ -761,24 +811,39 @@ func rootDevelop(
 		return "", err
 	}
 
-	snapshotFingerprint, err := rootDevelop_createSnapshotStem(ctx, rootPath, req.Root.Roots.Garden)
+	initialSnapshotFingerprint, err := rootDevelop_createSnapshotStem(ctx, rootPath, req.Root.Roots.Garden)
 	if err != nil {
 		return "", err
 	}
 
-	err = os.WriteFile(rootDevelop_snapshotFile(workspacePath), []byte(snapshotFingerprint), 0o644)
+	err = os.WriteFile(rootDevelop_snapshotFile(workspacePath), []byte(initialSnapshotFingerprint), 0o644)
 	if err != nil {
 		return "", err
 	}
 
-	snapshotStemPath := filepath.Join(req.Root.Roots.Garden.BasePath, "dyd", "heap", "stems", snapshotFingerprint)
+	snapshotStemPath := filepath.Join(req.Root.Roots.Garden.BasePath, "dyd", "heap", "stems", initialSnapshotFingerprint)
 
 	err = rootDevelop_stage0(ctx, snapshotStemPath, workspacePath)
 	if err != nil {
 		return "", err
 	}
 
-	err = rootDevelop_stage1(ctx, rootPath, workspacePath, req.Root.Roots)
+	err = rootDevelop_materializeVariantTraits(ctx, rootPath, workspacePath, variantDescriptor)
+	if err != nil {
+		return "", err
+	}
+
+	materializedSnapshotFingerprint, err := rootDevelop_createSnapshotStem(ctx, workspacePath, req.Root.Roots.Garden)
+	if err != nil {
+		return "", err
+	}
+
+	err = os.WriteFile(rootDevelop_snapshotFile(workspacePath), []byte(materializedSnapshotFingerprint), 0o644)
+	if err != nil {
+		return "", err
+	}
+
+	err = rootDevelop_stage1(ctx, rootPath, workspacePath, req.Root.Roots, variantDescriptor)
 	if err != nil {
 		return "", err
 	}
@@ -873,21 +938,23 @@ func rootDevelop(
 }
 
 type RootDevelopRequest struct {
-	Shell     string
-	ShellArgs []string
-	Inherit   bool
-	OnExit    string
+	VariantDescriptor string
+	Shell             string
+	ShellArgs         []string
+	Inherit           bool
+	OnExit            string
 }
 
 func (root *SafeRootReference) Develop(ctx *task.ExecutionContext, req RootDevelopRequest) (error, string) {
 	res, err := rootDevelop(
 		ctx,
 		rootDevelopRequest{
-			Root:      root,
-			Shell:     req.Shell,
-			ShellArgs: req.ShellArgs,
-			Inherit:   req.Inherit,
-			OnExit:    req.OnExit,
+			Root:              root,
+			VariantDescriptor: req.VariantDescriptor,
+			Shell:             req.Shell,
+			ShellArgs:         req.ShellArgs,
+			Inherit:           req.Inherit,
+			OnExit:            req.OnExit,
 		},
 	)
 	return err, res

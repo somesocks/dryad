@@ -22,6 +22,7 @@ var sproutsRunCommand = func() clib.Command {
 		IncludeExcludeFilter func(*task.ExecutionContext, *dryad.SafeSproutReference) (error, bool)
 		Confirm              string
 		Context              string
+		VariantDescriptor    string
 		Inherit              bool
 		IgnoreErrors         bool
 		JoinStdout           bool
@@ -48,6 +49,7 @@ var sproutsRunCommand = func() clib.Command {
 			}
 
 			var context string
+			var variantDescriptor string
 			var inherit bool
 			var ignoreErrors bool
 			var confirm string
@@ -57,6 +59,10 @@ var sproutsRunCommand = func() clib.Command {
 			var logStderr string
 
 			var parallel int
+
+			if options["variant"] != nil {
+				variantDescriptor = options["variant"].(string)
+			}
 
 			if options["context"] != nil {
 				context = options["context"].(string)
@@ -121,6 +127,7 @@ var sproutsRunCommand = func() clib.Command {
 				IncludeExcludeFilter: includeExcludeFilter,
 				Confirm:              confirm,
 				Context:              context,
+				VariantDescriptor:    variantDescriptor,
 				Inherit:              inherit,
 				IgnoreErrors:         ignoreErrors,
 				JoinStdout:           joinStdout,
@@ -243,10 +250,11 @@ var sproutsRunCommand = func() clib.Command {
 						err := sprout.Run(
 							ctx,
 							dryad.SproutRunRequest{
-								Env:        env,
-								Args:       args.Extras,
-								JoinStdout: args.JoinStdout,
-								JoinStderr: args.JoinStderr,
+								VariantDescriptor: args.VariantDescriptor,
+								Env:               env,
+								Args:              args.Extras,
+								JoinStdout:        args.JoinStdout,
+								JoinStderr:        args.JoinStderr,
 								LogStdout: struct {
 									Path string
 									Name string
@@ -326,6 +334,7 @@ var sproutsRunCommand = func() clib.Command {
 		WithOption(clib.NewOption("include", "choose which sprouts are included. the include filter is a CEL expression with access to a 'sprout' object that can be used to filter on properties of each sprout.").WithType(clib.OptionTypeMultiString)).
 		WithOption(clib.NewOption("exclude", "choose which sprouts are excluded.  the exclude filter is a CEL expression with access to a 'sprout' object that can be used to filter on properties of each sprout.").WithType(clib.OptionTypeMultiString)).
 		WithOption(clib.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
+		WithOption(clib.NewOption("variant", "variant descriptor selector for sprout stems (filesystem form: dimension=option,dimension=option). supports none/any/host; inherit is invalid for sprout runs")).
 		WithOption(clib.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(clib.OptionTypeBool)).
 		WithOption(clib.NewOption("confirm", "ask for a confirmation string to be entered to execute this command").WithType(clib.OptionTypeString)).
 		WithOption(clib.NewOption("ignore-errors", "continue running even if a sprout returns an error").WithType(clib.OptionTypeBool)).

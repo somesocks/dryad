@@ -7,23 +7,48 @@ layout: single
 
 # Roots
 
-A **root** is the package environment for building a stem.  All roots in a garden are stored under `dyd/roots/`.  Roots have a similar filesystem structure to stems, with `dyd/assets/`, `dyd/traits`, `dyd/secrets`, and a `dyd/commands/dyd-root-build` build entrypoint, but no path or fingerprint.
+A **root** is source code and build metadata for producing package artifacts. All roots in a garden are stored under `dyd/roots/`.
 
-Roots have a `dyd/requirements/` directory to specify dependencies.
+Each root includes directories such as:
+- `dyd/assets` - source/input files
+- `dyd/commands` - command scripts, including `dyd-root-build`
+- `dyd/traits` - metadata files
+- `dyd/requirements` - dependency declarations
+- `dyd/docs`, `dyd/secrets`
 
-The root build process is roughly:
+## Requirements
 
-1. For a root, build all root dependencies, and get the fingerprints of the resulting stems to add as dependencies.
-2. Naively package a root as a stem by bundling it, adding the root dependencies, fingerprinting it, and adding it into the heap.
-3. Execute `dyd/commands/dyd-root-build`, providing it with `DYD_BUILD` as the target directory in which to assemble the resulting stem.
-4. Fingerprint the resulting stem, and add it into the heap.
+Each requirement has:
+- A filename: `<alias>` or `<alias>+<condition_descriptor>`
+- A file value: target URL, usually `root:<relative-path>` plus an optional variant selector query string.
 
-The build process may be skipped if the root has already been built and the resulting stem already added to the heap.
+Examples:
+- `dyd/requirements/foo` with `root:../../../foo`
+- `dyd/requirements/foo+arch=any,os=linux` with `root:../../../foo?arch=amd64&os=linux`
+
+In practice:
+- Filename descriptor (`+arch=...,os=...`) is a **condition**: when this requirement is active.
+- URL query descriptor (`?arch=...&os=...`) is a **target selector**: which dependency variant(s) to link.
+
+## Build flow
+
+Root builds are variant-aware:
+
+1. Resolve concrete variant(s) for the root.
+2. For each concrete variant, create a source stem from the root plus resolved dependencies.
+3. Execute `dyd/commands/dyd-root-build` in an isolated environment (`DYD_BUILD` points at output path) to produce the built stem.
+4. Fingerprint and store built stems in `dyd/heap/stems`.
+5. Aggregate built stem variant(s) into a sprout package in `dyd/heap/sprouts`.
+6. Link the sprout package at `dyd/sprouts/<root_path>`.
+
+Build caching is variant-scoped: different concrete variants are cached independently.
+
+For full variant semantics and selector behavior, see [Root variants](../02-10-root-variants/).
 
 ## Unstable roots
 
-A root is _unstable_ if the package has dependencies that may change between builds.  A common example is using the current time as a property during the build process.
+A root is _unstable_ if the package has dependencies that may change between builds. A common example is using the current time as a property during the build process.
 
-If a root is unstable, you can make it as unstable by adding the trait `dyd/traits/unstable` (the file can be empty; the contents don't matter).  If this file exists, dryad will ignore the build cache, and always rebuild the root.
+If a root is unstable, add the trait `dyd/traits/unstable` (file content does not matter). If this file exists, dryad bypasses derivation cache reuse and rebuilds the root.
 
-Keep in mind that any root that has a direct or indirect dependency on an unstable root may also need to be rebuilt.  It's a good practice to add unstable roots at the top of the dependency tree instead of the base.  The later in the build process unstable roots are used, the more dryad can use the build cache to speed up the build process.
+Keep in mind that any root with a direct or indirect dependency on an unstable root may also need to be rebuilt.

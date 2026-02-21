@@ -35,6 +35,10 @@ var rootRequirementRemoveCommand = func() clib.Command {
 			if err != nil {
 				return err, ParsedArgs{}
 			}
+			err, requirementName = core.RootRequirementNormalizeName(requirementName)
+			if err != nil {
+				return err, ParsedArgs{}
+			}
 
 			return nil, ParsedArgs{
 				RequirementName: requirementName,

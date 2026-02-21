@@ -7,6 +7,20 @@ layout: single
 
 # Sprouts
 
-To track the built versions of each root, A garden will also have a **sprouts** directory at `dyd/sprouts/`.
+A **sprout** is the top-level built package for a root.
 
-The sprouts directory will automatically be created with the same filesystem structure as the roots directory during the build process.  So, a garden with two roots at `dyd/roots/tools/foo`, `dyd/roots/tests/foo-tests`, after a build will have two sprouts `dyd/sprouts/tools/foo` and `dyd/sprouts/tests/foo-tests` that link to the stems that resulted from the build.
+Sprouts are content-addressed artifacts in `dyd/heap/sprouts`. The `dyd/sprouts` directory mirrors root paths and contains symlinks to those heap sprouts.
+
+For example, if you have roots:
+- `dyd/roots/tools/foo`
+- `dyd/roots/tests/foo-tests`
+
+after build you will get:
+- `dyd/sprouts/tools/foo`
+- `dyd/sprouts/tests/foo-tests`
+
+Each sprout package contains metadata and dependency links to one or more built stem variants:
+- `dyd/dependencies/stem` for a single default variant
+- `dyd/dependencies/stem+<descriptor>` for explicit variants, such as `stem+arch=amd64,os=linux`
+
+Sprouts are build artifacts. Do not edit them directly; rebuild roots to regenerate them.

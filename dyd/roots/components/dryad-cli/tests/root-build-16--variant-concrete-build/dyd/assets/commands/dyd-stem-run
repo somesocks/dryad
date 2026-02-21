@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	dryad root build "dyd/roots/root-parent" --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+_verify() {
+	variant_stem=''
+	while IFS= read -r req_fp_file; do
+		if [ -z "$req_fp_file" ]; then
+			continue
+		fi
+
+		candidate_fingerprint=$(cat "$req_fp_file")
+		candidate_stem="$TEMP_DIR/dyd/heap/stems/$candidate_fingerprint"
+		if [ ! -d "$candidate_stem" ]; then
+			continue
+		fi
+		if [ ! -f "$candidate_stem/dyd/assets/variant.txt" ]; then
+			continue
+		fi
+
+		variant_stem="$candidate_stem"
+		break
+	done < <(find "$TEMP_DIR/dyd/heap/stems" -type f -path '*/dyd/requirements/*/dyd/fingerprint')
+
+	if [ -z "$variant_stem" ]; then
+		echo "[ERROR] Fail: expected to find resolved root-variant stem from packed requirements" 1>&2
+		return 1
+	fi
+
+	assert_directory_exists "$variant_stem"
+	assert_file_exists "$variant_stem/dyd/traits/os"
+	assert_file_content_equals "$variant_stem/dyd/traits/os" "linux"
+	assert_directory_not_exists "$variant_stem/dyd/traits/variants"
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

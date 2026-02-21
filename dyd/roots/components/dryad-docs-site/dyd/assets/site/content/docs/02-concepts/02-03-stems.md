@@ -17,7 +17,7 @@ Every stem may have any number of extra properties to describe the package, call
 
 Every stem may have a _single_ executable file call the **main entrypoint** or **main**. This file should be located at `dyd/commands/dyd-stem-run`. If multiple executables are packaged in a stem, this should be the entrypoint for invoking/passing commands to them.
 
-Every stem may be dependent on any number of other stems. These stems should be symlinked into the `dyd/dependencies/` directory. Each stem is linked as a package dependency using a package **alias**. A dependency with the alias `foo` should be symlinked to `dyd/dependencies/foo`. The alias for a dependency has _no relation_ to the dependency itself. The same stem can be linked as a dependency twice under two different alias names, for example.
+Every stem may be dependent on any number of other stems. These stems should be symlinked into the `dyd/dependencies/` directory. Each stem is linked as a package dependency using a package **alias**. A dependency with the alias `foo` should be symlinked to `dyd/dependencies/foo`. The alias for a dependency has _no relation_ to the dependency itself. The same stem can be linked as a dependency twice under two different alias names, for example. For variant-expanded dependencies, names may include a descriptor suffix such as `foo+arch=amd64,os=linux`.
 
 When a stem fingerprint is calculated, the **fingerprints** and **traits** of all dependencies are included as part of the fingerprint calculation. This "fingerprint of fingerprints" (a merkle tree) is what creates a fully-reproducible package tree where every dependency is pinned to a specific version.
 

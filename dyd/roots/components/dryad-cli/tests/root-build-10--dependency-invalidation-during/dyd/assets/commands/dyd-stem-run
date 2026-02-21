@@ -71,7 +71,6 @@ _verify() {
 	requirements_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/requirements/root-02"
 	dependency_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/dependencies/root-02"
 	dependency_target="$DEPENDENCY_TARGET_AFTER"
-	root2_stem_target=$(readlink -f "$TEMP_DIR/dyd/sprouts/root-02/dyd/dependencies/stem")
 
 	if [ "$FINGERPRINT_INITIAL" = "$FINGERPRINT_AFTER" ]; then
 		echo "[ERROR] Fail: expected root-01 fingerprint to change after root-02 asset update" 1>&2
@@ -98,12 +97,6 @@ _verify() {
 	assert_directory_exists "$dependency_target"
 	assert_file_content_equals "$dependency_target/dyd/type" "stem"
 	assert_file_content_equals "$dependency_target/dyd/assets/root-02.txt" "root-02-updated"
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-02/dyd/dependencies/stem/dyd/assets/root-02.txt" "root-02-updated"
-
-	if [ "$dependency_target" != "$root2_stem_target" ]; then
-		echo "[ERROR] Fail: dependency link should resolve to the same stem as sprout root-02" 1>&2
-		return 1
-	fi
 
 	if [ "$(basename "$dependency_target")" != "$DEPENDENCY_FINGERPRINT_AFTER" ]; then
 		echo "[ERROR] Fail: dependency stem path basename should match dyd/fingerprint" 1>&2
