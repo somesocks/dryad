@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	dryad root build "dyd/roots/root-top" --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+_verify() {
+	deps_path="$TEMP_DIR/dyd/sprouts/root-top/dyd/dependencies"
+	assert_directory_exists "$deps_path"
+
+	stem_none="$deps_path/stem"
+	stem_linux="$deps_path/stem+os=linux"
+
+	if [ ! -L "$stem_none" ]; then
+		echo "[ERROR] Fail: expected default stem dependency for none variant" 1>&2
+		find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		return 1
+	fi
+
+	if [ ! -L "$stem_linux" ]; then
+		echo "[ERROR] Fail: expected linux stem dependency" 1>&2
+		find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		return 1
+	fi
+
+	dep_none="$stem_none/dyd/dependencies/foo"
+	if [ ! -L "$dep_none" ]; then
+		echo "[ERROR] Fail: expected dependency 'foo' for none variant" 1>&2
+		find "$stem_none/dyd/dependencies" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		return 1
+	fi
+
+	dep_linux="$stem_linux/dyd/dependencies/foo"
+	if [ -e "$dep_linux" ] || [ -L "$dep_linux" ]; then
+		echo "[ERROR] Fail: dependency 'foo' should be omitted for os=linux variant" 1>&2
+		find "$stem_linux/dyd/dependencies" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		return 1
+	fi
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

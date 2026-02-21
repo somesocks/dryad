@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+LOG_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+	LOG_DIR="$TEMP_DIR/logs"
+	mkdir -p "$LOG_DIR"
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+expect_build_failure() {
+	root_path="$1"
+	expected_msg="$2"
+	log_path="$LOG_DIR/$(basename "$root_path").log"
+
+	if dryad root build "$root_path" --log-level="$DYD_LOG_LEVEL" >"$log_path" 2>&1; then
+		echo "[ERROR] Fail: expected build failure for '$root_path'" 1>&2
+		return 1
+	fi
+
+	if ! grep -Fq "error resolving root dependencies" "$log_path"; then
+		echo "[ERROR] Fail: expected dependency resolution failure for '$root_path'" 1>&2
+		cat "$log_path" 1>&2
+		return 1
+	fi
+
+	if ! grep -Fq "$expected_msg" "$log_path"; then
+		echo "[ERROR] Fail: expected error '$expected_msg' for '$root_path'" 1>&2
+		cat "$log_path" 1>&2
+		return 1
+	fi
+
+	if ! grep -Fq "$root_path" "$log_path"; then
+		echo "[ERROR] Fail: expected root path in failure output for '$root_path'" 1>&2
+		cat "$log_path" 1>&2
+		return 1
+	fi
+}
+
+_test() {
+	expect_build_failure "dyd/roots/root-malformed" "malformed requirement condition descriptor"
+	expect_build_failure "dyd/roots/root-host-invalid" "host option is only supported for variant dimensions os/arch"
+	expect_build_failure "dyd/roots/root-invalid-name" "malformed requirement condition descriptor"
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
