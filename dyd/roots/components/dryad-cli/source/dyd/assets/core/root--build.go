@@ -93,7 +93,7 @@ func rootMaterializeSprout(ctx *task.ExecutionContext, req rootMaterializeSprout
 
 		dependencyName := "stem"
 		if descriptor != "" {
-			dependencyName = dependencyName + "," + descriptor
+			dependencyName = dependencyName + "+" + descriptor
 		}
 
 		builtStemPath := filepath.Join(gardenPath, "dyd", "heap", "stems", stemFingerprint)

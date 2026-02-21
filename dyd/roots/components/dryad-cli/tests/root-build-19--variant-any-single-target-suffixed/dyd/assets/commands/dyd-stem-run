@@ -30,7 +30,7 @@ _verify() {
 		return 1
 	fi
 
-	grep -Fxq "foo,os=linux" "$list_path"
+	grep -Fxq "foo+os=linux" "$list_path"
 	if grep -Fxq "foo" "$list_path"; then
 		echo "[ERROR] Fail: requirement name should include any-forced suffix" 1>&2
 		cat "$list_path" 1>&2

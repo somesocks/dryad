@@ -452,6 +452,7 @@ func rootDevelop_stage1(
 	err = requirementsRef.Walk(task.SERIAL_CONTEXT, RootRequirementsWalkRequest{
 		OnMatch: func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
 			requirementName := filepath.Base(requirement.BasePath)
+			requirementName, _, _ = strings.Cut(requirementName, "+")
 
 			err, targets := requirement.ResolveTargets(ctx, RootRequirementResolveTargetsRequest{
 				ParentVariant: parentVariantContext.Descriptor,

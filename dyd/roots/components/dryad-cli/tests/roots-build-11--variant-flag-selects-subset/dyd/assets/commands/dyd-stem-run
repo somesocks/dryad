@@ -24,15 +24,15 @@ _verify() {
 	deps_path="$TEMP_DIR/dyd/sprouts/root-top/dyd/dependencies"
 	assert_directory_exists "$deps_path"
 
-	assert_directory_exists "$deps_path/stem,arch=amd64,os=linux"
-	assert_directory_exists "$deps_path/stem,arch=arm64,os=linux"
+	assert_directory_exists "$deps_path/stem+arch=amd64,os=linux"
+	assert_directory_exists "$deps_path/stem+arch=arm64,os=linux"
 
-	if [ -e "$deps_path/stem,arch=amd64,os=darwin" ] || [ -L "$deps_path/stem,arch=amd64,os=darwin" ]; then
-		echo "[ERROR] Fail: unexpected darwin dependency stem,arch=amd64,os=darwin" 1>&2
+	if [ -e "$deps_path/stem+arch=amd64,os=darwin" ] || [ -L "$deps_path/stem+arch=amd64,os=darwin" ]; then
+		echo "[ERROR] Fail: unexpected darwin dependency stem+arch=amd64,os=darwin" 1>&2
 		return 1
 	fi
-	if [ -e "$deps_path/stem,arch=arm64,os=darwin" ] || [ -L "$deps_path/stem,arch=arm64,os=darwin" ]; then
-		echo "[ERROR] Fail: unexpected darwin dependency stem,arch=arm64,os=darwin" 1>&2
+	if [ -e "$deps_path/stem+arch=arm64,os=darwin" ] || [ -L "$deps_path/stem+arch=arm64,os=darwin" ]; then
+		echo "[ERROR] Fail: unexpected darwin dependency stem+arch=arm64,os=darwin" 1>&2
 		return 1
 	fi
 

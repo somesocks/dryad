@@ -19,11 +19,11 @@ func sproutRunStemVariantDependencyDescriptor(name string) (error, VariantDescri
 		return nil, VariantDescriptor{}, true
 	}
 
-	if !strings.HasPrefix(name, "stem,") {
+	if !strings.HasPrefix(name, "stem+") {
 		return nil, nil, false
 	}
 
-	rawDescriptor := strings.TrimPrefix(name, "stem,")
+	rawDescriptor := strings.TrimPrefix(name, "stem+")
 	err, descriptor := variantDescriptorParseFilesystem(rawDescriptor)
 	if err != nil {
 		return fmt.Errorf("invalid sprout stem dependency descriptor: %s", name), nil, false

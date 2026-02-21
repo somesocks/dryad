@@ -25,10 +25,10 @@ _verify() {
 	assert_directory_exists "$deps_path"
 
 	expected=(
-		"stem,arch=amd64,os=darwin"
-		"stem,arch=amd64,os=linux"
-		"stem,arch=arm64,os=darwin"
-		"stem,arch=arm64,os=linux"
+		"stem+arch=amd64,os=darwin"
+		"stem+arch=amd64,os=linux"
+		"stem+arch=arm64,os=darwin"
+		"stem+arch=arm64,os=linux"
 	)
 
 	for dep_name in "${expected[@]}"; do

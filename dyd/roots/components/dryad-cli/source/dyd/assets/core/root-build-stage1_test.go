@@ -39,7 +39,7 @@ func TestRootBuildStage1DependencyName_AnySingleTargetAddsSuffix(t *testing.T) {
 		1,
 	)
 	assert.Nil(err)
-	assert.Equal("foo,os=linux", name)
+	assert.Equal("foo+os=linux", name)
 }
 
 func TestRootBuildStage1DependencyName_MultiTargetAddsSuffix(t *testing.T) {
@@ -57,5 +57,5 @@ func TestRootBuildStage1DependencyName_MultiTargetAddsSuffix(t *testing.T) {
 		2,
 	)
 	assert.Nil(err)
-	assert.Equal("foo,arch=amd64,os=linux", name)
+	assert.Equal("foo+arch=amd64,os=linux", name)
 }
