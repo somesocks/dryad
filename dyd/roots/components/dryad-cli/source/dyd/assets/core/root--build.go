@@ -220,6 +220,7 @@ func rootMaterializeSprout(ctx *task.ExecutionContext, req rootMaterializeSprout
 func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, string) {
 	rootPath := req.Root.BasePath
 	gardenPath := req.Root.Roots.Garden.BasePath
+	variantLabel := rootBuildLogVariantLabel(req.VariantDescriptor)
 
 	relRootPath, err := filepath.Rel(
 		req.Root.Roots.BasePath,
@@ -232,6 +233,7 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 
 	zlog.Info().
 		Str("path", gardenRootPath).
+		Str("variant", variantLabel).
 		Msg("root build - verifying root")
 
 	workspacePath, err := os.MkdirTemp("", "dryad-*")
@@ -344,6 +346,7 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 
 	zlog.Info().
 		Str("path", gardenRootPath).
+		Str("variant", variantLabel).
 		Msg("root build - building root")
 
 	stemBuildPath, err := os.MkdirTemp("", "dryad-*")
@@ -395,6 +398,7 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 
 	zlog.Info().
 		Str("path", gardenRootPath).
+		Str("variant", variantLabel).
 		Msg("root build - done building root")
 
 	return nil, stemBuildFingerprint
@@ -410,6 +414,7 @@ var rootBuildStem2 = task.OnFailure(
 			Error().
 			Err(err).
 			Str("path", req.Root.BasePath).
+			Str("variant", rootBuildLogVariantLabel(req.VariantDescriptor)).
 			Msg("error while building root")
 
 		return nil, nil
@@ -456,6 +461,14 @@ type RootBuildRequest struct {
 type RootBuildStemRequest = RootBuildRequest
 
 type RootBuildSproutRequest = RootBuildRequest
+
+func rootBuildLogVariantLabel(variantDescriptor string) string {
+	if variantDescriptor == "" {
+		return "default"
+	}
+
+	return variantDescriptor
+}
 
 func normalizeRootBuildVariantDescriptor(raw string) (error, string) {
 	err, variantContext := RootVariantContextFromFilesystem(raw)

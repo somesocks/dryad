@@ -17,10 +17,12 @@ _prepare() {
 }
 
 _test() {
-	dryad root build "dyd/roots/root-top" --log-level="$DYD_LOG_LEVEL" > /dev/null
+	log_path="$TEMP_DIR/root-build.log"
+	dryad root build "dyd/roots/root-top" --log-level="$DYD_LOG_LEVEL" >"$log_path" 2>&1
 }
 
 _verify() {
+	log_path="$TEMP_DIR/root-build.log"
 	deps_path="$TEMP_DIR/dyd/sprouts/root-top/dyd/dependencies"
 	assert_directory_exists "$deps_path"
 
@@ -52,6 +54,24 @@ _verify() {
 		find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
 		return 1
 	fi
+
+	if ! grep -Fq "variant=" "$log_path"; then
+		echo "[ERROR] Fail: expected root build logs to include a variant field" 1>&2
+		cat "$log_path" 1>&2
+		return 1
+	fi
+
+	for variant in \
+		"arch=amd64,os=darwin" \
+		"arch=amd64,os=linux" \
+		"arch=arm64,os=darwin" \
+		"arch=arm64,os=linux"; do
+		if ! grep -Fq "$variant" "$log_path"; then
+			echo "[ERROR] Fail: expected root build logs to include variant descriptor '$variant'" 1>&2
+			cat "$log_path" 1>&2
+			return 1
+		fi
+	done
 }
 
 _teardown() {
