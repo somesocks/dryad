@@ -433,11 +433,18 @@ func rootDevelop_stage1(
 	roots *SafeRootsReference,
 	variantDescriptor string,
 ) error {
+	type rootDevelop_stage1_buildDependencyRequest struct {
+		DependencyName              string
+		DependencyPath              string
+		DependencyVariantDescriptor string
+	}
 
 	rootRef := SafeRootReference{
 		BasePath: rootPath,
 		Roots:    roots,
 	}
+
+	buildDependencyRequests := []rootDevelop_stage1_buildDependencyRequest{}
 
 	err, requirementsRef := rootRef.Requirements().Resolve(ctx)
 	if err != nil {
@@ -485,35 +492,60 @@ func rootDevelop_stage1(
 					return err, nil
 				}
 
-				err, dependencyFingerprint := target.Root.BuildStem(
-					ctx,
-					RootBuildStemRequest{
-						VariantDescriptor: dependencyVariantDescriptor,
-					},
-				)
-				if err != nil {
-					return err, nil
-				}
-
-				dependencyHeapPath := filepath.Join(
-					requirement.Requirements.Root.Roots.Garden.BasePath,
-					"dyd",
-					"heap",
-					"stems",
-					dependencyFingerprint,
-				)
-
-				targetDepPath := filepath.Join(workspacePath, "dyd", "dependencies", dependencyName)
-
-				err = os.Symlink(dependencyHeapPath, targetDepPath)
-				if err != nil {
-					return err, nil
-				}
+				buildDependencyRequests = append(buildDependencyRequests, rootDevelop_stage1_buildDependencyRequest{
+					DependencyName:              dependencyName,
+					DependencyPath:              target.Root.BasePath,
+					DependencyVariantDescriptor: dependencyVariantDescriptor,
+				})
 			}
 
 			return nil, nil
 		},
 	})
+	if err != nil {
+		return err
+	}
+
+	buildDependency := func(ctx *task.ExecutionContext, req rootDevelop_stage1_buildDependencyRequest) (error, any) {
+		unsafeDepReference := UnsafeRootReference{
+			Roots:    roots,
+			BasePath: req.DependencyPath,
+		}
+
+		err, safeDepReference := unsafeDepReference.Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+
+		err, dependencyFingerprint := safeDepReference.BuildStem(
+			ctx,
+			RootBuildStemRequest{
+				VariantDescriptor: req.DependencyVariantDescriptor,
+			},
+		)
+		if err != nil {
+			return err, nil
+		}
+
+		dependencyHeapPath := filepath.Join(
+			roots.Garden.BasePath,
+			"dyd",
+			"heap",
+			"stems",
+			dependencyFingerprint,
+		)
+
+		targetDepPath := filepath.Join(workspacePath, "dyd", "dependencies", req.DependencyName)
+
+		err = os.Symlink(dependencyHeapPath, targetDepPath)
+		if err != nil {
+			return err, nil
+		}
+
+		return nil, nil
+	}
+
+	err, _ = task.ParallelMap(buildDependency)(ctx, buildDependencyRequests)
 	if err != nil {
 		return err
 	}
