@@ -203,6 +203,16 @@ var sproutRunCommand = func() clib.Command {
 					return err, nil
 				}
 
+				variantSelectorLabel := args.VariantDescriptor
+				if variantSelectorLabel == "" {
+					variantSelectorLabel = "default"
+				}
+
+				zlog.Info().
+					Str("sprout", sprout.BasePath).
+					Str("variant_selector", variantSelectorLabel).
+					Msg("sprout run requested")
+
 				err = sprout.Run(
 					ctx,
 					dryad.SproutRunRequest{
@@ -232,6 +242,11 @@ var sproutRunCommand = func() clib.Command {
 				if err != nil {
 					return err, nil
 				}
+
+				zlog.Info().
+					Str("sprout", sprout.BasePath).
+					Str("variant_selector", variantSelectorLabel).
+					Msg("sprout run completed")
 
 				return nil, nil
 			}

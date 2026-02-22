@@ -140,6 +140,11 @@ var sproutsRunCommand = func() clib.Command {
 	)
 
 	var runSprouts = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+		variantSelectorLabel := args.VariantDescriptor
+		if variantSelectorLabel == "" {
+			variantSelectorLabel = "default"
+		}
+
 		err, fromStdinFilter := ArgSproutFilterFromStdin(ctx, args.Request)
 		if err != nil {
 			return err, nil
@@ -245,7 +250,8 @@ var sproutsRunCommand = func() clib.Command {
 					if shouldMatch {
 						zlog.Info().
 							Str("sprout", sprout.BasePath).
-							Msg("sprout run starting")
+							Str("variant_selector", variantSelectorLabel).
+							Msg("sprout run requested")
 
 						err := sprout.Run(
 							ctx,
@@ -275,6 +281,7 @@ var sproutsRunCommand = func() clib.Command {
 						if err != nil {
 							zlog.Warn().
 								Str("sprout", sprout.BasePath).
+								Str("variant_selector", variantSelectorLabel).
 								Err(err).
 								Msg("sprout threw error during execution")
 							if !args.IgnoreErrors {
@@ -283,7 +290,8 @@ var sproutsRunCommand = func() clib.Command {
 						} else {
 							zlog.Info().
 								Str("sprout", sprout.BasePath).
-								Msg("sprout run finished")
+								Str("variant_selector", variantSelectorLabel).
+								Msg("sprout run completed")
 						}
 
 					}

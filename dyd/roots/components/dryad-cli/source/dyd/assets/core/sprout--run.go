@@ -4,7 +4,8 @@ import (
 	"dryad/task"
 	"fmt"
 	"path/filepath"
-	// zlog "github.com/rs/zerolog/log"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 type SproutRunRequest struct {
@@ -25,6 +26,14 @@ type SproutRunRequest struct {
 		Name string
 	}
 	InheritEnv bool
+}
+
+func sproutRunLogVariantLabel(descriptor string) string {
+	if descriptor == "" {
+		return "default"
+	}
+
+	return descriptor
 }
 
 func (sprout *SafeSproutReference) Run(
@@ -57,6 +66,7 @@ func (sprout *SafeSproutReference) Run(
 	for _, selectedVariant := range selectedVariants {
 		logStdout := req.LogStdout
 		logStderr := req.LogStderr
+		variantLabel := sproutRunLogVariantLabel(selectedVariant.DescriptorRaw)
 
 		if logStdout.Path != "" && logStdout.Name == "" {
 			logStdout.Name = "dyd-sprout-run--" + sanitizePathSegment(relSproutPath)
@@ -82,6 +92,11 @@ func (sprout *SafeSproutReference) Run(
 			logStderr.Name = logStderr.Name + ".err"
 		}
 
+		zlog.Info().
+			Str("sprout", sprout.BasePath).
+			Str("variant", variantLabel).
+			Msg("sprout run starting")
+
 		err = StemRun(
 			StemRunRequest{
 				Garden:       sprout.Sprouts.Garden,
@@ -104,6 +119,11 @@ func (sprout *SafeSproutReference) Run(
 			}
 			return err
 		}
+
+		zlog.Info().
+			Str("sprout", sprout.BasePath).
+			Str("variant", variantLabel).
+			Msg("sprout run finished")
 	}
 
 	return err

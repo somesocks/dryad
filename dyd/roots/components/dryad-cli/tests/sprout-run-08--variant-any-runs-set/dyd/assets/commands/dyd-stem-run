@@ -18,11 +18,13 @@ _prepare() {
 
 _test() {
 	dryad root build "dyd/roots/root-top" --log-level="$DYD_LOG_LEVEL" > /dev/null
-	dryad sprout run "dyd/sprouts/root-top" --variant="arch=any,os=linux" --log-level="$DYD_LOG_LEVEL" > /dev/null
+	log_path="$TEMP_DIR/sprout-run.log"
+	dryad sprout run "dyd/sprouts/root-top" --variant="arch=any,os=linux" --log-level="$DYD_LOG_LEVEL" >"$log_path" 2>&1
 }
 
 _verify() {
 	out_dir="$TEMP_DIR/dyd/heap/sprout-run-08--variant-any-runs-set"
+	log_path="$TEMP_DIR/sprout-run.log"
 	assert_directory_exists "$out_dir"
 	assert_file_content_equals "$out_dir/amd64-linux" "ok"
 	assert_file_content_equals "$out_dir/arm64-linux" "ok"
@@ -32,6 +34,34 @@ _verify() {
 		ls -1 "$out_dir" 1>&2
 		return 1
 	fi
+
+	if ! grep -Fq "sprout run starting" "$log_path"; then
+		echo "[ERROR] Fail: expected sprout run logs to include a start line" 1>&2
+		cat "$log_path" 1>&2
+		return 1
+	fi
+
+	if ! grep -Fq "variant=" "$log_path"; then
+		echo "[ERROR] Fail: expected sprout run logs to include a variant field" 1>&2
+		cat "$log_path" 1>&2
+		return 1
+	fi
+
+	for variant in "arch=amd64,os=linux" "arch=arm64,os=linux"; do
+		if ! grep -Fq "$variant" "$log_path"; then
+			echo "[ERROR] Fail: expected sprout run logs to include variant descriptor '$variant'" 1>&2
+			cat "$log_path" 1>&2
+			return 1
+		fi
+	done
+
+	for variant in "arch=amd64,os=darwin" "arch=arm64,os=darwin"; do
+		if grep -Fq "$variant" "$log_path"; then
+			echo "[ERROR] Fail: expected sprout run logs to exclude unmatched variant descriptor '$variant'" 1>&2
+			cat "$log_path" 1>&2
+			return 1
+		fi
+	done
 }
 
 _teardown() {
