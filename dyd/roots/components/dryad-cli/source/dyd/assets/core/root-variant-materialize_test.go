@@ -28,7 +28,7 @@ func TestRootBuildMaterializeVariantTraits_AppliesSelectionAndRemovesVariants(t 
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
 
-	err := rootBuild_materializeVariantTraits(task.SERIAL_CONTEXT, rootPath, workspacePath, "arch=amd64,os=linux")
+	err := rootBuild_materializeVariantTraits(task.SERIAL_CONTEXT, rootPath, workspacePath, "arch=amd64+os=linux")
 	assert.Nil(err)
 
 	assert.Equal("demo", readTrimmedFileForTest(t, filepath.Join(workspacePath, "dyd", "traits", "name")))

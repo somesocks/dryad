@@ -32,9 +32,9 @@ _test() {
 	ROOT_2="$PWD/dyd/roots/root-02"
 
 	EXPECTED_ROOT_1=$(cat <<'EOD'
-arch=amd64,os=darwin
-arch=amd64,os=linux
-arch=arm64,os=linux
+arch=amd64+os=darwin
+arch=amd64+os=linux
+arch=arm64+os=linux
 EOD
 )
 

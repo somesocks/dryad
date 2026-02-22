@@ -45,10 +45,10 @@ _verify() {
 	deps_path="$TEMP_DIR/dyd/sprouts/root-top/dyd/dependencies"
 	assert_directory_exists "$deps_path"
 
-	stem_source="$deps_path/stem+stage=source"
-	stem_manifest="$deps_path/stem+stage=manifest"
-	stem_deps="$deps_path/stem+stage=deps"
-	stem_full="$deps_path/stem+stage=full"
+	stem_source="$deps_path/stem~stage=source"
+	stem_manifest="$deps_path/stem~stage=manifest"
+	stem_deps="$deps_path/stem~stage=deps"
+	stem_full="$deps_path/stem~stage=full"
 
 	for stem in "$stem_source" "$stem_manifest" "$stem_deps" "$stem_full"; do
 		if [ ! -L "$stem" ]; then

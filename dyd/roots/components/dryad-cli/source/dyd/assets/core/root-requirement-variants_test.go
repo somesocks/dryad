@@ -88,7 +88,7 @@ func TestRootRequirementTargetSpec_ParsesVariantSelector(t *testing.T) {
 
 	err, selector := variantDescriptorEncodeFilesystem(targetSpec.VariantSelector)
 	assert.Nil(err)
-	assert.Equal("arch=amd64,os=linux", selector)
+	assert.Equal("arch=amd64+os=linux", selector)
 }
 
 func TestRootRequirementTargetSpec_FragmentVariantSelectorFails(t *testing.T) {
@@ -145,7 +145,7 @@ func TestRootRequirementResolveTargets_InheritAndConcrete(t *testing.T) {
 
 	err, variant := variantDescriptorEncodeFilesystem(targets[0].VariantDescriptor)
 	assert.Nil(err)
-	assert.Equal("arch=amd64,os=darwin", variant)
+	assert.Equal("arch=amd64+os=darwin", variant)
 }
 
 func TestRootRequirementResolveTargets_InheritNoneFromParent(t *testing.T) {
@@ -216,10 +216,10 @@ func TestRootRequirementResolveTargets_AnyExpandsCartesianProduct(t *testing.T) 
 	}
 	sort.Strings(variants)
 	assert.Equal([]string{
-		"arch=amd64,os=darwin",
-		"arch=amd64,os=linux",
-		"arch=arm64,os=darwin",
-		"arch=arm64,os=linux",
+		"arch=amd64+os=darwin",
+		"arch=amd64+os=linux",
+		"arch=arm64+os=darwin",
+		"arch=arm64+os=linux",
 	}, variants)
 }
 
@@ -342,7 +342,7 @@ func TestRootRequirementResolveTargets_ExclusionsFilterResolvedVariants(t *testi
 	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
 	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
 	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "_exclude", "arch=amd64,os=darwin"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "_exclude", "arch=amd64+os=darwin"), "true")
 
 	createRequirementForVariantRequirementTest(
 		t,
@@ -367,9 +367,9 @@ func TestRootRequirementResolveTargets_ExclusionsFilterResolvedVariants(t *testi
 	}
 	sort.Strings(variants)
 	assert.Equal([]string{
-		"arch=amd64,os=linux",
-		"arch=arm64,os=darwin",
-		"arch=arm64,os=linux",
+		"arch=amd64+os=linux",
+		"arch=arm64+os=darwin",
+		"arch=arm64+os=linux",
 	}, variants)
 }
 
@@ -382,7 +382,7 @@ func TestRootRequirementResolveTargets_FailsWhenSelectionIsExcluded(t *testing.T
 
 	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
 	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "_exclude", "arch=amd64,os=darwin"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "_exclude", "arch=amd64+os=darwin"), "true")
 
 	createRequirementForVariantRequirementTest(
 		t,

@@ -41,7 +41,7 @@ func rootBuild_stage1DependencyName(
 			return err, ""
 		}
 		if descriptorSuffix != "" {
-			dependencyName = dependencyName + "+" + descriptorSuffix
+			dependencyName = dependencyName + RootRequirementSelectorSeparator + descriptorSuffix
 		}
 	}
 

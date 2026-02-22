@@ -44,10 +44,10 @@ func TestRootResolveBuildVariants_DefaultsToAllEnabledOptions(t *testing.T) {
 	assert.Nil(err)
 
 	assert.Equal([]string{
-		"arch=amd64,os=darwin",
-		"arch=amd64,os=linux",
-		"arch=arm64,os=darwin",
-		"arch=arm64,os=linux",
+		"arch=amd64+os=darwin",
+		"arch=amd64+os=linux",
+		"arch=arm64+os=darwin",
+		"arch=arm64+os=linux",
 	}, encodeVariantDescriptorsForTest(t, variants))
 }
 
@@ -67,8 +67,8 @@ func TestRootResolveBuildVariants_UnderspecifiedSelectorDefaultsMissingDimension
 	assert.Nil(err)
 
 	assert.Equal([]string{
-		"arch=amd64,os=darwin",
-		"arch=amd64,os=linux",
+		"arch=amd64+os=darwin",
+		"arch=amd64+os=linux",
 	}, encodeVariantDescriptorsForTest(t, variants))
 }
 
@@ -81,7 +81,7 @@ func TestRootResolveBuildVariants_IgnoreUnknownDimensionsWhenRequested(t *testin
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{
-		Selector:                variantDescriptorFromFilesystemForTest(t, "arch=amd64,os=linux"),
+		Selector:                variantDescriptorFromFilesystemForTest(t, "arch=amd64+os=linux"),
 		IgnoreUnknownDimensions: true,
 	})
 	assert.Nil(err)
@@ -99,7 +99,7 @@ func TestRootResolveBuildVariants_RejectUnknownDimensionsWhenNotIgnored(t *testi
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, _ := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{
-		Selector: variantDescriptorFromFilesystemForTest(t, "arch=amd64,os=linux"),
+		Selector: variantDescriptorFromFilesystemForTest(t, "arch=amd64+os=linux"),
 	})
 	assert.NotNil(err)
 	assert.Contains(err.Error(), "over-specified root build variant dimension")
@@ -119,7 +119,7 @@ func TestRootResolveBuildVariants_NoneOptionOmitsDimension(t *testing.T) {
 
 	assert.Equal([]string{
 		"arch=amd64",
-		"arch=amd64,os=linux",
+		"arch=amd64+os=linux",
 	}, encodeVariantDescriptorsForTest(t, variants))
 }
 
@@ -159,17 +159,17 @@ func TestRootResolveBuildVariants_AppliesExclusions(t *testing.T) {
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_exclude", "arch=amd64,os=linux"), "false")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_exclude", "arch=arm64,os=darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_exclude", "arch=amd64+os=linux"), "false")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_exclude", "arch=arm64+os=darwin"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
 	assert.Nil(err)
 
 	assert.Equal([]string{
-		"arch=amd64,os=darwin",
-		"arch=amd64,os=linux",
-		"arch=arm64,os=linux",
+		"arch=amd64+os=darwin",
+		"arch=amd64+os=linux",
+		"arch=arm64+os=linux",
 	}, encodeVariantDescriptorsForTest(t, variants))
 }
 
@@ -179,11 +179,11 @@ func TestRootResolveBuildVariants_FailsWhenSelectionIsExcluded(t *testing.T) {
 	rootPath := t.TempDir()
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_exclude", "arch=amd64,os=linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_exclude", "arch=amd64+os=linux"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, _ := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{
-		Selector: variantDescriptorFromFilesystemForTest(t, "arch=amd64,os=linux"),
+		Selector: variantDescriptorFromFilesystemForTest(t, "arch=amd64+os=linux"),
 	})
 	assert.NotNil(err)
 	assert.Contains(err.Error(), "resolved root build variants are excluded by variants/_exclude")

@@ -9,15 +9,15 @@ import (
 func TestVariantDescriptorNormalizeFilesystem_SortsDimensions(t *testing.T) {
 	assert := assert.New(t)
 
-	err, normalized := variantDescriptorNormalizeFilesystem("os=linux,arch=amd64")
+	err, normalized := variantDescriptorNormalizeFilesystem("os=linux+arch=amd64")
 	assert.Nil(err)
-	assert.Equal("arch=amd64,os=linux", normalized)
+	assert.Equal("arch=amd64+os=linux", normalized)
 }
 
 func TestVariantDescriptorNormalizeFilesystem_DuplicateDimensionFails(t *testing.T) {
 	assert := assert.New(t)
 
-	err, _ := variantDescriptorNormalizeFilesystem("os=linux,os=darwin")
+	err, _ := variantDescriptorNormalizeFilesystem("os=linux+os=darwin")
 	assert.NotNil(err)
 	assert.Contains(err.Error(), "duplicate variant dimension")
 }

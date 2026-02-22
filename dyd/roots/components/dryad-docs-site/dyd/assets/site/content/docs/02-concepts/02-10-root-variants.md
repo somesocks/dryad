@@ -32,13 +32,13 @@ dyd/traits/variants/
     amd64      # true
     arm64      # false
   _exclude/
-    arch=amd64,os=darwin  # true|false
+    arch=amd64+os=darwin  # true|false
 ```
 
 In that example, enabled concrete variants include:
 
-- `arch=amd64,os=linux`
-- `arch=amd64,os=darwin`
+- `arch=amd64+os=linux`
+- `arch=amd64+os=darwin`
 - `arch=amd64` (because `os=none` omits the `os` trait)
 
 ## Name rules and reserved options
@@ -59,7 +59,7 @@ The `none` option is allowed and means "omit this trait dimension" when selected
 
 Dryad uses two descriptor encodings:
 
-- Filesystem form: `arch=amd64,os=linux`
+- Filesystem form: `arch=amd64+os=linux`
 - URL form: `?arch=amd64&os=linux`
 
 Canonical order is ascending by dimension name, for example `arch=...` before `os=...`.
@@ -68,7 +68,7 @@ Canonical order is ascending by dimension name, for example `arch=...` before `o
 
 Requirement filename (condition):
 
-- `foo+arch=any,os=linux`
+- `foo~arch=any+os=linux`
 
 Requirement file value (target selector):
 
@@ -113,7 +113,7 @@ Each exclusion file also contains `true` or `false`:
 
 Exclusion filenames must be canonical filesystem descriptors, for example:
 
-- `arch=amd64,os=darwin`
+- `arch=amd64+os=darwin`
 
 ## Materialization
 

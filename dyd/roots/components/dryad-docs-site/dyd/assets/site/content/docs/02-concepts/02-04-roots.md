@@ -19,15 +19,16 @@ Each root includes directories such as:
 ## Requirements
 
 Each requirement has:
-- A filename: `<alias>` or `<alias>+<condition_descriptor>`
+- A filename: `<alias>` or `<alias>~<condition_descriptor>`
+  - Alias names may only contain `[A-Za-z0-9._-]+`.
 - A file value: target URL, usually `root:<relative-path>` plus an optional variant selector query string.
 
 Examples:
 - `dyd/requirements/foo` with `root:../../../foo`
-- `dyd/requirements/foo+arch=any,os=linux` with `root:../../../foo?arch=amd64&os=linux`
+- `dyd/requirements/foo~arch=any+os=linux` with `root:../../../foo?arch=amd64&os=linux`
 
 In practice:
-- Filename descriptor (`+arch=...,os=...`) is a **condition**: when this requirement is active.
+- Filename descriptor (`~arch=...+os=...`) is a **condition**: when this requirement is active.
 - URL query descriptor (`?arch=...&os=...`) is a **target selector**: which dependency variant(s) to link.
 
 ## Build flow

@@ -25,7 +25,7 @@ _verify() {
 	assert_directory_exists "$deps_path"
 
 	stem_none="$deps_path/stem"
-	stem_linux="$deps_path/stem+os=linux"
+	stem_linux="$deps_path/stem~os=linux"
 
 	if [ ! -L "$stem_none" ]; then
 		echo "[ERROR] Fail: expected default stem dependency for none variant" 1>&2

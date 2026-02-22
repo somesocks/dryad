@@ -147,7 +147,7 @@ var rootDevelopStartCommand = func() clib.Command {
 		WithOption(
 			clib.NewOption(
 				"variant",
-				"select a root variant descriptor to develop (filesystem form: dimension=option,dimension=option). must resolve to exactly one concrete variant",
+				"select a root variant descriptor to develop (filesystem form: dimension=option+dimension=option). must resolve to exactly one concrete variant",
 			).WithType(clib.OptionTypeString),
 		).
 		WithOption(clib.NewOption("shell", "shell command to run in the development environment (must be POSIX-compatible when using '-- args')").WithType(clib.OptionTypeString)).

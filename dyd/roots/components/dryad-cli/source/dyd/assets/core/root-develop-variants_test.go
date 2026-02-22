@@ -57,7 +57,7 @@ func TestRootDevelopResolveVariant_PartialSelectorUniquePasses(t *testing.T) {
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
 
 	root := &SafeRootReference{BasePath: rootPath}
-	err, descriptor := rootDevelop_resolveVariant(task.SERIAL_CONTEXT, root, "arch=amd64,os=linux")
+	err, descriptor := rootDevelop_resolveVariant(task.SERIAL_CONTEXT, root, "arch=amd64+os=linux")
 	assert.Nil(err)
-	assert.Equal("arch=amd64,os=linux", descriptor)
+	assert.Equal("arch=amd64+os=linux", descriptor)
 }

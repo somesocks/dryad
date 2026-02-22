@@ -28,7 +28,7 @@ func rootVariantsListEncodeDescriptor(descriptor dryad.VariantDescriptor) string
 		parts = append(parts, key+"="+descriptor[key])
 	}
 
-	return strings.Join(parts, ",")
+	return strings.Join(parts, "+")
 }
 
 var rootVariantsListCommand = func() clib.Command {

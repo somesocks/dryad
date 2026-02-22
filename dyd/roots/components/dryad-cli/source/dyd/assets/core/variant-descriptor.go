@@ -94,11 +94,11 @@ func variantDescriptorEncode(descriptor VariantDescriptor, separator string, pre
 }
 
 func variantDescriptorParseFilesystem(raw string) (error, VariantDescriptor) {
-	return variantDescriptorParse(raw, ",", false)
+	return variantDescriptorParse(raw, "+", false)
 }
 
 func variantDescriptorEncodeFilesystem(descriptor VariantDescriptor) (error, string) {
-	return variantDescriptorEncode(descriptor, ",", "")
+	return variantDescriptorEncode(descriptor, "+", "")
 }
 
 func variantDescriptorNormalizeFilesystem(raw string) (error, string) {

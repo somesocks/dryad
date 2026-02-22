@@ -40,7 +40,7 @@ _test() {
 	esac
 
 	case "$OUTPUT" in
-		*"arch=amd64,os=darwin"*"arch=amd64,os=linux"*)
+		*"arch=amd64+os=darwin"*"arch=amd64+os=linux"*)
 			;;
 		*)
 			echo "[ERROR] Fail: expected concrete variants in ambiguity error" 1>&2

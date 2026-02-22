@@ -21,6 +21,6 @@ after build you will get:
 
 Each sprout package contains metadata and dependency links to one or more built stem variants:
 - `dyd/dependencies/stem` for a single default variant
-- `dyd/dependencies/stem+<descriptor>` for explicit variants, such as `stem+arch=amd64,os=linux`
+- `dyd/dependencies/stem~<descriptor>` for explicit variants, such as `stem~arch=amd64+os=linux`
 
 Sprouts are build artifacts. Do not edit them directly; rebuild roots to regenerate them.

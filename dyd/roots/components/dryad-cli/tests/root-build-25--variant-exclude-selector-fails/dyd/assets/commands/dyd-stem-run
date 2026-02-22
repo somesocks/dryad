@@ -18,7 +18,7 @@ _prepare() {
 
 _test() {
 	log_path="$TEMP_DIR/build.log"
-	if dryad root build "dyd/roots/root-top" --variant="arch=arm64,os=darwin" --log-level="$DYD_LOG_LEVEL" >"$log_path" 2>&1; then
+	if dryad root build "dyd/roots/root-top" --variant="arch=arm64+os=darwin" --log-level="$DYD_LOG_LEVEL" >"$log_path" 2>&1; then
 		echo "[ERROR] Fail: expected excluded variant build to fail" 1>&2
 		cat "$log_path" 1>&2
 		return 1

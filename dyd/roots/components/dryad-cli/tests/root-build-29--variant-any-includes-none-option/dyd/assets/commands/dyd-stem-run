@@ -31,9 +31,9 @@ _verify() {
 	fi
 
 	grep -Fxq "foo" "$list_path"
-	grep -Fxq "foo+os=darwin" "$list_path"
-	grep -Fxq "foo+os=linux" "$list_path"
-	if grep -Fxq "foo+os=none" "$list_path"; then
+	grep -Fxq "foo~os=darwin" "$list_path"
+	grep -Fxq "foo~os=linux" "$list_path"
+	if grep -Fxq "foo~os=none" "$list_path"; then
 		echo "[ERROR] Fail: none variant should be encoded as omitted dimension" 1>&2
 		cat "$list_path" 1>&2
 		return 1

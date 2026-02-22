@@ -25,9 +25,9 @@ _verify() {
 	assert_directory_exists "$deps_path"
 
 	expected=(
-		"stem+arch=amd64,os=darwin"
-		"stem+arch=amd64,os=linux"
-		"stem+arch=arm64,os=linux"
+		"stem~arch=amd64+os=darwin"
+		"stem~arch=amd64+os=linux"
+		"stem~arch=arm64+os=linux"
 	)
 
 	for dep_name in "${expected[@]}"; do
@@ -39,8 +39,8 @@ _verify() {
 		fi
 	done
 
-	if [ -L "$deps_path/stem+arch=arm64,os=darwin" ] || [ -e "$deps_path/stem+arch=arm64,os=darwin" ]; then
-		echo "[ERROR] Fail: excluded dependency stem+arch=arm64,os=darwin should not exist" 1>&2
+	if [ -L "$deps_path/stem~arch=arm64+os=darwin" ] || [ -e "$deps_path/stem~arch=arm64+os=darwin" ]; then
+		echo "[ERROR] Fail: excluded dependency stem~arch=arm64+os=darwin should not exist" 1>&2
 		find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
 		return 1
 	fi

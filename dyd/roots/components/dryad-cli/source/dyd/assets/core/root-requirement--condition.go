@@ -2,12 +2,20 @@ package core
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 )
 
+const RootRequirementSelectorSeparator = "~"
+
+var ROOT_REQUIREMENT_ALIAS_RE = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
+
 func rootRequirementParseName(raw string) (error, string, VariantDescriptor) {
-	alias, conditionRaw, hasCondition := strings.Cut(raw, "+")
+	alias, conditionRaw, hasCondition := strings.Cut(raw, RootRequirementSelectorSeparator)
 	if alias == "" {
+		return fmt.Errorf("malformed requirement name: %s", raw), "", nil
+	}
+	if !ROOT_REQUIREMENT_ALIAS_RE.MatchString(alias) {
 		return fmt.Errorf("malformed requirement name: %s", raw), "", nil
 	}
 
@@ -27,6 +35,10 @@ func rootRequirementParseName(raw string) (error, string, VariantDescriptor) {
 }
 
 func rootRequirementEncodeName(alias string, condition VariantDescriptor) (error, string) {
+	if !ROOT_REQUIREMENT_ALIAS_RE.MatchString(alias) {
+		return fmt.Errorf("malformed requirement name: %s", alias), ""
+	}
+
 	if len(condition) == 0 {
 		return nil, alias
 	}
@@ -36,7 +48,7 @@ func rootRequirementEncodeName(alias string, condition VariantDescriptor) (error
 		return err, ""
 	}
 
-	return nil, alias + "+" + conditionRaw
+	return nil, alias + RootRequirementSelectorSeparator + conditionRaw
 }
 
 func RootRequirementNormalizeName(raw string) (error, string) {

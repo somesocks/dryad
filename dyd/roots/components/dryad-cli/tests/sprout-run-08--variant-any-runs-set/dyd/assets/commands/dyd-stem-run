@@ -19,7 +19,7 @@ _prepare() {
 _test() {
 	dryad root build "dyd/roots/root-top" --log-level="$DYD_LOG_LEVEL" > /dev/null
 	log_path="$TEMP_DIR/sprout-run.log"
-	dryad sprout run "dyd/sprouts/root-top" --variant="arch=any,os=linux" --log-level="$DYD_LOG_LEVEL" >"$log_path" 2>&1
+	dryad sprout run "dyd/sprouts/root-top" --variant="arch=any+os=linux" --log-level="$DYD_LOG_LEVEL" >"$log_path" 2>&1
 }
 
 _verify() {
@@ -30,7 +30,7 @@ _verify() {
 	assert_file_content_equals "$out_dir/arm64-linux" "ok"
 
 	if [ -f "$out_dir/amd64-darwin" ] || [ -f "$out_dir/arm64-darwin" ]; then
-		echo "[ERROR] Fail: darwin variants should not run for selector arch=any,os=linux" 1>&2
+		echo "[ERROR] Fail: darwin variants should not run for selector arch=any+os=linux" 1>&2
 		ls -1 "$out_dir" 1>&2
 		return 1
 	fi
@@ -47,7 +47,7 @@ _verify() {
 		return 1
 	fi
 
-	for variant in "arch=amd64,os=linux" "arch=arm64,os=linux"; do
+	for variant in "arch=amd64+os=linux" "arch=arm64+os=linux"; do
 		if ! grep -Fq "$variant" "$log_path"; then
 			echo "[ERROR] Fail: expected sprout run logs to include variant descriptor '$variant'" 1>&2
 			cat "$log_path" 1>&2
@@ -55,7 +55,7 @@ _verify() {
 		fi
 	done
 
-	for variant in "arch=amd64,os=darwin" "arch=arm64,os=darwin"; do
+	for variant in "arch=amd64+os=darwin" "arch=arm64+os=darwin"; do
 		if grep -Fq "$variant" "$log_path"; then
 			echo "[ERROR] Fail: expected sprout run logs to exclude unmatched variant descriptor '$variant'" 1>&2
 			cat "$log_path" 1>&2

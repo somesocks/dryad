@@ -19,7 +19,7 @@ func TestRootRequirementParseName_NoCondition(t *testing.T) {
 func TestRootRequirementParseName_WithCondition(t *testing.T) {
 	assert := assert.New(t)
 
-	err, alias, condition := rootRequirementParseName("foo+arch=any,os=linux")
+	err, alias, condition := rootRequirementParseName("foo~arch=any+os=linux")
 	assert.Nil(err)
 	assert.Equal("foo", alias)
 	assert.Equal(VariantDescriptor{
@@ -31,9 +31,21 @@ func TestRootRequirementParseName_WithCondition(t *testing.T) {
 func TestRootRequirementParseName_InvalidConditionFails(t *testing.T) {
 	assert := assert.New(t)
 
-	err, _, _ := rootRequirementParseName("foo+")
+	err, _, _ := rootRequirementParseName("foo~")
 	assert.NotNil(err)
 	assert.Contains(err.Error(), "malformed requirement condition descriptor")
+}
+
+func TestRootRequirementParseName_InvalidAliasFails(t *testing.T) {
+	assert := assert.New(t)
+
+	err, _, _ := rootRequirementParseName("foo+arch=amd64")
+	assert.NotNil(err)
+	assert.Contains(err.Error(), "malformed requirement name")
+
+	err, _, _ = rootRequirementParseName("foo!~arch=amd64")
+	assert.NotNil(err)
+	assert.Contains(err.Error(), "malformed requirement name")
 }
 
 func TestRootRequirementNormalizeName_NoCondition(t *testing.T) {
@@ -47,9 +59,17 @@ func TestRootRequirementNormalizeName_NoCondition(t *testing.T) {
 func TestRootRequirementNormalizeName_WithConditionCanonicalizesOrder(t *testing.T) {
 	assert := assert.New(t)
 
-	err, normalized := RootRequirementNormalizeName("foo+os=linux,arch=any")
+	err, normalized := RootRequirementNormalizeName("foo~os=linux+arch=any")
 	assert.Nil(err)
-	assert.Equal("foo+arch=any,os=linux", normalized)
+	assert.Equal("foo~arch=any+os=linux", normalized)
+}
+
+func TestRootRequirementEncodeName_InvalidAliasFails(t *testing.T) {
+	assert := assert.New(t)
+
+	err, _ := rootRequirementEncodeName("foo+bar", VariantDescriptor{})
+	assert.NotNil(err)
+	assert.Contains(err.Error(), "malformed requirement name")
 }
 
 func TestRootRequirementConditionMatches_ConcreteAnyAndNone(t *testing.T) {

@@ -40,11 +40,11 @@ _test() {
 	ROOT_1="$PWD/dyd/roots/root-01"
 	ROOT_2="$PWD/dyd/roots/root-02"
 
-	(cd "$ROOT_1" && dryad root requirement add "$ROOT_2?os=linux&arch=amd64" "dep-02+os=linux,arch=any") 1>&2;
+	(cd "$ROOT_1" && dryad root requirement add "$ROOT_2?os=linux&arch=amd64" "dep-02~os=linux+arch=any") 1>&2;
 
 	LIST_OUTPUT=$(cd "$ROOT_1" && dryad root requirements list)
 	case "$LIST_OUTPUT" in
-		*"dyd/roots/root-01/dyd/requirements/dep-02+arch=any,os=linux -> root:../../../root-02?arch=amd64&os=linux"*)
+		*"dyd/roots/root-01/dyd/requirements/dep-02~arch=any+os=linux -> root:../../../root-02?arch=amd64&os=linux"*)
 			;;
 		*)
 			echo "[ERROR] Fail: expected requirements list to include dep-02" 1>&2
@@ -63,7 +63,7 @@ _test() {
 			return 1
 			;;
 	esac
-	if ! printf '%s' "$GRAPH_OUTPUT" | grep -Fq '"dyd/roots/root-01?arch=amd64&os=linux":{"dep-02+arch=any,os=linux":"dyd/roots/root-02?arch=amd64&os=linux"}'; then
+	if ! printf '%s' "$GRAPH_OUTPUT" | grep -Fq '"dyd/roots/root-01?arch=amd64&os=linux":{"dep-02~arch=any+os=linux":"dyd/roots/root-02?arch=amd64&os=linux"}'; then
 		echo "[ERROR] Fail: expected roots graph to map requirement name under the concrete source variant node" 1>&2
 		echo "$GRAPH_OUTPUT" 1>&2
 		return 1
@@ -79,7 +79,7 @@ _test() {
 	esac
 
 	GRAPH_TRANSPOSED_OUTPUT=$(dryad roots graph --format=json-compact --transpose)
-	if ! printf '%s' "$GRAPH_TRANSPOSED_OUTPUT" | grep -Fq '"dyd/roots/root-02?arch=amd64&os=linux":{"dep-02+arch=any,os=linux":"dyd/roots/root-01?arch=amd64&os=linux"}'; then
+	if ! printf '%s' "$GRAPH_TRANSPOSED_OUTPUT" | grep -Fq '"dyd/roots/root-02?arch=amd64&os=linux":{"dep-02~arch=any+os=linux":"dyd/roots/root-01?arch=amd64&os=linux"}'; then
 		echo "[ERROR] Fail: expected transposed roots graph to map requirement name to concrete source variant node" 1>&2
 		echo "$GRAPH_TRANSPOSED_OUTPUT" 1>&2
 		return 1
@@ -98,7 +98,7 @@ _test() {
 			;;
 	esac
 
-	(cd "$ROOT_1" && dryad root requirement remove "dep-02+os=linux,arch=any") 1>&2;
+	(cd "$ROOT_1" && dryad root requirement remove "dep-02~os=linux+arch=any") 1>&2;
 	(cd "$ROOT_1" && dryad root requirement remove dep-03) 1>&2;
 
 	LIST_OUTPUT_AFTER=$(cd "$ROOT_1" && dryad root requirements list)

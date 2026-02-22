@@ -30,10 +30,10 @@ _verify() {
 		return 1
 	fi
 
-	grep -Fxq "foo+arch=amd64,os=darwin" "$list_path"
-	grep -Fxq "foo+arch=amd64,os=linux" "$list_path"
-	grep -Fxq "foo+arch=arm64,os=darwin" "$list_path"
-	grep -Fxq "foo+arch=arm64,os=linux" "$list_path"
+	grep -Fxq "foo~arch=amd64+os=darwin" "$list_path"
+	grep -Fxq "foo~arch=amd64+os=linux" "$list_path"
+	grep -Fxq "foo~arch=arm64+os=darwin" "$list_path"
+	grep -Fxq "foo~arch=arm64+os=linux" "$list_path"
 }
 
 _teardown() {

@@ -87,17 +87,18 @@
   - `<root>/dyd/docs` - _docs_ - documentation files for the root.
   - `<root>/dyd/secrets` - _secrets_ - secret assets for the root (deployment secrets, signing keys, etc.).
   - `<root>/dyd/requirements` - _requirements_ - the specification for dependencies of the root.
-    - each requirement filename is either `<alias>` or `<alias>+<condition_descriptor>`.
+    - each requirement filename is either `<alias>` or `<alias>~<condition_descriptor>`.
+      - Alias names may only contain `[A-Za-z0-9._-]+`.
       - Example unconditional requirement name: `foo`
-      - Example conditional requirement name: `foo+arch=any,os=linux`
+      - Example conditional requirement name: `foo~arch=any+os=linux`
     - each requirement file contains a root target URL (no newline), like `root:../../../foo`.
     - target variant selectors are URL query params (`?` and `&`), for example `root:../../../foo?arch=amd64&os=linux`.
 - The root build process has variant-aware stem builds plus sprout aggregation.
   - First, one or more concrete root variants are resolved and built as stems in `dyd/heap/stems`.
     - This part of the process converts requirements into dependencies and links them to each stem under `<stem>/dyd/dependencies/<name>`.
-    - Dependency names can include a variant suffix, for example `foo+arch=amd64,os=linux`.
+    - Dependency names can include a variant suffix, for example `foo~arch=amd64+os=linux`.
   - Second, those built stems are aggregated into a sprout package in `dyd/heap/sprouts`.
-    - A sprout points to one or more stem variants via `dyd/dependencies/stem` and/or `dyd/dependencies/stem+<descriptor>`.
+    - A sprout points to one or more stem variants via `dyd/dependencies/stem` and/or `dyd/dependencies/stem~<descriptor>`.
   - The heap sprout is linked to `<garden>/dyd/sprouts/<root_path>`.
   - Caching/derivation lookups are variant-aware (each concrete variant is cached independently).
   - Concrete build stems are still produced by executing `dyd/commands/dyd-root-build` in a disposable build environment.
@@ -136,7 +137,7 @@
   - `any`: expand to all enabled options for a dimension.
   - `inherit`: for requirement target selectors, inherit the parent root variant option for that dimension; if missing in parent, resolves to `none`.
   - `host`: resolve to host values for `os`/`arch` dimensions.
-- Condition-side requirement selectors (`<alias>+<descriptor>`) use the same keywords with match semantics:
+- Condition-side requirement selectors (`<alias>~<descriptor>`) use the same keywords with match semantics:
   - `any` and `inherit` are wildcards.
   - `none` matches when the parent variant omits that dimension.
   - `host` matches the parent variant against host `os`/`arch`.
@@ -144,9 +145,9 @@
   - `inherit`, `any`, and `host` are reserved and not allowed as dimension option files.
 - Exclusions:
   - `<root>/dyd/traits/variants/_exclude/<descriptor>` files toggle excluded concrete variants with `true`/`false`.
-  - Exclusion descriptor filenames must be canonical filesystem descriptors (sorted keys, comma-separated).
+  - Exclusion descriptor filenames must be canonical filesystem descriptors (sorted keys, `+`-separated).
 - Descriptor forms:
-  - Filesystem form: `arch=amd64,os=linux` (used in filenames and dependency suffixes).
+  - Filesystem form: `arch=amd64+os=linux` (used in filenames and dependency suffixes).
   - URL form: `?arch=amd64&os=linux` (used in requirement target URLs).
 
 
@@ -155,14 +156,14 @@
 - _stems_ are content-addressed built packages stored in `dyd/heap/stems`.
 - A stem is an immutable, fingerprinted artifact produced from a root source state.
 - During packing/build prep, root requirements are linked into the stem under `<stem>/dyd/dependencies/<name>`.
-  - Dependency names may include variant suffixes, like `foo+arch=amd64,os=linux`.
+  - Dependency names may include variant suffixes, like `foo~arch=amd64+os=linux`.
 
 
 ### Dryad concepts - sprouts
 
 - _sprouts_ are content-addressed packages in `dyd/heap/sprouts`, linked into `dyd/sprouts`.
 - `dyd/sprouts/<path>` mirrors `dyd/roots/<path>` for built outputs.
-- A sprout contains metadata plus links to one or more stem variants (`stem` / `stem+<descriptor>`).
+- A sprout contains metadata plus links to one or more stem variants (`stem` / `stem~<descriptor>`).
 - Sprouts are build artifacts, not source code: do not edit them directly.
 - `dyd/sprouts` should not be version-controlled.
 - If sprouts are stale or missing, regenerate them by rebuilding roots (for example `dryad roots build` or `dryad root build <path>`).

@@ -41,7 +41,7 @@ var sproutRunCommand = func() clib.Command {
 				NewArg("path", "path to the sprout").
 				WithAutoComplete(ArgAutoCompletePath),
 		).
-		WithOption(clib.NewOption("variant", "variant descriptor selector for sprout stems (filesystem form: dimension=option,dimension=option). supports none/any/host; inherit is invalid for sprout runs")).
+		WithOption(clib.NewOption("variant", "variant descriptor selector for sprout stems (filesystem form: dimension=option+dimension=option). supports none/any/host; inherit is invalid for sprout runs")).
 		WithOption(clib.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
 		WithOption(clib.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(clib.OptionTypeBool)).
 		WithOption(clib.NewOption("command", "run this command in the stem run environment instead of the main")).
