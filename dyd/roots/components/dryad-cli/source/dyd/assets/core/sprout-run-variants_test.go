@@ -48,6 +48,29 @@ func TestResolveSproutRunStemVariants_AnySelectorReturnsSet(t *testing.T) {
 	)
 }
 
+func TestResolveSproutRunStemVariants_OptionListSelectorReturnsSet(t *testing.T) {
+	assert := assert.New(t)
+
+	available := []sproutRunStemVariant{
+		{Descriptor: testSproutRunVariantDescriptor(t, "arch=amd64+os=linux"), DescriptorRaw: "arch=amd64+os=linux"},
+		{Descriptor: testSproutRunVariantDescriptor(t, "arch=arm64+os=linux"), DescriptorRaw: "arch=arm64+os=linux"},
+		{Descriptor: testSproutRunVariantDescriptor(t, "arch=amd64+os=darwin"), DescriptorRaw: "arch=amd64+os=darwin"},
+	}
+
+	err, selected := resolveSproutRunStemVariants(
+		available,
+		testSproutRunVariantDescriptor(t, "arch=amd64,arm64+os=linux"),
+	)
+	assert.Nil(err)
+	assert.Equal(
+		[]string{
+			"arch=amd64+os=linux",
+			"arch=arm64+os=linux",
+		},
+		testSproutRunVariantDescriptors(t, selected),
+	)
+}
+
 func TestResolveSproutRunStemVariants_HostSelectorResolvesRuntime(t *testing.T) {
 	assert := assert.New(t)
 

@@ -122,20 +122,37 @@ func resolveSproutRunStemVariants(
 		}
 	}
 
-	normalizedSelector := VariantDescriptor{}
-	for dimensionName, requestedOption := range selector {
-		switch requestedOption {
-		case VariantOptionInherit:
-			return fmt.Errorf("inherit option is not supported for sprout run variant selectors: %s", dimensionName), nil
-		case VariantOptionHost:
-			err, hostOption := rootRequirementHostOption(dimensionName)
-			if err != nil {
-				return err, nil
-			}
-			normalizedSelector[dimensionName] = hostOption
-		default:
-			normalizedSelector[dimensionName] = requestedOption
+	normalizedSelector := map[string][]string{}
+	for dimensionName, requestedOptionRaw := range selector {
+		err, requestedOptions := variantDescriptorOptionValues(requestedOptionRaw)
+		if err != nil {
+			return err, nil
 		}
+
+		normalizedOptions := make([]string, 0, len(requestedOptions))
+		seenOptions := map[string]struct{}{}
+		for _, requestedOption := range requestedOptions {
+			normalizedOption := requestedOption
+
+			switch requestedOption {
+			case VariantOptionInherit:
+				return fmt.Errorf("inherit option is not supported for sprout run variant selectors: %s", dimensionName), nil
+			case VariantOptionHost:
+				err, hostOption := rootRequirementHostOption(dimensionName)
+				if err != nil {
+					return err, nil
+				}
+				normalizedOption = hostOption
+			}
+
+			if _, exists := seenOptions[normalizedOption]; exists {
+				continue
+			}
+			seenOptions[normalizedOption] = struct{}{}
+			normalizedOptions = append(normalizedOptions, normalizedOption)
+		}
+
+		normalizedSelector[dimensionName] = normalizedOptions
 	}
 
 	for dimensionName := range normalizedSelector {
@@ -145,51 +162,62 @@ func resolveSproutRunStemVariants(
 		}
 	}
 
-	for dimensionName, requestedOption := range normalizedSelector {
-		if requestedOption == VariantOptionAny {
-			continue
-		}
-
-		optionExists := false
-		for _, variant := range available {
-			option, hasDimension := variant.Descriptor[dimensionName]
-			if requestedOption == VariantOptionNone {
-				if !hasDimension {
-					optionExists = true
-					break
-				}
+	for dimensionName, requestedOptions := range normalizedSelector {
+		for _, requestedOption := range requestedOptions {
+			if requestedOption == VariantOptionAny {
 				continue
 			}
 
-			if hasDimension && option == requestedOption {
-				optionExists = true
-				break
-			}
-		}
+			optionExists := false
+			for _, variant := range available {
+				option, hasDimension := variant.Descriptor[dimensionName]
+				if requestedOption == VariantOptionNone {
+					if !hasDimension {
+						optionExists = true
+						break
+					}
+					continue
+				}
 
-		if !optionExists {
-			return fmt.Errorf("wrongly-specified sprout run variant option: %s=%s", dimensionName, requestedOption), nil
+				if hasDimension && option == requestedOption {
+					optionExists = true
+					break
+				}
+			}
+
+			if !optionExists {
+				return fmt.Errorf("wrongly-specified sprout run variant option: %s=%s", dimensionName, requestedOption), nil
+			}
 		}
 	}
 
 	matches := make([]sproutRunStemVariant, 0, len(available))
 	for _, variant := range available {
 		matched := true
-		for dimensionName, requestedOption := range normalizedSelector {
-			if requestedOption == VariantOptionAny {
-				continue
-			}
-
+		for dimensionName, requestedOptions := range normalizedSelector {
 			option, hasDimension := variant.Descriptor[dimensionName]
-			if requestedOption == VariantOptionNone {
-				if hasDimension {
-					matched = false
+			dimensionMatched := false
+			for _, requestedOption := range requestedOptions {
+				if requestedOption == VariantOptionAny {
+					dimensionMatched = true
 					break
 				}
-				continue
+
+				if requestedOption == VariantOptionNone {
+					if !hasDimension {
+						dimensionMatched = true
+						break
+					}
+					continue
+				}
+
+				if hasDimension && option == requestedOption {
+					dimensionMatched = true
+					break
+				}
 			}
 
-			if !hasDimension || option != requestedOption {
+			if !dimensionMatched {
 				matched = false
 				break
 			}

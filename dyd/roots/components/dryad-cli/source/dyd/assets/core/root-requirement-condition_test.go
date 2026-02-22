@@ -28,6 +28,18 @@ func TestRootRequirementParseName_WithCondition(t *testing.T) {
 	}, condition)
 }
 
+func TestRootRequirementParseName_WithConditionOptionLists(t *testing.T) {
+	assert := assert.New(t)
+
+	err, alias, condition := rootRequirementParseName("foo~os=linux,darwin+arch=arm64,amd64")
+	assert.Nil(err)
+	assert.Equal("foo", alias)
+	assert.Equal(VariantDescriptor{
+		"arch": "amd64,arm64",
+		"os":   "darwin,linux",
+	}, condition)
+}
+
 func TestRootRequirementParseName_InvalidConditionFails(t *testing.T) {
 	assert := assert.New(t)
 
@@ -128,6 +140,23 @@ func TestRootRequirementConditionMatches_InheritIsWildcard(t *testing.T) {
 		},
 		VariantDescriptor{
 			"arch": "inherit",
+		},
+	)
+	assert.Nil(err)
+	assert.True(matches)
+}
+
+func TestRootRequirementConditionMatches_OptionListMatchesAny(t *testing.T) {
+	assert := assert.New(t)
+
+	err, matches := rootRequirementConditionMatches(
+		VariantDescriptor{
+			"arch": "amd64",
+			"os":   "linux",
+		},
+		VariantDescriptor{
+			"arch": "arm64,amd64",
+			"os":   "darwin,linux",
 		},
 	)
 	assert.Nil(err)

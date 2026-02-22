@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	dryad root build "dyd/roots/root-top" --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+_verify() {
+	list_path="$TEMP_DIR/dyd/sprouts/root-top/dyd/dependencies/stem/dyd/assets/variant-requirements.list"
+	assert_file_exists "$list_path"
+
+	if [ "$(wc -l < "$list_path" | tr -d ' ')" != "2" ]; then
+		echo "[ERROR] Fail: expected 2 resolved requirement names from multi-option target selector" 1>&2
+		cat "$list_path" 1>&2
+		return 1
+	fi
+
+	grep -Fxq "foo~arch=amd64+os=linux" "$list_path"
+	grep -Fxq "foo~arch=arm64+os=linux" "$list_path"
+	if grep -Fq "os=darwin" "$list_path"; then
+		echo "[ERROR] Fail: selector should not resolve darwin targets" 1>&2
+		cat "$list_path" 1>&2
+		return 1
+	fi
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

@@ -62,12 +62,13 @@ func rootRequirementHostOption(dimensionName string) (error, string) {
 
 func rootRequirementResolveChoicesForDimension(
 	dimension VariantDimension,
-	requestedOption string,
+	requestedOptionRaw string,
 	parentVariant VariantDescriptor,
 ) (error, []rootRequirementOptionChoice) {
 	exists := map[string]bool{}
 	enabled := map[string]bool{}
 	choices := make([]rootRequirementOptionChoice, 0)
+	seenChoices := map[string]struct{}{}
 
 	for _, option := range dimension.Options {
 		exists[option.Name] = true
@@ -89,55 +90,74 @@ func rootRequirementResolveChoicesForDimension(
 		return nil, rootRequirementOptionChoice{Option: optionName}
 	}
 
-	switch requestedOption {
-	case VariantOptionInherit:
-		inheritedOption, hasInheritedOption := parentVariant[dimension.Name]
-		if !hasInheritedOption {
-			inheritedOption = VariantOptionNone
+	appendUniqueChoice := func(choice rootRequirementOptionChoice) {
+		key := choice.Option
+		if choice.Omit {
+			key = VariantOptionNone
 		}
-
-		err, choice := requireEnabledOption(inheritedOption)
-		if err != nil {
-			return err, nil
+		if _, exists := seenChoices[key]; exists {
+			return
 		}
+		seenChoices[key] = struct{}{}
 		choices = append(choices, choice)
+	}
 
-	case VariantOptionAny:
-		for _, option := range dimension.Options {
-			if !option.Enabled {
-				continue
+	err, requestedOptions := variantDescriptorOptionValues(requestedOptionRaw)
+	if err != nil {
+		return err, nil
+	}
+
+	for _, requestedOption := range requestedOptions {
+		switch requestedOption {
+		case VariantOptionInherit:
+			inheritedOption, hasInheritedOption := parentVariant[dimension.Name]
+			if !hasInheritedOption {
+				inheritedOption = VariantOptionNone
 			}
 
-			if option.Name == VariantOptionNone {
-				choices = append(choices, rootRequirementOptionChoice{Omit: true})
-				continue
+			err, choice := requireEnabledOption(inheritedOption)
+			if err != nil {
+				return err, nil
+			}
+			appendUniqueChoice(choice)
+
+		case VariantOptionAny:
+			for _, option := range dimension.Options {
+				if !option.Enabled {
+					continue
+				}
+
+				if option.Name == VariantOptionNone {
+					appendUniqueChoice(rootRequirementOptionChoice{Omit: true})
+					continue
+				}
+
+				appendUniqueChoice(rootRequirementOptionChoice{Option: option.Name})
 			}
 
-			choices = append(choices, rootRequirementOptionChoice{Option: option.Name})
-		}
+			if len(choices) == 0 {
+				return fmt.Errorf("no enabled variant options for any resolution: %s", dimension.Name), nil
+			}
 
-		if len(choices) == 0 {
-			return fmt.Errorf("no enabled variant options for any resolution: %s", dimension.Name), nil
-		}
+		case VariantOptionHost:
+			err, hostOption := rootRequirementHostOption(dimension.Name)
+			if err != nil {
+				return err, nil
+			}
 
-	case VariantOptionHost:
-		err, hostOption := rootRequirementHostOption(dimension.Name)
-		if err != nil {
-			return err, nil
-		}
+			err, choice := requireEnabledOption(hostOption)
+			if err != nil {
+				return err, nil
+			}
+			appendUniqueChoice(choice)
 
-		err, choice := requireEnabledOption(hostOption)
-		if err != nil {
-			return err, nil
+		default:
+			err, choice := requireEnabledOption(requestedOption)
+			if err != nil {
+				return err, nil
+			}
+			appendUniqueChoice(choice)
 		}
-		choices = append(choices, choice)
-
-	default:
-		err, choice := requireEnabledOption(requestedOption)
-		if err != nil {
-			return err, nil
-		}
-		choices = append(choices, choice)
 	}
 
 	return nil, choices
@@ -261,9 +281,22 @@ func (rootRequirement *SafeRootRequirementReference) ResolveTargets(
 	}
 
 	forceVariantSuffix := false
-	for _, option := range targetSpec.VariantSelector {
-		if option == VariantOptionAny {
+	for _, optionRaw := range targetSpec.VariantSelector {
+		err, options := variantDescriptorOptionValues(optionRaw)
+		if err != nil {
+			return err, nil
+		}
+		if len(options) > 1 {
 			forceVariantSuffix = true
+			break
+		}
+		for _, option := range options {
+			if option == VariantOptionAny {
+				forceVariantSuffix = true
+				break
+			}
+		}
+		if forceVariantSuffix {
 			break
 		}
 	}

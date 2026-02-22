@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	dryad root build "dyd/roots/root-top" --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+_verify() {
+	deps_path="$TEMP_DIR/dyd/sprouts/root-top/dyd/dependencies"
+	assert_directory_exists "$deps_path"
+
+	stem_amd64_linux="$deps_path/stem~arch=amd64+os=linux"
+	stem_arm64_linux="$deps_path/stem~arch=arm64+os=linux"
+	stem_amd64_darwin="$deps_path/stem~arch=amd64+os=darwin"
+	stem_arm64_darwin="$deps_path/stem~arch=arm64+os=darwin"
+
+	if [ ! -L "$stem_amd64_linux" ] || [ ! -L "$stem_arm64_linux" ] || [ ! -L "$stem_amd64_darwin" ] || [ ! -L "$stem_arm64_darwin" ]; then
+		echo "[ERROR] Fail: expected all arch/os stem variants in sprout dependencies" 1>&2
+		find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		return 1
+	fi
+
+	dep_for_amd64_linux="$stem_amd64_linux/dyd/dependencies/foo"
+	dep_for_arm64_linux="$stem_arm64_linux/dyd/dependencies/foo"
+	if [ ! -L "$dep_for_amd64_linux" ] || [ ! -L "$dep_for_arm64_linux" ]; then
+		echo "[ERROR] Fail: expected dependency 'foo' for linux variants matched by condition selector list" 1>&2
+		find "$stem_amd64_linux/dyd/dependencies" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		find "$stem_arm64_linux/dyd/dependencies" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		return 1
+	fi
+
+	dep_for_amd64_darwin="$stem_amd64_darwin/dyd/dependencies/foo"
+	dep_for_arm64_darwin="$stem_arm64_darwin/dyd/dependencies/foo"
+	if [ -e "$dep_for_amd64_darwin" ] || [ -L "$dep_for_amd64_darwin" ] || [ -e "$dep_for_arm64_darwin" ] || [ -L "$dep_for_arm64_darwin" ]; then
+		echo "[ERROR] Fail: dependency 'foo' should be omitted for darwin variants not matched by condition selector list" 1>&2
+		find "$stem_amd64_darwin/dyd/dependencies" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		find "$stem_arm64_darwin/dyd/dependencies" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		return 1
+	fi
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

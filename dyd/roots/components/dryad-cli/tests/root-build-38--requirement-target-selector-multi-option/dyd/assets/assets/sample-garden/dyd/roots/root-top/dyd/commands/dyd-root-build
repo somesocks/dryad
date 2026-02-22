@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -eu -o pipefail
+
+SRC_DIR=$DYD_STEM
+DEST_DIR=$DYD_BUILD
+
+if [ -d "$SRC_DIR/dyd/assets" ]; then
+	mkdir -p "$DEST_DIR/dyd/assets"
+	cp -R "$SRC_DIR/dyd/assets/." "$DEST_DIR/dyd/assets/"
+else
+	mkdir -p "$DEST_DIR/dyd/assets"
+fi
+
+if [ -d "$SRC_DIR/dyd/traits" ]; then
+	mkdir -p "$DEST_DIR/dyd/traits"
+	cp -R "$SRC_DIR/dyd/traits/." "$DEST_DIR/dyd/traits/"
+else
+	mkdir -p "$DEST_DIR/dyd/traits"
+fi
+
+if [ -d "$SRC_DIR/dyd/requirements" ]; then
+	mkdir -p "$DEST_DIR/dyd/requirements"
+	cp -R "$SRC_DIR/dyd/requirements/." "$DEST_DIR/dyd/requirements/"
+else
+	mkdir -p "$DEST_DIR/dyd/requirements"
+fi
+
+# Record resolved requirement names so the integration test can assert variant naming.
+mkdir -p "$DEST_DIR/dyd/assets"
+: > "$DEST_DIR/dyd/assets/variant-requirements.list"
+if [ -d "$SRC_DIR/dyd/requirements" ]; then
+	for req in "$SRC_DIR"/dyd/requirements/*; do
+		if [ ! -e "$req" ] && [ ! -L "$req" ]; then
+			continue
+		fi
+		basename "$req" >> "$DEST_DIR/dyd/assets/variant-requirements.list"
+	done
+fi
+sort -o "$DEST_DIR/dyd/assets/variant-requirements.list" \
+	"$DEST_DIR/dyd/assets/variant-requirements.list"
+
+mkdir -p "$DEST_DIR/dyd/dependencies"
+if [ -d "$SRC_DIR/dyd/dependencies" ]; then
+	for dep in "$SRC_DIR"/dyd/dependencies/*; do
+		if [ ! -e "$dep" ] && [ ! -L "$dep" ]; then
+			continue
+		fi
+		dep_name=$(basename "$dep")
+		ln -s "$dep" "$DEST_DIR/dyd/dependencies/$dep_name"
+	done
+fi

@@ -12,6 +12,36 @@ import (
 
 type VariantDescriptor map[string]string
 
+func variantDescriptorOptionValues(raw string) (error, []string) {
+	parts := strings.Split(raw, ",")
+	values := make([]string, 0, len(parts))
+	seen := map[string]struct{}{}
+	for _, part := range parts {
+		if part == "" {
+			return errors.New("malformed variant descriptor"), nil
+		}
+		if !variantNameValid(part) {
+			return fmt.Errorf("invalid variant option in descriptor: %s", part), nil
+		}
+
+		if _, exists := seen[part]; exists {
+			continue
+		}
+		seen[part] = struct{}{}
+		values = append(values, part)
+	}
+	sort.Strings(values)
+	return nil, values
+}
+
+func variantDescriptorNormalizeOptionValue(raw string) (error, string) {
+	err, values := variantDescriptorOptionValues(raw)
+	if err != nil {
+		return err, ""
+	}
+	return nil, strings.Join(values, ",")
+}
+
 func variantDescriptorParse(raw string, separator string, supportsLeadingQuestion bool) (error, VariantDescriptor) {
 	originalRaw := raw
 	raw = strings.TrimSpace(raw)
@@ -44,8 +74,10 @@ func variantDescriptorParse(raw string, separator string, supportsLeadingQuestio
 		if !variantNameValid(dimension) {
 			return fmt.Errorf("invalid variant dimension in descriptor: %s", dimension), nil
 		}
-		if !variantNameValid(option) {
-			return fmt.Errorf("invalid variant option in descriptor: %s", option), nil
+
+		err, normalizedOption := variantDescriptorNormalizeOptionValue(option)
+		if err != nil {
+			return err, nil
 		}
 
 		_, exists := descriptor[dimension]
@@ -61,7 +93,7 @@ func variantDescriptorParse(raw string, separator string, supportsLeadingQuestio
 				Msg("variant descriptor dimensions should be sorted alphabetically (ascending)")
 		}
 
-		descriptor[dimension] = option
+		descriptor[dimension] = normalizedOption
 		previousDimension = dimension
 	}
 
@@ -70,13 +102,17 @@ func variantDescriptorParse(raw string, separator string, supportsLeadingQuestio
 
 func variantDescriptorEncode(descriptor VariantDescriptor, separator string, prefix string) (error, string) {
 	keys := make([]string, 0, len(descriptor))
+	optionsByKey := map[string]string{}
 	for dimension, option := range descriptor {
 		if !variantNameValid(dimension) {
 			return fmt.Errorf("invalid variant dimension in descriptor: %s", dimension), ""
 		}
-		if !variantNameValid(option) {
-			return fmt.Errorf("invalid variant option in descriptor: %s", option), ""
+
+		err, normalizedOption := variantDescriptorNormalizeOptionValue(option)
+		if err != nil {
+			return err, ""
 		}
+		optionsByKey[dimension] = normalizedOption
 		keys = append(keys, dimension)
 	}
 	sort.Strings(keys)
@@ -87,7 +123,7 @@ func variantDescriptorEncode(descriptor VariantDescriptor, separator string, pre
 
 	segments := make([]string, 0, len(keys))
 	for _, key := range keys {
-		segments = append(segments, key+"="+descriptor[key])
+		segments = append(segments, key+"="+optionsByKey[key])
 	}
 
 	return nil, prefix + strings.Join(segments, separator)

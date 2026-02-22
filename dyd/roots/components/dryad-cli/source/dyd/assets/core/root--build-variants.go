@@ -18,11 +18,12 @@ type rootBuildOptionChoice struct {
 
 func rootBuildResolveChoicesForDimension(
 	dimension VariantDimension,
-	requestedOption string,
+	requestedOptionRaw string,
 ) (error, []rootBuildOptionChoice) {
 	exists := map[string]bool{}
 	enabled := map[string]bool{}
 	choices := make([]rootBuildOptionChoice, 0)
+	seenChoices := map[string]struct{}{}
 
 	for _, option := range dimension.Options {
 		exists[option.Name] = true
@@ -44,37 +45,56 @@ func rootBuildResolveChoicesForDimension(
 		return nil, rootBuildOptionChoice{Option: optionName}
 	}
 
-	switch requestedOption {
-	case VariantOptionAny:
-		for _, option := range dimension.Options {
-			if !option.Enabled {
-				continue
-			}
-
-			if option.Name == VariantOptionNone {
-				choices = append(choices, rootBuildOptionChoice{Omit: true})
-				continue
-			}
-
-			choices = append(choices, rootBuildOptionChoice{Option: option.Name})
+	appendUniqueChoice := func(choice rootBuildOptionChoice) {
+		key := choice.Option
+		if choice.Omit {
+			key = VariantOptionNone
 		}
-
-		if len(choices) == 0 {
-			return fmt.Errorf("no enabled variant options for root build resolution: %s", dimension.Name), nil
+		if _, exists := seenChoices[key]; exists {
+			return
 		}
-
-	case VariantOptionInherit:
-		return fmt.Errorf("inherit option is not supported for root build variant selectors: %s", dimension.Name), nil
-
-	case VariantOptionHost:
-		return fmt.Errorf("host option is not supported for root build variant selectors: %s", dimension.Name), nil
-
-	default:
-		err, choice := requireEnabledOption(requestedOption)
-		if err != nil {
-			return err, nil
-		}
+		seenChoices[key] = struct{}{}
 		choices = append(choices, choice)
+	}
+
+	err, requestedOptions := variantDescriptorOptionValues(requestedOptionRaw)
+	if err != nil {
+		return err, nil
+	}
+
+	for _, requestedOption := range requestedOptions {
+		switch requestedOption {
+		case VariantOptionAny:
+			for _, option := range dimension.Options {
+				if !option.Enabled {
+					continue
+				}
+
+				if option.Name == VariantOptionNone {
+					appendUniqueChoice(rootBuildOptionChoice{Omit: true})
+					continue
+				}
+
+				appendUniqueChoice(rootBuildOptionChoice{Option: option.Name})
+			}
+
+			if len(choices) == 0 {
+				return fmt.Errorf("no enabled variant options for root build resolution: %s", dimension.Name), nil
+			}
+
+		case VariantOptionInherit:
+			return fmt.Errorf("inherit option is not supported for root build variant selectors: %s", dimension.Name), nil
+
+		case VariantOptionHost:
+			return fmt.Errorf("host option is not supported for root build variant selectors: %s", dimension.Name), nil
+
+		default:
+			err, choice := requireEnabledOption(requestedOption)
+			if err != nil {
+				return err, nil
+			}
+			appendUniqueChoice(choice)
+		}
 	}
 
 	return nil, choices

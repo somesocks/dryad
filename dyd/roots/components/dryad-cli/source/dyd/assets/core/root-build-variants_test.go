@@ -72,6 +72,27 @@ func TestRootResolveBuildVariants_UnderspecifiedSelectorDefaultsMissingDimension
 	}, encodeVariantDescriptorsForTest(t, variants))
 }
 
+func TestRootResolveBuildVariants_OptionListSelectorExpandsSet(t *testing.T) {
+	assert := assert.New(t)
+
+	rootPath := t.TempDir()
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
+
+	root := SafeRootReference{BasePath: rootPath}
+	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{
+		Selector: variantDescriptorFromFilesystemForTest(t, "arch=amd64,arm64+os=linux"),
+	})
+	assert.Nil(err)
+
+	assert.Equal([]string{
+		"arch=amd64+os=linux",
+		"arch=arm64+os=linux",
+	}, encodeVariantDescriptorsForTest(t, variants))
+}
+
 func TestRootResolveBuildVariants_IgnoreUnknownDimensionsWhenRequested(t *testing.T) {
 	assert := assert.New(t)
 

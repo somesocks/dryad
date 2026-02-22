@@ -64,33 +64,49 @@ func rootRequirementConditionMatches(
 	parentVariant VariantDescriptor,
 	condition VariantDescriptor,
 ) (error, bool) {
-	for dimension, option := range condition {
-		switch option {
-		case VariantOptionAny, VariantOptionInherit:
-			continue
+	for dimension, optionRaw := range condition {
+		err, options := variantDescriptorOptionValues(optionRaw)
+		if err != nil {
+			return err, false
+		}
 
-		case VariantOptionHost:
-			err, hostOption := rootRequirementHostOption(dimension)
-			if err != nil {
-				return err, false
+		dimensionMatches := false
+		for _, option := range options {
+			switch option {
+			case VariantOptionAny, VariantOptionInherit:
+				dimensionMatches = true
+
+			case VariantOptionHost:
+				err, hostOption := rootRequirementHostOption(dimension)
+				if err != nil {
+					return err, false
+				}
+
+				parentOption, exists := parentVariant[dimension]
+				if exists && parentOption == hostOption {
+					dimensionMatches = true
+				}
+
+			case VariantOptionNone:
+				_, exists := parentVariant[dimension]
+				if !exists {
+					dimensionMatches = true
+				}
+
+			default:
+				parentOption, exists := parentVariant[dimension]
+				if exists && parentOption == option {
+					dimensionMatches = true
+				}
 			}
 
-			parentOption, exists := parentVariant[dimension]
-			if !exists || parentOption != hostOption {
-				return nil, false
+			if dimensionMatches {
+				break
 			}
+		}
 
-		case VariantOptionNone:
-			_, exists := parentVariant[dimension]
-			if exists {
-				return nil, false
-			}
-
-		default:
-			parentOption, exists := parentVariant[dimension]
-			if !exists || parentOption != option {
-				return nil, false
-			}
+		if !dimensionMatches {
+			return nil, false
 		}
 	}
 
