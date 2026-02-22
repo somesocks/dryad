@@ -1,4 +1,3 @@
-
 package core
 
 import (
@@ -7,21 +6,26 @@ import (
 
 	// "os"
 	"path/filepath"
-
 	// "errors"
 	// zlog "github.com/rs/zerolog/log"
 )
 
 type RootRequirementCopyRequest struct {
 	DestRequirements *SafeRootRequirementsReference
-	Unpin bool
+	Unpin            bool
 }
 
 func (rootRequirement *SafeRootRequirementReference) Copy(
-	ctx * task.ExecutionContext,
-	req RootRequirementCopyRequest,	
+	ctx *task.ExecutionContext,
+	req RootRequirementCopyRequest,
 ) (error, *SafeRootRequirementReference) {
-	err, target := rootRequirement.Target(ctx)
+	err, targetSpec := rootRequirement.TargetSpec(ctx)
+	if err != nil {
+		return err, nil
+	}
+	target := targetSpec.Root
+
+	err, targetVariantSelector := variantDescriptorEncodeURL(targetSpec.VariantSelector)
 	if err != nil {
 		return err, nil
 	}
@@ -35,7 +39,7 @@ func (rootRequirement *SafeRootRequirementReference) Copy(
 		if err != nil {
 			return err, nil
 		}
-	
+
 		newTargetPath := filepath.Join(req.DestRequirements.BasePath, relTargetPath)
 		newTargetExists, err := fileExists(newTargetPath)
 		if err != nil {
@@ -58,8 +62,9 @@ func (rootRequirement *SafeRootRequirementReference) Copy(
 	err, destRequirement := req.DestRequirements.Add(
 		ctx,
 		RootRequirementsAddRequest{
-			Dependency: target,
-			Alias: alias,
+			Dependency:                target,
+			Alias:                     alias,
+			DependencyVariantSelector: targetVariantSelector,
 		},
 	)
 
