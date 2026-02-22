@@ -526,11 +526,15 @@ func (root *SafeRootReference) BuildSprout(ctx *task.ExecutionContext, req RootB
 		return err, ""
 	}
 
-	stemByVariant := map[string]string{}
-	for _, variant := range variants {
+	type rootBuildVariantResult struct {
+		Descriptor      string
+		StemFingerprint string
+	}
+
+	buildVariant := func(ctx *task.ExecutionContext, variant VariantDescriptor) (error, rootBuildVariantResult) {
 		err, concreteDescriptor := variantDescriptorEncodeFilesystem(variant)
 		if err != nil {
-			return err, ""
+			return err, rootBuildVariantResult{}
 		}
 
 		err, stemFingerprint := root.BuildStem(
@@ -544,10 +548,27 @@ func (root *SafeRootReference) BuildSprout(ctx *task.ExecutionContext, req RootB
 			},
 		)
 		if err != nil {
-			return err, ""
+			return err, rootBuildVariantResult{}
 		}
 
-		stemByVariant[concreteDescriptor] = stemFingerprint
+		return nil, rootBuildVariantResult{
+			Descriptor:      concreteDescriptor,
+			StemFingerprint: stemFingerprint,
+		}
+	}
+
+	err, builtVariants := task.ParallelMap(buildVariant)(ctx, variants)
+	if err != nil {
+		return err, ""
+	}
+
+	stemByVariant := map[string]string{}
+	for _, builtVariant := range builtVariants {
+		if _, exists := stemByVariant[builtVariant.Descriptor]; exists {
+			return fmt.Errorf("duplicate root build variant descriptor: %s", builtVariant.Descriptor), ""
+		}
+
+		stemByVariant[builtVariant.Descriptor] = builtVariant.StemFingerprint
 	}
 
 	err, sproutFingerprint := rootMaterializeSprout(
