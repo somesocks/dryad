@@ -181,7 +181,7 @@ var rootsBuildCommand = func() clib.Command {
 			clib.
 				NewOption(
 					"variant",
-					"select a root variant descriptor for all matched roots (filesystem form: dimension=option+dimension=option). defaults to all enabled variants per root",
+					"select a root variant descriptor for all matched roots (filesystem form: dimension=option+dimension=option). supports none/any/host; inherit is invalid. defaults to all enabled variants per root",
 				).
 				WithType(clib.OptionTypeString),
 		).

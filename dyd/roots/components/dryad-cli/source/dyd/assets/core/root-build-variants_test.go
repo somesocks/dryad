@@ -2,6 +2,7 @@ package core
 
 import (
 	"path/filepath"
+	"runtime"
 	"sort"
 	"testing"
 
@@ -170,6 +171,37 @@ func TestRootResolveBuildVariants_InheritIsRejected(t *testing.T) {
 	})
 	assert.NotNil(err)
 	assert.Contains(err.Error(), "inherit option is not supported")
+}
+
+func TestRootResolveBuildVariants_HostResolvesRuntime(t *testing.T) {
+	assert := assert.New(t)
+
+	rootPath := t.TempDir()
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", runtime.GOOS), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "other"), "true")
+
+	root := SafeRootReference{BasePath: rootPath}
+	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{
+		Selector: variantDescriptorFromFilesystemForTest(t, "os=host"),
+	})
+	assert.Nil(err)
+	assert.Equal([]string{
+		"os=" + runtime.GOOS,
+	}, encodeVariantDescriptorsForTest(t, variants))
+}
+
+func TestRootResolveBuildVariants_HostUnsupportedDimensionRejected(t *testing.T) {
+	assert := assert.New(t)
+
+	rootPath := t.TempDir()
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "tool", "local"), "true")
+
+	root := SafeRootReference{BasePath: rootPath}
+	err, _ := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{
+		Selector: variantDescriptorFromFilesystemForTest(t, "tool=host"),
+	})
+	assert.NotNil(err)
+	assert.Contains(err.Error(), "host option is only supported")
 }
 
 func TestRootResolveBuildVariants_AppliesExclusions(t *testing.T) {
