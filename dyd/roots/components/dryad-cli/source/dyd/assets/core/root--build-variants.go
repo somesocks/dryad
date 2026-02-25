@@ -86,7 +86,16 @@ func rootBuildResolveChoicesForDimension(
 			return fmt.Errorf("inherit option is not supported for root build variant selectors: %s", dimension.Name), nil
 
 		case VariantOptionHost:
-			return fmt.Errorf("host option is not supported for root build variant selectors: %s", dimension.Name), nil
+			err, hostOption := rootRequirementHostOption(dimension.Name)
+			if err != nil {
+				return err, nil
+			}
+
+			err, choice := requireEnabledOption(hostOption)
+			if err != nil {
+				return err, nil
+			}
+			appendUniqueChoice(choice)
 
 		default:
 			err, choice := requireEnabledOption(requestedOption)

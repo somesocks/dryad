@@ -2,6 +2,7 @@ package core
 
 import (
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"dryad/task"
@@ -60,4 +61,17 @@ func TestRootDevelopResolveVariant_PartialSelectorUniquePasses(t *testing.T) {
 	err, descriptor := rootDevelop_resolveVariant(task.SERIAL_CONTEXT, root, "arch=amd64+os=linux")
 	assert.Nil(err)
 	assert.Equal("arch=amd64+os=linux", descriptor)
+}
+
+func TestRootDevelopResolveVariant_HostSelectorUniquePasses(t *testing.T) {
+	assert := assert.New(t)
+
+	rootPath := t.TempDir()
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", runtime.GOOS), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "other"), "true")
+
+	root := &SafeRootReference{BasePath: rootPath}
+	err, descriptor := rootDevelop_resolveVariant(task.SERIAL_CONTEXT, root, "os=host")
+	assert.Nil(err)
+	assert.Equal("os="+runtime.GOOS, descriptor)
 }
