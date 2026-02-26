@@ -115,6 +115,11 @@ Exclusion filenames must be canonical filesystem descriptors, for example:
 
 - `arch=amd64+os=darwin`
 
+Exclusion selectors must specify every enabled dimension. Unlike requirement selectors, exclusions are root-local and do not support parent/host context:
+
+- supported in `_exclude`: concrete options, `none`, `any`, and comma lists (for example `os=darwin,linux`)
+- not supported in `_exclude`: `inherit` and `host`
+
 ## Materialization
 
 When dryad builds a concrete variant:
