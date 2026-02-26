@@ -416,6 +416,47 @@ func TestRootRequirementResolveTargets_ExclusionsFilterResolvedVariants(t *testi
 	}, variants)
 }
 
+func TestRootRequirementResolveTargets_ExclusionsAnySelectorFiltersResolvedVariants(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	sourceRootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
+	targetRootPath := createRootForVariantRequirementTest(t, gardenPath, "dep")
+
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "_exclude", "arch=any+os=darwin"), "true")
+
+	createRequirementForVariantRequirementTest(
+		t,
+		sourceRootPath,
+		"dep",
+		targetRootPath,
+		"?arch=any&os=any",
+	)
+
+	requirement := resolveRequirementForVariantRequirementTest(t, gardenPath, sourceRootPath, "dep")
+	err, targets := requirement.ResolveTargets(task.SERIAL_CONTEXT, RootRequirementResolveTargetsRequest{
+		ParentVariant: VariantDescriptor{},
+	})
+	assert.Nil(err)
+	assert.Len(targets, 2)
+
+	variants := make([]string, 0, len(targets))
+	for _, target := range targets {
+		err, variant := variantDescriptorEncodeFilesystem(target.VariantDescriptor)
+		assert.Nil(err)
+		variants = append(variants, variant)
+	}
+	sort.Strings(variants)
+	assert.Equal([]string{
+		"arch=amd64+os=linux",
+		"arch=arm64+os=linux",
+	}, variants)
+}
+
 func TestRootRequirementResolveTargets_FailsWhenSelectionIsExcluded(t *testing.T) {
 	assert := assert.New(t)
 
