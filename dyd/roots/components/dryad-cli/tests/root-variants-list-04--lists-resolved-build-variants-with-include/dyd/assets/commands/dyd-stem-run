@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+# import assertion functions
+. $SRC_DIR/dyd/assets/assertions.sh
+
+_setup() {
+	TEMP_DIR=''
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+	:;
+}
+
+_test() {
+	ROOT_1="$PWD/dyd/roots/root-01"
+	ROOT_2="$PWD/dyd/roots/root-02"
+
+	EXPECTED_ROOT_1=$(cat <<'EOD'
+arch=amd64+os=darwin
+EOD
+)
+
+	ROOT_1_OUTPUT=$(dryad root variants list "$ROOT_1")
+	if [ "$ROOT_1_OUTPUT" != "$EXPECTED_ROOT_1" ]; then
+		echo "[ERROR] Fail: expected root-01 variant list to match resolved matrix" 1>&2
+		echo "[INFO] expected:" 1>&2
+		echo "$EXPECTED_ROOT_1" 1>&2
+		echo "[INFO] actual:" 1>&2
+		echo "$ROOT_1_OUTPUT" 1>&2
+		return 1
+	fi
+
+	ROOT_1_OUTPUT_IMPLICIT=$(cd "$ROOT_1" && dryad root variants list)
+	if [ "$ROOT_1_OUTPUT_IMPLICIT" != "$EXPECTED_ROOT_1" ]; then
+		echo "[ERROR] Fail: expected implicit root path to list the same variants" 1>&2
+		echo "[INFO] expected:" 1>&2
+		echo "$EXPECTED_ROOT_1" 1>&2
+		echo "[INFO] actual:" 1>&2
+		echo "$ROOT_1_OUTPUT_IMPLICIT" 1>&2
+		return 1
+	fi
+
+	ROOT_2_OUTPUT=$(dryad root variants list "$ROOT_2")
+	if [ "$ROOT_2_OUTPUT" != "default" ]; then
+		echo "[ERROR] Fail: expected root-02 with no variants to return default" 1>&2
+		echo "$ROOT_2_OUTPUT" 1>&2
+		return 1
+	fi
+}
+
+_verify() {
+	assert_directory_exists "$TEMP_DIR/dyd"
+	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
+	assert_directory_exists "$TEMP_DIR/dyd/roots/root-01"
+	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02"
+	:;
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
