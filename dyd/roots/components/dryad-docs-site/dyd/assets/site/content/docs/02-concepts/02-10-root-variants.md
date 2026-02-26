@@ -31,6 +31,8 @@ dyd/traits/variants/
   arch/
     amd64      # true
     arm64      # false
+  _include/
+    arch=amd64+os=any     # true|false
   _exclude/
     arch=amd64+os=darwin  # true|false
 ```
@@ -119,6 +121,32 @@ Exclusion selectors must specify every enabled dimension. Unlike requirement sel
 
 - supported in `_exclude`: concrete options, `none`, `any`, and comma lists (for example `os=darwin,linux`)
 - not supported in `_exclude`: `inherit` and `host`
+
+## Inclusions
+
+Variant inclusions live under:
+
+- `<root>/dyd/traits/variants/_include/<descriptor>`
+
+Each inclusion file also contains `true` or `false`:
+
+- `true` means inclusion is active
+- `false` means inclusion is ignored
+
+Inclusion filenames must be canonical filesystem descriptors and specify every enabled dimension.
+
+Inclusion selectors use the same selector rules as exclusions:
+
+- supported in `_include`: concrete options, `none`, `any`, and comma lists
+- not supported in `_include`: `inherit` and `host`
+
+Resolution behavior:
+
+- candidate variants are generated from enabled dimension options
+- if `_exclude` rules are enabled, matching variants are removed
+- if `_include` rules are enabled, only matching variants are kept
+- if the effective inclusion map is empty, all variants are treated as included
+- final allow rule is: included and not excluded
 
 ## Materialization
 

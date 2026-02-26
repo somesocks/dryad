@@ -122,6 +122,10 @@ func (root *SafeRootReference) ResolveBuildVariants(
 	if err != nil {
 		return err, nil
 	}
+	err, inclusions := root.VariantInclusions(ctx)
+	if err != nil {
+		return err, nil
+	}
 	err, exclusions := root.VariantExclusions(ctx)
 	if err != nil {
 		return err, nil
@@ -199,12 +203,12 @@ func (root *SafeRootReference) ResolveBuildVariants(
 		results = append(results, byKey[key])
 	}
 
-	err, results = applyVariantExclusions(dimensions, exclusions, results)
+	err, results = applyVariantFilters(dimensions, inclusions, exclusions, results)
 	if err != nil {
 		return err, nil
 	}
 	if len(results) == 0 {
-		return fmt.Errorf("resolved root build variants are excluded by variants/_exclude"), nil
+		return fmt.Errorf("resolved root build variants are filtered by variants/_include and variants/_exclude"), nil
 	}
 
 	return nil, results

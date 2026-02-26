@@ -76,7 +76,7 @@ func (rootVariants *SafeRootVariantsReference) Exclusions(ctx *task.ExecutionCon
 	return nil, exclusions
 }
 
-func normalizeVariantExclusionDescriptor(descriptor VariantDescriptor) VariantDescriptor {
+func normalizeVariantFilterDescriptor(descriptor VariantDescriptor) VariantDescriptor {
 	normalized := VariantDescriptor{}
 	for dimensionName, optionName := range descriptor {
 		if optionName == VariantOptionNone {
@@ -92,9 +92,10 @@ type rootVariantExclusionOptionChoice struct {
 	Option string
 }
 
-func rootVariantExclusionResolveChoicesForDimension(
+func rootVariantFilterResolveChoicesForDimension(
 	dimension VariantDimension,
 	requestedOptionRaw string,
+	filterKind string,
 ) (error, []rootVariantExclusionOptionChoice) {
 	exists := map[string]bool{}
 	enabled := map[string]bool{}
@@ -108,10 +109,10 @@ func rootVariantExclusionResolveChoicesForDimension(
 
 	requireEnabledOption := func(optionName string) (error, rootVariantExclusionOptionChoice) {
 		if !exists[optionName] {
-			return fmt.Errorf("wrongly-specified excluded variant option: %s=%s", dimension.Name, optionName), rootVariantExclusionOptionChoice{}
+			return fmt.Errorf("wrongly-specified %s variant option: %s=%s", filterKind, dimension.Name, optionName), rootVariantExclusionOptionChoice{}
 		}
 		if !enabled[optionName] {
-			return fmt.Errorf("disabled excluded variant option: %s=%s", dimension.Name, optionName), rootVariantExclusionOptionChoice{}
+			return fmt.Errorf("disabled %s variant option: %s=%s", filterKind, dimension.Name, optionName), rootVariantExclusionOptionChoice{}
 		}
 
 		if optionName == VariantOptionNone {
@@ -152,12 +153,12 @@ func rootVariantExclusionResolveChoicesForDimension(
 				appendUniqueChoice(rootVariantExclusionOptionChoice{Option: option.Name})
 			}
 			if len(choices) == 0 {
-				return fmt.Errorf("no enabled variant options for excluded variant resolution: %s", dimension.Name), nil
+				return fmt.Errorf("no enabled variant options for %s variant resolution: %s", filterKind, dimension.Name), nil
 			}
 		case VariantOptionInherit:
-			return fmt.Errorf("inherit option is not supported for excluded variant selectors: %s", dimension.Name), nil
+			return fmt.Errorf("inherit option is not supported for %s variant selectors: %s", filterKind, dimension.Name), nil
 		case VariantOptionHost:
-			return fmt.Errorf("host option is not supported for excluded variant selectors: %s", dimension.Name), nil
+			return fmt.Errorf("host option is not supported for %s variant selectors: %s", filterKind, dimension.Name), nil
 		default:
 			err, choice := requireEnabledOption(requestedOption)
 			if err != nil {
@@ -170,15 +171,21 @@ func rootVariantExclusionResolveChoicesForDimension(
 	return nil, choices
 }
 
-func expandVariantExclusion(
+type variantRule struct {
+	Descriptor VariantDescriptor
+	Enabled    bool
+}
+
+func expandVariantRule(
 	dimensionsByName map[string]VariantDimension,
 	dimensionNames []string,
-	exclusion VariantExclusion,
+	rule variantRule,
+	filterKind string,
 ) (error, []VariantDescriptor) {
-	for descriptorDimension := range exclusion.Descriptor {
+	for descriptorDimension := range rule.Descriptor {
 		_, exists := dimensionsByName[descriptorDimension]
 		if !exists {
-			return fmt.Errorf("over-specified excluded variant dimension: %s", descriptorDimension), nil
+			return fmt.Errorf("over-specified %s variant dimension: %s", filterKind, descriptorDimension), nil
 		}
 	}
 
@@ -186,14 +193,15 @@ func expandVariantExclusion(
 	for _, dimensionName := range dimensionNames {
 		dimension := dimensionsByName[dimensionName]
 
-		requestedOption, hasRequestedOption := exclusion.Descriptor[dimensionName]
+		requestedOption, hasRequestedOption := rule.Descriptor[dimensionName]
 		if !hasRequestedOption {
-			return fmt.Errorf("under-specified excluded variant dimension: %s", dimensionName), nil
+			return fmt.Errorf("under-specified %s variant dimension: %s", filterKind, dimensionName), nil
 		}
 
-		err, choices := rootVariantExclusionResolveChoicesForDimension(
+		err, choices := rootVariantFilterResolveChoicesForDimension(
 			dimension,
 			requestedOption,
+			filterKind,
 		)
 		if err != nil {
 			return err, nil
@@ -215,11 +223,33 @@ func expandVariantExclusion(
 	return nil, resolvedExclusions
 }
 
-func applyVariantExclusions(
+func variantRulesFromExclusions(exclusions []VariantExclusion) []variantRule {
+	rules := make([]variantRule, 0, len(exclusions))
+	for _, exclusion := range exclusions {
+		rules = append(rules, variantRule{
+			Descriptor: exclusion.Descriptor,
+			Enabled:    exclusion.Enabled,
+		})
+	}
+	return rules
+}
+
+func variantRulesFromInclusions(inclusions []VariantInclusion) []variantRule {
+	rules := make([]variantRule, 0, len(inclusions))
+	for _, inclusion := range inclusions {
+		rules = append(rules, variantRule{
+			Descriptor: inclusion.Descriptor,
+			Enabled:    inclusion.Enabled,
+		})
+	}
+	return rules
+}
+
+func expandVariantRulesToMap(
 	dimensions []VariantDimension,
-	exclusions []VariantExclusion,
-	variants []VariantDescriptor,
-) (error, []VariantDescriptor) {
+	rules []variantRule,
+	filterKind string,
+) (error, map[string]struct{}) {
 	dimensionsByName := map[string]VariantDimension{}
 	dimensionNames := make([]string, 0, len(dimensions))
 	for _, dimension := range dimensions {
@@ -228,29 +258,47 @@ func applyVariantExclusions(
 	}
 	sort.Strings(dimensionNames)
 
-	excludedVariants := map[string]struct{}{}
-	for _, exclusion := range exclusions {
-		err, expandedExclusions := expandVariantExclusion(dimensionsByName, dimensionNames, exclusion)
+	filteredVariants := map[string]struct{}{}
+	for _, rule := range rules {
+		err, expandedRules := expandVariantRule(dimensionsByName, dimensionNames, rule, filterKind)
 		if err != nil {
 			return err, nil
 		}
 
-		if !exclusion.Enabled {
+		if !rule.Enabled {
 			continue
 		}
 
-		for _, expandedExclusion := range expandedExclusions {
-			err, exclusionKey := variantDescriptorEncodeFilesystem(
-				normalizeVariantExclusionDescriptor(expandedExclusion),
+		for _, expandedRule := range expandedRules {
+			err, ruleKey := variantDescriptorEncodeFilesystem(
+				normalizeVariantFilterDescriptor(expandedRule),
 			)
 			if err != nil {
 				return err, nil
 			}
-			excludedVariants[exclusionKey] = struct{}{}
+			filteredVariants[ruleKey] = struct{}{}
 		}
 	}
 
-	if len(excludedVariants) == 0 {
+	return nil, filteredVariants
+}
+
+func applyVariantFilters(
+	dimensions []VariantDimension,
+	inclusions []VariantInclusion,
+	exclusions []VariantExclusion,
+	variants []VariantDescriptor,
+) (error, []VariantDescriptor) {
+	err, includedVariants := expandVariantRulesToMap(dimensions, variantRulesFromInclusions(inclusions), "included")
+	if err != nil {
+		return err, nil
+	}
+	err, excludedVariants := expandVariantRulesToMap(dimensions, variantRulesFromExclusions(exclusions), "excluded")
+	if err != nil {
+		return err, nil
+	}
+
+	if len(includedVariants) == 0 && len(excludedVariants) == 0 {
 		return nil, variants
 	}
 
@@ -259,6 +307,12 @@ func applyVariantExclusions(
 		err, variantKey := variantDescriptorEncodeFilesystem(variant)
 		if err != nil {
 			return err, nil
+		}
+		if len(includedVariants) > 0 {
+			_, isIncluded := includedVariants[variantKey]
+			if !isIncluded {
+				continue
+			}
 		}
 		_, isExcluded := excludedVariants[variantKey]
 		if isExcluded {

@@ -294,6 +294,96 @@ func TestRootResolveBuildVariants_RejectsHostInExclusionSelector(t *testing.T) {
 	assert.Contains(err.Error(), "host option is not supported for excluded variant selectors")
 }
 
+func TestRootResolveBuildVariants_AppliesInclusions(t *testing.T) {
+	assert := assert.New(t)
+
+	rootPath := t.TempDir()
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_include", "arch=amd64+os=linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_include", "arch=arm64+os=darwin"), "false")
+
+	root := SafeRootReference{BasePath: rootPath}
+	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
+	assert.Nil(err)
+
+	assert.Equal([]string{
+		"arch=amd64+os=linux",
+	}, encodeVariantDescriptorsForTest(t, variants))
+}
+
+func TestRootResolveBuildVariants_EmptyInclusionMapIncludesAllVariants(t *testing.T) {
+	assert := assert.New(t)
+
+	rootPath := t.TempDir()
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_include", "arch=amd64+os=linux"), "false")
+
+	root := SafeRootReference{BasePath: rootPath}
+	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
+	assert.Nil(err)
+
+	assert.Equal([]string{
+		"arch=amd64+os=darwin",
+		"arch=amd64+os=linux",
+		"arch=arm64+os=darwin",
+		"arch=arm64+os=linux",
+	}, encodeVariantDescriptorsForTest(t, variants))
+}
+
+func TestRootResolveBuildVariants_AppliesInclusionsAndExclusions(t *testing.T) {
+	assert := assert.New(t)
+
+	rootPath := t.TempDir()
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_include", "arch=any+os=darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_exclude", "arch=arm64+os=darwin"), "true")
+
+	root := SafeRootReference{BasePath: rootPath}
+	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
+	assert.Nil(err)
+
+	assert.Equal([]string{
+		"arch=amd64+os=darwin",
+	}, encodeVariantDescriptorsForTest(t, variants))
+}
+
+func TestRootResolveBuildVariants_RejectsInheritInInclusionSelector(t *testing.T) {
+	assert := assert.New(t)
+
+	rootPath := t.TempDir()
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_include", "arch=amd64+os=inherit"), "true")
+
+	root := SafeRootReference{BasePath: rootPath}
+	err, _ := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
+	assert.NotNil(err)
+	assert.Contains(err.Error(), "inherit option is not supported for included variant selectors")
+}
+
+func TestRootResolveBuildVariants_RejectsHostInInclusionSelector(t *testing.T) {
+	assert := assert.New(t)
+
+	rootPath := t.TempDir()
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", runtime.GOOS), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_include", "arch=amd64+os=host"), "true")
+
+	root := SafeRootReference{BasePath: rootPath}
+	err, _ := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
+	assert.NotNil(err)
+	assert.Contains(err.Error(), "host option is not supported for included variant selectors")
+}
+
 func TestRootResolveBuildVariants_FailsWhenSelectionIsExcluded(t *testing.T) {
 	assert := assert.New(t)
 
@@ -307,5 +397,5 @@ func TestRootResolveBuildVariants_FailsWhenSelectionIsExcluded(t *testing.T) {
 		Selector: variantDescriptorFromFilesystemForTest(t, "arch=amd64+os=linux"),
 	})
 	assert.NotNil(err)
-	assert.Contains(err.Error(), "resolved root build variants are excluded by variants/_exclude")
+	assert.Contains(err.Error(), "resolved root build variants are filtered by variants/_include and variants/_exclude")
 }
