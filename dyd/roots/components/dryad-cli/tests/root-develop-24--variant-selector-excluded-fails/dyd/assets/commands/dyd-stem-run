@@ -30,7 +30,7 @@ _test() {
 	fi
 
 	case "$OUTPUT" in
-		*"resolved root build variants are excluded by variants/_exclude"*)
+		*"resolved root build variants are filtered by variants/_include and variants/_exclude"*)
 			;;
 		*)
 			echo "[ERROR] Fail: expected excluded-variant error" 1>&2

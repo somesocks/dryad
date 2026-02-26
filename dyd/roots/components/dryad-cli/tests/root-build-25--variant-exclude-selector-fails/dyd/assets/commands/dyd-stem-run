@@ -24,7 +24,7 @@ _test() {
 		return 1
 	fi
 
-	if ! grep -Fq "resolved root build variants are excluded by variants/_exclude" "$log_path"; then
+	if ! grep -Fq "resolved root build variants are filtered by variants/_include and variants/_exclude" "$log_path"; then
 		echo "[ERROR] Fail: expected exclusion failure message in root build output" 1>&2
 		cat "$log_path" 1>&2
 		return 1

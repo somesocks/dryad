@@ -181,6 +181,10 @@ func (targetSpec *RootRequirementTargetSpec) ResolveVariants(
 	if err != nil {
 		return err, nil
 	}
+	err, inclusions := targetSpec.Root.VariantInclusions(ctx)
+	if err != nil {
+		return err, nil
+	}
 	err, exclusions := targetSpec.Root.VariantExclusions(ctx)
 	if err != nil {
 		return err, nil
@@ -253,12 +257,12 @@ func (targetSpec *RootRequirementTargetSpec) ResolveVariants(
 		results = append(results, byKey[key])
 	}
 
-	err, results = applyVariantExclusions(dimensions, exclusions, results)
+	err, results = applyVariantFilters(dimensions, inclusions, exclusions, results)
 	if err != nil {
 		return err, nil
 	}
 	if len(results) == 0 {
-		return fmt.Errorf("resolved requirement variants are excluded by variants/_exclude"), nil
+		return fmt.Errorf("resolved requirement variants are filtered by variants/_include and variants/_exclude"), nil
 	}
 
 	return nil, results

@@ -101,7 +101,7 @@ func (rootVariants *SafeRootVariantsReference) Dimensions(ctx *task.ExecutionCon
 	for _, dimensionEntry := range dimensionEntries {
 		dimensionName := dimensionEntry.Name()
 
-		if dimensionName == "_exclude" {
+		if dimensionName == "_exclude" || dimensionName == "_include" {
 			continue
 		}
 
