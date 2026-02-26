@@ -195,7 +195,7 @@ func expandVariantRule(
 
 		requestedOption, hasRequestedOption := rule.Descriptor[dimensionName]
 		if !hasRequestedOption {
-			return fmt.Errorf("under-specified %s variant dimension: %s", filterKind, dimensionName), nil
+			requestedOption = VariantOptionAny
 		}
 
 		err, choices := rootVariantFilterResolveChoicesForDimension(
