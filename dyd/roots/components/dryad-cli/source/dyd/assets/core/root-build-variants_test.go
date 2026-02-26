@@ -266,6 +266,26 @@ func TestRootResolveBuildVariants_AppliesOptionListExclusionSelector(t *testing.
 	}, encodeVariantDescriptorsForTest(t, variants))
 }
 
+func TestRootResolveBuildVariants_AppliesPartialExclusionSelector(t *testing.T) {
+	assert := assert.New(t)
+
+	rootPath := t.TempDir()
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_exclude", "arch=arm64"), "true")
+
+	root := SafeRootReference{BasePath: rootPath}
+	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
+	assert.Nil(err)
+
+	assert.Equal([]string{
+		"arch=amd64+os=darwin",
+		"arch=amd64+os=linux",
+	}, encodeVariantDescriptorsForTest(t, variants))
+}
+
 func TestRootResolveBuildVariants_RejectsInheritInExclusionSelector(t *testing.T) {
 	assert := assert.New(t)
 
@@ -311,6 +331,26 @@ func TestRootResolveBuildVariants_AppliesInclusions(t *testing.T) {
 
 	assert.Equal([]string{
 		"arch=amd64+os=linux",
+	}, encodeVariantDescriptorsForTest(t, variants))
+}
+
+func TestRootResolveBuildVariants_AppliesPartialInclusionSelector(t *testing.T) {
+	assert := assert.New(t)
+
+	rootPath := t.TempDir()
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_include", "os=darwin"), "true")
+
+	root := SafeRootReference{BasePath: rootPath}
+	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
+	assert.Nil(err)
+
+	assert.Equal([]string{
+		"arch=amd64+os=darwin",
+		"arch=arm64+os=darwin",
 	}, encodeVariantDescriptorsForTest(t, variants))
 }
 
