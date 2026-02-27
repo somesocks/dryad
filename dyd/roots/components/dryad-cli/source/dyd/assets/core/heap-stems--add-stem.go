@@ -5,7 +5,6 @@ import (
 	"dryad/task"
 
 	"errors"
-	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -61,10 +60,15 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 		return nil, &stemRef
 	}
 
-	err = os.MkdirAll(finalStemPath, fs.ModePerm)
+	tempStemPath, err := os.MkdirTemp(
+		heapStemsPath,
+		".tmp-"+stemFingerprint+"-*",
+	)
 	if err != nil {
 		return err, nil
 	}
+	// Best effort cleanup. Crash/power-loss can still leave tmp dirs behind.
+	defer os.RemoveAll(tempStemPath)
 
 	// walk the packed root files and copy them into the garden heap
 	err, _ = StemWalk(
@@ -83,7 +87,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 					return err, nil
 				}
 
-				destPath := filepath.Join(finalStemPath, relPath)
+				destPath := filepath.Join(tempStemPath, relPath)
 
 				// if the file already exists, we hit it on a previous pass through a symlink
 				destExists, err := fileExists(destPath)
@@ -182,7 +186,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 	// rebuild dependency links from the source stem dependencies.
 	// requirements are manifest files and should not be interpreted as stem paths.
 	sourceDependenciesPath := filepath.Join(stemPath, "dyd", "dependencies")
-	dependenciesPath := filepath.Join(finalStemPath, "dyd", "dependencies")
+	dependenciesPath := filepath.Join(tempStemPath, "dyd", "dependencies")
 	dependencies, err := filepath.Glob(filepath.Join(sourceDependenciesPath, "*"))
 	if err != nil {
 		return err, nil
@@ -268,13 +272,44 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 	err, _ = fs2.Walk6(
 		ctx,
 		fs2.Walk6Request{
-			BasePath:    finalStemPath,
-			Path:        finalStemPath,
-			VPath:       finalStemPath,
+			BasePath:    tempStemPath,
+			Path:        tempStemPath,
+			VPath:       tempStemPath,
 			ShouldWalk:  setPermissionsShouldCrawl,
 			OnPostMatch: fs2.ConditionalWalkAction(setPermissionsOnMatch, setPermissionsShouldMatch),
 		},
 	)
+	if err != nil {
+		return err, nil
+	}
+
+	// Keep the temp root writable until publish; some platforms require this
+	// for directory rename.
+	err = os.Chmod(tempStemPath, 0o711)
+	if err != nil {
+		return err, nil
+	}
+
+	// Publish atomically without mutating an already-published CAS entry.
+	err = os.Rename(tempStemPath, finalStemPath)
+	if err != nil {
+		// If another process published this fingerprint first, treat as success.
+		if _, statErr := os.Stat(finalStemPath); statErr == nil {
+			stemRef := SafeHeapStemReference{
+				BasePath: finalStemPath,
+				Stems:    req.HeapStems,
+			}
+
+			return nil, &stemRef
+		} else if !errors.Is(statErr, os.ErrNotExist) {
+			return statErr, nil
+		}
+
+		return err, nil
+	}
+
+	// Lock down the published stem root after successful publish.
+	err = os.Chmod(finalStemPath, 0o511)
 	if err != nil {
 		return err, nil
 	}
