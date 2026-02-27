@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+  TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+  chmod -R 755 "$TEMP_DIR"
+  cd "$TEMP_DIR"
+}
+
+_test() {
+  dryad root build "dyd/roots/root-a" --log-level="$DYD_LOG_LEVEL" > /dev/null
+  fp_a_before=$(cat "$TEMP_DIR/dyd/sprouts/root-a/dyd/fingerprint")
+
+  dryad root build "dyd/roots/root-a" --log-level="$DYD_LOG_LEVEL" > /dev/null
+
+  fp_a_after=$(cat "$TEMP_DIR/dyd/sprouts/root-a/dyd/fingerprint")
+  if [ "$fp_a_before" != "$fp_a_after" ]; then
+    echo "[ERROR] Fail: expected repeated root-a builds to resolve the same sprout fingerprint" 1>&2
+    echo "before=$fp_a_before after=$fp_a_after" 1>&2
+    return 1
+  fi
+}
+
+_verify() {
+  fp_a_path="$TEMP_DIR/dyd/sprouts/root-a/dyd/fingerprint"
+
+  assert_file_exists "$fp_a_path"
+
+  fp_a=$(cat "$fp_a_path")
+  heap_sprout_path="$TEMP_DIR/dyd/heap/sprouts/$fp_a"
+  assert_directory_exists "$heap_sprout_path"
+
+  if find "$TEMP_DIR/dyd/heap/sprouts" -maxdepth 1 -mindepth 1 -type d -name '.tmp-*' | grep -q .; then
+    echo "[ERROR] Fail: expected no temp sprout directories left in heap/sprouts" 1>&2
+    find "$TEMP_DIR/dyd/heap/sprouts" -maxdepth 1 -mindepth 1 -type d -name '.tmp-*' 1>&2
+    return 1
+  fi
+}
+
+_teardown() {
+  if [ -d "$TEMP_DIR" ]; then
+    chmod -R 755 "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+  fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

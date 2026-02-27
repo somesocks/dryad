@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+  TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+  chmod -R 755 "$TEMP_DIR"
+  cd "$TEMP_DIR"
+}
+
+_test() {
+  pids=""
+  for _ in 1 2 3 4 5 6 7 8; do
+    dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" > /dev/null &
+    pids="$pids $!"
+  done
+
+  for pid in $pids; do
+    wait "$pid"
+  done
+}
+
+_verify() {
+  fp_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/fingerprint"
+  assert_file_exists "$fp_path"
+  fp=$(cat "$fp_path")
+
+  heap_sprout_path="$TEMP_DIR/dyd/heap/sprouts/$fp"
+  assert_directory_exists "$heap_sprout_path"
+
+  if find "$TEMP_DIR/dyd/heap/sprouts" -maxdepth 1 -mindepth 1 -type d -name '.tmp-*' | grep -q .; then
+    echo "[ERROR] Fail: expected no temp sprout directories left in heap/sprouts" 1>&2
+    find "$TEMP_DIR/dyd/heap/sprouts" -maxdepth 1 -mindepth 1 -type d -name '.tmp-*' 1>&2
+    return 1
+  fi
+}
+
+_teardown() {
+  if [ -d "$TEMP_DIR" ]; then
+    chmod -R 755 "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+  fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
