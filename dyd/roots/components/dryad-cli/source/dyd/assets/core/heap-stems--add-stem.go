@@ -283,6 +283,13 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 		return err, nil
 	}
 
+	// Keep the temp root writable until publish; some platforms require this
+	// for directory rename.
+	err = os.Chmod(tempStemPath, 0o711)
+	if err != nil {
+		return err, nil
+	}
+
 	// Publish atomically without mutating an already-published CAS entry.
 	err = os.Rename(tempStemPath, finalStemPath)
 	if err != nil {
@@ -298,6 +305,12 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 			return statErr, nil
 		}
 
+		return err, nil
+	}
+
+	// Lock down the published stem root after successful publish.
+	err = os.Chmod(finalStemPath, 0o511)
+	if err != nil {
 		return err, nil
 	}
 
