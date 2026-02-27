@@ -5,7 +5,6 @@ import (
 	"dryad/task"
 
 	"errors"
-	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -50,10 +49,15 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 		return nil, &sproutRef
 	}
 
-	err = os.MkdirAll(finalSproutPath, fs.ModePerm)
+	tempSproutPath, err := os.MkdirTemp(
+		heapSproutsPath,
+		".tmp-"+sproutFingerprint+"-*",
+	)
 	if err != nil {
 		return err, nil
 	}
+	// Best effort cleanup. Crash/power-loss can still leave tmp dirs behind.
+	defer os.RemoveAll(tempSproutPath)
 
 	// walk the packed sprout files and copy them into the garden heap
 	err, _ = StemWalk(
@@ -72,7 +76,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 					return err, nil
 				}
 
-				destPath := filepath.Join(finalSproutPath, relPath)
+				destPath := filepath.Join(tempSproutPath, relPath)
 
 				// if the file already exists, we hit it on a previous pass through a symlink
 				destExists, err := fileExists(destPath)
@@ -140,7 +144,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 
 	// rebuild dependency links from the source sprout dependencies.
 	sourceDependenciesPath := filepath.Join(sproutPath, "dyd", "dependencies")
-	dependenciesPath := filepath.Join(finalSproutPath, "dyd", "dependencies")
+	dependenciesPath := filepath.Join(tempSproutPath, "dyd", "dependencies")
 	dependencies, err := filepath.Glob(filepath.Join(sourceDependenciesPath, "*"))
 	if err != nil {
 		return err, nil
@@ -221,7 +225,26 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 		return nil, nil
 	}
 
-	// now that all files are added, sweep through in a second pass and make directories read-only
+	// Publish atomically without mutating an already-published CAS entry.
+	err = os.Rename(tempSproutPath, finalSproutPath)
+	if err != nil {
+		// If another process published this fingerprint first, treat as success.
+		if _, statErr := os.Stat(finalSproutPath); statErr == nil {
+			sproutRef := SafeHeapSproutReference{
+				BasePath: finalSproutPath,
+				Sprouts:  req.HeapSprouts,
+			}
+
+			return nil, &sproutRef
+		} else if !errors.Is(statErr, os.ErrNotExist) {
+			return statErr, nil
+		}
+
+		return err, nil
+	}
+
+	// now that publish is complete, sweep through in a second pass and
+	// make directories read-only.
 	err, _ = fs2.Walk6(
 		ctx,
 		fs2.Walk6Request{
