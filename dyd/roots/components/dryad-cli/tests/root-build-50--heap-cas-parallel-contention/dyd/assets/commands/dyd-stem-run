@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+  TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+  chmod -R 755 "$TEMP_DIR"
+  cd "$TEMP_DIR"
+}
+
+_inode_of() {
+  local path="$1"
+  if stat -c %i "$path" >/dev/null 2>&1; then
+    stat -c %i "$path"
+  else
+    stat -f %i "$path"
+  fi
+}
+
+_test() {
+  dryad roots build --parallel=8 --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+_verify() {
+  asset_1="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/shared.txt"
+  asset_2="$TEMP_DIR/dyd/sprouts/root-02/dyd/dependencies/stem/dyd/assets/shared.txt"
+  secret_1="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/secrets/shared.txt"
+  secret_2="$TEMP_DIR/dyd/sprouts/root-02/dyd/dependencies/stem/dyd/secrets/shared.txt"
+
+  assert_file_exists "$asset_1"
+  assert_file_exists "$asset_2"
+  assert_file_exists "$secret_1"
+  assert_file_exists "$secret_2"
+
+  asset_inode_1="$(_inode_of "$asset_1")"
+  asset_inode_2="$(_inode_of "$asset_2")"
+  secret_inode_1="$(_inode_of "$secret_1")"
+  secret_inode_2="$(_inode_of "$secret_2")"
+
+  if [ "$asset_inode_1" != "$asset_inode_2" ]; then
+    echo "[ERROR] Fail: expected shared asset content to hardlink to same heap file" 1>&2
+    return 1
+  fi
+
+  if [ "$secret_inode_1" != "$secret_inode_2" ]; then
+    echo "[ERROR] Fail: expected shared secret content to hardlink to same heap file" 1>&2
+    return 1
+  fi
+
+  if find "$TEMP_DIR/dyd/heap/files" -maxdepth 1 -type f -name '.tmp-*' | grep -q .; then
+    echo "[ERROR] Fail: expected no temp files left in heap/files after successful build" 1>&2
+    find "$TEMP_DIR/dyd/heap/files" -maxdepth 1 -type f -name '.tmp-*' 1>&2
+    return 1
+  fi
+
+  if find "$TEMP_DIR/dyd/heap/secrets" -maxdepth 1 -type f -name '.tmp-*' | grep -q .; then
+    echo "[ERROR] Fail: expected no temp files left in heap/secrets after successful build" 1>&2
+    find "$TEMP_DIR/dyd/heap/secrets" -maxdepth 1 -type f -name '.tmp-*' 1>&2
+    return 1
+  fi
+}
+
+_teardown() {
+  if [ -d "$TEMP_DIR" ]; then
+    chmod -R 755 "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+  fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

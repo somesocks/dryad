@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"time"
 
 	"dryad/task"
 
@@ -35,6 +36,21 @@ func heapAddSecretFile(ctx *task.ExecutionContext, req heapAddSecretFileRequest)
 	fingerprint := sourceHashAlgorithm + "-" + sourceHash
 
 	destPath := filepath.Join(heapSecretsPath, fingerprint)
+	now := time.Now()
+
+	// Fast path: if the CAS entry already exists, avoid unnecessary temp writes.
+	if _, err := os.Stat(destPath); err == nil {
+		err = os.Chtimes(destPath, now, now)
+		if err != nil {
+			zlog.Warn().
+				Str("path", destPath).
+				Err(err).
+				Msg("failed to update heap secret timestamps on existing entry")
+		}
+		return nil, fingerprint
+	} else if !errors.Is(err, fs.ErrNotExist) {
+		return err, ""
+	}
 
 	srcFile, err := os.Open(sourcePath)
 	if err != nil {
@@ -42,25 +58,47 @@ func heapAddSecretFile(ctx *task.ExecutionContext, req heapAddSecretFileRequest)
 	}
 	defer srcFile.Close()
 
-	var destFile *os.File
-	destFile, err = os.OpenFile(destPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
+	tempFile, err := os.CreateTemp(
+		heapSecretsPath,
+		".tmp-"+fingerprint+"-*",
+	)
 	if err != nil {
-		// return a success if the file is already in the heap
-		if errors.Is(err, fs.ErrExist) {
-			return nil, fingerprint
-		}
 		return err, ""
 	}
-	defer destFile.Close()
+	tempPath := tempFile.Name()
+	// Best effort cleanup. Crash/power-loss can still leave tmp files behind.
+	defer os.Remove(tempPath)
 
-	_, err = destFile.ReadFrom(srcFile)
+	_, err = tempFile.ReadFrom(srcFile)
 	if err != nil {
 		return err, ""
 	}
 
 	// heap files should be set to R-X--X--X
-	err = destFile.Chmod(0o511)
+	err = tempFile.Chmod(0o511)
 	if err != nil {
+		return err, ""
+	}
+
+	err = tempFile.Close()
+	if err != nil {
+		return err, ""
+	}
+
+	// Publish atomically without overwriting an existing CAS entry.
+	err = os.Link(tempPath, destPath)
+	if err != nil {
+		// return a success if the file is already in the heap
+		if errors.Is(err, fs.ErrExist) {
+			err = os.Chtimes(destPath, now, now)
+			if err != nil {
+				zlog.Warn().
+					Str("path", destPath).
+					Err(err).
+					Msg("failed to update heap secret timestamps on existing entry")
+			}
+			return nil, fingerprint
+		}
 		return err, ""
 	}
 
