@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+  TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+  chmod -R 755 "$TEMP_DIR"
+  cd "$TEMP_DIR"
+}
+
+_test() {
+  dryad root build "dyd/roots/root-a" --log-level="$DYD_LOG_LEVEL" > /dev/null
+  dryad root build "dyd/roots/root-b" --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+_verify() {
+  fp_a_path="$TEMP_DIR/dyd/sprouts/root-a/dyd/dependencies/stem/dyd/fingerprint"
+  fp_b_path="$TEMP_DIR/dyd/sprouts/root-b/dyd/dependencies/stem/dyd/fingerprint"
+
+  assert_file_exists "$fp_a_path"
+  assert_file_exists "$fp_b_path"
+
+  fp_a=$(cat "$fp_a_path")
+  fp_b=$(cat "$fp_b_path")
+  if [ "$fp_a" != "$fp_b" ]; then
+    echo "[ERROR] Fail: expected root-a and root-b to resolve the same stem fingerprint" 1>&2
+    echo "root-a=$fp_a root-b=$fp_b" 1>&2
+    return 1
+  fi
+
+  if find "$TEMP_DIR/dyd/heap/stems" -maxdepth 1 -mindepth 1 -type d -name '.tmp-*' | grep -q .; then
+    echo "[ERROR] Fail: expected no temp stem directories left in heap/stems" 1>&2
+    find "$TEMP_DIR/dyd/heap/stems" -maxdepth 1 -mindepth 1 -type d -name '.tmp-*' 1>&2
+    return 1
+  fi
+}
+
+_teardown() {
+  if [ -d "$TEMP_DIR" ]; then
+    chmod -R 755 "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+  fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
