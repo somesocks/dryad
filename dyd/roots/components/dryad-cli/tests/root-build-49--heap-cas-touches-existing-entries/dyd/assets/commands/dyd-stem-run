@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+  TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+  chmod -R 755 "$TEMP_DIR"
+  cd "$TEMP_DIR"
+}
+
+_inode_of() {
+  local path="$1"
+  if stat -c %i "$path" >/dev/null 2>&1; then
+    stat -c %i "$path"
+  else
+    stat -f %i "$path"
+  fi
+}
+
+_mtime_of() {
+  local path="$1"
+  if stat -c %Y "$path" >/dev/null 2>&1; then
+    stat -c %Y "$path"
+  else
+    stat -f %m "$path"
+  fi
+}
+
+_test() {
+  dryad root build "dyd/roots/root-a" --log-level="$DYD_LOG_LEVEL" > /dev/null
+
+  asset_path="$TEMP_DIR/dyd/sprouts/root-a/dyd/dependencies/stem/dyd/assets/shared.txt"
+  secret_path="$TEMP_DIR/dyd/sprouts/root-a/dyd/dependencies/stem/dyd/secrets/shared.txt"
+
+  assert_file_exists "$asset_path"
+  assert_file_exists "$secret_path"
+
+  asset_inode="$(_inode_of "$asset_path")"
+  secret_inode="$(_inode_of "$secret_path")"
+
+  heap_asset_path=$(find "$TEMP_DIR/dyd/heap/files" -type f -inum "$asset_inode" -print -quit)
+  heap_secret_path=$(find "$TEMP_DIR/dyd/heap/secrets" -type f -inum "$secret_inode" -print -quit)
+
+  if [ -z "$heap_asset_path" ]; then
+    echo "[ERROR] Fail: expected hardlinked heap file for shared asset" 1>&2
+    return 1
+  fi
+  if [ -z "$heap_secret_path" ]; then
+    echo "[ERROR] Fail: expected hardlinked heap file for shared secret" 1>&2
+    return 1
+  fi
+
+  ASSET_MTIME_BEFORE="$(_mtime_of "$heap_asset_path")"
+  SECRET_MTIME_BEFORE="$(_mtime_of "$heap_secret_path")"
+  HEAP_ASSET_PATH="$heap_asset_path"
+  HEAP_SECRET_PATH="$heap_secret_path"
+
+  sleep 2
+
+  dryad root build "dyd/roots/root-b" --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+_verify() {
+  ASSET_MTIME_AFTER="$(_mtime_of "$HEAP_ASSET_PATH")"
+  SECRET_MTIME_AFTER="$(_mtime_of "$HEAP_SECRET_PATH")"
+
+  if [ "$ASSET_MTIME_AFTER" -le "$ASSET_MTIME_BEFORE" ]; then
+    echo "[ERROR] Fail: expected heap asset mtime to increase on CAS hit" 1>&2
+    echo "before=$ASSET_MTIME_BEFORE after=$ASSET_MTIME_AFTER path=$HEAP_ASSET_PATH" 1>&2
+    return 1
+  fi
+
+  if [ "$SECRET_MTIME_AFTER" -le "$SECRET_MTIME_BEFORE" ]; then
+    echo "[ERROR] Fail: expected heap secret mtime to increase on CAS hit" 1>&2
+    echo "before=$SECRET_MTIME_BEFORE after=$SECRET_MTIME_AFTER path=$HEAP_SECRET_PATH" 1>&2
+    return 1
+  fi
+
+  if find "$TEMP_DIR/dyd/heap/files" -maxdepth 1 -type f -name '.tmp-*' | grep -q .; then
+    echo "[ERROR] Fail: expected no temp files left in heap/files after successful build" 1>&2
+    find "$TEMP_DIR/dyd/heap/files" -maxdepth 1 -type f -name '.tmp-*' 1>&2
+    return 1
+  fi
+
+  if find "$TEMP_DIR/dyd/heap/secrets" -maxdepth 1 -type f -name '.tmp-*' | grep -q .; then
+    echo "[ERROR] Fail: expected no temp files left in heap/secrets after successful build" 1>&2
+    find "$TEMP_DIR/dyd/heap/secrets" -maxdepth 1 -type f -name '.tmp-*' 1>&2
+    return 1
+  fi
+}
+
+_teardown() {
+  if [ -d "$TEMP_DIR" ]; then
+    chmod -R 755 "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+  fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
