@@ -1,1 +1,1 @@
-root:../../../../builds/native
+root:../../../../build?arch=host&os=host

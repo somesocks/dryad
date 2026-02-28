@@ -1,1 +1,1 @@
-root:../../../dryad-cli/builds/native
+root:../../../dryad-cli/build?arch=host&os=host

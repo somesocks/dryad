@@ -1,1 +1,1 @@
---include=root.path().contains('components/dryad-cli/builds/native') --include=root.path().contains('components/dryad-cli/tests')
+--include=root.path().contains('components/dryad-cli/build') --include=root.path().contains('components/dryad-cli/tests')

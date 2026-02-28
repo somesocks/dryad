@@ -21,8 +21,8 @@ _setup_logging () {
 }
 
 _build_package () {
-	OS="$DYD_OS"
-	ARCH="$DYD_ARCH"
+	OS="$(cat "$SRC_PACKAGE"/dyd/traits/os)"
+	ARCH="$(cat "$SRC_PACKAGE"/dyd/traits/arch)"
 	VERSION="$(cat $SRC_PACKAGE/dyd/dependencies/src/dyd/traits/version)"
 	FINGERPRINT="$(cat $SRC_PACKAGE/dyd/dependencies/src/dyd/fingerprint)"
 
