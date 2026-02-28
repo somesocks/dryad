@@ -73,7 +73,7 @@ func gardenCreateHeapDerivations(
 	ctx *task.ExecutionContext,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
-	path := filepath.Join(req.BasePath, "dyd", "heap", "derivations")
+	path := filepath.Join(req.BasePath, "dyd", "heap", "derivations", "roots")
 	err := os.MkdirAll(path, os.ModePerm)
 	return err, req
 }
