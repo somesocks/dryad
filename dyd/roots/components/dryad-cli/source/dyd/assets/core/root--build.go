@@ -295,6 +295,61 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 		return fmt.Errorf("error generating root fingerprint: %w", err), ""
 	}
 
+	err = checkTypeFileWhitespace(
+		filepath.Join(rootPath, "dyd", "type"),
+		filepath.Join("dyd", "roots", relRootPath, "dyd", "type"),
+		SentinelRoot.String(),
+	)
+	if err != nil {
+		return err, ""
+	}
+
+	isUnstableRoot, err := fileExists(
+		filepath.Join(workspacePath, "dyd", "traits", "unstable"),
+	)
+	if err != nil {
+		return err, ""
+	}
+
+	var heapDerivations *SafeHeapDerivationsReference
+	if !isUnstableRoot {
+		err, heap := req.Root.Roots.Garden.Heap().Resolve(ctx)
+		if err != nil {
+			return err, ""
+		}
+
+		err, heapDerivations = heap.Derivations().Resolve(ctx)
+		if err != nil {
+			return err, ""
+		}
+
+		unsafeDerivationRef := heapDerivations.Derivation(rootFingerprint)
+
+		err, derivationExists := unsafeDerivationRef.Exists(ctx)
+		if err != nil {
+			return err, ""
+		}
+
+		if derivationExists {
+			err, safeDerivationRef := unsafeDerivationRef.Resolve(ctx)
+			if err == nil {
+				derivationsFingerprint := filepath.Base(safeDerivationRef.Result.BasePath)
+				return nil, derivationsFingerprint
+			}
+
+			// Treat invalid derivation cache entries as misses.
+			removeErr, _ := dydfs.Remove(task.SERIAL_CONTEXT, unsafeDerivationRef.BasePath)
+			if removeErr != nil && !os.IsNotExist(removeErr) {
+				return removeErr, ""
+			}
+		}
+	}
+
+	zlog.Info().
+		Str("path", gardenRootPath).
+		Str("variant", variantLabel).
+		Msg("root build - building root")
+
 	err, rootStem := rootBuild_stage4(
 		ctx,
 		rootBuild_stage4_request{
@@ -306,48 +361,6 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 	if err != nil {
 		return fmt.Errorf("error packing root into heap: %w", err), ""
 	}
-
-	isUnstableRoot, err := fileExists(
-		filepath.Join(rootStem.BasePath, "dyd", "traits", "unstable"),
-	)
-	if err != nil {
-		return err, ""
-	}
-
-	err, heap := req.Root.Roots.Garden.Heap().Resolve(ctx)
-	if err != nil {
-		return err, ""
-	}
-
-	err, heapDerivations := heap.Derivations().Resolve(ctx)
-	if err != nil {
-		return err, ""
-	}
-
-	unsafeDerivationRef := heapDerivations.Derivation(rootFingerprint)
-	derivationExists := false
-
-	if !isUnstableRoot {
-		err, derivationExists = unsafeDerivationRef.Exists(ctx)
-		if err != nil {
-			return err, ""
-		}
-	}
-
-	if derivationExists {
-		err, safeDerivationRef := unsafeDerivationRef.Resolve(ctx)
-		if err != nil {
-			return err, ""
-		}
-
-		derivationsFingerprint := filepath.Base(safeDerivationRef.Result.BasePath)
-		return nil, derivationsFingerprint
-	}
-
-	zlog.Info().
-		Str("path", gardenRootPath).
-		Str("variant", variantLabel).
-		Msg("root build - building root")
 
 	stemBuildPath, err := os.MkdirTemp("", "dryad-*")
 	if err != nil {
@@ -385,7 +398,7 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 		return fmt.Errorf("error packing stem into heap: %w", err), ""
 	}
 
-	if !isUnstableRoot {
+	if !isUnstableRoot && heapDerivations != nil {
 		err, _ = heapDerivations.Add(
 			ctx,
 			rootFingerprint,

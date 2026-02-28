@@ -1,4 +1,3 @@
-
 package core
 
 import (
@@ -6,12 +5,11 @@ import (
 	"dryad/task"
 
 	"os"
-
+	"path/filepath"
 	// zlog "github.com/rs/zerolog/log"
 )
 
-
-func (heapDerivations *UnsafeHeapDerivationsReference) Resolve(ctx * task.ExecutionContext) (error, *SafeHeapDerivationsReference) {
+func (heapDerivations *UnsafeHeapDerivationsReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapDerivationsReference) {
 	var heapDerivationsExists bool
 	var err error
 	var safeRef SafeHeapDerivationsReference
@@ -22,7 +20,6 @@ func (heapDerivations *UnsafeHeapDerivationsReference) Resolve(ctx * task.Execut
 	}
 
 	if !heapDerivationsExists {
-		// err = os.Mkdir(heapDerivations.BasePath, os.ModePerm)
 		err, _ := fs2.Mkdir2(
 			ctx,
 			fs2.MkdirRequest{
@@ -35,10 +32,22 @@ func (heapDerivations *UnsafeHeapDerivationsReference) Resolve(ctx * task.Execut
 		}
 	}
 
-	safeRef = SafeHeapDerivationsReference{
-		BasePath: heapDerivations.BasePath,
-		Heap: heapDerivations.Heap,
+	err, _ = fs2.Mkdir2(
+		ctx,
+		fs2.MkdirRequest{
+			Path:      filepath.Join(heapDerivations.BasePath, "roots"),
+			Mode:      os.ModePerm,
+			Recursive: true,
+		},
+	)
+	if err != nil {
+		return err, nil
 	}
 
-	return nil, &safeRef 
+	safeRef = SafeHeapDerivationsReference{
+		BasePath: heapDerivations.BasePath,
+		Heap:     heapDerivations.Heap,
+	}
+
+	return nil, &safeRef
 }

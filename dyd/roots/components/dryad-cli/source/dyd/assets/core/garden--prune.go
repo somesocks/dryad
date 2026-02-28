@@ -24,8 +24,8 @@ var REGEX_GARDEN_PRUNE_SPROUTS_MATCH = regexp.MustCompile(`^(sprouts/.*)$`)
 var REGEX_GARDEN_PRUNE_FILES_CRAWL = regexp.MustCompile(`^((\.)|(files))$`)
 var REGEX_GARDEN_PRUNE_FIlES_MATCH = regexp.MustCompile(`^(files/.*)$`)
 
-var REGEX_GARDEN_PRUNE_DERIVATIONS_CRAWL = regexp.MustCompile(`^((\.)|(derivations))$`)
-var REGEX_GARDEN_PRUNE_DERIVATIONS_MATCH = regexp.MustCompile(`^(derivations/.*)$`)
+var REGEX_GARDEN_PRUNE_DERIVATIONS_CRAWL = regexp.MustCompile(`^((\.)|(derivations)|(derivations/roots))$`)
+var REGEX_GARDEN_PRUNE_DERIVATIONS_MATCH = regexp.MustCompile(`^(derivations/roots/.*)$`)
 
 type gardenPruneRequest struct {
 	Garden   *SafeGardenReference
@@ -326,21 +326,46 @@ var gardenPrune_sweepDerivations = func(ctx *task.ExecutionContext, req gardenPr
 			return relErr, false
 		}
 		matchesPath := REGEX_GARDEN_PRUNE_DERIVATIONS_MATCH.Match([]byte(relPath))
-
-		_, err := os.Stat(node.Path)
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return err, false
+		if !matchesPath {
+			return nil, false
 		}
 
-		isBroken := err != nil
+		// Avoid racing with freshly-written entries from concurrent builds.
+		if !node.Info.ModTime().Before(req.Snapshot) {
+			return nil, false
+		}
 
-		shouldMatch := matchesPath && isBroken
-		return nil, shouldMatch
+		// Prune non-file entries from the roots derivations namespace.
+		if node.Info.IsDir() || !node.Info.Mode().IsRegular() {
+			return nil, true
+		}
+
+		resultFingerprintBytes, err := os.ReadFile(node.Path)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return nil, false
+			}
+			return nil, true
+		}
+		resultFingerprint := strings.TrimSpace(string(resultFingerprintBytes))
+		if resultFingerprint == "" {
+			return nil, true
+		}
+
+		resultStemPath := filepath.Join(heapPath, "stems", resultFingerprint)
+		_, err = os.Stat(resultStemPath)
+		if err == nil {
+			return nil, false
+		}
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, true
+		}
+		return err, false
 	}
 
 	sweepDerivation := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
 		sweepDerivationStatsCount += 1
-		return os.Remove(node.Path), nil
+		return os.RemoveAll(node.Path), nil
 	}
 
 	sweepDerivation = dydfs.ConditionalWalkAction(sweepDerivation, sweepDerivationsShouldMatch)

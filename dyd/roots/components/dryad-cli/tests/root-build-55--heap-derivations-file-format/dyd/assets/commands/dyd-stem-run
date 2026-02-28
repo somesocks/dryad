@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+DERIVATION_PATH=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+  TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+  chmod -R 755 "$TEMP_DIR"
+  cd "$TEMP_DIR"
+}
+
+_test() {
+  dryad root build "dyd/roots/root-a" --log-level="$DYD_LOG_LEVEL" > /dev/null
+
+  derivation_path=$(find "$TEMP_DIR/dyd/heap/derivations/roots" -maxdepth 1 -mindepth 1 -type f 2>/dev/null | head -n 1 || true)
+  if [ -z "$derivation_path" ]; then
+    echo "[ERROR] Fail: expected derivation file under heap/derivations/roots" 1>&2
+    return 1
+  fi
+  DERIVATION_PATH="$derivation_path"
+
+  dryad root build "dyd/roots/root-a" --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+_verify() {
+  assert_file_exists "$DERIVATION_PATH"
+
+  if [ -L "$DERIVATION_PATH" ]; then
+    echo "[ERROR] Fail: expected derivation entry to be a regular file, not symlink" 1>&2
+    echo "path=$DERIVATION_PATH" 1>&2
+    return 1
+  fi
+
+  source_fp=$(basename "$DERIVATION_PATH")
+  if [ -z "$source_fp" ]; then
+    echo "[ERROR] Fail: expected non-empty derivation source fingerprint filename" 1>&2
+    return 1
+  fi
+
+  result_fp=$(cat "$DERIVATION_PATH")
+  if [ -z "$result_fp" ]; then
+    echo "[ERROR] Fail: expected non-empty result fingerprint in derivation file" 1>&2
+    return 1
+  fi
+
+  assert_directory_exists "$TEMP_DIR/dyd/heap/stems/$result_fp"
+
+  if find "$TEMP_DIR/dyd/heap/derivations/roots" -maxdepth 1 -type f -name '.tmp-*' | grep -q .; then
+    echo "[ERROR] Fail: expected no temp files left in heap/derivations/roots" 1>&2
+    find "$TEMP_DIR/dyd/heap/derivations/roots" -maxdepth 1 -type f -name '.tmp-*' 1>&2
+    return 1
+  fi
+
+  if find "$TEMP_DIR/dyd/heap/derivations/roots" -maxdepth 1 -mindepth 1 -type l | grep -q .; then
+    echo "[ERROR] Fail: expected no symlink entries in heap/derivations/roots" 1>&2
+    find "$TEMP_DIR/dyd/heap/derivations/roots" -maxdepth 1 -mindepth 1 -type l 1>&2
+    return 1
+  fi
+}
+
+_teardown() {
+  if [ -d "$TEMP_DIR" ]; then
+    chmod -R 755 "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+  fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

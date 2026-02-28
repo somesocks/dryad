@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+DERIVATION_PATH=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+  TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+  chmod -R 755 "$TEMP_DIR"
+  cd "$TEMP_DIR"
+}
+
+_test() {
+  dryad root build "dyd/roots/root-a" --log-level="$DYD_LOG_LEVEL"
+
+  derivation_path=$(find "$TEMP_DIR/dyd/heap/derivations/roots" -maxdepth 1 -mindepth 1 -type f 2>/dev/null | head -n 1 || true)
+  if [ -z "$derivation_path" ]; then
+    echo "[ERROR] Fail: expected derivation file under heap/derivations/roots" 1>&2
+    return 1
+  fi
+  DERIVATION_PATH="$derivation_path"
+
+  printf %s "dyd-v1-missing-stem-fingerprint" > "$DERIVATION_PATH"
+  touch -t 200001010000 "$DERIVATION_PATH"
+
+  dryad garden prune --log-level="$DYD_LOG_LEVEL"
+}
+
+_verify() {
+  if [ -e "$DERIVATION_PATH" ]; then
+    echo "[ERROR] Fail: expected stale derivation entry to be removed by prune" 1>&2
+    echo "path=$DERIVATION_PATH" 1>&2
+    return 1
+  fi
+}
+
+_teardown() {
+  if [ -d "$TEMP_DIR" ]; then
+    chmod -R 755 "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+  fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
