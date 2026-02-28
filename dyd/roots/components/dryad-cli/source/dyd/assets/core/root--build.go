@@ -3,6 +3,7 @@ package core
 import (
 	dydfs "dryad/filesystem"
 	"dryad/task"
+	"errors"
 
 	"fmt"
 
@@ -325,24 +326,15 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 
 		unsafeDerivationRef := heapDerivations.Derivation(rootFingerprint)
 
-		err, derivationExists := unsafeDerivationRef.Exists(ctx)
-		if err != nil {
+		err, safeDerivationRef := unsafeDerivationRef.Resolve(ctx)
+		if err == nil {
+			derivationsFingerprint := filepath.Base(safeDerivationRef.Result.BasePath)
+			return nil, derivationsFingerprint
+		}
+		if !errors.Is(err, ErrUnresolvableHeapDerivation) {
 			return err, ""
 		}
 
-		if derivationExists {
-			err, safeDerivationRef := unsafeDerivationRef.Resolve(ctx)
-			if err == nil {
-				derivationsFingerprint := filepath.Base(safeDerivationRef.Result.BasePath)
-				return nil, derivationsFingerprint
-			}
-
-			// Treat invalid derivation cache entries as misses.
-			removeErr, _ := dydfs.Remove(task.SERIAL_CONTEXT, unsafeDerivationRef.BasePath)
-			if removeErr != nil && !os.IsNotExist(removeErr) {
-				return removeErr, ""
-			}
-		}
 	}
 
 	zlog.Info().

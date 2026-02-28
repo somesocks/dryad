@@ -12,6 +12,8 @@ import (
 	// zlog "github.com/rs/zerolog/log"
 )
 
+var ErrUnresolvableHeapDerivation = errors.New("unable to resolve derivation")
+
 func (heapDerivation *UnsafeHeapDerivationReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapDerivationReference) {
 	var err error
 	var safeRef SafeHeapDerivationReference
@@ -19,12 +21,12 @@ func (heapDerivation *UnsafeHeapDerivationReference) Resolve(ctx *task.Execution
 	info, err := os.Lstat(heapDerivation.BasePath)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return errors.New("unable to resolve derivation"), nil
+			return ErrUnresolvableHeapDerivation, nil
 		}
 		return err, nil
 	}
 	if !info.Mode().IsRegular() {
-		return errors.New("unable to resolve derivation"), nil
+		return ErrUnresolvableHeapDerivation, nil
 	}
 
 	heapStems := &SafeHeapStemsReference{
@@ -40,14 +42,14 @@ func (heapDerivation *UnsafeHeapDerivationReference) Resolve(ctx *task.Execution
 	}
 	resultFingerprint := strings.TrimSpace(string(resultFingerprintBytes))
 	if resultFingerprint == "" {
-		return errors.New("unable to resolve derivation"), nil
+		return ErrUnresolvableHeapDerivation, nil
 	}
 
 	resultStemPath := filepath.Join(heapDerivation.Derivations.Heap.BasePath, "stems", resultFingerprint)
 	_, err = os.Stat(resultStemPath)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return errors.New("unable to resolve derivation"), nil
+			return ErrUnresolvableHeapDerivation, nil
 		}
 		return err, nil
 	}
