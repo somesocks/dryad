@@ -15,6 +15,7 @@ _SET_GLOBALS () {
 
 	OS="$(cat "$SRC_PACKAGE/dyd/traits/os")"
 	ARCH="$(cat "$SRC_PACKAGE/dyd/traits/arch")"
+	VERSION="$(cat "$SRC_PACKAGE/dyd/traits/version")"
 	PLATFORM="$OS-$ARCH"
 
 	case $DYD_LOG_LEVEL in
@@ -30,20 +31,21 @@ _SET_GLOBALS () {
 }
 
 _BUILD_PACKAGE () {
-	SOURCE_FILE="$SRC_PACKAGE/dyd/assets/$PLATFORM.source"
+	SOURCE_FILE="$SRC_PACKAGE/dyd/assets/$VERSION/$PLATFORM.source"
 	if [ ! -f "$SOURCE_FILE" ]; then
-		echo "unsupported platform $PLATFORM"
+		echo "unsupported platform $PLATFORM for version $VERSION"
 		exit 1
 	fi
 
 	BUILD="$(cat "$SOURCE_FILE")"
 
 	if [ -z "$BUILD" ]; then
-		echo "unsupported platform $PLATFORM"
+		echo "unsupported platform $PLATFORM for version $VERSION"
 		exit 1
 	fi
 
 	printf %s "caddy" > "$DEST_PACKAGE/dyd/traits/name"
+	printf %s "$VERSION" > "$DEST_PACKAGE/dyd/traits/version"
 	printf %s "$BUILD" > "$DEST_PACKAGE/dyd/traits/source"
 
 	# download the binary as the main

@@ -1,1 +1,1 @@
-root:../../../../../tools/go?arch=host&os=host
+root:../../../../../tools/go?arch=host&os=host&version=1.23.5

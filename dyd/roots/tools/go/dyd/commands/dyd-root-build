@@ -14,21 +14,23 @@ DEST_DIR="$1"
 
 OS="$(cat "$SRC_DIR/dyd/traits/os")"
 ARCH="$(cat "$SRC_DIR/dyd/traits/arch")"
+VERSION="$(cat "$SRC_DIR/dyd/traits/version")"
 SYSTEM="$OS-$ARCH"
 
-SOURCE_FILE="$SRC_DIR/dyd/assets/$SYSTEM.source"
+SOURCE_FILE="$SRC_DIR/dyd/assets/$VERSION/$SYSTEM.source"
 if [ ! -f "$SOURCE_FILE" ]; then
-	echo "unsupported system $SYSTEM"
+	echo "unsupported system $SYSTEM for version $VERSION"
 	exit 1
 fi
 
 BUILD="$(cat "$SOURCE_FILE")"
 if [ -z "$BUILD" ]; then
-	echo "unsupported system $SYSTEM"
+	echo "unsupported system $SYSTEM for version $VERSION"
 	exit 1
 fi
 
 printf %s "go" > "$DEST_DIR/dyd/traits/name"
+printf %s "$VERSION" > "$DEST_DIR/dyd/traits/version"
 printf %s "$BUILD" > "$DEST_DIR/dyd/traits/source"
 
 # download the binary as the main
