@@ -13,30 +13,23 @@ import (
 )
 
 func (heapDerivation *UnsafeHeapDerivationReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapDerivationReference) {
-	var heapDerivationExists bool
 	var err error
 	var safeRef SafeHeapDerivationReference
 
-	heapDerivationExists, err = fileExists(heapDerivation.BasePath)
-	if err != nil {
-		return err, nil
-	}
-
-	if !heapDerivationExists {
-		return errors.New("unable to resolve derivation"), nil
-	}
-
 	info, err := os.Lstat(heapDerivation.BasePath)
 	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return errors.New("unable to resolve derivation"), nil
+		}
 		return err, nil
 	}
 	if !info.Mode().IsRegular() {
 		return errors.New("unable to resolve derivation"), nil
 	}
 
-	err, heapStems := heapDerivation.Derivations.Heap.Stems().Resolve(ctx)
-	if err != nil {
-		return err, nil
+	heapStems := &SafeHeapStemsReference{
+		BasePath: filepath.Join(heapDerivation.Derivations.Heap.BasePath, "stems"),
+		Heap:     heapDerivation.Derivations.Heap,
 	}
 
 	sourceStem := heapStems.Stem(filepath.Base(heapDerivation.BasePath))
