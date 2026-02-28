@@ -1,1 +1,1 @@
---include=root.path().contains('components/dryad-docs-site') --include=root.path().contains('tools/caddy')
+--include=root.path().contains('components/dryad-docs-site') --include=root.path().contains('tools/caddy') --variant=arch=host+os=host

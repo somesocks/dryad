@@ -19,6 +19,7 @@ _OPEN_DOCS () {
 
     dryad sprout run \
         "$DYD_GARDEN/dyd/sprouts/tools/caddy" \
+        --variant="arch=host+os=host" \
         -- \
             file-server \
             --root "$DYD_GARDEN/dyd/sprouts/components/dryad-docs-site/dyd/assets/site" \

@@ -1,1 +1,1 @@
-root:../../../../tools/hugo
+root:../../../../tools/hugo?arch=host&os=host

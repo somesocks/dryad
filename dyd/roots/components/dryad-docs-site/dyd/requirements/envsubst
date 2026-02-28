@@ -1,1 +1,1 @@
-root:../../../../tools/envsubst
+root:../../../../tools/envsubst?arch=host&os=host

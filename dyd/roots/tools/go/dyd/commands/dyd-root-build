@@ -2,7 +2,7 @@
 
 #
 # turn this on to debug script
-set -x
+# set -x
 
 #
 # abort on error
@@ -12,26 +12,21 @@ set -euf -o pipefail
 SRC_DIR=$DYD_STEM
 DEST_DIR="$1"
 
-SYSTEM="$DYD_OS-$DYD_ARCH"
+OS="$(cat "$SRC_DIR/dyd/traits/os")"
+ARCH="$(cat "$SRC_DIR/dyd/traits/arch")"
+SYSTEM="$OS-$ARCH"
 
-case "$SYSTEM" in
-	'darwin-amd64' )
-		BUILD='https://go.dev/dl/go1.23.5.darwin-amd64.tar.gz'
-		;;
-	'darwin-arm64' )
-		BUILD='https://go.dev/dl/go1.23.5.darwin-arm64.tar.gz'
-		;;
-	'linux-amd64' )
-		BUILD='https://go.dev/dl/go1.23.5.linux-amd64.tar.gz'
-		;;
-	'linux-arm64' )
-		BUILD='https://go.dev/dl/go1.23.5.linux-arm64.tar.gz'
-		;;
-	* )
-		echo "unsupported system $SYSTEM"
-		exit 1
-		::
-esac
+SOURCE_FILE="$SRC_DIR/dyd/assets/$SYSTEM.source"
+if [ ! -f "$SOURCE_FILE" ]; then
+	echo "unsupported system $SYSTEM"
+	exit 1
+fi
+
+BUILD="$(cat "$SOURCE_FILE")"
+if [ -z "$BUILD" ]; then
+	echo "unsupported system $SYSTEM"
+	exit 1
+fi
 
 printf %s "go" > "$DEST_DIR/dyd/traits/name"
 printf %s "$BUILD" > "$DEST_DIR/dyd/traits/source"

@@ -13,7 +13,9 @@ _SET_GLOBALS () {
 	SRC_PACKAGE=$DYD_STEM
 	DEST_PACKAGE=$1
 
-	PLATFORM="$DYD_OS-$DYD_ARCH"
+	OS="$(cat "$SRC_PACKAGE/dyd/traits/os")"
+	ARCH="$(cat "$SRC_PACKAGE/dyd/traits/arch")"
+	PLATFORM="$OS-$ARCH"
 
 	case $DYD_LOG_LEVEL in
 		"debug" | "trace" )
@@ -28,7 +30,13 @@ _SET_GLOBALS () {
 }
 
 _BUILD_PACKAGE () {
-	BUILD="$(cat $SRC_PACKAGE/dyd/assets/$PLATFORM.source)"
+	SOURCE_FILE="$SRC_PACKAGE/dyd/assets/$PLATFORM.source"
+	if [ ! -f "$SOURCE_FILE" ]; then
+		echo "unsupported platform $PLATFORM"
+		exit 1
+	fi
+
+	BUILD="$(cat "$SOURCE_FILE")"
 
 	if [ -z "$BUILD" ]; then
 		echo "unsupported platform $PLATFORM"
