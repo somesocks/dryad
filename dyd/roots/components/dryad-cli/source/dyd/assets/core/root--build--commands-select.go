@@ -7,18 +7,18 @@ import (
 	"strings"
 )
 
-type rootBuildAssetsSelector struct {
+type rootBuildCommandsSelector struct {
 	Name       string
 	Path       string
 	Descriptor VariantDescriptor
 }
 
-func rootBuild_readAssetsSelectors(rootPath string) (error, []rootBuildAssetsSelector) {
-	err, assetsSelectors, _ := rootBuild_readAssetsAndCommandsSelectors(rootPath)
-	return err, assetsSelectors
+func rootBuild_readCommandsSelectors(rootPath string) (error, []rootBuildCommandsSelector) {
+	err, _, commandsSelectors := rootBuild_readAssetsAndCommandsSelectors(rootPath)
+	return err, commandsSelectors
 }
 
-func rootBuild_assetsSelectorMatchesVariant(
+func rootBuild_commandsSelectorMatchesVariant(
 	dimensions []VariantDimension,
 	selector VariantDescriptor,
 	concreteVariant VariantDescriptor,
@@ -34,7 +34,7 @@ func rootBuild_assetsSelectorMatchesVariant(
 	for selectorDimension := range selector {
 		_, exists := dimensionsByName[selectorDimension]
 		if !exists {
-			return fmt.Errorf("over-specified assets variant dimension: %s", selectorDimension), false
+			return fmt.Errorf("over-specified commands variant dimension: %s", selectorDimension), false
 		}
 	}
 
@@ -47,7 +47,7 @@ func rootBuild_assetsSelectorMatchesVariant(
 		err, choices := rootVariantFilterResolveChoicesForDimension(
 			dimensionsByName[dimensionName],
 			requestedOption,
-			"assets",
+			"commands",
 		)
 		if err != nil {
 			return err, false
@@ -78,15 +78,15 @@ func rootBuild_assetsSelectorMatchesVariant(
 	return nil, true
 }
 
-func rootBuild_selectAssetsPathFromSelectors(
+func rootBuild_selectCommandsPathFromSelectors(
 	dimensions []VariantDimension,
 	concreteVariant VariantDescriptor,
 	variantDescriptor string,
-	selectors []rootBuildAssetsSelector,
+	selectors []rootBuildCommandsSelector,
 ) (error, string) {
-	matchingSelectors := make([]rootBuildAssetsSelector, 0)
+	matchingSelectors := make([]rootBuildCommandsSelector, 0)
 	for _, selector := range selectors {
-		err, matchesVariant := rootBuild_assetsSelectorMatchesVariant(
+		err, matchesVariant := rootBuild_commandsSelectorMatchesVariant(
 			dimensions,
 			selector.Descriptor,
 			concreteVariant,
@@ -112,7 +112,7 @@ func rootBuild_selectAssetsPathFromSelectors(
 		}
 		sort.Strings(selectorNames)
 		return fmt.Errorf(
-			"multiple matching dyd/assets selectors for variant %s: %s",
+			"multiple matching dyd/commands selectors for variant %s: %s",
 			rootBuildLogVariantLabel(variantDescriptor),
 			strings.Join(selectorNames, ", "),
 		), ""
@@ -121,7 +121,7 @@ func rootBuild_selectAssetsPathFromSelectors(
 	return nil, matchingSelectors[0].Path
 }
 
-func rootBuild_selectAssetsPath(
+func rootBuild_selectCommandsPath(
 	ctx *task.ExecutionContext,
 	rootPath string,
 	variantDescriptor string,
@@ -137,12 +137,12 @@ func rootBuild_selectAssetsPath(
 		return err, ""
 	}
 
-	err, selectors := rootBuild_readAssetsSelectors(rootPath)
+	err, selectors := rootBuild_readCommandsSelectors(rootPath)
 	if err != nil {
 		return err, ""
 	}
 
-	return rootBuild_selectAssetsPathFromSelectors(
+	return rootBuild_selectCommandsPathFromSelectors(
 		dimensions,
 		variantContext.Descriptor,
 		variantDescriptor,
