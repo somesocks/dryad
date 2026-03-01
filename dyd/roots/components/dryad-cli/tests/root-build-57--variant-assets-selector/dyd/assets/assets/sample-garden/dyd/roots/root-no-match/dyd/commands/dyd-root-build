@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+DEST_DIR=$DYD_BUILD
+
+mkdir -p "$DEST_DIR/dyd/assets"
+if [ -f "$SRC_DIR/dyd/assets/value.txt" ]; then
+  cp "$SRC_DIR/dyd/assets/value.txt" "$DEST_DIR/dyd/assets/value.txt"
+else
+  printf 'missing' > "$DEST_DIR/dyd/assets/value.txt"
+fi

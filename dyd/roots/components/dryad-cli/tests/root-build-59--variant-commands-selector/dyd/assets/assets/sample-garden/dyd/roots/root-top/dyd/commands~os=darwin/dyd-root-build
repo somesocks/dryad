@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-set -euf -o pipefail
-
-DEST_DIR=$DYD_BUILD
-
-mkdir -p "$DEST_DIR/dyd/assets"
-printf 'darwin' > "$DEST_DIR/dyd/assets/value.txt"
