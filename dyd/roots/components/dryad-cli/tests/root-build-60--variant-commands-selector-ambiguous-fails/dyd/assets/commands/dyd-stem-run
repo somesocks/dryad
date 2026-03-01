@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	log_path="$TEMP_DIR/build.log"
+	if dryad root build "dyd/roots/root-top" --variant="os=linux" --log-level="$DYD_LOG_LEVEL" >"$log_path" 2>&1; then
+		echo "[ERROR] Fail: expected build to fail for ambiguous dyd/commands selectors" 1>&2
+		cat "$log_path" 1>&2
+		return 1
+	fi
+
+	if ! grep -Fq "multiple matching dyd/commands selectors" "$log_path"; then
+		echo "[ERROR] Fail: expected ambiguous commands selector failure message" 1>&2
+		cat "$log_path" 1>&2
+		return 1
+	fi
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test

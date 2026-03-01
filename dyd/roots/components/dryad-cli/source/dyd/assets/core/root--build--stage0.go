@@ -13,9 +13,11 @@ import (
 )
 
 type rootBuild_stage0_request struct {
-	RootPath          string
-	WorkspacePath     string
-	VariantDescriptor string
+	RootPath             string
+	WorkspacePath        string
+	VariantDescriptor    string
+	SelectedAssetsPath   string
+	SelectedCommandsPath string
 }
 
 // stage 0 - build a shallow partial clone of the root into a working directory,
@@ -28,6 +30,18 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 
 		zlog.Trace().
 			Msg("RootBuild/stage0/prepReq")
+
+		err, selectedAssetsPath, selectedCommandsPath := rootBuild_selectAssetsAndCommandsPaths(
+			ctx,
+			req.RootPath,
+			req.VariantDescriptor,
+		)
+		if err != nil {
+			return err, req
+		}
+
+		req.SelectedAssetsPath = selectedAssetsPath
+		req.SelectedCommandsPath = selectedCommandsPath
 
 		return nil, req
 	}
@@ -47,20 +61,12 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		zlog.Trace().
 			Msg("RootBuild/stage0/linkAssetsDir")
 
-		err, assetsPath := rootBuild_selectAssetsPath(
-			ctx,
-			req.RootPath,
-			req.VariantDescriptor,
-		)
-		if err != nil {
-			return err, req
-		}
-		if assetsPath == "" {
+		if req.SelectedAssetsPath == "" {
 			return nil, req
 		}
 
-		err = os.Symlink(
-			assetsPath,
+		err := os.Symlink(
+			req.SelectedAssetsPath,
 			filepath.Join(req.WorkspacePath, "dyd", "assets"),
 		)
 		if err != nil {
@@ -74,18 +80,16 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		zlog.Trace().
 			Msg("RootBuild/stage0/linkCommandsDir")
 
-		exists, err := fileExists(filepath.Join(req.RootPath, "dyd", "commands"))
+		if req.SelectedCommandsPath == "" {
+			return nil, req
+		}
+
+		err := os.Symlink(
+			req.SelectedCommandsPath,
+			filepath.Join(req.WorkspacePath, "dyd", "commands"),
+		)
 		if err != nil {
 			return err, req
-		}
-		if exists {
-			err = os.Symlink(
-				filepath.Join(req.RootPath, "dyd", "commands"),
-				filepath.Join(req.WorkspacePath, "dyd", "commands"),
-			)
-			if err != nil {
-				return err, req
-			}
 		}
 
 		return nil, req
