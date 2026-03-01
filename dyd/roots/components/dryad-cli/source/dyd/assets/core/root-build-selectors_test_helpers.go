@@ -7,7 +7,7 @@ func rootBuild_selectAssetsPathForTest(
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
-	err, assetsPath, _, _ := rootBuild_selectAssetsAndCommandsAndSecretsPaths(
+	err, assetsPath, _, _, _ := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsPaths(
 		ctx,
 		rootPath,
 		variantDescriptor,
@@ -20,7 +20,7 @@ func rootBuild_selectCommandsPathForTest(
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
-	err, _, commandsPath, _ := rootBuild_selectAssetsAndCommandsAndSecretsPaths(
+	err, _, commandsPath, _, _ := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsPaths(
 		ctx,
 		rootPath,
 		variantDescriptor,
@@ -33,10 +33,23 @@ func rootBuild_selectSecretsPathForTest(
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
-	err, _, _, secretsPath := rootBuild_selectAssetsAndCommandsAndSecretsPaths(
+	err, _, _, secretsPath, _ := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsPaths(
 		ctx,
 		rootPath,
 		variantDescriptor,
 	)
 	return err, secretsPath
+}
+
+func rootBuild_selectDocsPathForTest(
+	ctx *task.ExecutionContext,
+	rootPath string,
+	variantDescriptor string,
+) (error, string) {
+	err, _, _, _, docsPath := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsPaths(
+		ctx,
+		rootPath,
+		variantDescriptor,
+	)
+	return err, docsPath
 }

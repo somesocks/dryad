@@ -172,20 +172,20 @@ func rootBuild_considerSelectorMatch(
 	return nil
 }
 
-func rootBuild_selectAssetsAndCommandsAndSecretsPaths(
+func rootBuild_selectAssetsAndCommandsAndSecretsAndDocsPaths(
 	ctx *task.ExecutionContext,
 	rootPath string,
 	variantDescriptor string,
-) (error, string, string, string) {
+) (error, string, string, string, string) {
 	err, variantContext := RootVariantContextFromFilesystem(variantDescriptor)
 	if err != nil {
-		return err, "", "", ""
+		return err, "", "", "", ""
 	}
 
 	rootRef := SafeRootReference{BasePath: rootPath}
 	err, dimensions := rootRef.VariantDimensions(ctx)
 	if err != nil {
-		return err, "", "", ""
+		return err, "", "", "", ""
 	}
 
 	matchContext := rootBuild_newSelectorMatchContext(
@@ -196,26 +196,27 @@ func rootBuild_selectAssetsAndCommandsAndSecretsPaths(
 	dydPath := filepath.Join(rootPath, "dyd")
 	dydPathExists, err := fileExists(dydPath)
 	if err != nil {
-		return err, "", "", ""
+		return err, "", "", "", ""
 	}
 	if !dydPathExists {
-		return nil, "", "", ""
+		return nil, "", "", "", ""
 	}
 
 	dydDir, err := os.Open(dydPath)
 	if err != nil {
-		return err, "", "", ""
+		return err, "", "", "", ""
 	}
 	defer dydDir.Close()
 
 	assetsState := rootBuildSelectorSelectionState{}
 	commandsState := rootBuildSelectorSelectionState{}
 	secretsState := rootBuildSelectorSelectionState{}
+	docsState := rootBuildSelectorSelectionState{}
 
 	for {
 		entryNames, err := dydDir.Readdirnames(64)
 		if err != nil && err != io.EOF {
-			return err, "", "", ""
+			return err, "", "", "", ""
 		}
 
 		for _, selectorName := range entryNames {
@@ -231,7 +232,7 @@ func rootBuild_selectAssetsAndCommandsAndSecretsPaths(
 				&assetsState,
 			)
 			if err != nil {
-				return err, "", "", ""
+				return err, "", "", "", ""
 			}
 
 			err = rootBuild_considerSelectorMatch(
@@ -244,7 +245,7 @@ func rootBuild_selectAssetsAndCommandsAndSecretsPaths(
 				&commandsState,
 			)
 			if err != nil {
-				return err, "", "", ""
+				return err, "", "", "", ""
 			}
 
 			err = rootBuild_considerSelectorMatch(
@@ -257,7 +258,20 @@ func rootBuild_selectAssetsAndCommandsAndSecretsPaths(
 				&secretsState,
 			)
 			if err != nil {
-				return err, "", "", ""
+				return err, "", "", "", ""
+			}
+
+			err = rootBuild_considerSelectorMatch(
+				matchContext,
+				selectorName,
+				selectorPath,
+				"docs",
+				"dyd/docs",
+				"docs",
+				&docsState,
+			)
+			if err != nil {
+				return err, "", "", "", ""
 			}
 		}
 
@@ -268,14 +282,17 @@ func rootBuild_selectAssetsAndCommandsAndSecretsPaths(
 
 	variantLabel := rootBuildLogVariantLabel(variantDescriptor)
 	if assetsState.MatchCount > 1 {
-		return fmt.Errorf("multiple matching dyd/assets selectors for variant %s", variantLabel), "", "", ""
+		return fmt.Errorf("multiple matching dyd/assets selectors for variant %s", variantLabel), "", "", "", ""
 	}
 	if commandsState.MatchCount > 1 {
-		return fmt.Errorf("multiple matching dyd/commands selectors for variant %s", variantLabel), "", "", ""
+		return fmt.Errorf("multiple matching dyd/commands selectors for variant %s", variantLabel), "", "", "", ""
 	}
 	if secretsState.MatchCount > 1 {
-		return fmt.Errorf("multiple matching dyd/secrets selectors for variant %s", variantLabel), "", "", ""
+		return fmt.Errorf("multiple matching dyd/secrets selectors for variant %s", variantLabel), "", "", "", ""
+	}
+	if docsState.MatchCount > 1 {
+		return fmt.Errorf("multiple matching dyd/docs selectors for variant %s", variantLabel), "", "", "", ""
 	}
 
-	return nil, assetsState.MatchPath, commandsState.MatchPath, secretsState.MatchPath
+	return nil, assetsState.MatchPath, commandsState.MatchPath, secretsState.MatchPath, docsState.MatchPath
 }
