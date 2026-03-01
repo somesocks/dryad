@@ -15,7 +15,7 @@ func TestRootBuildSelectCommandsPath_PlainCommandsMatchesImplicitAny(t *testing.
 	rootPath := t.TempDir()
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "commands", "dyd-root-build"), "ok")
 
-	err, commandsPath := rootBuild_selectCommandsPath(task.SERIAL_CONTEXT, rootPath, "")
+	err, commandsPath := rootBuild_selectCommandsPathForTest(task.SERIAL_CONTEXT, rootPath, "")
 	assert.Nil(err)
 	assert.Equal(filepath.Join(rootPath, "dyd", "commands"), commandsPath)
 }
@@ -29,7 +29,7 @@ func TestRootBuildSelectCommandsPath_ConditionalSelectorMatchesConcreteVariant(t
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "commands~os=linux", "dyd-root-build"), "linux")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "commands~os=darwin", "dyd-root-build"), "darwin")
 
-	err, commandsPath := rootBuild_selectCommandsPath(task.SERIAL_CONTEXT, rootPath, "os=linux")
+	err, commandsPath := rootBuild_selectCommandsPathForTest(task.SERIAL_CONTEXT, rootPath, "os=linux")
 	assert.Nil(err)
 	assert.Equal(filepath.Join(rootPath, "dyd", "commands~os=linux"), commandsPath)
 }
@@ -44,7 +44,7 @@ func TestRootBuildSelectCommandsPath_OmittedSelectorDimensionsAreImplicitAny(t *
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "commands~os=linux", "dyd-root-build"), "linux-any-arch")
 
-	err, commandsPath := rootBuild_selectCommandsPath(
+	err, commandsPath := rootBuild_selectCommandsPathForTest(
 		task.SERIAL_CONTEXT,
 		rootPath,
 		"arch=amd64+os=linux",
@@ -61,7 +61,7 @@ func TestRootBuildSelectCommandsPath_NoMatchesIsAllowed(t *testing.T) {
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "commands~os=darwin", "dyd-root-build"), "darwin")
 
-	err, commandsPath := rootBuild_selectCommandsPath(task.SERIAL_CONTEXT, rootPath, "os=linux")
+	err, commandsPath := rootBuild_selectCommandsPathForTest(task.SERIAL_CONTEXT, rootPath, "os=linux")
 	assert.Nil(err)
 	assert.Equal("", commandsPath)
 }
@@ -75,11 +75,11 @@ func TestRootBuildSelectCommandsPath_NoneAnyAndOptionListsAreSupported(t *testin
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "commands~os=linux,none", "dyd-root-build"), "none-or-linux")
 
-	err, commandsPath := rootBuild_selectCommandsPath(task.SERIAL_CONTEXT, rootPath, "")
+	err, commandsPath := rootBuild_selectCommandsPathForTest(task.SERIAL_CONTEXT, rootPath, "")
 	assert.Nil(err)
 	assert.Equal(filepath.Join(rootPath, "dyd", "commands~os=linux,none"), commandsPath)
 
-	err, commandsPath = rootBuild_selectCommandsPath(task.SERIAL_CONTEXT, rootPath, "os=linux")
+	err, commandsPath = rootBuild_selectCommandsPathForTest(task.SERIAL_CONTEXT, rootPath, "os=linux")
 	assert.Nil(err)
 	assert.Equal(filepath.Join(rootPath, "dyd", "commands~os=linux,none"), commandsPath)
 }
@@ -91,7 +91,7 @@ func TestRootBuildSelectCommandsPath_InheritAndHostAreRejected(t *testing.T) {
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "commands~os=inherit", "dyd-root-build"), "bad")
 
-	err, _ := rootBuild_selectCommandsPath(task.SERIAL_CONTEXT, rootPath, "os=linux")
+	err, _ := rootBuild_selectCommandsPathForTest(task.SERIAL_CONTEXT, rootPath, "os=linux")
 	assert.NotNil(err)
 	assert.Contains(err.Error(), "inherit option is not supported for commands variant selectors")
 
@@ -99,7 +99,7 @@ func TestRootBuildSelectCommandsPath_InheritAndHostAreRejected(t *testing.T) {
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "commands~os=host", "dyd-root-build"), "bad")
 
-	err, _ = rootBuild_selectCommandsPath(task.SERIAL_CONTEXT, rootPath, "os=linux")
+	err, _ = rootBuild_selectCommandsPathForTest(task.SERIAL_CONTEXT, rootPath, "os=linux")
 	assert.NotNil(err)
 	assert.Contains(err.Error(), "host option is not supported for commands variant selectors")
 }
@@ -112,7 +112,7 @@ func TestRootBuildSelectCommandsPath_MultipleMatchesFails(t *testing.T) {
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "commands", "dyd-root-build"), "default")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "commands~os=linux", "dyd-root-build"), "linux")
 
-	err, _ := rootBuild_selectCommandsPath(task.SERIAL_CONTEXT, rootPath, "os=linux")
+	err, _ := rootBuild_selectCommandsPathForTest(task.SERIAL_CONTEXT, rootPath, "os=linux")
 	assert.NotNil(err)
 	assert.Contains(err.Error(), "multiple matching dyd/commands selectors")
 }

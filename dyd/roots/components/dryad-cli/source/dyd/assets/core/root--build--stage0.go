@@ -18,6 +18,7 @@ type rootBuild_stage0_request struct {
 	VariantDescriptor    string
 	SelectedAssetsPath   string
 	SelectedCommandsPath string
+	SelectedSecretsPath  string
 }
 
 // stage 0 - build a shallow partial clone of the root into a working directory,
@@ -31,7 +32,7 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		zlog.Trace().
 			Msg("RootBuild/stage0/prepReq")
 
-		err, selectedAssetsPath, selectedCommandsPath := rootBuild_selectAssetsAndCommandsPaths(
+		err, selectedAssetsPath, selectedCommandsPath, selectedSecretsPath := rootBuild_selectAssetsAndCommandsAndSecretsPaths(
 			ctx,
 			req.RootPath,
 			req.VariantDescriptor,
@@ -42,6 +43,7 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 
 		req.SelectedAssetsPath = selectedAssetsPath
 		req.SelectedCommandsPath = selectedCommandsPath
+		req.SelectedSecretsPath = selectedSecretsPath
 
 		return nil, req
 	}
@@ -99,18 +101,16 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		zlog.Trace().
 			Msg("RootBuild/stage0/linkSecretsDir")
 
-		exists, err := fileExists(filepath.Join(req.RootPath, "dyd", "secrets"))
+		if req.SelectedSecretsPath == "" {
+			return nil, req
+		}
+
+		err := os.Symlink(
+			req.SelectedSecretsPath,
+			filepath.Join(req.WorkspacePath, "dyd", "secrets"),
+		)
 		if err != nil {
 			return err, req
-		}
-		if exists {
-			err = os.Symlink(
-				filepath.Join(req.RootPath, "dyd", "secrets"),
-				filepath.Join(req.WorkspacePath, "dyd", "secrets"),
-			)
-			if err != nil {
-				return err, req
-			}
 		}
 
 		return nil, req

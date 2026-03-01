@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	dryad root build "dyd/roots/root-top" --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+_verify() {
+	deps_path="$TEMP_DIR/dyd/sprouts/root-top/dyd/dependencies"
+	linux_stem="$deps_path/stem~os=linux"
+	darwin_stem="$deps_path/stem~os=darwin"
+
+	if [ ! -L "$linux_stem" ]; then
+		echo "[ERROR] Fail: expected linux stem variant dependency" 1>&2
+		find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		return 1
+	fi
+
+	if [ ! -L "$darwin_stem" ]; then
+		echo "[ERROR] Fail: expected darwin stem variant dependency" 1>&2
+		find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		return 1
+	fi
+
+	linux_value="$(cat "$linux_stem/dyd/assets/value.txt")"
+	if [ "$linux_value" != "linux" ]; then
+		echo "[ERROR] Fail: expected linux stem assets value to be 'linux'" 1>&2
+		echo "found=$linux_value" 1>&2
+		return 1
+	fi
+
+	darwin_value="$(cat "$darwin_stem/dyd/assets/value.txt")"
+	if [ "$darwin_value" != "darwin" ]; then
+		echo "[ERROR] Fail: expected darwin stem assets value to be 'darwin'" 1>&2
+		echo "found=$darwin_value" 1>&2
+		return 1
+	fi
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
