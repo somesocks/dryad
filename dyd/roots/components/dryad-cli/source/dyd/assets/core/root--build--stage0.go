@@ -47,18 +47,24 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		zlog.Trace().
 			Msg("RootBuild/stage0/linkAssetsDir")
 
-		exists, err := fileExists(filepath.Join(req.RootPath, "dyd", "assets"))
+		err, assetsPath := rootBuild_selectAssetsPath(
+			ctx,
+			req.RootPath,
+			req.VariantDescriptor,
+		)
 		if err != nil {
 			return err, req
 		}
-		if exists {
-			err = os.Symlink(
-				filepath.Join(req.RootPath, "dyd", "assets"),
-				filepath.Join(req.WorkspacePath, "dyd", "assets"),
-			)
-			if err != nil {
-				return err, req
-			}
+		if assetsPath == "" {
+			return nil, req
+		}
+
+		err = os.Symlink(
+			assetsPath,
+			filepath.Join(req.WorkspacePath, "dyd", "assets"),
+		)
+		if err != nil {
+			return err, req
 		}
 
 		return nil, req
