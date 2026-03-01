@@ -16,6 +16,15 @@ Each root includes directories such as:
 - `dyd/requirements` - dependency declarations
 - `dyd/docs`, `dyd/secrets`
 
+Variant selectors are also supported for root content paths:
+- `dyd/assets~<descriptor>`
+- `dyd/commands~<descriptor>`
+- `dyd/secrets~<descriptor>`
+- `dyd/docs~<descriptor>`
+
+Example:
+- `dyd/assets~arch=amd64,arm64+os=linux`
+
 ## Requirements
 
 Each requirement has:

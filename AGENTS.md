@@ -81,11 +81,16 @@
 - Each root is a directory with a well-defined filesystem structure:
   - `<root>/dyd/type` - a sentinel file containing the text `root` (no newline). This indicates that a directory is a root.
   - `<root>/dyd/assets` - _assets_ - source files for the root.
+    - Variant selectors are supported with `<root>/dyd/assets~<descriptor>`.
+    - Example: `assets~arch=amd64,arm64+os=linux`.
   - `<root>/dyd/commands` - _commands_ - build scripts or other commands for the root.
+    - Variant selectors are supported with `<root>/dyd/commands~<descriptor>`.
     - `<root>/dyd/commands/dyd-root-build` - this is the build script for the package.
   - `<root>/dyd/traits` - _traits_ - metadata files specifying traits for the root (name, version, license, etc.).
   - `<root>/dyd/docs` - _docs_ - documentation files for the root.
+    - Variant selectors are supported with `<root>/dyd/docs~<descriptor>`.
   - `<root>/dyd/secrets` - _secrets_ - secret assets for the root (deployment secrets, signing keys, etc.).
+    - Variant selectors are supported with `<root>/dyd/secrets~<descriptor>`.
   - `<root>/dyd/requirements` - _requirements_ - the specification for dependencies of the root.
     - each requirement filename is either `<alias>` or `<alias>~<condition_descriptor>`.
       - Alias names may only contain `[A-Za-z0-9._-]+`.
@@ -149,6 +154,17 @@
 - Descriptor forms:
   - Filesystem form: `arch=amd64+os=linux` (used in filenames and dependency suffixes).
   - URL form: `?arch=amd64&os=linux` (used in requirement target URLs).
+- Variant selectors for root content paths:
+  - Supported path kinds: `dyd/assets`, `dyd/commands`, `dyd/secrets`, `dyd/docs`.
+  - Selector form: `<path_kind>~<descriptor>`, for example `assets~arch=amd64,arm64+os=linux`.
+  - Selector matching uses the same behavior as include/exclude filters:
+    - supported: concrete options, `none`, `any`, and comma lists.
+    - unsupported: `inherit` and `host`.
+    - omitted dimensions are implicit `any`; the plain path (for example `dyd/assets`) is the empty selector and therefore matches all variants.
+  - Selector descriptors must be canonical filesystem descriptors.
+  - At most one selector may match per path kind:
+    - no matches are allowed (the path is omitted from the build input).
+    - multiple matches are an error.
 
 
 ### Dryad concepts - stems

@@ -81,6 +81,14 @@ Condition and target selector are independent:
 - condition controls **when** requirement is active
 - target selector controls **which variant(s)** of the dependency are linked
 
+Root content path selectors:
+
+- `dyd/assets~<descriptor>`
+- `dyd/commands~<descriptor>`
+- `dyd/secrets~<descriptor>`
+- `dyd/docs~<descriptor>`
+- example: `dyd/assets~arch=amd64,arm64+os=linux`
+
 ## Selector keywords
 
 `none`
@@ -101,6 +109,16 @@ In requirement *conditions*:
 - `any` and `inherit` act as wildcards.
 - `none` matches when parent omits that dimension.
 - `host` matches parent variant against host `os`/`arch`.
+
+In root content path selectors (`dyd/assets~...`, `dyd/commands~...`, `dyd/secrets~...`, `dyd/docs~...`):
+
+- supported: concrete options, `none`, `any`, and comma lists
+- not supported: `inherit` and `host`
+- omitted dimensions are implicit `any`; the plain path (for example `dyd/assets`) is the empty selector and therefore matches all variants
+- selector descriptors must be canonical filesystem descriptors
+- for each path kind, at most one selector may match:
+  - no matches are allowed (the path is omitted from the build input)
+  - multiple matches fail the build
 
 ## Exclusions
 
