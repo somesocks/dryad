@@ -15,7 +15,7 @@ func TestRootBuildSelectAssetsPath_PlainAssetsMatchesImplicitAny(t *testing.T) {
 	rootPath := t.TempDir()
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "assets", "main"), "ok")
 
-	err, assetsPath := rootBuild_selectAssetsPath(task.SERIAL_CONTEXT, rootPath, "")
+	err, assetsPath := rootBuild_selectAssetsPathForTest(task.SERIAL_CONTEXT, rootPath, "")
 	assert.Nil(err)
 	assert.Equal(filepath.Join(rootPath, "dyd", "assets"), assetsPath)
 }
@@ -29,7 +29,7 @@ func TestRootBuildSelectAssetsPath_ConditionalSelectorMatchesConcreteVariant(t *
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "assets~os=linux", "main"), "linux")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "assets~os=darwin", "main"), "darwin")
 
-	err, assetsPath := rootBuild_selectAssetsPath(task.SERIAL_CONTEXT, rootPath, "os=linux")
+	err, assetsPath := rootBuild_selectAssetsPathForTest(task.SERIAL_CONTEXT, rootPath, "os=linux")
 	assert.Nil(err)
 	assert.Equal(filepath.Join(rootPath, "dyd", "assets~os=linux"), assetsPath)
 }
@@ -44,7 +44,7 @@ func TestRootBuildSelectAssetsPath_OmittedSelectorDimensionsAreImplicitAny(t *te
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "assets~os=linux", "main"), "linux-any-arch")
 
-	err, assetsPath := rootBuild_selectAssetsPath(
+	err, assetsPath := rootBuild_selectAssetsPathForTest(
 		task.SERIAL_CONTEXT,
 		rootPath,
 		"arch=amd64+os=linux",
@@ -61,7 +61,7 @@ func TestRootBuildSelectAssetsPath_NoMatchesIsAllowed(t *testing.T) {
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "assets~os=darwin", "main"), "darwin")
 
-	err, assetsPath := rootBuild_selectAssetsPath(task.SERIAL_CONTEXT, rootPath, "os=linux")
+	err, assetsPath := rootBuild_selectAssetsPathForTest(task.SERIAL_CONTEXT, rootPath, "os=linux")
 	assert.Nil(err)
 	assert.Equal("", assetsPath)
 }
@@ -75,11 +75,11 @@ func TestRootBuildSelectAssetsPath_NoneAnyAndOptionListsAreSupported(t *testing.
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "assets~os=linux,none", "main"), "none-or-linux")
 
-	err, assetsPath := rootBuild_selectAssetsPath(task.SERIAL_CONTEXT, rootPath, "")
+	err, assetsPath := rootBuild_selectAssetsPathForTest(task.SERIAL_CONTEXT, rootPath, "")
 	assert.Nil(err)
 	assert.Equal(filepath.Join(rootPath, "dyd", "assets~os=linux,none"), assetsPath)
 
-	err, assetsPath = rootBuild_selectAssetsPath(task.SERIAL_CONTEXT, rootPath, "os=linux")
+	err, assetsPath = rootBuild_selectAssetsPathForTest(task.SERIAL_CONTEXT, rootPath, "os=linux")
 	assert.Nil(err)
 	assert.Equal(filepath.Join(rootPath, "dyd", "assets~os=linux,none"), assetsPath)
 }
@@ -91,7 +91,7 @@ func TestRootBuildSelectAssetsPath_InheritAndHostAreRejected(t *testing.T) {
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "assets~os=inherit", "main"), "bad")
 
-	err, _ := rootBuild_selectAssetsPath(task.SERIAL_CONTEXT, rootPath, "os=linux")
+	err, _ := rootBuild_selectAssetsPathForTest(task.SERIAL_CONTEXT, rootPath, "os=linux")
 	assert.NotNil(err)
 	assert.Contains(err.Error(), "inherit option is not supported for assets variant selectors")
 
@@ -99,7 +99,7 @@ func TestRootBuildSelectAssetsPath_InheritAndHostAreRejected(t *testing.T) {
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "assets~os=host", "main"), "bad")
 
-	err, _ = rootBuild_selectAssetsPath(task.SERIAL_CONTEXT, rootPath, "os=linux")
+	err, _ = rootBuild_selectAssetsPathForTest(task.SERIAL_CONTEXT, rootPath, "os=linux")
 	assert.NotNil(err)
 	assert.Contains(err.Error(), "host option is not supported for assets variant selectors")
 }
@@ -112,7 +112,7 @@ func TestRootBuildSelectAssetsPath_MultipleMatchesFails(t *testing.T) {
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "assets", "main"), "default")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "assets~os=linux", "main"), "linux")
 
-	err, _ := rootBuild_selectAssetsPath(task.SERIAL_CONTEXT, rootPath, "os=linux")
+	err, _ := rootBuild_selectAssetsPathForTest(task.SERIAL_CONTEXT, rootPath, "os=linux")
 	assert.NotNil(err)
 	assert.Contains(err.Error(), "multiple matching dyd/assets selectors")
 }
