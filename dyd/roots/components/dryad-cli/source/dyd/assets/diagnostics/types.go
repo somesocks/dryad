@@ -31,13 +31,7 @@ type WhenConfig struct {
 }
 
 type ActionConfig struct {
-	Type    string            `json:"type" yaml:"type"`
-	Error   string            `json:"error,omitempty" yaml:"error,omitempty"`
-	DelayMS int64             `json:"delay_ms,omitempty" yaml:"delay_ms,omitempty"`
-	Choices []ErrorChoiceSpec `json:"choices,omitempty" yaml:"choices,omitempty"`
-}
-
-type ErrorChoiceSpec struct {
-	Error  string `json:"error" yaml:"error"`
-	Weight int64  `json:"weight" yaml:"weight"`
+	Type    string `json:"type" yaml:"type"`
+	Error   string `json:"error,omitempty" yaml:"error,omitempty"`
+	DelayMS int64  `json:"delay_ms,omitempty" yaml:"delay_ms,omitempty"`
 }

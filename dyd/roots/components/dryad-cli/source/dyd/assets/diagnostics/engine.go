@@ -63,13 +63,7 @@ type actionType int
 const (
 	actionError actionType = iota
 	actionDelay
-	actionErrorPick
 )
-
-type weightedError struct {
-	err    error
-	weight uint64
-}
 
 type compiledRule struct {
 	id       string
@@ -81,14 +75,11 @@ type compiledRule struct {
 	maxHits  int64
 	hitCount atomic.Int64
 	counter  atomic.Uint64
-	rngCount atomic.Uint64
 	perKeyMu sync.Mutex
 	perKey   map[uint64]uint64
 	action   actionType
 	delay    time.Duration
 	err      error
-	choices  []weightedError
-	total    uint64
 	seed     uint64
 }
 
@@ -236,29 +227,6 @@ func compileAction(out *compiledRule, action ActionConfig, id string) error {
 		}
 		out.action = actionDelay
 		out.delay = time.Duration(action.DelayMS) * time.Millisecond
-	case "error_pick":
-		if len(action.Choices) == 0 {
-			return fmt.Errorf("diagnostics rule %q: error_pick requires choices", id)
-		}
-		out.action = actionErrorPick
-		var total uint64
-		out.choices = make([]weightedError, 0, len(action.Choices))
-		for _, choice := range action.Choices {
-			if choice.Weight <= 0 {
-				return fmt.Errorf("diagnostics rule %q: choice weight must be > 0", id)
-			}
-			errValue, err := parseErrorName(choice.Error)
-			if err != nil {
-				return fmt.Errorf("diagnostics rule %q: %w", id, err)
-			}
-			w := uint64(choice.Weight)
-			total += w
-			out.choices = append(out.choices, weightedError{
-				err:    errValue,
-				weight: w,
-			})
-		}
-		out.total = total
 	default:
 		return fmt.Errorf("diagnostics rule %q: unsupported action.type %q", id, action.Type)
 	}
@@ -300,17 +268,6 @@ func (rule *compiledRule) Apply(key string) (bool, error) {
 	case actionDelay:
 		if rule.delay > 0 {
 			time.Sleep(rule.delay)
-		}
-		return true, nil
-	case actionErrorPick:
-		roll := mix64(rule.seed ^ hashString64(key) ^ rule.rngCount.Add(1))
-		offset := roll % rule.total
-		var sum uint64
-		for _, choice := range rule.choices {
-			sum += choice.weight
-			if offset < sum {
-				return true, choice.err
-			}
 		}
 		return true, nil
 	default:
