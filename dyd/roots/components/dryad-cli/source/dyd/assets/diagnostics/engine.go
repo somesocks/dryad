@@ -1,0 +1,391 @@
+package diagnostics
+
+import (
+	"fmt"
+	"math"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"syscall"
+	"time"
+)
+
+type runner func(key string) error
+type runnerDecorator func(next runner) runner
+
+type engine struct {
+	version uint64
+	runners map[string]runner
+}
+
+func (e *engine) Runner(point string) runner {
+	return e.runners[point]
+}
+
+type keyMatcherKind int
+
+const (
+	keyMatcherAny keyMatcherKind = iota
+	keyMatcherExact
+	keyMatcherPrefix
+)
+
+type keyMatcher struct {
+	kind   keyMatcherKind
+	value  string
+	prefix string
+}
+
+func (m keyMatcher) Matches(key string) bool {
+	switch m.kind {
+	case keyMatcherAny:
+		return true
+	case keyMatcherExact:
+		return key == m.value
+	case keyMatcherPrefix:
+		return strings.HasPrefix(key, m.prefix)
+	default:
+		return false
+	}
+}
+
+type whenMode int
+
+const (
+	whenOncePerKey whenMode = iota
+	whenFirstNPerKey
+	whenEveryN
+	whenPercent
+)
+
+type actionType int
+
+const (
+	actionError actionType = iota
+	actionDelay
+	actionErrorPick
+)
+
+type weightedError struct {
+	err    error
+	weight uint64
+}
+
+type compiledRule struct {
+	id       string
+	op       string
+	matcher  keyMatcher
+	when     whenMode
+	n        uint64
+	percent  uint64
+	maxHits  int64
+	hitCount atomic.Int64
+	counter  atomic.Uint64
+	rngCount atomic.Uint64
+	perKeyMu sync.Mutex
+	perKey   map[uint64]uint64
+	action   actionType
+	delay    time.Duration
+	err      error
+	choices  []weightedError
+	total    uint64
+	seed     uint64
+}
+
+func compileConfig(cfg Config) (*engine, error) {
+	if cfg.Version != 1 {
+		return nil, fmt.Errorf("unsupported diagnostics version %d", cfg.Version)
+	}
+
+	decoratorsByPoint := map[string][]runnerDecorator{}
+
+	for idx, rule := range cfg.Rules {
+		if rule.Enabled != nil && !*rule.Enabled {
+			continue
+		}
+
+		decorator, op, err := compileRuleDecorator(cfg.Seed, idx, rule)
+		if err != nil {
+			return nil, err
+		}
+		decoratorsByPoint[op] = append(decoratorsByPoint[op], decorator)
+	}
+
+	runners := map[string]runner{}
+	for point, decorators := range decoratorsByPoint {
+		next := runner(func(string) error { return nil })
+		for i := len(decorators) - 1; i >= 0; i-- {
+			next = decorators[i](next)
+		}
+		runners[point] = next
+	}
+
+	return &engine{
+		runners: runners,
+	}, nil
+}
+
+func compileRuleDecorator(seed int64, index int, rule RuleConfig) (runnerDecorator, string, error) {
+	op := strings.TrimSpace(rule.Op)
+	if op == "" {
+		return nil, "", fmt.Errorf("diagnostics rule missing op")
+	}
+
+	matcher, err := compileKeyMatcher(rule.Key)
+	if err != nil {
+		return nil, "", fmt.Errorf("diagnostics rule %q: %w", rule.ID, err)
+	}
+
+	compiled := &compiledRule{
+		id:      rule.ID,
+		op:      op,
+		matcher: matcher,
+		maxHits: rule.MaxHits,
+		seed:    mix64(uint64(seed) ^ uint64(index+1)),
+	}
+
+	if err := compileWhen(compiled, rule.When, rule.ID); err != nil {
+		return nil, "", err
+	}
+	if err := compileAction(compiled, rule.Action, rule.ID); err != nil {
+		return nil, "", err
+	}
+
+	decorator := func(next runner) runner {
+		return func(key string) error {
+			matched, err := compiled.Apply(key)
+			if err != nil {
+				return err
+			}
+			if matched {
+				return nil
+			}
+			return next(key)
+		}
+	}
+
+	return decorator, op, nil
+}
+
+func compileKeyMatcher(raw string) (keyMatcher, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return keyMatcher{}, fmt.Errorf("diagnostics rule key is required")
+	}
+
+	if raw == "*" {
+		return keyMatcher{kind: keyMatcherAny}, nil
+	}
+
+	if strings.HasPrefix(raw, "prefix:") {
+		prefix := strings.TrimPrefix(raw, "prefix:")
+		if prefix == "" {
+			return keyMatcher{}, fmt.Errorf("diagnostics key prefix is empty")
+		}
+		return keyMatcher{kind: keyMatcherPrefix, prefix: prefix}, nil
+	}
+
+	return keyMatcher{kind: keyMatcherExact, value: raw}, nil
+}
+
+func compileWhen(out *compiledRule, when WhenConfig, id string) error {
+	count := when.Count
+
+	switch when.Mode {
+	case "once_per_key":
+		out.when = whenOncePerKey
+		out.perKey = map[uint64]uint64{}
+	case "first_n_per_key":
+		if count <= 0 {
+			return fmt.Errorf("diagnostics rule %q: when.count must be > 0", id)
+		}
+		out.when = whenFirstNPerKey
+		out.n = uint64(count)
+		out.perKey = map[uint64]uint64{}
+	case "every_n":
+		if count <= 0 {
+			return fmt.Errorf("diagnostics rule %q: when.count must be > 0", id)
+		}
+		out.when = whenEveryN
+		out.n = uint64(count)
+	case "percent":
+		if when.Percent < 0 || when.Percent > 100 {
+			return fmt.Errorf("diagnostics rule %q: when.percent must be in [0,100]", id)
+		}
+		out.when = whenPercent
+		out.percent = uint64(math.Round((when.Percent / 100.0) * 1_000_000.0))
+	default:
+		return fmt.Errorf("diagnostics rule %q: unsupported when.mode %q", id, when.Mode)
+	}
+
+	return nil
+}
+
+func compileAction(out *compiledRule, action ActionConfig, id string) error {
+	switch action.Type {
+	case "error":
+		errValue, err := parseErrorName(action.Error)
+		if err != nil {
+			return fmt.Errorf("diagnostics rule %q: %w", id, err)
+		}
+		out.action = actionError
+		out.err = errValue
+	case "delay":
+		if action.DelayMS < 0 {
+			return fmt.Errorf("diagnostics rule %q: action.delay_ms must be >= 0", id)
+		}
+		out.action = actionDelay
+		out.delay = time.Duration(action.DelayMS) * time.Millisecond
+	case "error_pick":
+		if len(action.Choices) == 0 {
+			return fmt.Errorf("diagnostics rule %q: error_pick requires choices", id)
+		}
+		out.action = actionErrorPick
+		var total uint64
+		out.choices = make([]weightedError, 0, len(action.Choices))
+		for _, choice := range action.Choices {
+			if choice.Weight <= 0 {
+				return fmt.Errorf("diagnostics rule %q: choice weight must be > 0", id)
+			}
+			errValue, err := parseErrorName(choice.Error)
+			if err != nil {
+				return fmt.Errorf("diagnostics rule %q: %w", id, err)
+			}
+			w := uint64(choice.Weight)
+			total += w
+			out.choices = append(out.choices, weightedError{
+				err:    errValue,
+				weight: w,
+			})
+		}
+		out.total = total
+	default:
+		return fmt.Errorf("diagnostics rule %q: unsupported action.type %q", id, action.Type)
+	}
+
+	return nil
+}
+
+func parseErrorName(name string) (error, error) {
+	switch strings.ToUpper(strings.TrimSpace(name)) {
+	case "EMLINK":
+		return syscall.EMLINK, nil
+	case "EXDEV":
+		return syscall.EXDEV, nil
+	case "EIO":
+		return syscall.EIO, nil
+	case "ETIMEDOUT":
+		return syscall.ETIMEDOUT, nil
+	default:
+		return nil, fmt.Errorf("unsupported error %q", name)
+	}
+}
+
+// Apply executes the compiled rule against a key and returns whether the rule
+// matched and (optionally) an injected error.
+func (rule *compiledRule) Apply(key string) (bool, error) {
+	if !rule.matcher.Matches(key) {
+		return false, nil
+	}
+	if !rule.whenMatches(key) {
+		return false, nil
+	}
+	if !rule.consumeHit() {
+		return false, nil
+	}
+
+	switch rule.action {
+	case actionError:
+		return true, rule.err
+	case actionDelay:
+		if rule.delay > 0 {
+			time.Sleep(rule.delay)
+		}
+		return true, nil
+	case actionErrorPick:
+		roll := mix64(rule.seed ^ hashString64(key) ^ rule.rngCount.Add(1))
+		offset := roll % rule.total
+		var sum uint64
+		for _, choice := range rule.choices {
+			sum += choice.weight
+			if offset < sum {
+				return true, choice.err
+			}
+		}
+		return true, nil
+	default:
+		return false, nil
+	}
+}
+
+func (rule *compiledRule) whenMatches(key string) bool {
+	switch rule.when {
+	case whenOncePerKey:
+		keyHash := hashString64(key)
+		rule.perKeyMu.Lock()
+		defer rule.perKeyMu.Unlock()
+		if rule.perKey[keyHash] > 0 {
+			return false
+		}
+		rule.perKey[keyHash] = 1
+		return true
+
+	case whenFirstNPerKey:
+		keyHash := hashString64(key)
+		rule.perKeyMu.Lock()
+		defer rule.perKeyMu.Unlock()
+		current := rule.perKey[keyHash]
+		if current >= rule.n {
+			return false
+		}
+		rule.perKey[keyHash] = current + 1
+		return true
+
+	case whenEveryN:
+		count := rule.counter.Add(1)
+		return count%rule.n == 0
+
+	case whenPercent:
+		count := rule.counter.Add(1)
+		roll := mix64(rule.seed ^ hashString64(key) ^ count)
+		return (roll % 1_000_000) < rule.percent
+
+	default:
+		return false
+	}
+}
+
+func (rule *compiledRule) consumeHit() bool {
+	if rule.maxHits <= 0 {
+		return true
+	}
+
+	for {
+		current := rule.hitCount.Load()
+		if current >= rule.maxHits {
+			return false
+		}
+		if rule.hitCount.CompareAndSwap(current, current+1) {
+			return true
+		}
+	}
+}
+
+func hashString64(s string) uint64 {
+	const offset = 1469598103934665603
+	const prime = 1099511628211
+
+	var h uint64 = offset
+	for i := 0; i < len(s); i++ {
+		h ^= uint64(s[i])
+		h *= prime
+	}
+	return h
+}
+
+func mix64(x uint64) uint64 {
+	x += 0x9e3779b97f4a7c15
+	x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9
+	x = (x ^ (x >> 27)) * 0x94d049bb133111eb
+	return x ^ (x >> 31)
+}

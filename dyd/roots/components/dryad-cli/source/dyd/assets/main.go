@@ -1,15 +1,22 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	cli "dryad/cli"
+	"dryad/diagnostics"
 )
 
 var Version string
 var Fingerprint string
 
 func main() {
+	if err := diagnostics.SetupFromEnv(); err != nil {
+		fmt.Fprintln(os.Stderr, "error initializing diagnostics:", err)
+		os.Exit(2)
+	}
+
 	app := cli.BuildCLI(
 		Version,
 		Fingerprint,

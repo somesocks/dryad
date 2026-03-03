@@ -2,11 +2,12 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
+	"dryad/internal/os"
 	"dryad/task"
 
 	"errors"
 	"io/ioutil"
-	"os"
+	stdos "os"
 	"path/filepath"
 	"strings"
 
@@ -60,7 +61,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 		return nil, &stemRef
 	}
 
-	tempStemPath, err := os.MkdirTemp(
+	tempStemPath, err := stdos.MkdirTemp(
 		heapStemsPath,
 		".tmp-"+stemFingerprint+"-*",
 	)
@@ -68,7 +69,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 		return err, nil
 	}
 	// Best effort cleanup. Crash/power-loss can still leave tmp dirs behind.
-	defer os.RemoveAll(tempStemPath)
+	defer stdos.RemoveAll(tempStemPath)
 
 	// walk the packed root files and copy them into the garden heap
 	err, _ = StemWalk(
@@ -104,17 +105,17 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 					// 	Str("path", node.Path).
 					// 	Msg("heapAddStem / onMatch isDir")
 
-					err = os.Mkdir(destPath, os.ModePerm)
+					err = stdos.Mkdir(destPath, stdos.ModePerm)
 					if err != nil {
 						return err, nil
 					}
-				} else if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
+				} else if node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
 					// zlog.
 					// 	Trace().
 					// 	Str("path", node.Path).
 					// 	Msg("heapAddStem / onMatch isSymlink")
 
-					linkTarget, err := os.Readlink(node.Path)
+					linkTarget, err := stdos.Readlink(node.Path)
 					if err != nil {
 						return err, nil
 					}
@@ -127,7 +128,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 					isInternalLink, err := fileIsDescendant(absLinkTarget, node.BasePath)
 
 					if isInternalLink {
-						err = os.Symlink(linkTarget, destPath)
+						err = stdos.Symlink(linkTarget, destPath)
 						if err != nil {
 							return err, nil
 						}
@@ -212,7 +213,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 			return err, nil
 		}
 
-		err = os.Symlink(relPath, dependencyPath)
+		err = stdos.Symlink(relPath, dependencyPath)
 		if err != nil {
 			return err, nil
 		}
@@ -253,7 +254,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 			return nil, nil
 		}
 
-		dir, err := os.Open(node.Path)
+		dir, err := stdos.Open(node.Path)
 		if err != nil {
 			return err, nil
 		}
@@ -269,17 +270,17 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 	}
 
 	// Publish atomically without mutating an already-published CAS entry.
-	err = os.Rename(tempStemPath, finalStemPath)
+	err = stdos.Rename(tempStemPath, finalStemPath)
 	if err != nil {
 		// If another process published this fingerprint first, treat as success.
-		if _, statErr := os.Stat(finalStemPath); statErr == nil {
+		if _, statErr := stdos.Stat(finalStemPath); statErr == nil {
 			stemRef := SafeHeapStemReference{
 				BasePath: finalStemPath,
 				Stems:    req.HeapStems,
 			}
 
 			return nil, &stemRef
-		} else if !errors.Is(statErr, os.ErrNotExist) {
+		} else if !errors.Is(statErr, stdos.ErrNotExist) {
 			return statErr, nil
 		}
 

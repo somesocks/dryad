@@ -2,10 +2,11 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
+	"dryad/internal/os"
 	"dryad/task"
 
 	"errors"
-	"os"
+	stdos "os"
 	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"
@@ -49,7 +50,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 		return nil, &sproutRef
 	}
 
-	tempSproutPath, err := os.MkdirTemp(
+	tempSproutPath, err := stdos.MkdirTemp(
 		heapSproutsPath,
 		".tmp-"+sproutFingerprint+"-*",
 	)
@@ -57,7 +58,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 		return err, nil
 	}
 	// Best effort cleanup. Crash/power-loss can still leave tmp dirs behind.
-	defer os.RemoveAll(tempSproutPath)
+	defer stdos.RemoveAll(tempSproutPath)
 
 	// walk the packed sprout files and copy them into the garden heap
 	err, _ = StemWalk(
@@ -88,12 +89,12 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 				}
 
 				if node.Info.IsDir() {
-					err = os.Mkdir(destPath, os.ModePerm)
+					err = stdos.Mkdir(destPath, stdos.ModePerm)
 					if err != nil {
 						return err, nil
 					}
-				} else if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
-					linkTarget, err := os.Readlink(node.Path)
+				} else if node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
+					linkTarget, err := stdos.Readlink(node.Path)
 					if err != nil {
 						return err, nil
 					}
@@ -106,7 +107,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 					isInternalLink, err := fileIsDescendant(absLinkTarget, node.BasePath)
 
 					if isInternalLink {
-						err = os.Symlink(linkTarget, destPath)
+						err = stdos.Symlink(linkTarget, destPath)
 						if err != nil {
 							return err, nil
 						}
@@ -157,7 +158,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 		}
 
 		targetFingerprintFile := filepath.Join(targetStemPath, "dyd", "fingerprint")
-		targetFingerprintBytes, err := os.ReadFile(targetFingerprintFile)
+		targetFingerprintBytes, err := stdos.ReadFile(targetFingerprintFile)
 		if err != nil {
 			return err, nil
 		}
@@ -170,7 +171,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 			return err, nil
 		}
 
-		err = os.Symlink(relPath, dependencyPath)
+		err = stdos.Symlink(relPath, dependencyPath)
 		if err != nil {
 			return err, nil
 		}
@@ -210,7 +211,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 			return nil, nil
 		}
 
-		dir, err := os.Open(node.Path)
+		dir, err := stdos.Open(node.Path)
 		if err != nil {
 			return err, nil
 		}
@@ -226,17 +227,17 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 	}
 
 	// Publish atomically without mutating an already-published CAS entry.
-	err = os.Rename(tempSproutPath, finalSproutPath)
+	err = stdos.Rename(tempSproutPath, finalSproutPath)
 	if err != nil {
 		// If another process published this fingerprint first, treat as success.
-		if _, statErr := os.Stat(finalSproutPath); statErr == nil {
+		if _, statErr := stdos.Stat(finalSproutPath); statErr == nil {
 			sproutRef := SafeHeapSproutReference{
 				BasePath: finalSproutPath,
 				Sprouts:  req.HeapSprouts,
 			}
 
 			return nil, &sproutRef
-		} else if !errors.Is(statErr, os.ErrNotExist) {
+		} else if !errors.Is(statErr, stdos.ErrNotExist) {
 			return statErr, nil
 		}
 
