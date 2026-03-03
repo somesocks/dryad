@@ -21,6 +21,7 @@ Variant selectors are also supported for root content paths:
 - `dyd/commands~<descriptor>`
 - `dyd/secrets~<descriptor>`
 - `dyd/docs~<descriptor>`
+- `dyd/requirements~<descriptor>`
 
 Example:
 - `dyd/assets~arch=amd64,arm64+os=linux`
@@ -35,10 +36,14 @@ Each requirement has:
 Examples:
 - `dyd/requirements/foo` with `root:../../../foo`
 - `dyd/requirements/foo~arch=any+os=linux` with `root:../../../foo?arch=amd64&os=linux`
+- `dyd/requirements~os=linux/foo` with `root:../../../foo`
 
 In practice:
 - Filename descriptor (`~arch=...+os=...`) is a **condition**: when this requirement is active.
 - URL query descriptor (`?arch=...&os=...`) is a **target selector**: which dependency variant(s) to link.
+- Directory descriptor on `dyd/requirements~...` is a **path selector**: which requirements directory is active for the root variant.
+
+For each variant, dryad selects at most one matching requirements directory. If there are no matching requirements directories, the root is built with no requirements. If there are multiple matching requirements directories, the build fails due to ambiguity.
 
 ## Build flow
 

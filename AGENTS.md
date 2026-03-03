@@ -92,6 +92,7 @@
   - `<root>/dyd/secrets` - _secrets_ - secret assets for the root (deployment secrets, signing keys, etc.).
     - Variant selectors are supported with `<root>/dyd/secrets~<descriptor>`.
   - `<root>/dyd/requirements` - _requirements_ - the specification for dependencies of the root.
+    - Variant selectors are supported with `<root>/dyd/requirements~<descriptor>`.
     - each requirement filename is either `<alias>` or `<alias>~<condition_descriptor>`.
       - Alias names may only contain `[A-Za-z0-9._-]+`.
       - Example unconditional requirement name: `foo`
@@ -155,7 +156,7 @@
   - Filesystem form: `arch=amd64+os=linux` (used in filenames and dependency suffixes).
   - URL form: `?arch=amd64&os=linux` (used in requirement target URLs).
 - Variant selectors for root content paths:
-  - Supported path kinds: `dyd/assets`, `dyd/commands`, `dyd/secrets`, `dyd/docs`.
+  - Supported path kinds: `dyd/assets`, `dyd/commands`, `dyd/secrets`, `dyd/docs`, `dyd/requirements`.
   - Selector form: `<path_kind>~<descriptor>`, for example `assets~arch=amd64,arm64+os=linux`.
   - Selector matching uses the same behavior as include/exclude filters:
     - supported: concrete options, `none`, `any`, and comma lists.
