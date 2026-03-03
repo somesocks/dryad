@@ -1,12 +1,11 @@
 package core
 
 import (
-	// dydfs "dryad/filesystem"
 	"dryad/task"
 
 	// "io/fs"
 	// "io/ioutil"
-	// "os"
+	"os"
 	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"
@@ -34,6 +33,11 @@ func init() {
 		zlog.Trace().
 			Str("path", relRootPath).
 			Msg("RootBuild/stage2")
+
+		err = os.Remove(filepath.Join(req.WorkspacePath, "dyd", "~requirements"))
+		if err != nil && !os.IsNotExist(err) {
+			return err, nil
+		}
 
 		err = rootBuild_requirementsPrepare(req.WorkspacePath)
 		if err != nil {

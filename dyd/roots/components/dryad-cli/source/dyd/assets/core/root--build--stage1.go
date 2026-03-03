@@ -87,6 +87,15 @@ func init() {
 	) (error, []rootBuild_stage1_buildDependencyRequest) {
 		var buildDependencyRequests []rootBuild_stage1_buildDependencyRequest
 
+		requirementsSourcePath := filepath.Join(req.WorkspacePath, "dyd", "~requirements")
+		exists, err := fileExists(requirementsSourcePath)
+		if err != nil {
+			return err, buildDependencyRequests
+		}
+		if !exists {
+			return nil, buildDependencyRequests
+		}
+
 		rootRef := SafeRootReference{
 			BasePath: req.RootPath,
 			Roots:    req.Roots,
@@ -97,7 +106,16 @@ func init() {
 			return err, buildDependencyRequests
 		}
 
-		err, requirementsRef := rootRef.Requirements().Resolve(ctx)
+		requirementsBasePath, err := filepath.EvalSymlinks(requirementsSourcePath)
+		if err != nil {
+			return err, buildDependencyRequests
+		}
+
+		unsafeRequirementsRef := UnsafeRootRequirementsReference{
+			BasePath: requirementsBasePath,
+			Root:     &rootRef,
+		}
+		err, requirementsRef := unsafeRequirementsRef.Resolve(ctx)
 		if err != nil {
 			return err, buildDependencyRequests
 		}
