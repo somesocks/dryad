@@ -1,13 +1,13 @@
 package core
 
 import (
+	"dryad/internal/os"
+	"dryad/task"
 	"errors"
 	"io/fs"
-	"os"
+	stdos "os"
 	"path/filepath"
 	"time"
-
-	"dryad/task"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -39,8 +39,8 @@ func heapAddSecretFile(ctx *task.ExecutionContext, req heapAddSecretFileRequest)
 	now := time.Now()
 
 	// Fast path: if the CAS entry already exists, avoid unnecessary temp writes.
-	if _, err := os.Stat(destPath); err == nil {
-		err = os.Chtimes(destPath, now, now)
+	if _, err := stdos.Stat(destPath); err == nil {
+		err = stdos.Chtimes(destPath, now, now)
 		if err != nil {
 			zlog.Warn().
 				Str("path", destPath).
@@ -52,13 +52,13 @@ func heapAddSecretFile(ctx *task.ExecutionContext, req heapAddSecretFileRequest)
 		return err, ""
 	}
 
-	srcFile, err := os.Open(sourcePath)
+	srcFile, err := stdos.Open(sourcePath)
 	if err != nil {
 		return err, ""
 	}
 	defer srcFile.Close()
 
-	tempFile, err := os.CreateTemp(
+	tempFile, err := stdos.CreateTemp(
 		heapSecretsPath,
 		".tmp-"+fingerprint+"-*",
 	)
@@ -67,7 +67,7 @@ func heapAddSecretFile(ctx *task.ExecutionContext, req heapAddSecretFileRequest)
 	}
 	tempPath := tempFile.Name()
 	// Best effort cleanup. Crash/power-loss can still leave tmp files behind.
-	defer os.Remove(tempPath)
+	defer stdos.Remove(tempPath)
 
 	_, err = tempFile.ReadFrom(srcFile)
 	if err != nil {
@@ -90,7 +90,7 @@ func heapAddSecretFile(ctx *task.ExecutionContext, req heapAddSecretFileRequest)
 	if err != nil {
 		// return a success if the file is already in the heap
 		if errors.Is(err, fs.ErrExist) {
-			err = os.Chtimes(destPath, now, now)
+			err = stdos.Chtimes(destPath, now, now)
 			if err != nil {
 				zlog.Warn().
 					Str("path", destPath).

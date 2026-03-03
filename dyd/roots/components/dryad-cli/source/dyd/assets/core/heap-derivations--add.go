@@ -1,10 +1,11 @@
 package core
 
 import (
+	"dryad/internal/os"
 	"dryad/task"
 	"errors"
 	"io/fs"
-	"os"
+	stdos "os"
 	"path/filepath"
 	// zlog "github.com/rs/zerolog/log"
 )
@@ -18,7 +19,7 @@ func (derivations *SafeHeapDerivationsReference) Add(
 	derivationPath := filepath.Join(derivations.BasePath, "roots", sourceFingerprint)
 	derivationsRootsPath := filepath.Dir(derivationPath)
 
-	tempFile, err := os.CreateTemp(
+	tempFile, err := stdos.CreateTemp(
 		derivationsRootsPath,
 		".tmp-"+sourceFingerprint+"-*",
 	)
@@ -27,7 +28,7 @@ func (derivations *SafeHeapDerivationsReference) Add(
 	}
 	tempPath := tempFile.Name()
 	// Best effort cleanup. Crash/power-loss can still leave tmp files behind.
-	defer os.Remove(tempPath)
+	defer stdos.Remove(tempPath)
 
 	_, err = tempFile.WriteString(resultFingerprint)
 	if err != nil {
