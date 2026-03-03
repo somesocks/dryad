@@ -32,6 +32,7 @@ type WhenConfig struct {
 
 type ActionConfig struct {
 	Type    string `json:"type" yaml:"type"`
+	Phase   string `json:"phase,omitempty" yaml:"phase,omitempty"`
 	Error   string `json:"error,omitempty" yaml:"error,omitempty"`
 	DelayMS int64  `json:"delay_ms,omitempty" yaml:"delay_ms,omitempty"`
 }

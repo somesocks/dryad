@@ -10,16 +10,13 @@ import (
 	"time"
 )
 
-type runner func(key string) error
-type runnerDecorator func(next runner) runner
-
 type engine struct {
 	version uint64
-	runners map[string]runner
+	rules   map[string][]*compiledRule
 }
 
-func (e *engine) Runner(point string) runner {
-	return e.runners[point]
+func (e *engine) Rules(point string) []*compiledRule {
+	return e.rules[point]
 }
 
 type keyMatcherKind int
@@ -66,21 +63,22 @@ const (
 )
 
 type compiledRule struct {
-	id       string
-	op       string
-	matcher  keyMatcher
-	when     whenMode
-	n        uint64
-	percent  uint64
-	maxHits  int64
-	hitCount atomic.Int64
-	counter  atomic.Uint64
-	perKeyMu sync.Mutex
-	perKey   map[uint64]uint64
-	action   actionType
-	delay    time.Duration
-	err      error
-	seed     uint64
+	id        string
+	op        string
+	matcher   keyMatcher
+	when      whenMode
+	n         uint64
+	percent   uint64
+	maxHits   int64
+	hitCount  atomic.Int64
+	counter   atomic.Uint64
+	perKeyMu  sync.Mutex
+	perKey    map[uint64]uint64
+	action    actionType
+	postError bool
+	delay     time.Duration
+	err       error
+	seed      uint64
 }
 
 func compileConfig(cfg Config) (*engine, error) {
@@ -88,35 +86,24 @@ func compileConfig(cfg Config) (*engine, error) {
 		return nil, fmt.Errorf("unsupported diagnostics version %d", cfg.Version)
 	}
 
-	decoratorsByPoint := map[string][]runnerDecorator{}
+	rulesByPoint := map[string][]*compiledRule{}
 
 	for idx, rule := range cfg.Rules {
 		if rule.Enabled != nil && !*rule.Enabled {
 			continue
 		}
 
-		decorator, op, err := compileRuleDecorator(cfg.Seed, idx, rule)
+		compiled, op, err := compileRule(cfg.Seed, idx, rule)
 		if err != nil {
 			return nil, err
 		}
-		decoratorsByPoint[op] = append(decoratorsByPoint[op], decorator)
+		rulesByPoint[op] = append(rulesByPoint[op], compiled)
 	}
 
-	runners := map[string]runner{}
-	for point, decorators := range decoratorsByPoint {
-		next := runner(func(string) error { return nil })
-		for i := len(decorators) - 1; i >= 0; i-- {
-			next = decorators[i](next)
-		}
-		runners[point] = next
-	}
-
-	return &engine{
-		runners: runners,
-	}, nil
+	return &engine{rules: rulesByPoint}, nil
 }
 
-func compileRuleDecorator(seed int64, index int, rule RuleConfig) (runnerDecorator, string, error) {
+func compileRule(seed int64, index int, rule RuleConfig) (*compiledRule, string, error) {
 	op := strings.TrimSpace(rule.Op)
 	if op == "" {
 		return nil, "", fmt.Errorf("diagnostics rule missing op")
@@ -142,20 +129,7 @@ func compileRuleDecorator(seed int64, index int, rule RuleConfig) (runnerDecorat
 		return nil, "", err
 	}
 
-	decorator := func(next runner) runner {
-		return func(key string) error {
-			matched, err := compiled.Apply(key)
-			if err != nil {
-				return err
-			}
-			if matched {
-				return nil
-			}
-			return next(key)
-		}
-	}
-
-	return decorator, op, nil
+	return compiled, op, nil
 }
 
 func compileKeyMatcher(raw string) (keyMatcher, error) {
@@ -219,9 +193,17 @@ func compileAction(out *compiledRule, action ActionConfig, id string) error {
 		if err != nil {
 			return fmt.Errorf("diagnostics rule %q: %w", id, err)
 		}
+		post, err := parseErrorPhase(action.Phase)
+		if err != nil {
+			return fmt.Errorf("diagnostics rule %q: %w", id, err)
+		}
 		out.action = actionError
+		out.postError = post
 		out.err = errValue
 	case "delay":
+		if strings.TrimSpace(action.Phase) != "" {
+			return fmt.Errorf("diagnostics rule %q: action.phase is only supported for action.type=\"error\"", id)
+		}
 		if action.DelayMS < 0 {
 			return fmt.Errorf("diagnostics rule %q: action.delay_ms must be >= 0", id)
 		}
@@ -232,6 +214,17 @@ func compileAction(out *compiledRule, action ActionConfig, id string) error {
 	}
 
 	return nil
+}
+
+func parseErrorPhase(raw string) (bool, error) {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "", "pre":
+		return false, nil
+	case "post":
+		return true, nil
+	default:
+		return false, fmt.Errorf("unsupported action.phase %q", raw)
+	}
 }
 
 func parseErrorName(name string) (error, error) {
@@ -249,30 +242,17 @@ func parseErrorName(name string) (error, error) {
 	}
 }
 
-// Apply executes the compiled rule against a key and returns whether the rule
-// matched and (optionally) an injected error.
-func (rule *compiledRule) Apply(key string) (bool, error) {
+func (rule *compiledRule) matches(key string) bool {
 	if !rule.matcher.Matches(key) {
-		return false, nil
+		return false
 	}
 	if !rule.whenMatches(key) {
-		return false, nil
+		return false
 	}
 	if !rule.consumeHit() {
-		return false, nil
+		return false
 	}
-
-	switch rule.action {
-	case actionError:
-		return true, rule.err
-	case actionDelay:
-		if rule.delay > 0 {
-			time.Sleep(rule.delay)
-		}
-		return true, nil
-	default:
-		return false, nil
-	}
+	return true
 }
 
 func (rule *compiledRule) whenMatches(key string) bool {

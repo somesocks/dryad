@@ -126,3 +126,97 @@ func TestBindA2R1_ReturnsZeroResultOnInjectedError(t *testing.T) {
 		t.Fatalf("expected zero result on injected error, got %d", gotVal)
 	}
 }
+
+func TestBindA2R0_PostErrorRunsAfterBase(t *testing.T) {
+	Disable()
+	t.Cleanup(Disable)
+
+	var calls atomic.Int64
+	base := func(a0 string, a1 string) error {
+		calls.Add(1)
+		return nil
+	}
+
+	bound := BindA2R0(
+		"os.link",
+		func(a0 string, _ string) string {
+			return a0
+		},
+		base,
+	)
+
+	err := SetupFromConfig(Config{
+		Version: 1,
+		Seed:    5,
+		Rules: []RuleConfig{
+			{
+				ID:   "inject-post-error",
+				Op:   "os.link",
+				Key:  "*",
+				When: WhenConfig{Mode: "every_n", Count: 1},
+				Action: ActionConfig{
+					Type:  "error",
+					Phase: "post",
+					Error: "EMLINK",
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("setup diagnostics: %v", err)
+	}
+
+	err = bound("alpha", "dest")
+	if !errors.Is(err, syscall.EMLINK) {
+		t.Fatalf("expected post EMLINK, got %v", err)
+	}
+	if calls.Load() != 1 {
+		t.Fatalf("expected base to run before post error, got calls=%d", calls.Load())
+	}
+}
+
+func TestBindA2R1_PostErrorPreservesResult(t *testing.T) {
+	Disable()
+	t.Cleanup(Disable)
+
+	base := func(a0 string, a1 string) (error, int) {
+		return nil, 42
+	}
+
+	bound := BindA2R1(
+		"query.fetch",
+		func(a0 string, a1 string) string {
+			return a0 + ":" + a1
+		},
+		base,
+	)
+
+	err := SetupFromConfig(Config{
+		Version: 1,
+		Seed:    7,
+		Rules: []RuleConfig{
+			{
+				ID:   "inject-post-error",
+				Op:   "query.fetch",
+				Key:  "*",
+				When: WhenConfig{Mode: "every_n", Count: 1},
+				Action: ActionConfig{
+					Type:  "error",
+					Phase: "post",
+					Error: "EIO",
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("setup diagnostics: %v", err)
+	}
+
+	gotErr, gotVal := bound("a", "b")
+	if !errors.Is(gotErr, syscall.EIO) {
+		t.Fatalf("expected post EIO, got %v", gotErr)
+	}
+	if gotVal != 42 {
+		t.Fatalf("expected base result to be preserved on post error, got %d", gotVal)
+	}
+}

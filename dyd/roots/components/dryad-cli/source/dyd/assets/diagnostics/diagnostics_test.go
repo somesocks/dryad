@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -86,5 +87,55 @@ func TestSetupFromEnv_InvalidPrefix(t *testing.T) {
 	t.Setenv(EnvVar, "oops")
 	if err := SetupFromEnv(); err == nil {
 		t.Fatal("expected error for invalid DYD_DG prefix")
+	}
+}
+
+func TestSetupFromConfig_ErrorPhaseRejectsUnknownValue(t *testing.T) {
+	err := SetupFromConfig(Config{
+		Version: 1,
+		Rules: []RuleConfig{
+			{
+				ID:   "bad-phase",
+				Op:   "os.link",
+				Key:  "*",
+				When: WhenConfig{Mode: "every_n", Count: 1},
+				Action: ActionConfig{
+					Type:  "error",
+					Phase: "later",
+					Error: "EMLINK",
+				},
+			},
+		},
+	})
+	if err == nil {
+		t.Fatal("expected compile error for unsupported action.phase")
+	}
+	if !strings.Contains(err.Error(), `unsupported action.phase`) {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestSetupFromConfig_DelayRejectsPhase(t *testing.T) {
+	err := SetupFromConfig(Config{
+		Version: 1,
+		Rules: []RuleConfig{
+			{
+				ID:   "bad-delay-phase",
+				Op:   "os.link",
+				Key:  "*",
+				When: WhenConfig{Mode: "every_n", Count: 1},
+				Action: ActionConfig{
+					Type:    "delay",
+					Phase:   "post",
+					DelayMS: 1,
+				},
+			},
+		},
+	})
+	if err == nil {
+		t.Fatal("expected compile error for delay action.phase")
+	}
+	if !strings.Contains(err.Error(), `action.phase is only supported`) {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

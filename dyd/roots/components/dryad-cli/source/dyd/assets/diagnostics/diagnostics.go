@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"sync/atomic"
+	"time"
 )
 
 var activeEngine atomic.Pointer[engine]
@@ -48,9 +49,43 @@ func Apply(point string, key string) error {
 	if current == nil {
 		return nil
 	}
-	r := current.Runner(point)
-	if r == nil {
+	rules := current.Rules(point)
+	if len(rules) == 0 {
 		return nil
 	}
-	return r(key)
+	return applyNoopRules(rules, key, 0)
+}
+
+func applyNoopRules(rules []*compiledRule, key string, index int) error {
+	if index >= len(rules) {
+		return nil
+	}
+
+	rule := rules[index]
+
+	switch rule.action {
+	case actionDelay:
+		if rule.matches(key) && rule.delay > 0 {
+			time.Sleep(rule.delay)
+		}
+		return applyNoopRules(rules, key, index+1)
+
+	case actionError:
+		hit := rule.matches(key)
+		if hit && !rule.postError {
+			return rule.err
+		}
+
+		err := applyNoopRules(rules, key, index+1)
+		if err != nil {
+			return err
+		}
+		if hit && rule.postError {
+			return rule.err
+		}
+		return nil
+
+	default:
+		return applyNoopRules(rules, key, index+1)
+	}
 }
