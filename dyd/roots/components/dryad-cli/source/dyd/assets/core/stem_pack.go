@@ -4,16 +4,16 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	// "errors"
+	fs2 "dryad/filesystem"
+	"dryad/internal/os"
+	"dryad/task"
 	"fmt"
 	"io"
 	"io/fs"
-	"os"
+	stdos "os"
 	"path"
 	"path/filepath"
 	"strings"
-
-	fs2 "dryad/filesystem"
-	"dryad/task"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -138,14 +138,14 @@ func finalizeSproutPath(targetGarden *SafeGardenReference, packedStemPath string
 	}
 
 	// fmt.Println("[debug] setting write permission on sprout parent")
-	err = os.Chmod(sproutParent, 0o711)
+	err = stdos.Chmod(sproutParent, 0o711)
 	if err != nil {
 		return "", err
 	}
 
 	tmpSproutPath := sproutPath + ".tmp"
 	// fmt.Println("[debug] adding temporary sprout link")
-	err = os.Symlink(relSproutLink, tmpSproutPath)
+	err = stdos.Symlink(relSproutLink, tmpSproutPath)
 	if err != nil {
 		return "", err
 	}
@@ -157,7 +157,7 @@ func finalizeSproutPath(targetGarden *SafeGardenReference, packedStemPath string
 	}
 
 	// fmt.Println("[debug] setting read permissions on sprout parent")
-	err = os.Chmod(sproutParent, 0o511)
+	err = stdos.Chmod(sproutParent, 0o511)
 	if err != nil {
 		return "", err
 	}
@@ -194,13 +194,13 @@ func stemArchive(request StemPackRequest) (string, error) {
 		return request.TargetPath, nil
 	case "tar", "tar.gz":
 		var outputPath string
-		var outputWriter *os.File
+		var outputWriter *stdos.File
 		var tarWriter *tar.Writer
 		var packMap = make(map[string]string)
 
 		if request.Format == "tar.gz" {
 			outputPath = path.Clean(request.TargetPath) + ".tar.gz"
-			outputWriter, err = os.Create(outputPath)
+			outputWriter, err = stdos.Create(outputPath)
 			if err != nil {
 				return "", err
 			}
@@ -213,7 +213,7 @@ func stemArchive(request StemPackRequest) (string, error) {
 			defer tarWriter.Close()
 		} else {
 			outputPath = path.Clean(request.TargetPath) + ".tar"
-			outputWriter, err = os.Create(outputPath)
+			outputWriter, err = stdos.Create(outputPath)
 			if err != nil {
 				return "", err
 			}
@@ -225,7 +225,7 @@ func stemArchive(request StemPackRequest) (string, error) {
 
 		var shouldWalk = func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
 			// don't crawl symlinks
-			if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
+			if node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
 				return nil, false
 			}
 			return nil, true
@@ -259,9 +259,9 @@ func stemArchive(request StemPackRequest) (string, error) {
 					return err, nil
 				}
 
-			} else if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
+			} else if node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
 				// if it's a symlink, read the link target
-				linkPath, err := os.Readlink(node.Path)
+				linkPath, err := stdos.Readlink(node.Path)
 				if err != nil {
 					return err, nil
 				}
@@ -319,7 +319,7 @@ func stemArchive(request StemPackRequest) (string, error) {
 					// add path to the packMap
 					packMap[hashString] = relativePath
 
-					file, err := os.Open(node.Path)
+					file, err := stdos.Open(node.Path)
 					if err != nil {
 						return err, nil
 					}
@@ -387,7 +387,7 @@ func StemPack(
 		Fingerprints: map[string]string{},
 	}
 
-	err := os.MkdirAll(request.TargetPath, os.ModePerm)
+	err := stdos.MkdirAll(request.TargetPath, stdos.ModePerm)
 	if err != nil {
 		return "", err
 	}

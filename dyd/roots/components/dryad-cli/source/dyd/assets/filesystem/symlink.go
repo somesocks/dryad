@@ -1,33 +1,31 @@
 package fs2
 
 import (
+	"dryad/internal/os"
+	"dryad/task"
 	// "errors"
+	"fmt"
 	"io/fs"
-	"os"
+	stdos "os"
 	// "errors"
+	"math/rand"
 	"path/filepath"
 
-	"dryad/task"
-
 	zlog "github.com/rs/zerolog/log"
-
-	"math/rand"
-	"fmt"
 )
 
 type SymlinkRequest struct {
-	Path string
+	Path   string
 	Target string
 }
 
-
-var Symlink task.Task[SymlinkRequest, SymlinkRequest] = func () task.Task[SymlinkRequest, SymlinkRequest] {
+var Symlink task.Task[SymlinkRequest, SymlinkRequest] = func() task.Task[SymlinkRequest, SymlinkRequest] {
 
 	// var fileExists = func (filename string) (error, bool) {
 	// 	_, err := os.Stat(filename)
 	// 	if err != nil {
 	// 		if errors.Is(err, fs.ErrNotExist) {
-	// 			return nil, false 
+	// 			return nil, false
 	// 		} else {
 	// 			return err, false
 	// 		}
@@ -36,13 +34,13 @@ var Symlink task.Task[SymlinkRequest, SymlinkRequest] = func () task.Task[Symlin
 	// 	}
 	// }
 
-	var symlink = func (ctx *task.ExecutionContext, request SymlinkRequest) (error, SymlinkRequest) {
+	var symlink = func(ctx *task.ExecutionContext, request SymlinkRequest) (error, SymlinkRequest) {
 		var parentPath string = filepath.Dir(request.Path)
 		var err error
-	
+
 		// grab the fileinfo for the parent
 		var parentInfo fs.FileInfo
-		parentInfo, err = os.Lstat(parentPath)
+		parentInfo, err = stdos.Lstat(parentPath)
 		if err != nil {
 			zlog.Error().
 				Str("path", request.Path).
@@ -50,7 +48,7 @@ var Symlink task.Task[SymlinkRequest, SymlinkRequest] = func () task.Task[Symlin
 				Msg("dydfs.symlink - get parent info")
 			return err, request
 		}
-	
+
 		// if the parent permissions are not writable by the current user,
 		// temporarily set the permissions to writable
 		var parentPerms = parentInfo.Mode()
@@ -58,8 +56,8 @@ var Symlink task.Task[SymlinkRequest, SymlinkRequest] = func () task.Task[Symlin
 			err, _ = Chmod(
 				ctx,
 				ChmodRequest{
-					Path: parentPath,
-					Mode: parentPerms | 0o770,
+					Path:     parentPath,
+					Mode:     parentPerms | 0o770,
 					SkipLock: true,
 				},
 			)
@@ -73,20 +71,20 @@ var Symlink task.Task[SymlinkRequest, SymlinkRequest] = func () task.Task[Symlin
 			defer Chmod(
 				ctx,
 				ChmodRequest{
-					Path: parentPath,
-					Mode: parentPerms,
+					Path:     parentPath,
+					Mode:     parentPerms,
 					SkipLock: true,
 				},
 			)
 		}
-	
+
 		var tempPath string = fmt.Sprintf(
 			"%s.tmp.%x",
 			request.Path,
 			rand.Int63(),
 		)
-	
-		err = os.Symlink(request.Target, tempPath)
+
+		err = stdos.Symlink(request.Target, tempPath)
 		if err != nil {
 			zlog.Error().
 				Str("path", request.Path).
@@ -103,22 +101,22 @@ var Symlink task.Task[SymlinkRequest, SymlinkRequest] = func () task.Task[Symlin
 				Str("tempPath", tempPath).
 				Err(err).
 				Msg("dydfs.symlink - move temporary symlink")
-			defer os.Remove(tempPath)
+			defer stdos.Remove(tempPath)
 			return err, request
 		}
 
 		return nil, request
 	}
-	
+
 	symlink = WithFileLock(
 		symlink,
-		func (ctx *task.ExecutionContext, request SymlinkRequest) (error, string) {
+		func(ctx *task.ExecutionContext, request SymlinkRequest) (error, string) {
 			return nil, filepath.Dir(request.Path)
 		},
 	)
 
 	symlink = task.Series2(
-		func (ctx *task.ExecutionContext, req SymlinkRequest) (error, SymlinkRequest) {
+		func(ctx *task.ExecutionContext, req SymlinkRequest) (error, SymlinkRequest) {
 			zlog.Trace().
 				Str("path", req.Path).
 				Msg("dydfs.symlink")

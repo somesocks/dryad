@@ -270,7 +270,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 	}
 
 	// Publish atomically without mutating an already-published CAS entry.
-	err = stdos.Rename(tempStemPath, finalStemPath)
+	err = os.Rename(tempStemPath, finalStemPath)
 	if err != nil {
 		// If another process published this fingerprint first, treat as success.
 		if _, statErr := stdos.Stat(finalStemPath); statErr == nil {

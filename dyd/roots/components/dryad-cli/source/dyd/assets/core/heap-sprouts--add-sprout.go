@@ -227,7 +227,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 	}
 
 	// Publish atomically without mutating an already-published CAS entry.
-	err = stdos.Rename(tempSproutPath, finalSproutPath)
+	err = os.Rename(tempSproutPath, finalSproutPath)
 	if err != nil {
 		// If another process published this fingerprint first, treat as success.
 		if _, statErr := stdos.Stat(finalSproutPath); statErr == nil {
