@@ -1,9 +1,10 @@
 package core
 
 import (
+	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
-	"os"
+	stdos "os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -61,7 +62,7 @@ func rootBuild_materializeVariantTraits(
 		}
 	}
 
-	err = os.MkdirAll(traitsDestinationPath, os.ModePerm)
+	err = stdos.MkdirAll(traitsDestinationPath, stdos.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -122,7 +123,7 @@ func rootBuild_materializeVariantTraits(
 		}
 
 		if traitExists {
-			rawBytes, err := os.ReadFile(traitPath)
+			rawBytes, err := stdos.ReadFile(traitPath)
 			if err != nil {
 				return err
 			}
@@ -133,7 +134,7 @@ func rootBuild_materializeVariantTraits(
 					rawValue,
 					selectedOption,
 				)
-				err = os.Remove(traitPath)
+				err = stdos.Remove(traitPath)
 				if err != nil {
 					return err
 				}
@@ -142,7 +143,7 @@ func rootBuild_materializeVariantTraits(
 			}
 		}
 
-		err = os.WriteFile(traitPath, []byte(selectedOption), 0o644)
+		err = stdos.WriteFile(traitPath, []byte(selectedOption), 0o644)
 		if err != nil {
 			return err
 		}
@@ -154,7 +155,7 @@ func rootBuild_materializeVariantTraits(
 		return err
 	}
 	if workspaceVariantsExists {
-		err = os.RemoveAll(workspaceVariantsPath)
+		err = stdos.RemoveAll(workspaceVariantsPath)
 		if err != nil {
 			return err
 		}

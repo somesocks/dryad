@@ -107,7 +107,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 					isInternalLink, err := fileIsDescendant(absLinkTarget, node.BasePath)
 
 					if isInternalLink {
-						err = stdos.Symlink(linkTarget, destPath)
+						err = os.Symlink(linkTarget, destPath)
 						if err != nil {
 							return err, nil
 						}
@@ -171,7 +171,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 			return err, nil
 		}
 
-		err = stdos.Symlink(relPath, dependencyPath)
+		err = os.Symlink(relPath, dependencyPath)
 		if err != nil {
 			return err, nil
 		}

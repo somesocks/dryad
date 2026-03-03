@@ -2,10 +2,11 @@ package core
 
 import (
 	dydfs "dryad/filesystem"
+	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
 	"io/fs"
-	"os"
+	stdos "os"
 	"path/filepath"
 	"regexp"
 )
@@ -64,7 +65,7 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 			return relErr, false
 		}
 
-		if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
+		if node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
 			return nil, false
 		}
 
@@ -84,7 +85,7 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 
 	var copyDir = func(ctx *task.ExecutionContext, path string, mode fs.FileMode) error {
 		// for a directory, make a new dir
-		var err = os.MkdirAll(path, mode)
+		var err = stdos.MkdirAll(path, mode)
 		return err
 	}
 
@@ -101,7 +102,7 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 		var isInternalLink bool
 		var err error
 
-		linkTarget, err = os.Readlink(sourcePath)
+		linkTarget, err = stdos.Readlink(sourcePath)
 		if err != nil {
 			return err
 		}
@@ -153,14 +154,14 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 	var copyFile = func(ctx *task.ExecutionContext, sourcePath string, sourceMode fs.FileMode, destPath string) error {
 		// for a file, copy contents
 
-		srcFile, err := os.Open(sourcePath)
+		srcFile, err := stdos.Open(sourcePath)
 		if err != nil {
 			return err
 		}
 		defer srcFile.Close()
 
-		var destFile *os.File
-		destFile, err = os.Create(destPath)
+		var destFile *stdos.File
+		destFile, err = stdos.Create(destPath)
 		if err != nil {
 			return err
 		}
@@ -206,7 +207,7 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 			if node.Info.IsDir() {
 				err = copyDir(ctx, targetDestPath, node.Info.Mode())
 				return err, nil
-			} else if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
+			} else if node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
 				err = copySymlink(
 					ctx,
 					node.BasePath,

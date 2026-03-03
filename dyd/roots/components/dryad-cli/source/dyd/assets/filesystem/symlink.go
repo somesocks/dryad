@@ -84,7 +84,7 @@ var Symlink task.Task[SymlinkRequest, SymlinkRequest] = func() task.Task[Symlink
 			rand.Int63(),
 		)
 
-		err = stdos.Symlink(request.Target, tempPath)
+		err = os.Symlink(request.Target, tempPath)
 		if err != nil {
 			zlog.Error().
 				Str("path", request.Path).

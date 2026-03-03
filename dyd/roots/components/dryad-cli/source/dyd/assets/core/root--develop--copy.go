@@ -4,10 +4,11 @@ import (
 	dydfs "dryad/filesystem"
 	"dryad/task"
 
+	"dryad/internal/os"
 	"fmt"
 	"io"
 	"io/fs"
-	"os"
+	stdos "os"
 	"path/filepath"
 	"strings"
 
@@ -19,17 +20,17 @@ type rootDevelopCopyOptions struct {
 }
 
 func rootDevelop_removeExistingPath(path string) error {
-	info, err := os.Lstat(path)
+	info, err := stdos.Lstat(path)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if stdos.IsNotExist(err) {
 			return nil
 		}
 		return err
 	}
-	if info.IsDir() && info.Mode()&os.ModeSymlink != os.ModeSymlink {
-		return os.RemoveAll(path)
+	if info.IsDir() && info.Mode()&stdos.ModeSymlink != stdos.ModeSymlink {
+		return stdos.RemoveAll(path)
 	}
-	return os.Remove(path)
+	return stdos.Remove(path)
 }
 
 func rootDevelop_unfreezeMode(relPath string, mode fs.FileMode) fs.FileMode {
@@ -64,7 +65,7 @@ func rootDevelop_copyDirFromStem(
 		return err
 	}
 
-	info, err := os.Lstat(srcPath)
+	info, err := stdos.Lstat(srcPath)
 	if err != nil {
 		return err
 	}
@@ -72,7 +73,7 @@ func rootDevelop_copyDirFromStem(
 		return fmt.Errorf("rootDevelop_copyDirFromStem: source is not a directory: %s", srcPath)
 	}
 
-	err = os.MkdirAll(destPath, 0o755)
+	err = stdos.MkdirAll(destPath, 0o755)
 	if err != nil {
 		return err
 	}
@@ -81,7 +82,7 @@ func rootDevelop_copyDirFromStem(
 		if node.Info == nil {
 			return nil, false
 		}
-		if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
+		if node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
 			return nil, false
 		}
 		if !node.Info.IsDir() {
@@ -104,23 +105,23 @@ func rootDevelop_copyDirFromStem(
 		mode := node.Info.Mode()
 		switch {
 		case mode.IsDir():
-			return os.MkdirAll(dest, 0o755), nil
-		case mode&os.ModeSymlink == os.ModeSymlink:
+			return stdos.MkdirAll(dest, 0o755), nil
+		case mode&stdos.ModeSymlink == stdos.ModeSymlink:
 			if err := rootDevelop_removeExistingPath(dest); err != nil {
 				return err, nil
 			}
-			linkTarget, err := os.Readlink(node.Path)
+			linkTarget, err := stdos.Readlink(node.Path)
 			if err != nil {
 				return err, nil
 			}
 			parent := filepath.Dir(dest)
-			if err := os.MkdirAll(parent, 0o755); err != nil {
+			if err := stdos.MkdirAll(parent, 0o755); err != nil {
 				return err, nil
 			}
 			return os.Symlink(linkTarget, dest), nil
 		case mode.IsRegular():
 			parent := filepath.Dir(dest)
-			if err := os.MkdirAll(parent, 0o755); err != nil {
+			if err := stdos.MkdirAll(parent, 0o755); err != nil {
 				return err, nil
 			}
 			if err := rootDevelop_removeExistingPath(dest); err != nil {
@@ -130,9 +131,9 @@ func rootDevelop_copyDirFromStem(
 			if relBase != "" {
 				unfreezeRelPath = filepath.Join(relBase, relPath)
 			}
-		destMode := rootDevelop_unfreezeMode(unfreezeRelPath, mode)
-		return rootDevelop_copyFile(node.Path, dest, destMode), nil
-	default:
+			destMode := rootDevelop_unfreezeMode(unfreezeRelPath, mode)
+			return rootDevelop_copyFile(node.Path, dest, destMode), nil
+		default:
 			return fmt.Errorf("rootDevelop_copyDirFromStem: unsupported file type: %s", node.Path), nil
 		}
 	}
@@ -170,7 +171,7 @@ func rootDevelop_copyDir(
 		return err
 	}
 
-	info, err := os.Lstat(srcPath)
+	info, err := stdos.Lstat(srcPath)
 	if err != nil {
 		return err
 	}
@@ -178,7 +179,7 @@ func rootDevelop_copyDir(
 		return fmt.Errorf("rootDevelop_copyDir: source is not a directory: %s", srcPath)
 	}
 
-	err = os.MkdirAll(destPath, info.Mode())
+	err = stdos.MkdirAll(destPath, info.Mode())
 	if err != nil {
 		return err
 	}
@@ -187,7 +188,7 @@ func rootDevelop_copyDir(
 		if node.Info == nil {
 			return nil, false
 		}
-		if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
+		if node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
 			return nil, false
 		}
 		if !node.Info.IsDir() {
@@ -252,9 +253,9 @@ func rootDevelop_copyDir(
 		mode := node.Info.Mode()
 		switch {
 		case mode.IsDir():
-			return os.MkdirAll(dest, mode), nil
-		case mode&os.ModeSymlink == os.ModeSymlink:
-			linkTarget, err := os.Readlink(node.Path)
+			return stdos.MkdirAll(dest, mode), nil
+		case mode&stdos.ModeSymlink == stdos.ModeSymlink:
+			linkTarget, err := stdos.Readlink(node.Path)
 			if err != nil {
 				return err, nil
 			}
@@ -280,13 +281,13 @@ func rootDevelop_copyDir(
 }
 
 func rootDevelop_copyFile(srcPath string, destPath string, mode fs.FileMode) error {
-	srcFile, err := os.Open(srcPath)
+	srcFile, err := stdos.Open(srcPath)
 	if err != nil {
 		return err
 	}
 	defer srcFile.Close()
 
-	destFile, err := os.Create(destPath)
+	destFile, err := stdos.Create(destPath)
 	if err != nil {
 		return err
 	}

@@ -128,7 +128,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 					isInternalLink, err := fileIsDescendant(absLinkTarget, node.BasePath)
 
 					if isInternalLink {
-						err = stdos.Symlink(linkTarget, destPath)
+						err = os.Symlink(linkTarget, destPath)
 						if err != nil {
 							return err, nil
 						}
@@ -213,7 +213,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 			return err, nil
 		}
 
-		err = stdos.Symlink(relPath, dependencyPath)
+		err = os.Symlink(relPath, dependencyPath)
 		if err != nil {
 			return err, nil
 		}

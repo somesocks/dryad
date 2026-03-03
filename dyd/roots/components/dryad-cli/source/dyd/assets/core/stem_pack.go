@@ -145,7 +145,7 @@ func finalizeSproutPath(targetGarden *SafeGardenReference, packedStemPath string
 
 	tmpSproutPath := sproutPath + ".tmp"
 	// fmt.Println("[debug] adding temporary sprout link")
-	err = stdos.Symlink(relSproutLink, tmpSproutPath)
+	err = os.Symlink(relSproutLink, tmpSproutPath)
 	if err != nil {
 		return "", err
 	}

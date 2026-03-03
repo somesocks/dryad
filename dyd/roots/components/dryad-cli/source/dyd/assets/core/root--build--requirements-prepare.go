@@ -4,7 +4,8 @@ import (
 	dydfs "dryad/filesystem"
 	"dryad/task"
 
-	"os"
+	"dryad/internal/os"
+	stdos "os"
 	"path/filepath"
 	"regexp"
 
@@ -82,7 +83,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 		// 	Msg("rootBuild_requirementsPrepare.fs_on_match")
 
 		reqsParentPath := filepath.Dir(reqsPath)
-		err = os.MkdirAll(reqsParentPath, os.ModePerm)
+		err = stdos.MkdirAll(reqsParentPath, stdos.ModePerm)
 		if err != nil {
 			return err, nil
 		}
@@ -91,7 +92,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 		// 	Str("reqsParentPath", reqsParentPath).
 		// 	Msg("rootBuild_requirementsPrepare.fs_on_match")
 
-		var isSymlink = node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
+		var isSymlink = node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink
 		var isInternalLink = false
 		var linkTarget = ""
 
@@ -101,7 +102,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 
 		// check if its an package-internal symlink
 		if isSymlink {
-			linkTarget, err = os.Readlink(node.Path)
+			linkTarget, err = stdos.Readlink(node.Path)
 			if err != nil {
 				return err, nil
 			}
@@ -127,14 +128,14 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 				return err, nil
 			}
 		} else {
-			srcFile, err := os.Open(node.Path)
+			srcFile, err := stdos.Open(node.Path)
 			if err != nil {
 				return err, nil
 			}
 			defer srcFile.Close()
 
-			var destFile *os.File
-			destFile, err = os.Create(reqsPath)
+			var destFile *stdos.File
+			destFile, err = stdos.Create(reqsPath)
 			if err != nil {
 				return err, nil
 			}

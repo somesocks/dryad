@@ -7,7 +7,8 @@ import (
 
 	"fmt"
 
-	"os"
+	"dryad/internal/os"
+	stdos "os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -51,7 +52,7 @@ func rootMaterializeSprout(ctx *task.ExecutionContext, req rootMaterializeSprout
 		return fmt.Errorf("no stem variants provided for sprout materialization: %s", rootPath), ""
 	}
 
-	sproutBuildPath, err := os.MkdirTemp("", "dryad-*")
+	sproutBuildPath, err := stdos.MkdirTemp("", "dryad-*")
 	if err != nil {
 		return err, ""
 	}
@@ -163,9 +164,9 @@ func rootMaterializeSprout(ctx *task.ExecutionContext, req rootMaterializeSprout
 			}
 
 			currentPath = filepath.Join(currentPath, part)
-			currentInfo, currentErr := os.Lstat(currentPath)
+			currentInfo, currentErr := stdos.Lstat(currentPath)
 			if currentErr != nil {
-				if os.IsNotExist(currentErr) {
+				if stdos.IsNotExist(currentErr) {
 					continue
 				}
 				return currentErr, ""
@@ -237,7 +238,7 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 		Str("variant", variantLabel).
 		Msg("root build - verifying root")
 
-	workspacePath, err := os.MkdirTemp("", "dryad-*")
+	workspacePath, err := stdos.MkdirTemp("", "dryad-*")
 	if err != nil {
 		return err, ""
 	}
@@ -354,7 +355,7 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 		return fmt.Errorf("error packing root into heap: %w", err), ""
 	}
 
-	stemBuildPath, err := os.MkdirTemp("", "dryad-*")
+	stemBuildPath, err := stdos.MkdirTemp("", "dryad-*")
 	if err != nil {
 		return err, ""
 	}

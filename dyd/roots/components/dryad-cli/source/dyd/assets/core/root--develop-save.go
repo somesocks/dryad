@@ -4,9 +4,10 @@ import (
 	dydfs "dryad/filesystem"
 	"dryad/task"
 
+	"dryad/internal/os"
 	"fmt"
 	"io/fs"
-	"os"
+	stdos "os"
 	"path/filepath"
 	"sync"
 
@@ -55,7 +56,7 @@ func rootDevelop_collectState(
 		if node.Info == nil {
 			return nil, false
 		}
-		if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
+		if node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
 			return nil, false
 		}
 		if !node.Info.IsDir() {
@@ -118,12 +119,12 @@ func rootDevelop_collectState(
 		switch {
 		case mode.IsDir():
 			return nil, nil
-		case mode&os.ModeSymlink == os.ModeSymlink:
+		case mode&stdos.ModeSymlink == stdos.ModeSymlink:
 			_, hash, err := linkHash(node.Path)
 			if err != nil {
 				return err, nil
 			}
-			linkTarget, err := os.Readlink(node.Path)
+			linkTarget, err := stdos.Readlink(node.Path)
 			if err != nil {
 				return err, nil
 			}
@@ -247,11 +248,11 @@ func rootDevelop_applyFile(
 	state rootDevelopFileState,
 ) error {
 	parent := filepath.Dir(destPath)
-	if err := os.MkdirAll(parent, 0o755); err != nil {
+	if err := stdos.MkdirAll(parent, 0o755); err != nil {
 		return err
 	}
 
-	_ = os.Remove(destPath)
+	_ = stdos.Remove(destPath)
 
 	switch state.Kind {
 	case "file":
@@ -259,7 +260,7 @@ func rootDevelop_applyFile(
 	case "symlink":
 		return os.Symlink(state.LinkTarget, destPath)
 	case "dir":
-		return os.MkdirAll(destPath, state.Mode)
+		return stdos.MkdirAll(destPath, state.Mode)
 	default:
 		return fmt.Errorf("rootDevelop_applyFile: unsupported kind %s", state.Kind)
 	}
@@ -327,8 +328,8 @@ func rootDevelop_saveChanges(
 				if rPtr != nil && rPtr.Kind == "dir" {
 					continue
 				}
-				err := os.Remove(destPath)
-				if err != nil && !os.IsNotExist(err) {
+				err := stdos.Remove(destPath)
+				if err != nil && !stdos.IsNotExist(err) {
 					return conflicts, err
 				}
 				continue

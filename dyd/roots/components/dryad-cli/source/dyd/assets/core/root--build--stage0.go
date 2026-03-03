@@ -6,7 +6,8 @@ import (
 
 	// "io/fs"
 	// "io/ioutil"
-	"os"
+	"dryad/internal/os"
+	stdos "os"
 	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"
@@ -56,9 +57,9 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		zlog.Trace().
 			Msg("RootBuild/stage0/mkBaseDir")
 
-		err := os.MkdirAll(
+		err := stdos.MkdirAll(
 			filepath.Join(req.WorkspacePath, "dyd"),
-			os.ModePerm,
+			stdos.ModePerm,
 		)
 		return err, req
 	}
@@ -160,9 +161,9 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		zlog.Trace().
 			Msg("RootBuild/stage0/mkDependenciesDir")
 
-		err := os.MkdirAll(
+		err := stdos.MkdirAll(
 			filepath.Join(req.WorkspacePath, "dyd", "dependencies"),
-			os.ModePerm,
+			stdos.ModePerm,
 		)
 		return err, req
 	}

@@ -2,11 +2,11 @@ package core
 
 import (
 	// dydfs "dryad/filesystem"
+	"dryad/internal/os"
 	"dryad/task"
 
 	// "io/fs"
 	// "io/ioutil"
-	"os"
 	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"

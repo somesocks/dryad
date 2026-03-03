@@ -3,11 +3,12 @@ package core
 import (
 	"bufio"
 	dydfs "dryad/filesystem"
+	"dryad/internal/os"
 	"dryad/task"
 	"errors"
 	"fmt"
 	"io"
-	"os"
+	stdos "os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -28,9 +29,9 @@ func rootDevelop_stage0(ctx *task.ExecutionContext, snapshotStemPath string, wor
 		return err
 	}
 
-	err = os.MkdirAll(
+	err = stdos.MkdirAll(
 		filepath.Join(workspacePath, "dyd"),
-		os.ModePerm,
+		stdos.ModePerm,
 	)
 	if err != nil {
 		return err
@@ -131,13 +132,13 @@ func rootDevelop_stage0(ctx *task.ExecutionContext, snapshotStemPath string, wor
 			return err
 		}
 	} else {
-		err = os.MkdirAll(filepath.Join(workspacePath, "dyd", "requirements"), os.ModePerm)
+		err = stdos.MkdirAll(filepath.Join(workspacePath, "dyd", "requirements"), stdos.ModePerm)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = os.Mkdir(filepath.Join(workspacePath, "dyd", "dependencies"), os.ModePerm)
+	err = stdos.Mkdir(filepath.Join(workspacePath, "dyd", "dependencies"), stdos.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -266,7 +267,7 @@ func rootDevelop_snapshotStemPath(
 	garden *SafeGardenReference,
 	workspacePath string,
 ) (string, error) {
-	bytes, err := os.ReadFile(rootDevelop_snapshotFile(workspacePath))
+	bytes, err := stdos.ReadFile(rootDevelop_snapshotFile(workspacePath))
 	if err != nil {
 		return "", err
 	}
@@ -279,13 +280,13 @@ func rootDevelop_createSnapshotStem(
 	rootPath string,
 	garden *SafeGardenReference,
 ) (string, error) {
-	snapshotWorkspace, err := os.MkdirTemp("", "dryad-snapshot-*")
+	snapshotWorkspace, err := stdos.MkdirTemp("", "dryad-snapshot-*")
 	if err != nil {
 		return "", err
 	}
 	defer dydfs.RemoveAll(task.SERIAL_CONTEXT, snapshotWorkspace)
 
-	err = os.MkdirAll(filepath.Join(snapshotWorkspace, "dyd"), os.ModePerm)
+	err = stdos.MkdirAll(filepath.Join(snapshotWorkspace, "dyd"), stdos.ModePerm)
 	if err != nil {
 		return "", err
 	}
@@ -385,13 +386,13 @@ func rootDevelop_createSnapshotStem(
 			return "", err
 		}
 	} else {
-		err = os.MkdirAll(filepath.Join(snapshotWorkspace, "dyd", "requirements"), os.ModePerm)
+		err = stdos.MkdirAll(filepath.Join(snapshotWorkspace, "dyd", "requirements"), stdos.ModePerm)
 		if err != nil {
 			return "", err
 		}
 	}
 
-	err = os.MkdirAll(filepath.Join(snapshotWorkspace, "dyd", "dependencies"), os.ModePerm)
+	err = stdos.MkdirAll(filepath.Join(snapshotWorkspace, "dyd", "dependencies"), stdos.ModePerm)
 	if err != nil {
 		return "", err
 	}
@@ -616,8 +617,8 @@ func (proc *rootDevelopShellProcess) requestStop() error {
 		return nil
 	}
 
-	err := cmd.Process.Signal(os.Interrupt)
-	if err != nil && !errors.Is(err, os.ErrProcessDone) {
+	err := cmd.Process.Signal(stdos.Interrupt)
+	if err != nil && !errors.Is(err, stdos.ErrProcessDone) {
 		return err
 	}
 
@@ -740,25 +741,25 @@ func rootDevelop_handleUnsavedChanges(
 		}
 		return nil
 	case "discard":
-		fmt.Fprintf(os.Stderr, "warning: discarded unsaved changes; snapshot %s\n", snapshotFingerprint)
+		fmt.Fprintf(stdos.Stderr, "warning: discarded unsaved changes; snapshot %s\n", snapshotFingerprint)
 		return nil
 	default:
 		return fmt.Errorf("invalid on-exit action: %s", onExit)
 	}
 
-	if !isatty.IsTerminal(os.Stdin.Fd()) {
-		fmt.Fprintf(os.Stderr, "warning: root develop exited with unsaved changes; snapshot %s\n", snapshotFingerprint)
+	if !isatty.IsTerminal(stdos.Stdin.Fd()) {
+		fmt.Fprintf(stdos.Stderr, "warning: root develop exited with unsaved changes; snapshot %s\n", snapshotFingerprint)
 		return nil
 	}
 
-	fmt.Fprintln(os.Stderr, "unsaved changes:")
+	fmt.Fprintln(stdos.Stderr, "unsaved changes:")
 	for _, entry := range entries {
-		fmt.Fprintln(os.Stderr, entry.Code+" "+entry.Path)
+		fmt.Fprintln(stdos.Stderr, entry.Code+" "+entry.Path)
 	}
 
-	reader := bufio.NewReader(os.Stdin)
+	reader := bufio.NewReader(stdos.Stdin)
 	for {
-		fmt.Fprint(os.Stderr, "save changes? [s=save, d=discard]: ")
+		fmt.Fprint(stdos.Stderr, "save changes? [s=save, d=discard]: ")
 		line, readErr := reader.ReadString('\n')
 		if readErr != nil && !errors.Is(readErr, io.EOF) && !errors.Is(readErr, syscall.EIO) {
 			return readErr
@@ -766,7 +767,7 @@ func rootDevelop_handleUnsavedChanges(
 
 		choice := strings.TrimSpace(strings.ToLower(line))
 		if readErr != nil && (errors.Is(readErr, io.EOF) || errors.Is(readErr, syscall.EIO)) && choice == "" {
-			fmt.Fprintf(os.Stderr, "warning: root develop exited with unsaved changes; snapshot %s\n", snapshotFingerprint)
+			fmt.Fprintf(stdos.Stderr, "warning: root develop exited with unsaved changes; snapshot %s\n", snapshotFingerprint)
 			return nil
 		}
 
@@ -777,15 +778,15 @@ func rootDevelop_handleUnsavedChanges(
 				return err
 			}
 			if len(conflicts) > 0 {
-				fmt.Fprintf(os.Stderr, "warning: save reported %d conflicts\n", len(conflicts))
+				fmt.Fprintf(stdos.Stderr, "warning: save reported %d conflicts\n", len(conflicts))
 				continue
 			}
 			return nil
 		case "d", "discard", "n", "no":
-			fmt.Fprintf(os.Stderr, "warning: discarded unsaved changes; snapshot %s\n", snapshotFingerprint)
+			fmt.Fprintf(stdos.Stderr, "warning: discarded unsaved changes; snapshot %s\n", snapshotFingerprint)
 			return nil
 		default:
-			fmt.Fprintln(os.Stderr, "enter 's' to save or 'd' to discard")
+			fmt.Fprintln(stdos.Stderr, "enter 's' to save or 'd' to discard")
 		}
 	}
 }
@@ -831,14 +832,14 @@ func rootDevelop(
 	zlog.Info().Msg("creating development environment for root " + relRootPath)
 
 	// prepare a workspace
-	workspacePath, err := os.MkdirTemp("", "dryad-*")
+	workspacePath, err := stdos.MkdirTemp("", "dryad-*")
 	if err != nil {
 		return "", err
 	}
 	defer dydfs.RemoveAll(task.SERIAL_CONTEXT, workspacePath)
 
 	devDir := rootDevelop_devDir(workspacePath)
-	err = os.MkdirAll(devDir, 0o755)
+	err = stdos.MkdirAll(devDir, 0o755)
 	if err != nil {
 		return "", err
 	}
@@ -848,7 +849,7 @@ func rootDevelop(
 		return "", err
 	}
 
-	err = os.WriteFile(rootDevelop_snapshotFile(workspacePath), []byte(initialSnapshotFingerprint), 0o644)
+	err = stdos.WriteFile(rootDevelop_snapshotFile(workspacePath), []byte(initialSnapshotFingerprint), 0o644)
 	if err != nil {
 		return "", err
 	}
@@ -870,7 +871,7 @@ func rootDevelop(
 		return "", err
 	}
 
-	err = os.WriteFile(rootDevelop_snapshotFile(workspacePath), []byte(materializedSnapshotFingerprint), 0o644)
+	err = stdos.WriteFile(rootDevelop_snapshotFile(workspacePath), []byte(materializedSnapshotFingerprint), 0o644)
 	if err != nil {
 		return "", err
 	}
@@ -920,7 +921,7 @@ func rootDevelop(
 			if err != nil {
 				return "", err
 			}
-			if err := os.WriteFile(rootDevelop_snapshotFile(workspacePath), []byte(fingerprint), 0o644); err != nil {
+			if err := stdos.WriteFile(rootDevelop_snapshotFile(workspacePath), []byte(fingerprint), 0o644); err != nil {
 				return "", err
 			}
 			return fingerprint, nil
