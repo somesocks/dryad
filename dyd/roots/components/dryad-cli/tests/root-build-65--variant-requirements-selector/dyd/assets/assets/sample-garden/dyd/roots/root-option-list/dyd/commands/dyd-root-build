@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+DEST_DIR=$DYD_BUILD
+
+mkdir -p "$DEST_DIR/dyd/assets"
+if [ -L "$SRC_DIR/dyd/dependencies/dep" ]; then
+	cat "$SRC_DIR/dyd/dependencies/dep/dyd/assets/value.txt" > "$DEST_DIR/dyd/assets/value.txt"
+else
+	printf 'missing' > "$DEST_DIR/dyd/assets/value.txt"
+fi

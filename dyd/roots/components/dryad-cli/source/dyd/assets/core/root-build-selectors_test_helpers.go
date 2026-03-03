@@ -7,12 +7,12 @@ func rootBuild_selectAssetsPathForTest(
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
-	err, assetsPath, _, _, _ := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsPaths(
+	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndRequirementsPaths(
 		ctx,
 		rootPath,
 		variantDescriptor,
 	)
-	return err, assetsPath
+	return err, selectedPaths.AssetsPath
 }
 
 func rootBuild_selectCommandsPathForTest(
@@ -20,12 +20,12 @@ func rootBuild_selectCommandsPathForTest(
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
-	err, _, commandsPath, _, _ := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsPaths(
+	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndRequirementsPaths(
 		ctx,
 		rootPath,
 		variantDescriptor,
 	)
-	return err, commandsPath
+	return err, selectedPaths.CommandsPath
 }
 
 func rootBuild_selectSecretsPathForTest(
@@ -33,12 +33,12 @@ func rootBuild_selectSecretsPathForTest(
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
-	err, _, _, secretsPath, _ := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsPaths(
+	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndRequirementsPaths(
 		ctx,
 		rootPath,
 		variantDescriptor,
 	)
-	return err, secretsPath
+	return err, selectedPaths.SecretsPath
 }
 
 func rootBuild_selectDocsPathForTest(
@@ -46,10 +46,23 @@ func rootBuild_selectDocsPathForTest(
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
-	err, _, _, _, docsPath := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsPaths(
+	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndRequirementsPaths(
 		ctx,
 		rootPath,
 		variantDescriptor,
 	)
-	return err, docsPath
+	return err, selectedPaths.DocsPath
+}
+
+func rootBuild_selectRequirementsPathForTest(
+	ctx *task.ExecutionContext,
+	rootPath string,
+	variantDescriptor string,
+) (error, string) {
+	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndRequirementsPaths(
+		ctx,
+		rootPath,
+		variantDescriptor,
+	)
+	return err, selectedPaths.RequirementsPath
 }

@@ -13,13 +13,14 @@ import (
 )
 
 type rootBuild_stage0_request struct {
-	RootPath             string
-	WorkspacePath        string
-	VariantDescriptor    string
-	SelectedAssetsPath   string
-	SelectedCommandsPath string
-	SelectedSecretsPath  string
-	SelectedDocsPath     string
+	RootPath                 string
+	WorkspacePath            string
+	VariantDescriptor        string
+	SelectedAssetsPath       string
+	SelectedCommandsPath     string
+	SelectedSecretsPath      string
+	SelectedDocsPath         string
+	SelectedRequirementsPath string
 }
 
 // stage 0 - build a shallow partial clone of the root into a working directory,
@@ -33,7 +34,7 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		zlog.Trace().
 			Msg("RootBuild/stage0/prepReq")
 
-		err, selectedAssetsPath, selectedCommandsPath, selectedSecretsPath, selectedDocsPath := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsPaths(
+		err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndRequirementsPaths(
 			ctx,
 			req.RootPath,
 			req.VariantDescriptor,
@@ -42,10 +43,11 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 			return err, req
 		}
 
-		req.SelectedAssetsPath = selectedAssetsPath
-		req.SelectedCommandsPath = selectedCommandsPath
-		req.SelectedSecretsPath = selectedSecretsPath
-		req.SelectedDocsPath = selectedDocsPath
+		req.SelectedAssetsPath = selectedPaths.AssetsPath
+		req.SelectedCommandsPath = selectedPaths.CommandsPath
+		req.SelectedSecretsPath = selectedPaths.SecretsPath
+		req.SelectedDocsPath = selectedPaths.DocsPath
+		req.SelectedRequirementsPath = selectedPaths.RequirementsPath
 
 		return nil, req
 	}
@@ -169,28 +171,16 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		zlog.Trace().
 			Msg("RootBuild/stage0/linkRequirementsDir")
 
-		requirementsPath := filepath.Join(req.RootPath, "dyd", "requirements")
-		exists, err := fileExists(requirementsPath)
-		if err != nil {
-			return err, req
+		if req.SelectedRequirementsPath == "" {
+			return nil, req
 		}
 
-		if exists {
-			err = os.Symlink(
-				requirementsPath,
-				filepath.Join(req.WorkspacePath, "dyd", "requirements"),
-			)
-			if err != nil {
-				return err, req
-			}
-		} else {
-			err = os.MkdirAll(
-				filepath.Join(req.WorkspacePath, "dyd", "requirements"),
-				os.ModePerm,
-			)
-			if err != nil {
-				return err, req
-			}
+		err := os.Symlink(
+			req.SelectedRequirementsPath,
+			filepath.Join(req.WorkspacePath, "dyd", "~requirements"),
+		)
+		if err != nil {
+			return err, req
 		}
 
 		return nil, req
