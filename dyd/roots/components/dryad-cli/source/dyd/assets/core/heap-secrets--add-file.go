@@ -52,7 +52,7 @@ func heapAddSecretFile(ctx *task.ExecutionContext, req heapAddSecretFileRequest)
 		return err, ""
 	}
 
-	srcFile, err := stdos.Open(sourcePath)
+	srcFile, err := os.Open(sourcePath)
 	if err != nil {
 		return err, ""
 	}

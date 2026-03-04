@@ -154,7 +154,7 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 	var copyFile = func(ctx *task.ExecutionContext, sourcePath string, sourceMode fs.FileMode, destPath string) error {
 		// for a file, copy contents
 
-		srcFile, err := stdos.Open(sourcePath)
+		srcFile, err := os.Open(sourcePath)
 		if err != nil {
 			return err
 		}

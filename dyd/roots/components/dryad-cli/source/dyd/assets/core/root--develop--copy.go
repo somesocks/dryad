@@ -281,7 +281,7 @@ func rootDevelop_copyDir(
 }
 
 func rootDevelop_copyFile(srcPath string, destPath string, mode fs.FileMode) error {
-	srcFile, err := stdos.Open(srcPath)
+	srcFile, err := os.Open(srcPath)
 	if err != nil {
 		return err
 	}

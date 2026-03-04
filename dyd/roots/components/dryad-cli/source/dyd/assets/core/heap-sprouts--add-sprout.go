@@ -211,7 +211,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 			return nil, nil
 		}
 
-		dir, err := stdos.Open(node.Path)
+		dir, err := os.Open(node.Path)
 		if err != nil {
 			return err, nil
 		}

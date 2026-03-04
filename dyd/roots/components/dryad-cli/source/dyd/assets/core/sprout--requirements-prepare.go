@@ -13,7 +13,7 @@ import (
 )
 
 func sproutRequirementsCopyFile(sourcePath string, destPath string) error {
-	sourceFile, err := stdos.Open(sourcePath)
+	sourceFile, err := os.Open(sourcePath)
 	if err != nil {
 		return err
 	}

@@ -128,7 +128,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 				return err, nil
 			}
 		} else {
-			srcFile, err := stdos.Open(node.Path)
+			srcFile, err := os.Open(node.Path)
 			if err != nil {
 				return err, nil
 			}

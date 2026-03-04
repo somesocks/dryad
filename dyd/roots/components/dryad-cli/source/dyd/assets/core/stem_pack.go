@@ -319,7 +319,7 @@ func stemArchive(request StemPackRequest) (string, error) {
 					// add path to the packMap
 					packMap[hashString] = relativePath
 
-					file, err := stdos.Open(node.Path)
+					file, err := os.Open(node.Path)
 					if err != nil {
 						return err, nil
 					}

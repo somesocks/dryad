@@ -254,7 +254,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 			return nil, nil
 		}
 
-		dir, err := stdos.Open(node.Path)
+		dir, err := os.Open(node.Path)
 		if err != nil {
 			return err, nil
 		}
