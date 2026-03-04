@@ -5,7 +5,6 @@ import (
 	"dryad/task"
 	"errors"
 	"io/fs"
-	stdos "os"
 	"path/filepath"
 	"time"
 
@@ -40,7 +39,7 @@ func heapAddSecretFile(ctx *task.ExecutionContext, req heapAddSecretFileRequest)
 
 	// Fast path: if the CAS entry already exists, avoid unnecessary temp writes.
 	if _, err := os.Stat(destPath); err == nil {
-		err = stdos.Chtimes(destPath, now, now)
+		err = os.Chtimes(destPath, now, now)
 		if err != nil {
 			zlog.Warn().
 				Str("path", destPath).
@@ -90,7 +89,7 @@ func heapAddSecretFile(ctx *task.ExecutionContext, req heapAddSecretFileRequest)
 	if err != nil {
 		// return a success if the file is already in the heap
 		if errors.Is(err, fs.ErrExist) {
-			err = stdos.Chtimes(destPath, now, now)
+			err = os.Chtimes(destPath, now, now)
 			if err != nil {
 				zlog.Warn().
 					Str("path", destPath).
