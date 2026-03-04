@@ -103,11 +103,22 @@ Example emitted line:
 {"point":"os.link","calls":21,"errors":0,"total_nanos":307521,"min_nanos":3814,"max_nanos":176874,"avg_nanos":14643,"sample_every":2}
 ```
 
+Quick local check:
+
+```sh
+DYD_DG='json:{"version":1,"seed":1,"metrics":[{"id":"m-os-link","op":"os.link","output":"stderr","capture":{"calls":true,"errors":true,"timing":true,"sample_percent":100}}]}' \
+dryad root build dyd/roots/root-01 --log-level=warn > /tmp/dyd-build.out 2> /tmp/dyd-build.err
+
+grep -F '"point":"os.link"' /tmp/dyd-build.err
+```
+
 Diagnostics-focused E2E roots for dryad CLI live under:
 
 - `dyd/roots/components/dryad-cli/tests/diagnostics-01--pre-error-fails-build`
 - `dyd/roots/components/dryad-cli/tests/diagnostics-02--metrics-sampling`
 - `dyd/roots/components/dryad-cli/tests/diagnostics-03--post-error-fails-build`
+- `dyd/roots/components/dryad-cli/tests/diagnostics-04--metrics-output-streams`
+- `dyd/roots/components/dryad-cli/tests/diagnostics-06--post-error-preserves-side-effects`
 
 ### The docs scope
 
