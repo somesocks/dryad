@@ -252,7 +252,7 @@ func rootDevelop_applyFile(
 		return err
 	}
 
-	_ = stdos.Remove(destPath)
+	_ = os.Remove(destPath)
 
 	switch state.Kind {
 	case "file":
@@ -328,7 +328,7 @@ func rootDevelop_saveChanges(
 				if rPtr != nil && rPtr.Kind == "dir" {
 					continue
 				}
-				err := stdos.Remove(destPath)
+				err := os.Remove(destPath)
 				if err != nil && !stdos.IsNotExist(err) {
 					return conflicts, err
 				}

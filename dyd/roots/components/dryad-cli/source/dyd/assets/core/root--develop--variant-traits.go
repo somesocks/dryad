@@ -1,8 +1,9 @@
 package core
 
 import (
+	"dryad/internal/os"
 	"fmt"
-	"os"
+	stdos "os"
 	"path/filepath"
 	"strings"
 
@@ -34,7 +35,7 @@ func rootDevelop_materializeVariantTraits(
 	}
 
 	traitsDestinationPath := filepath.Join(workspacePath, "dyd", "traits")
-	err = os.MkdirAll(traitsDestinationPath, os.ModePerm)
+	err = stdos.MkdirAll(traitsDestinationPath, stdos.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -95,7 +96,7 @@ func rootDevelop_materializeVariantTraits(
 		}
 
 		if traitExists {
-			rawBytes, err := os.ReadFile(traitPath)
+			rawBytes, err := stdos.ReadFile(traitPath)
 			if err != nil {
 				return err
 			}
@@ -115,7 +116,7 @@ func rootDevelop_materializeVariantTraits(
 			}
 		}
 
-		err = os.WriteFile(traitPath, []byte(selectedOption), 0o644)
+		err = stdos.WriteFile(traitPath, []byte(selectedOption), 0o644)
 		if err != nil {
 			return err
 		}
@@ -127,7 +128,7 @@ func rootDevelop_materializeVariantTraits(
 		return err
 	}
 	if workspaceVariantsExists {
-		err = os.RemoveAll(workspaceVariantsPath)
+		err = stdos.RemoveAll(workspaceVariantsPath)
 		if err != nil {
 			return err
 		}

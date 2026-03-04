@@ -5,7 +5,6 @@ import (
 	"dryad/task"
 	"errors"
 	"io/fs"
-	stdos "os"
 	"path/filepath"
 	// zlog "github.com/rs/zerolog/log"
 )
@@ -28,7 +27,7 @@ func (derivations *SafeHeapDerivationsReference) Add(
 	}
 	tempPath := tempFile.Name()
 	// Best effort cleanup. Crash/power-loss can still leave tmp files behind.
-	defer stdos.Remove(tempPath)
+	defer os.Remove(tempPath)
 
 	_, err = tempFile.WriteString(resultFingerprint)
 	if err != nil {

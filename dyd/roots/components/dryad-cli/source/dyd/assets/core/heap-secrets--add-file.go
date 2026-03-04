@@ -67,7 +67,7 @@ func heapAddSecretFile(ctx *task.ExecutionContext, req heapAddSecretFileRequest)
 	}
 	tempPath := tempFile.Name()
 	// Best effort cleanup. Crash/power-loss can still leave tmp files behind.
-	defer stdos.Remove(tempPath)
+	defer os.Remove(tempPath)
 
 	_, err = tempFile.ReadFrom(srcFile)
 	if err != nil {

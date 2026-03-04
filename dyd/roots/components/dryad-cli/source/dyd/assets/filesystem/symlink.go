@@ -101,7 +101,7 @@ var Symlink task.Task[SymlinkRequest, SymlinkRequest] = func() task.Task[Symlink
 				Str("tempPath", tempPath).
 				Err(err).
 				Msg("dydfs.symlink - move temporary symlink")
-			defer stdos.Remove(tempPath)
+			defer os.Remove(tempPath)
 			return err, request
 		}
 

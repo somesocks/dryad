@@ -134,7 +134,7 @@ func rootBuild_materializeVariantTraits(
 					rawValue,
 					selectedOption,
 				)
-				err = stdos.Remove(traitPath)
+				err = os.Remove(traitPath)
 				if err != nil {
 					return err
 				}

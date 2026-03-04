@@ -2,7 +2,8 @@ package fs2
 
 import (
 	// "io/fs"
-	"os"
+	"dryad/internal/os"
+	stdos "os"
 	// "path/filepath"
 
 	"dryad/task"
@@ -15,24 +16,24 @@ func RemoveAll(ctx *task.ExecutionContext, path string) (error, any) {
 		Str("path", path).
 		Msg("dryad/filesystem/RemoveAll")
 
-	_, err := os.Lstat(path);
+	_, err := stdos.Lstat(path)
 	if err != nil {
 		zlog.Trace().
 			Err(err).
-			Bool("existsErr", os.IsNotExist(err)).
+			Bool("existsErr", stdos.IsNotExist(err)).
 			Msg("dryad/filesystem/RemoveAll path err")
 		// if the path does not exist, silently return
-		if os.IsNotExist(err) {
+		if stdos.IsNotExist(err) {
 			return nil, nil
 		} else {
 			return err, nil
-		}	
+		}
 	}
 
 	shouldWalk := func(ctx *task.ExecutionContext, node Walk6Node) (error, bool) {
-		isSymlink := node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
+		isSymlink := node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink
 		shouldWalk := !isSymlink
- 
+
 		zlog.Trace().
 			Str("path", node.Path).
 			Str("vpath", node.VPath).
@@ -54,7 +55,7 @@ func RemoveAll(ctx *task.ExecutionContext, path string) (error, any) {
 			Msg("dryad/filesystem/RemoveAll/onPreMatch")
 
 		if isDir && !isWritable {
-			err := os.Chmod(node.Path, node.Info.Mode()|0o200)
+			err := stdos.Chmod(node.Path, node.Info.Mode()|0o200)
 
 			zlog.Trace().
 				Str("path", node.Path).
@@ -93,8 +94,8 @@ func RemoveAll(ctx *task.ExecutionContext, path string) (error, any) {
 			BasePath:    path,
 			Path:        path,
 			VPath:       path,
-			ShouldWalk: shouldWalk,
-			OnPreMatch: onPreMatch,
+			ShouldWalk:  shouldWalk,
+			OnPreMatch:  onPreMatch,
 			OnPostMatch: onPostMatch,
 		},
 	)
@@ -102,7 +103,7 @@ func RemoveAll(ctx *task.ExecutionContext, path string) (error, any) {
 	if err != nil {
 		zlog.Trace().
 			Err(err).
-			Bool("existsErr", os.IsNotExist(err)).
+			Bool("existsErr", stdos.IsNotExist(err)).
 			Msg("dryad/filesystem/RemoveAll/DFSWalk err")
 		return err, nil
 	}

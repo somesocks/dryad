@@ -30,7 +30,7 @@ func rootDevelop_removeExistingPath(path string) error {
 	if info.IsDir() && info.Mode()&stdos.ModeSymlink != stdos.ModeSymlink {
 		return stdos.RemoveAll(path)
 	}
-	return stdos.Remove(path)
+	return os.Remove(path)
 }
 
 func rootDevelop_unfreezeMode(relPath string, mode fs.FileMode) fs.FileMode {

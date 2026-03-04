@@ -2,9 +2,10 @@ package core
 
 import (
 	dydfs "dryad/filesystem"
+	"dryad/internal/os"
 	"errors"
 	"io/fs"
-	"os"
+	stdos "os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -54,10 +55,10 @@ var gardenPrune_mark = func(ctx *task.ExecutionContext, req gardenPruneRequest) 
 		var shouldCrawl bool = node.Info.ModTime().Before(req.Snapshot) ||
 			strings.HasPrefix(node.Path, sproutsPath)
 
-		var isSymlink bool = node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
+		var isSymlink bool = node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink
 		if isSymlink {
 			var err error
-			_, err = os.Stat(node.Path)
+			_, err = stdos.Stat(node.Path)
 			if errors.Is(err, fs.ErrNotExist) {
 				shouldCrawl = false
 
@@ -149,7 +150,7 @@ var gardenPrune_sweepStems = func(ctx *task.ExecutionContext, req gardenPruneReq
 			return relErr, false
 		}
 		matchesPath := REGEX_GARDEN_PRUNE_STEMS_CRAWL.Match([]byte(relPath))
-		isSymlink := node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
+		isSymlink := node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink
 		shouldCrawl := matchesPath && !isSymlink
 
 		zlog.Trace().
@@ -230,7 +231,7 @@ var gardenPrune_sweepSprouts = func(ctx *task.ExecutionContext, req gardenPruneR
 			return relErr, false
 		}
 		matchesPath := REGEX_GARDEN_PRUNE_SPROUTS_CRAWL.Match([]byte(relPath))
-		isSymlink := node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
+		isSymlink := node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink
 		shouldCrawl := matchesPath && !isSymlink
 
 		zlog.Trace().
@@ -340,9 +341,9 @@ var gardenPrune_sweepDerivations = func(ctx *task.ExecutionContext, req gardenPr
 			return nil, true
 		}
 
-		resultFingerprintBytes, err := os.ReadFile(node.Path)
+		resultFingerprintBytes, err := stdos.ReadFile(node.Path)
 		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
+			if errors.Is(err, stdos.ErrNotExist) {
 				return nil, false
 			}
 			return nil, true
@@ -353,11 +354,11 @@ var gardenPrune_sweepDerivations = func(ctx *task.ExecutionContext, req gardenPr
 		}
 
 		resultStemPath := filepath.Join(heapPath, "stems", resultFingerprint)
-		_, err = os.Stat(resultStemPath)
+		_, err = stdos.Stat(resultStemPath)
 		if err == nil {
 			return nil, false
 		}
-		if errors.Is(err, os.ErrNotExist) {
+		if errors.Is(err, stdos.ErrNotExist) {
 			return nil, true
 		}
 		return err, false
@@ -365,7 +366,7 @@ var gardenPrune_sweepDerivations = func(ctx *task.ExecutionContext, req gardenPr
 
 	sweepDerivation := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
 		sweepDerivationStatsCount += 1
-		return os.RemoveAll(node.Path), nil
+		return stdos.RemoveAll(node.Path), nil
 	}
 
 	sweepDerivation = dydfs.ConditionalWalkAction(sweepDerivation, sweepDerivationsShouldMatch)
@@ -403,7 +404,7 @@ var gardenPrune_sweepFiles = func(ctx *task.ExecutionContext, req gardenPruneReq
 			return relErr, false
 		}
 		matchesPath := REGEX_GARDEN_PRUNE_FILES_CRAWL.Match([]byte(relPath))
-		isSymlink := node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
+		isSymlink := node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink
 		shouldCrawl := matchesPath && !isSymlink
 		return nil, shouldCrawl
 	}
@@ -422,13 +423,13 @@ var gardenPrune_sweepFiles = func(ctx *task.ExecutionContext, req gardenPruneReq
 	sweepFile := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
 		if node.Info.ModTime().Before(req.Snapshot) {
 			parentPath := filepath.Dir(node.Path)
-			parentInfo, err := os.Lstat(parentPath)
+			parentInfo, err := stdos.Lstat(parentPath)
 			if err != nil {
 				return err, nil
 			}
 
 			if parentInfo.Mode()&0o200 != 0o200 {
-				err := os.Chmod(parentPath, parentInfo.Mode()|0o200)
+				err := stdos.Chmod(parentPath, parentInfo.Mode()|0o200)
 				if err != nil {
 					return err, nil
 				}

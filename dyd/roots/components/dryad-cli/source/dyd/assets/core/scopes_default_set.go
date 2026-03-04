@@ -27,7 +27,7 @@ func ScopeSetDefault(garden *SafeGardenReference, scope string) error {
 
 	defaultScopeAlias := filepath.Join(scopesPath, "default")
 	if _, err := stdos.Lstat(defaultScopeAlias); err == nil {
-		stdos.Remove(defaultScopeAlias)
+		os.Remove(defaultScopeAlias)
 	}
 	err = os.Symlink(linkPath, defaultScopeAlias)
 	if err != nil {
