@@ -5,7 +5,7 @@ const (
 	// Supported values:
 	// - file:/path/to/config.yaml
 	// - json:{"version":1,...}
-	EnvVar = "DYD_DG"
+	EnvVar = "DYD_DIAG"
 )
 
 type Config struct {

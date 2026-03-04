@@ -55,12 +55,12 @@ _test() {
 
   (
     cd "$GARDEN_100"
-    DYD_DG="$(_metrics_config 100)" dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" > /dev/null 2>"$log_100"
+    DYD_DIAG="$(_metrics_config 100)" dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" > /dev/null 2>"$log_100"
   )
 
   (
     cd "$GARDEN_50"
-    DYD_DG="$(_metrics_config 50)" dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" > /dev/null 2>"$log_50"
+    DYD_DIAG="$(_metrics_config 50)" dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" > /dev/null 2>"$log_50"
   )
 
   calls_100=$(_extract_calls "$log_100")

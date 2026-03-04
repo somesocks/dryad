@@ -51,9 +51,9 @@ Running `dryad run test` will run all test cases against the native dryad root.
 
 ## Diagnostics Engine
 
-Dryad supports runtime diagnostics rules through the `DYD_DG` environment variable.
+Dryad supports runtime diagnostics rules through the `DYD_DIAG` environment variable.
 
-`DYD_DG` supports:
+`DYD_DIAG` supports:
 
 - `file:/absolute/path/to/diagnostics.yaml`
 - `json:{...}`
@@ -63,28 +63,28 @@ Dryad supports runtime diagnostics rules through the `DYD_DG` environment variab
 Inject a pre-error on every `os.link` call:
 
 ```sh
-DYD_DG='json:{"version":1,"seed":1,"rules":[{"id":"inject-emlink-pre","op":"os.link","key":"*","when":{"mode":"every_n","count":1},"action":{"type":"error","error":"EMLINK"}}]}' \
+DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"inject-emlink-pre","op":"os.link","key":"*","when":{"mode":"every_n","count":1},"action":{"type":"error","error":"EMLINK"}}]}' \
 dryad root build dyd/roots/root-01
 ```
 
 Inject a post-error on every `os.link` call:
 
 ```sh
-DYD_DG='json:{"version":1,"seed":1,"rules":[{"id":"inject-emlink-post","op":"os.link","key":"*","when":{"mode":"every_n","count":1},"action":{"type":"error","phase":"post","error":"EMLINK"}}]}' \
+DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"inject-emlink-post","op":"os.link","key":"*","when":{"mode":"every_n","count":1},"action":{"type":"error","phase":"post","error":"EMLINK"}}]}' \
 dryad root build dyd/roots/root-01
 ```
 
 Inject delay on `os.open_file`:
 
 ```sh
-DYD_DG='json:{"version":1,"seed":1,"rules":[{"id":"delay-open","op":"os.open_file","key":"*","when":{"mode":"every_n","count":1},"action":{"type":"delay","delay_ms":25}}]}' \
+DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"delay-open","op":"os.open_file","key":"*","when":{"mode":"every_n","count":1},"action":{"type":"delay","delay_ms":25}}]}' \
 dryad root build dyd/roots/root-01
 ```
 
 Emit metrics for `os.link` to stdout with 50% sampling:
 
 ```sh
-DYD_DG='json:{"version":1,"seed":1,"metrics":[{"id":"m-os-link","op":"os.link","output":"stdout","capture":{"calls":true,"errors":true,"timing":true,"sample_percent":50}}]}' \
+DYD_DIAG='json:{"version":1,"seed":1,"metrics":[{"id":"m-os-link","op":"os.link","output":"stdout","capture":{"calls":true,"errors":true,"timing":true,"sample_percent":50}}]}' \
 dryad root build dyd/roots/root-01
 ```
 
@@ -106,13 +106,13 @@ rules:
       error: EMLINK
 EOF
 
-DYD_DG='file:/tmp/dyd-diagnostics.yaml' dryad root build dyd/roots/root-01
+DYD_DIAG='file:/tmp/dyd-diagnostics.yaml' dryad root build dyd/roots/root-01
 ```
 
 Quick local metrics check:
 
 ```sh
-DYD_DG='json:{"version":1,"seed":1,"metrics":[{"id":"m-os-link","op":"os.link","output":"stderr","capture":{"calls":true,"errors":true,"timing":true,"sample_percent":100}}]}' \
+DYD_DIAG='json:{"version":1,"seed":1,"metrics":[{"id":"m-os-link","op":"os.link","output":"stderr","capture":{"calls":true,"errors":true,"timing":true,"sample_percent":100}}]}' \
 dryad root build dyd/roots/root-01 --log-level=warn > /tmp/dyd-build.out 2> /tmp/dyd-build.err
 
 grep -F '"point":"os.link"' /tmp/dyd-build.err

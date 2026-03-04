@@ -34,12 +34,12 @@ _test() {
 
   (
     cd "$GARDEN_STDOUT"
-    DYD_DG="$(_metrics_config_for_output stdout)" dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" >"$stdout_log_stdout_mode" 2>"$stderr_log_stdout_mode"
+    DYD_DIAG="$(_metrics_config_for_output stdout)" dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" >"$stdout_log_stdout_mode" 2>"$stderr_log_stdout_mode"
   )
 
   (
     cd "$GARDEN_STDERR"
-    DYD_DG="$(_metrics_config_for_output stderr)" dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" >"$stdout_log_stderr_mode" 2>"$stderr_log_stderr_mode"
+    DYD_DIAG="$(_metrics_config_for_output stderr)" dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" >"$stdout_log_stderr_mode" 2>"$stderr_log_stderr_mode"
   )
 
   if ! grep -Fq '"point":"os.link"' "$stdout_log_stdout_mode"; then

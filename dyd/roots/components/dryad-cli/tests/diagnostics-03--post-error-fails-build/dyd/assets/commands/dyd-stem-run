@@ -22,7 +22,7 @@ _test() {
 
   diag_cfg='json:{"version":1,"seed":1,"rules":[{"id":"inject-post-emlink","op":"os.link","key":"*","when":{"mode":"every_n","count":1},"action":{"type":"error","phase":"post","error":"EMLINK"}}]}'
 
-  if DYD_DG="$diag_cfg" dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" >"$success_log" 2>"$fail_log"; then
+  if DYD_DIAG="$diag_cfg" dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" >"$success_log" 2>"$fail_log"; then
     echo "[ERROR] Fail: expected build to fail when diagnostics injects post EMLINK on os.link" 1>&2
     cat "$fail_log" 1>&2
     return 1

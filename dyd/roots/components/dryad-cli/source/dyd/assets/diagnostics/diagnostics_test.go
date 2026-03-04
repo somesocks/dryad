@@ -86,7 +86,7 @@ rules:
 func TestSetupFromEnv_InvalidPrefix(t *testing.T) {
 	t.Setenv(EnvVar, "oops")
 	if err := SetupFromEnv(); err == nil {
-		t.Fatal("expected error for invalid DYD_DG prefix")
+		t.Fatal("expected error for invalid DYD_DIAG prefix")
 	}
 }
 
