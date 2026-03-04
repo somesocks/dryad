@@ -140,7 +140,7 @@ func gardenCreateTypeFile(
 	// write out type file
 	typePath := filepath.Join(req.BasePath, "dyd", "type")
 
-	typeFile, err := stdos.Create(typePath)
+	typeFile, err := os.Create(typePath)
 	if err != nil {
 		return err, req
 	}

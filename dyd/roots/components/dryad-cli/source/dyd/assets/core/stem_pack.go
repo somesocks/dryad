@@ -200,7 +200,7 @@ func stemArchive(request StemPackRequest) (string, error) {
 
 		if request.Format == "tar.gz" {
 			outputPath = path.Clean(request.TargetPath) + ".tar.gz"
-			outputWriter, err = stdos.Create(outputPath)
+			outputWriter, err = os.Create(outputPath)
 			if err != nil {
 				return "", err
 			}
@@ -213,7 +213,7 @@ func stemArchive(request StemPackRequest) (string, error) {
 			defer tarWriter.Close()
 		} else {
 			outputPath = path.Clean(request.TargetPath) + ".tar"
-			outputWriter, err = stdos.Create(outputPath)
+			outputWriter, err = os.Create(outputPath)
 			if err != nil {
 				return "", err
 			}

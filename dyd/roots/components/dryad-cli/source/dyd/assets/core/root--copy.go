@@ -161,7 +161,7 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 		defer srcFile.Close()
 
 		var destFile *stdos.File
-		destFile, err = stdos.Create(destPath)
+		destFile, err = os.Create(destPath)
 		if err != nil {
 			return err
 		}

@@ -287,7 +287,7 @@ func rootDevelop_copyFile(srcPath string, destPath string, mode fs.FileMode) err
 	}
 	defer srcFile.Close()
 
-	destFile, err := stdos.Create(destPath)
+	destFile, err := os.Create(destPath)
 	if err != nil {
 		return err
 	}

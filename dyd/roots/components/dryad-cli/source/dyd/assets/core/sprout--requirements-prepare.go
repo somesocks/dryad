@@ -23,7 +23,7 @@ func sproutRequirementsCopyFile(sourcePath string, destPath string) error {
 		return err
 	}
 
-	destFile, err := stdos.Create(destPath)
+	destFile, err := os.Create(destPath)
 	if err != nil {
 		return err
 	}

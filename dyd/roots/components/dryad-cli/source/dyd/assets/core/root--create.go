@@ -42,7 +42,7 @@ func rootCreate(ctx *task.ExecutionContext, req rootCreateRequest) (error, *Safe
 	// write out type file
 	typePath := filepath.Join(basePath, "type")
 
-	typeFile, err := stdos.Create(typePath)
+	typeFile, err := os.Create(typePath)
 	if err != nil {
 		return err, nil
 	}
@@ -84,7 +84,7 @@ func rootCreate(ctx *task.ExecutionContext, req rootCreateRequest) (error, *Safe
 	}
 
 	var rootBuildCommandPath string = filepath.Join(basePath, "commands", "dyd-root-build")
-	if _, err := stdos.Create(rootBuildCommandPath); err != nil {
+	if _, err := os.Create(rootBuildCommandPath); err != nil {
 		return err, nil
 	}
 

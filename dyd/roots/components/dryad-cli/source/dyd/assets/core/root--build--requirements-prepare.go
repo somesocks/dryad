@@ -135,7 +135,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 			defer srcFile.Close()
 
 			var destFile *stdos.File
-			destFile, err = stdos.Create(reqsPath)
+			destFile, err = os.Create(reqsPath)
 			if err != nil {
 				return err, nil
 			}
