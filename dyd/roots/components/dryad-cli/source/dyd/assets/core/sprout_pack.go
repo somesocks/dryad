@@ -1,6 +1,7 @@
 package core
 
 import (
+	dfilepath "dryad/internal/filepath"
 	"dryad/internal/os"
 	"errors"
 	"path/filepath"
@@ -77,7 +78,7 @@ func sproutPack(
 	}
 
 	dependenciesPath := filepath.Join(sproutPath, "dyd", "dependencies")
-	dependencies, err := filepath.Glob(filepath.Join(dependenciesPath, "*"))
+	dependencies, err := dfilepath.Glob(filepath.Join(dependenciesPath, "*"))
 	if err != nil {
 		return "", err
 	}

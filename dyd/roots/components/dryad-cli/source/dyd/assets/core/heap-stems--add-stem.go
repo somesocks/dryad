@@ -2,6 +2,7 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
+	dfilepath "dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
 
@@ -187,7 +188,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 	// requirements are manifest files and should not be interpreted as stem paths.
 	sourceDependenciesPath := filepath.Join(stemPath, "dyd", "dependencies")
 	dependenciesPath := filepath.Join(tempStemPath, "dyd", "dependencies")
-	dependencies, err := filepath.Glob(filepath.Join(sourceDependenciesPath, "*"))
+	dependencies, err := dfilepath.Glob(filepath.Join(sourceDependenciesPath, "*"))
 	if err != nil {
 		return err, nil
 	}

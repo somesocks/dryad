@@ -2,6 +2,7 @@ package core
 
 import (
 	dydfs "dryad/filesystem"
+	dfilepath "dryad/internal/filepath"
 	"dryad/task"
 
 	"dryad/internal/os"
@@ -26,7 +27,7 @@ func rootBuild_pathPrepare(workspacePath string) error {
 	// walk through the dependencies, build them, and add the fingerprint as a dependency
 	dependenciesPath := filepath.Join(workspacePath, "dyd", "dependencies")
 
-	dependencies, err := filepath.Glob(filepath.Join(dependenciesPath, "*"))
+	dependencies, err := dfilepath.Glob(filepath.Join(dependenciesPath, "*"))
 	if err != nil {
 		return err
 	}
@@ -35,7 +36,7 @@ func rootBuild_pathPrepare(workspacePath string) error {
 		baseName := filepath.Base(dependencyPath)
 
 		commandsPath := filepath.Join(dependencyPath, "dyd", "commands")
-		commands, err := filepath.Glob(filepath.Join(commandsPath, "*"))
+		commands, err := dfilepath.Glob(filepath.Join(commandsPath, "*"))
 		if err != nil {
 			return err
 		}
