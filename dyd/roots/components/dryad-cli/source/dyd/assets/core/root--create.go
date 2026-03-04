@@ -88,7 +88,7 @@ func rootCreate(ctx *task.ExecutionContext, req rootCreateRequest) (error, *Safe
 		return err, nil
 	}
 
-	if err := stdos.Chmod(rootBuildCommandPath, 0775); err != nil {
+	if err := os.Chmod(rootBuildCommandPath, 0775); err != nil {
 		return err, nil
 	}
 

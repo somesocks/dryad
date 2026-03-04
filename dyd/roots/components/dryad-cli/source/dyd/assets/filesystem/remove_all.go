@@ -55,7 +55,7 @@ func RemoveAll(ctx *task.ExecutionContext, path string) (error, any) {
 			Msg("dryad/filesystem/RemoveAll/onPreMatch")
 
 		if isDir && !isWritable {
-			err := stdos.Chmod(node.Path, node.Info.Mode()|0o200)
+			err := os.Chmod(node.Path, node.Info.Mode()|0o200)
 
 			zlog.Trace().
 				Str("path", node.Path).

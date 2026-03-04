@@ -429,7 +429,7 @@ var gardenPrune_sweepFiles = func(ctx *task.ExecutionContext, req gardenPruneReq
 			}
 
 			if parentInfo.Mode()&0o200 != 0o200 {
-				err := stdos.Chmod(parentPath, parentInfo.Mode()|0o200)
+				err := os.Chmod(parentPath, parentInfo.Mode()|0o200)
 				if err != nil {
 					return err, nil
 				}

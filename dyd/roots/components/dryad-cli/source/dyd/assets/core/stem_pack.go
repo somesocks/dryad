@@ -138,7 +138,7 @@ func finalizeSproutPath(targetGarden *SafeGardenReference, packedStemPath string
 	}
 
 	// fmt.Println("[debug] setting write permission on sprout parent")
-	err = stdos.Chmod(sproutParent, 0o711)
+	err = os.Chmod(sproutParent, 0o711)
 	if err != nil {
 		return "", err
 	}
@@ -157,7 +157,7 @@ func finalizeSproutPath(targetGarden *SafeGardenReference, packedStemPath string
 	}
 
 	// fmt.Println("[debug] setting read permissions on sprout parent")
-	err = stdos.Chmod(sproutParent, 0o511)
+	err = os.Chmod(sproutParent, 0o511)
 	if err != nil {
 		return "", err
 	}
