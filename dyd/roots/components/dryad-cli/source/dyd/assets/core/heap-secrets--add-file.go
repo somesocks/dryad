@@ -58,7 +58,7 @@ func heapAddSecretFile(ctx *task.ExecutionContext, req heapAddSecretFileRequest)
 	}
 	defer srcFile.Close()
 
-	tempFile, err := stdos.CreateTemp(
+	tempFile, err := os.CreateTemp(
 		heapSecretsPath,
 		".tmp-"+fingerprint+"-*",
 	)

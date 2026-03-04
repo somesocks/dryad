@@ -19,7 +19,7 @@ func (derivations *SafeHeapDerivationsReference) Add(
 	derivationPath := filepath.Join(derivations.BasePath, "roots", sourceFingerprint)
 	derivationsRootsPath := filepath.Dir(derivationPath)
 
-	tempFile, err := stdos.CreateTemp(
+	tempFile, err := os.CreateTemp(
 		derivationsRootsPath,
 		".tmp-"+sourceFingerprint+"-*",
 	)
