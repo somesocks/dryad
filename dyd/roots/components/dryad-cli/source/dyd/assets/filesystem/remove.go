@@ -3,7 +3,6 @@ package fs2
 import (
 	"dryad/internal/os"
 	"io/fs"
-	stdos "os"
 	"path/filepath"
 
 	"dryad/task"
@@ -17,7 +16,7 @@ var remove = func(ctx *task.ExecutionContext, path string) (error, any) {
 
 	// grab the fileinfo for the parent
 	var parentInfo fs.FileInfo
-	parentInfo, err = stdos.Lstat(parentPath)
+	parentInfo, err = os.Lstat(parentPath)
 	if err != nil {
 		zlog.Error().
 			Str("path", path).

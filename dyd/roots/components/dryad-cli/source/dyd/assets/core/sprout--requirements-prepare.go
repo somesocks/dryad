@@ -48,7 +48,7 @@ func sproutRequirementsCopyTree(sourcePath string, destPath string, dependencyPa
 		}
 
 		destEntryPath := filepath.Join(destPath, relPath)
-		info, err := stdos.Lstat(path)
+		info, err := os.Lstat(path)
 		if err != nil {
 			return err
 		}

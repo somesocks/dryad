@@ -2,7 +2,6 @@ package core
 
 import (
 	"dryad/internal/os"
-	stdos "os"
 	"path/filepath"
 )
 
@@ -16,7 +15,7 @@ func ScopeSetDefault(garden *SafeGardenReference, scope string) error {
 	if err != nil {
 		return err
 	}
-	if _, err := stdos.Lstat(scopePath); err != nil {
+	if _, err := os.Lstat(scopePath); err != nil {
 		return err
 	}
 
@@ -26,7 +25,7 @@ func ScopeSetDefault(garden *SafeGardenReference, scope string) error {
 	}
 
 	defaultScopeAlias := filepath.Join(scopesPath, "default")
-	if _, err := stdos.Lstat(defaultScopeAlias); err == nil {
+	if _, err := os.Lstat(defaultScopeAlias); err == nil {
 		os.Remove(defaultScopeAlias)
 	}
 	err = os.Symlink(linkPath, defaultScopeAlias)

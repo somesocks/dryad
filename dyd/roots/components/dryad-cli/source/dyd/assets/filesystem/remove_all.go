@@ -16,7 +16,7 @@ func RemoveAll(ctx *task.ExecutionContext, path string) (error, any) {
 		Str("path", path).
 		Msg("dryad/filesystem/RemoveAll")
 
-	_, err := stdos.Lstat(path)
+	_, err := os.Lstat(path)
 	if err != nil {
 		zlog.Trace().
 			Err(err).

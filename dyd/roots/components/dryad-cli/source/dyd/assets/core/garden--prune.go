@@ -423,7 +423,7 @@ var gardenPrune_sweepFiles = func(ctx *task.ExecutionContext, req gardenPruneReq
 	sweepFile := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
 		if node.Info.ModTime().Before(req.Snapshot) {
 			parentPath := filepath.Dir(node.Path)
-			parentInfo, err := stdos.Lstat(parentPath)
+			parentInfo, err := os.Lstat(parentPath)
 			if err != nil {
 				return err, nil
 			}

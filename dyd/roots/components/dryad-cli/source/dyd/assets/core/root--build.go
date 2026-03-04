@@ -164,7 +164,7 @@ func rootMaterializeSprout(ctx *task.ExecutionContext, req rootMaterializeSprout
 			}
 
 			currentPath = filepath.Join(currentPath, part)
-			currentInfo, currentErr := stdos.Lstat(currentPath)
+			currentInfo, currentErr := os.Lstat(currentPath)
 			if currentErr != nil {
 				if stdos.IsNotExist(currentErr) {
 					continue

@@ -6,7 +6,6 @@ import (
 	// "errors"
 	"fmt"
 	"io/fs"
-	stdos "os"
 	// "errors"
 	"math/rand"
 	"path/filepath"
@@ -40,7 +39,7 @@ var Symlink task.Task[SymlinkRequest, SymlinkRequest] = func() task.Task[Symlink
 
 		// grab the fileinfo for the parent
 		var parentInfo fs.FileInfo
-		parentInfo, err = stdos.Lstat(parentPath)
+		parentInfo, err = os.Lstat(parentPath)
 		if err != nil {
 			zlog.Error().
 				Str("path", request.Path).

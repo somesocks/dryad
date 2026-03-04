@@ -20,7 +20,7 @@ type rootDevelopCopyOptions struct {
 }
 
 func rootDevelop_removeExistingPath(path string) error {
-	info, err := stdos.Lstat(path)
+	info, err := os.Lstat(path)
 	if err != nil {
 		if stdos.IsNotExist(err) {
 			return nil
@@ -65,7 +65,7 @@ func rootDevelop_copyDirFromStem(
 		return err
 	}
 
-	info, err := stdos.Lstat(srcPath)
+	info, err := os.Lstat(srcPath)
 	if err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func rootDevelop_copyDir(
 		return err
 	}
 
-	info, err := stdos.Lstat(srcPath)
+	info, err := os.Lstat(srcPath)
 	if err != nil {
 		return err
 	}
