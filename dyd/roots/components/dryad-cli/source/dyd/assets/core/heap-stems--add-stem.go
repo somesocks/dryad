@@ -115,7 +115,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 					// 	Str("path", node.Path).
 					// 	Msg("heapAddStem / onMatch isSymlink")
 
-					linkTarget, err := stdos.Readlink(node.Path)
+					linkTarget, err := os.Readlink(node.Path)
 					if err != nil {
 						return err, nil
 					}

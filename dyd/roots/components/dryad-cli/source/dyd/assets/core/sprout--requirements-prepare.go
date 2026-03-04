@@ -58,7 +58,7 @@ func sproutRequirementsCopyTree(sourcePath string, destPath string, dependencyPa
 		}
 
 		if info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
-			linkTarget, err := stdos.Readlink(path)
+			linkTarget, err := os.Readlink(path)
 			if err != nil {
 				return err
 			}

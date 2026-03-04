@@ -94,7 +94,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 						return err, nil
 					}
 				} else if node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
-					linkTarget, err := stdos.Readlink(node.Path)
+					linkTarget, err := os.Readlink(node.Path)
 					if err != nil {
 						return err, nil
 					}

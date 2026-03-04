@@ -261,7 +261,7 @@ func stemArchive(request StemPackRequest) (string, error) {
 
 			} else if node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
 				// if it's a symlink, read the link target
-				linkPath, err := stdos.Readlink(node.Path)
+				linkPath, err := os.Readlink(node.Path)
 				if err != nil {
 					return err, nil
 				}

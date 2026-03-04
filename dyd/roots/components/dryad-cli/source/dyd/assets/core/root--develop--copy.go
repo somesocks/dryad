@@ -110,7 +110,7 @@ func rootDevelop_copyDirFromStem(
 			if err := rootDevelop_removeExistingPath(dest); err != nil {
 				return err, nil
 			}
-			linkTarget, err := stdos.Readlink(node.Path)
+			linkTarget, err := os.Readlink(node.Path)
 			if err != nil {
 				return err, nil
 			}
@@ -255,7 +255,7 @@ func rootDevelop_copyDir(
 		case mode.IsDir():
 			return os.MkdirAll(dest, mode), nil
 		case mode&stdos.ModeSymlink == stdos.ModeSymlink:
-			linkTarget, err := stdos.Readlink(node.Path)
+			linkTarget, err := os.Readlink(node.Path)
 			if err != nil {
 				return err, nil
 			}

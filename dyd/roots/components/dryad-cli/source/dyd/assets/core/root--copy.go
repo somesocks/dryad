@@ -102,7 +102,7 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 		var isInternalLink bool
 		var err error
 
-		linkTarget, err = stdos.Readlink(sourcePath)
+		linkTarget, err = os.Readlink(sourcePath)
 		if err != nil {
 			return err
 		}

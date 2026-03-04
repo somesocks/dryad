@@ -102,7 +102,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 
 		// check if its an package-internal symlink
 		if isSymlink {
-			linkTarget, err = stdos.Readlink(node.Path)
+			linkTarget, err = os.Readlink(node.Path)
 			if err != nil {
 				return err, nil
 			}

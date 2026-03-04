@@ -124,7 +124,7 @@ func rootDevelop_collectState(
 			if err != nil {
 				return err, nil
 			}
-			linkTarget, err := stdos.Readlink(node.Path)
+			linkTarget, err := os.Readlink(node.Path)
 			if err != nil {
 				return err, nil
 			}
