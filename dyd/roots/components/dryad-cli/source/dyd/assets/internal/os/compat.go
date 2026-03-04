@@ -6,6 +6,8 @@ type File = stdos.File
 type FileInfo = stdos.FileInfo
 type FileMode = stdos.FileMode
 type DirEntry = stdos.DirEntry
+type Process = stdos.Process
+type Signal = stdos.Signal
 
 const (
 	ModePerm          = stdos.ModePerm

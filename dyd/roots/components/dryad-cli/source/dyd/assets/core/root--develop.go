@@ -5,6 +5,7 @@ import (
 	dydfs "dryad/filesystem"
 	"dryad/internal/exec"
 	"dryad/internal/os"
+	"dryad/internal/process"
 	"dryad/task"
 	"errors"
 	"fmt"
@@ -616,7 +617,7 @@ func (proc *rootDevelopShellProcess) requestStop() error {
 		return nil
 	}
 
-	err := cmd.Process.Signal(os.Interrupt)
+	err := process.Signal(cmd.Process, os.Interrupt)
 	if err != nil && !errors.Is(err, os.ErrProcessDone) {
 		return err
 	}
