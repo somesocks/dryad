@@ -3,8 +3,8 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/internal/time"
 	"dryad/task"
-	"time"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -12,7 +12,7 @@ import (
 var gardenPruneCommand = func() clib.Command {
 
 	type ParsedArgs struct {
-		Path string
+		Path     string
 		Parallel int
 	}
 
@@ -35,17 +35,17 @@ var gardenPruneCommand = func() clib.Command {
 			} else {
 				parallel = PARALLEL_COUNT_DEFAULT
 			}
-	
+
 			return nil, ParsedArgs{
-				Path: path,
+				Path:     path,
 				Parallel: parallel,
 			}
 		},
 	)
 
-	var pruneGarden = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var pruneGarden = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
 		unsafeGarden := dryad.Garden(args.Path)
-		
+
 		err, garden := unsafeGarden.Resolve(ctx)
 		if err != nil {
 			return err, nil
@@ -62,7 +62,7 @@ var gardenPruneCommand = func() clib.Command {
 
 	pruneGarden = task.WithContext(
 		pruneGarden,
-		func (ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
+		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
 			return nil, task.NewContext(args.Parallel)
 		},
 	)
@@ -72,7 +72,7 @@ var gardenPruneCommand = func() clib.Command {
 			parseArgs,
 			pruneGarden,
 		),
-		func (err error, val any) int {
+		func(err error, val any) int {
 			if err != nil {
 				zlog.Fatal().Err(err).Msg("error while pruning garden")
 				return 1
@@ -82,7 +82,6 @@ var gardenPruneCommand = func() clib.Command {
 		},
 	)
 
-
 	command := clib.
 		NewCommand("prune", "clear all build artifacts out of the garden not actively linked to a sprout or a root").
 		WithAction(action)
@@ -90,7 +89,5 @@ var gardenPruneCommand = func() clib.Command {
 	command = ParallelCommand(command)
 	command = LoggingCommand(command)
 
-
 	return command
 }()
-
