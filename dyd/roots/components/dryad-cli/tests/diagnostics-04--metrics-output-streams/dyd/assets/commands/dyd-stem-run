@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+GARDEN_STDOUT=''
+GARDEN_STDERR=''
+
+_metrics_config_for_output() {
+  local output_stream="$1"
+  printf 'json:{"version":1,"seed":1,"metrics":[{"id":"m-os-link","op":"os.link","output":"%s","capture":{"calls":true,"errors":true,"timing":false,"sample_percent":100}}]}' "$output_stream"
+}
+
+_setup() {
+  TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+  GARDEN_STDOUT="$TEMP_DIR/garden-stdout"
+  GARDEN_STDERR="$TEMP_DIR/garden-stderr"
+}
+
+_prepare() {
+  mkdir -p "$GARDEN_STDOUT" "$GARDEN_STDERR"
+
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$GARDEN_STDOUT"
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$GARDEN_STDERR"
+
+  chmod -R 755 "$GARDEN_STDOUT" "$GARDEN_STDERR"
+}
+
+_test() {
+  local stdout_log_stdout_mode="$TEMP_DIR/stdout-mode.stdout.log"
+  local stderr_log_stdout_mode="$TEMP_DIR/stdout-mode.stderr.log"
+  local stdout_log_stderr_mode="$TEMP_DIR/stderr-mode.stdout.log"
+  local stderr_log_stderr_mode="$TEMP_DIR/stderr-mode.stderr.log"
+
+  (
+    cd "$GARDEN_STDOUT"
+    DYD_DG="$(_metrics_config_for_output stdout)" dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" >"$stdout_log_stdout_mode" 2>"$stderr_log_stdout_mode"
+  )
+
+  (
+    cd "$GARDEN_STDERR"
+    DYD_DG="$(_metrics_config_for_output stderr)" dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" >"$stdout_log_stderr_mode" 2>"$stderr_log_stderr_mode"
+  )
+
+  if ! grep -Fq '"point":"os.link"' "$stdout_log_stdout_mode"; then
+    echo "[ERROR] Fail: expected os.link metrics line in stdout when output=stdout" 1>&2
+    cat "$stdout_log_stdout_mode" 1>&2
+    return 1
+  fi
+
+  if grep -Fq '"point":"os.link"' "$stderr_log_stdout_mode"; then
+    echo "[ERROR] Fail: expected no os.link metrics line in stderr when output=stdout" 1>&2
+    cat "$stderr_log_stdout_mode" 1>&2
+    return 1
+  fi
+
+  if ! grep -Fq '"point":"os.link"' "$stderr_log_stderr_mode"; then
+    echo "[ERROR] Fail: expected os.link metrics line in stderr when output=stderr" 1>&2
+    cat "$stderr_log_stderr_mode" 1>&2
+    return 1
+  fi
+
+  if grep -Fq '"point":"os.link"' "$stdout_log_stderr_mode"; then
+    echo "[ERROR] Fail: expected no os.link metrics line in stdout when output=stderr" 1>&2
+    cat "$stdout_log_stderr_mode" 1>&2
+    return 1
+  fi
+}
+
+_verify() {
+  if [ ! -d "$GARDEN_STDOUT/dyd/sprouts/root-01" ]; then
+    echo "[ERROR] Fail: expected stdout-mode build to produce sprout" 1>&2
+    return 1
+  fi
+
+  if [ ! -d "$GARDEN_STDERR/dyd/sprouts/root-01" ]; then
+    echo "[ERROR] Fail: expected stderr-mode build to produce sprout" 1>&2
+    return 1
+  fi
+}
+
+_teardown() {
+  if [ -d "$TEMP_DIR" ]; then
+    chmod -R 755 "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+  fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
