@@ -61,7 +61,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 		return nil, &stemRef
 	}
 
-	tempStemPath, err := stdos.MkdirTemp(
+	tempStemPath, err := os.MkdirTemp(
 		heapStemsPath,
 		".tmp-"+stemFingerprint+"-*",
 	)

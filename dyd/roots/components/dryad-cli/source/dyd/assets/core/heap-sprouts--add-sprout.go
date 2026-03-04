@@ -50,7 +50,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 		return nil, &sproutRef
 	}
 
-	tempSproutPath, err := stdos.MkdirTemp(
+	tempSproutPath, err := os.MkdirTemp(
 		heapSproutsPath,
 		".tmp-"+sproutFingerprint+"-*",
 	)

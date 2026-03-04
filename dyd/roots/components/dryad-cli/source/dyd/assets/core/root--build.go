@@ -52,7 +52,7 @@ func rootMaterializeSprout(ctx *task.ExecutionContext, req rootMaterializeSprout
 		return fmt.Errorf("no stem variants provided for sprout materialization: %s", rootPath), ""
 	}
 
-	sproutBuildPath, err := stdos.MkdirTemp("", "dryad-*")
+	sproutBuildPath, err := os.MkdirTemp("", "dryad-*")
 	if err != nil {
 		return err, ""
 	}
@@ -238,7 +238,7 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 		Str("variant", variantLabel).
 		Msg("root build - verifying root")
 
-	workspacePath, err := stdos.MkdirTemp("", "dryad-*")
+	workspacePath, err := os.MkdirTemp("", "dryad-*")
 	if err != nil {
 		return err, ""
 	}
@@ -355,7 +355,7 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 		return fmt.Errorf("error packing root into heap: %w", err), ""
 	}
 
-	stemBuildPath, err := stdos.MkdirTemp("", "dryad-*")
+	stemBuildPath, err := os.MkdirTemp("", "dryad-*")
 	if err != nil {
 		return err, ""
 	}

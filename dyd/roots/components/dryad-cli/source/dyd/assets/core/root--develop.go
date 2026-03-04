@@ -280,7 +280,7 @@ func rootDevelop_createSnapshotStem(
 	rootPath string,
 	garden *SafeGardenReference,
 ) (string, error) {
-	snapshotWorkspace, err := stdos.MkdirTemp("", "dryad-snapshot-*")
+	snapshotWorkspace, err := os.MkdirTemp("", "dryad-snapshot-*")
 	if err != nil {
 		return "", err
 	}
@@ -832,7 +832,7 @@ func rootDevelop(
 	zlog.Info().Msg("creating development environment for root " + relRootPath)
 
 	// prepare a workspace
-	workspacePath, err := stdos.MkdirTemp("", "dryad-*")
+	workspacePath, err := os.MkdirTemp("", "dryad-*")
 	if err != nil {
 		return "", err
 	}
