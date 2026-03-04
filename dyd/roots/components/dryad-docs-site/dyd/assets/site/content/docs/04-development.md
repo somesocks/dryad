@@ -58,52 +58,58 @@ Dryad supports runtime diagnostics rules through the `DYD_DG` environment variab
 - `file:/absolute/path/to/diagnostics.yaml`
 - `json:{...}`
 
-### Fault Injection Example
+### Diagnostics Examples
 
-This example injects an `EMLINK` pre-error on every `os.link` call:
+Inject a pre-error on every `os.link` call:
 
 ```sh
-DYD_DG='json:{"version":1,"seed":1,"rules":[{"id":"inject-emlink","op":"os.link","key":"*","when":{"mode":"every_n","count":1},"action":{"type":"error","error":"EMLINK"}}]}' dryad root build dyd/roots/root-01
+DYD_DG='json:{"version":1,"seed":1,"rules":[{"id":"inject-emlink-pre","op":"os.link","key":"*","when":{"mode":"every_n","count":1},"action":{"type":"error","error":"EMLINK"}}]}' \
+dryad root build dyd/roots/root-01
 ```
 
-For post-error behavior, set `action.phase` to `"post"`:
+Inject a post-error on every `os.link` call:
 
-```json
-{
-  "type": "error",
-  "phase": "post",
-  "error": "EMLINK"
-}
+```sh
+DYD_DG='json:{"version":1,"seed":1,"rules":[{"id":"inject-emlink-post","op":"os.link","key":"*","when":{"mode":"every_n","count":1},"action":{"type":"error","phase":"post","error":"EMLINK"}}]}' \
+dryad root build dyd/roots/root-01
 ```
 
-### Metrics Example
+Inject delay on `os.open_file`:
 
-Diagnostics metrics can be configured per operation:
+```sh
+DYD_DG='json:{"version":1,"seed":1,"rules":[{"id":"delay-open","op":"os.open_file","key":"*","when":{"mode":"every_n","count":1},"action":{"type":"delay","delay_ms":25}}]}' \
+dryad root build dyd/roots/root-01
+```
 
-```yaml
+Emit metrics for `os.link` to stdout with 50% sampling:
+
+```sh
+DYD_DG='json:{"version":1,"seed":1,"metrics":[{"id":"m-os-link","op":"os.link","output":"stdout","capture":{"calls":true,"errors":true,"timing":true,"sample_percent":50}}]}' \
+dryad root build dyd/roots/root-01
+```
+
+Use a YAML diagnostics file:
+
+```sh
+cat > /tmp/dyd-diagnostics.yaml <<'EOF'
 version: 1
 seed: 1
-metrics:
-  - id: os-link-metrics
+rules:
+  - id: inject-emlink-pre
     op: os.link
-    output: stderr
-    capture:
-      calls: true
-      errors: true
-      timing: true
-      sample_percent: 50
+    key: "*"
+    when:
+      mode: every_n
+      count: 1
+    action:
+      type: error
+      error: EMLINK
+EOF
+
+DYD_DG='file:/tmp/dyd-diagnostics.yaml' dryad root build dyd/roots/root-01
 ```
 
-`sample_percent` is compiled to an internal power-of-two `1-in-N` sampler.
-The emitted metrics include `sample_every` so the effective capture rate is explicit.
-
-Example emitted line:
-
-```json
-{"point":"os.link","calls":21,"errors":0,"total_nanos":307521,"min_nanos":3814,"max_nanos":176874,"avg_nanos":14643,"sample_every":2}
-```
-
-Quick local check:
+Quick local metrics check:
 
 ```sh
 DYD_DG='json:{"version":1,"seed":1,"metrics":[{"id":"m-os-link","op":"os.link","output":"stderr","capture":{"calls":true,"errors":true,"timing":true,"sample_percent":100}}]}' \
@@ -111,6 +117,26 @@ dryad root build dyd/roots/root-01 --log-level=warn > /tmp/dyd-build.out 2> /tmp
 
 grep -F '"point":"os.link"' /tmp/dyd-build.err
 ```
+
+Example emitted metrics line:
+
+```json
+{"point":"os.link","calls":21,"errors":0,"total_nanos":307521,"min_nanos":3814,"max_nanos":176874,"avg_nanos":14643,"sample_every":2}
+```
+
+### Sampling Rounding Contract
+
+`capture.sample_percent` compiles to an internal power-of-two `1-in-N` sampler (`sample_every`).
+Nearest capture rate wins, and ties favor the lower capture rate.
+
+| requested `sample_percent` | emitted `sample_every` | effective capture rate |
+|---|---:|---:|
+| `100` | `1` | `100.00%` |
+| `50` | `2` | `50.00%` |
+| `30` | `4` | `25.00%` |
+| `25` | `4` | `25.00%` |
+| `12.5` | `8` | `12.50%` |
+| `1` | `128` | `0.78%` |
 
 Diagnostics-focused E2E roots for dryad CLI live under:
 
