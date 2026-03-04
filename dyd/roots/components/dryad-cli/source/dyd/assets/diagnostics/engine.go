@@ -75,9 +75,12 @@ const (
 )
 
 type compiledMetricsRule struct {
-	id     string
-	op     string
-	output metricsOutputKind
+	id            string
+	op            string
+	output        metricsOutputKind
+	captureCalls  bool
+	captureErrors bool
+	captureTiming bool
 }
 
 type compiledRule struct {
@@ -181,11 +184,28 @@ func compileMetricsRule(rule MetricsRuleConfig) (*compiledMetricsRule, string, e
 		return nil, "", fmt.Errorf("diagnostics metrics rule %q: %w", rule.ID, err)
 	}
 
+	captureCalls := boolOrDefault(rule.Capture.Calls, true)
+	captureErrors := boolOrDefault(rule.Capture.Errors, true)
+	captureTiming := boolOrDefault(rule.Capture.Timing, true)
+	if !captureCalls && !captureErrors && !captureTiming {
+		return nil, "", fmt.Errorf("diagnostics metrics rule %q: capture must enable at least one of calls, errors, timing", rule.ID)
+	}
+
 	return &compiledMetricsRule{
-		id:     rule.ID,
-		op:     op,
-		output: output,
+		id:            rule.ID,
+		op:            op,
+		output:        output,
+		captureCalls:  captureCalls,
+		captureErrors: captureErrors,
+		captureTiming: captureTiming,
 	}, op, nil
+}
+
+func boolOrDefault(value *bool, defaultValue bool) bool {
+	if value == nil {
+		return defaultValue
+	}
+	return *value
 }
 
 func compileKeyMatcher(raw string) (keyMatcher, error) {

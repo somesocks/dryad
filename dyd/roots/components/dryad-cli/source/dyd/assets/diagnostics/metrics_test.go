@@ -7,7 +7,12 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+	"time"
 )
+
+func boolRef(v bool) *bool {
+	return &v
+}
 
 func TestMetricsSnapshot_BinderCountsAndErrors(t *testing.T) {
 	Reset()
@@ -182,5 +187,141 @@ func TestEmitMetricsOnExit_UsesConfiguredStream(t *testing.T) {
 
 	if !strings.Contains(string(data), `"point":"metrics.output"`) {
 		t.Fatalf("expected output to include metrics point, got: %s", string(data))
+	}
+}
+
+func TestSetupFromConfig_MetricsCaptureRejectsAllDisabled(t *testing.T) {
+	Reset()
+	t.Cleanup(Reset)
+
+	err := SetupFromConfig(Config{
+		Version: 1,
+		Metrics: []MetricsRuleConfig{
+			{
+				ID: "m-disabled",
+				Op: "metrics.none",
+				Capture: MetricsCaptureConfig{
+					Calls:  boolRef(false),
+					Errors: boolRef(false),
+					Timing: boolRef(false),
+				},
+			},
+		},
+	})
+	if err == nil {
+		t.Fatalf("expected setup to fail when all metrics capture flags are disabled")
+	}
+}
+
+func TestMetricsSnapshot_CaptureTimingDisabled(t *testing.T) {
+	Reset()
+	t.Cleanup(Reset)
+
+	if err := SetupFromConfig(Config{
+		Version: 1,
+		Metrics: []MetricsRuleConfig{
+			{
+				ID: "m-no-timing",
+				Op: "metrics.no_timing",
+				Capture: MetricsCaptureConfig{
+					Timing: boolRef(false),
+				},
+			},
+		},
+	}); err != nil {
+		t.Fatalf("setup diagnostics: %v", err)
+	}
+
+	bound := BindA0R0(
+		"metrics.no_timing",
+		func() error { return nil },
+	)
+	if err := bound(); err != nil {
+		t.Fatalf("expected nil, got %v", err)
+	}
+
+	stats := MetricsSnapshot()["metrics.no_timing"]
+	if stats.Calls != 1 {
+		t.Fatalf("expected calls=1, got %d", stats.Calls)
+	}
+	if stats.TotalNanos != 0 || stats.MinNanos != 0 || stats.MaxNanos != 0 || stats.AvgNanos != 0 {
+		t.Fatalf("expected timing stats to stay 0 when timing capture is disabled, got %+v", stats)
+	}
+}
+
+func TestMetricsSnapshot_CaptureErrorsDisabled(t *testing.T) {
+	Reset()
+	t.Cleanup(Reset)
+
+	if err := SetupFromConfig(Config{
+		Version: 1,
+		Metrics: []MetricsRuleConfig{
+			{
+				ID: "m-no-errors",
+				Op: "metrics.no_errors",
+				Capture: MetricsCaptureConfig{
+					Errors: boolRef(false),
+				},
+			},
+		},
+	}); err != nil {
+		t.Fatalf("setup diagnostics: %v", err)
+	}
+
+	expectedErr := errors.New("boom")
+	bound := BindA0R0(
+		"metrics.no_errors",
+		func() error { return expectedErr },
+	)
+
+	if err := bound(); !errors.Is(err, expectedErr) {
+		t.Fatalf("expected error from base call, got %v", err)
+	}
+
+	stats := MetricsSnapshot()["metrics.no_errors"]
+	if stats.Calls != 1 {
+		t.Fatalf("expected calls=1, got %d", stats.Calls)
+	}
+	if stats.Errors != 0 {
+		t.Fatalf("expected errors=0 when errors capture is disabled, got %d", stats.Errors)
+	}
+}
+
+func TestMetricsSnapshot_CaptureCallsDisabled(t *testing.T) {
+	Reset()
+	t.Cleanup(Reset)
+
+	if err := SetupFromConfig(Config{
+		Version: 1,
+		Metrics: []MetricsRuleConfig{
+			{
+				ID: "m-no-calls",
+				Op: "metrics.no_calls",
+				Capture: MetricsCaptureConfig{
+					Calls: boolRef(false),
+				},
+			},
+		},
+	}); err != nil {
+		t.Fatalf("setup diagnostics: %v", err)
+	}
+
+	bound := BindA0R0(
+		"metrics.no_calls",
+		func() error {
+			time.Sleep(1 * time.Millisecond)
+			return nil
+		},
+	)
+	if err := bound(); err != nil {
+		t.Fatalf("expected nil, got %v", err)
+	}
+
+	stats := MetricsSnapshot()["metrics.no_calls"]
+	if stats.Calls != 0 {
+		t.Fatalf("expected calls=0 when calls capture is disabled, got %d", stats.Calls)
+	}
+	if stats.TotalNanos == 0 || stats.AvgNanos == 0 {
+		t.Fatalf("expected non-zero timing stats when timing capture is enabled, got %+v", stats)
 	}
 }

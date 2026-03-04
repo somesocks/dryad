@@ -14,6 +14,7 @@ import (
 type pointStats struct {
 	calls      atomic.Uint64
 	errors     atomic.Uint64
+	samples    atomic.Uint64
 	totalNanos atomic.Uint64
 	minNanos   atomic.Uint64
 	maxNanos   atomic.Uint64
@@ -56,22 +57,28 @@ func pointStatsFor(point string) *pointStats {
 	return stats
 }
 
-func observePointInvocation(point string, elapsed time.Duration, err error) {
-	current := activeEngine.Load()
-	if current == nil {
+func observePointInvocation(rule *compiledMetricsRule, point string, elapsed time.Duration, err error) {
+	if rule == nil {
 		return
 	}
-	if current.Metric(point) == nil {
+	if !rule.captureCalls && !rule.captureErrors && !rule.captureTiming {
 		return
 	}
 
 	stats := pointStatsFor(point)
-	nanos := uint64(elapsed)
 
-	stats.calls.Add(1)
-	if err != nil {
+	if rule.captureCalls {
+		stats.calls.Add(1)
+	}
+	if rule.captureErrors && err != nil {
 		stats.errors.Add(1)
 	}
+	if !rule.captureTiming {
+		return
+	}
+
+	nanos := uint64(elapsed)
+	stats.samples.Add(1)
 	stats.totalNanos.Add(nanos)
 
 	for {
@@ -106,13 +113,14 @@ func MetricsSnapshot() map[string]PointStatsSnapshot {
 		total := stats.totalNanos.Load()
 		min := stats.minNanos.Load()
 		max := stats.maxNanos.Load()
-		if calls == 0 || min == math.MaxUint64 {
+		samples := stats.samples.Load()
+		if samples == 0 || min == math.MaxUint64 {
 			min = 0
 		}
 
 		avg := uint64(0)
-		if calls > 0 {
-			avg = total / calls
+		if samples > 0 {
+			avg = total / samples
 		}
 
 		out[point] = PointStatsSnapshot{
@@ -132,6 +140,24 @@ func ResetMetrics() {
 	metricsRegistry.mu.Lock()
 	defer metricsRegistry.mu.Unlock()
 	metricsRegistry.points = map[string]*pointStats{}
+}
+
+func beginMetricsObservation(rule *compiledMetricsRule) time.Time {
+	if rule != nil && rule.captureTiming {
+		return time.Now()
+	}
+	return time.Time{}
+}
+
+func endMetricsObservation(rule *compiledMetricsRule, point string, start time.Time, err error) {
+	if rule == nil {
+		return
+	}
+	elapsed := time.Duration(0)
+	if rule.captureTiming {
+		elapsed = time.Since(start)
+	}
+	observePointInvocation(rule, point, elapsed, err)
 }
 
 type metricsPointOutput struct {
@@ -166,7 +192,7 @@ func EmitMetricsOnExit() error {
 
 	for _, point := range points {
 		stats, ok := snapshot[point]
-		if !ok || stats.Calls == 0 {
+		if !ok {
 			continue
 		}
 

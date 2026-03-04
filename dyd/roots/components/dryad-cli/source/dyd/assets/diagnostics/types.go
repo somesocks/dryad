@@ -39,8 +39,15 @@ type ActionConfig struct {
 }
 
 type MetricsRuleConfig struct {
-	ID      string `json:"id" yaml:"id"`
-	Enabled *bool  `json:"enabled,omitempty" yaml:"enabled,omitempty"`
-	Op      string `json:"op" yaml:"op"`
-	Output  string `json:"output,omitempty" yaml:"output,omitempty"` // stdout | stderr | ""
+	ID      string               `json:"id" yaml:"id"`
+	Enabled *bool                `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	Op      string               `json:"op" yaml:"op"`
+	Output  string               `json:"output,omitempty" yaml:"output,omitempty"` // stdout | stderr | ""
+	Capture MetricsCaptureConfig `json:"capture,omitempty" yaml:"capture,omitempty"`
+}
+
+type MetricsCaptureConfig struct {
+	Calls  *bool `json:"calls,omitempty" yaml:"calls,omitempty"`
+	Errors *bool `json:"errors,omitempty" yaml:"errors,omitempty"`
+	Timing *bool `json:"timing,omitempty" yaml:"timing,omitempty"`
 }

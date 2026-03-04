@@ -54,11 +54,11 @@ func Apply(point string, key string) error {
 	var result error
 
 	current := activeEngine.Load()
-	trackMetrics := current != nil && current.Metric(point) != nil
-	var start time.Time
-	if trackMetrics {
-		start = time.Now()
+	var metric *compiledMetricsRule
+	if current != nil {
+		metric = current.Metric(point)
 	}
+	start := beginMetricsObservation(metric)
 
 	if current == nil {
 		result = nil
@@ -71,9 +71,7 @@ func Apply(point string, key string) error {
 		}
 	}
 
-	if trackMetrics {
-		observePointInvocation(point, time.Since(start), result)
-	}
+	endMetricsObservation(metric, point, start, result)
 	return result
 }
 

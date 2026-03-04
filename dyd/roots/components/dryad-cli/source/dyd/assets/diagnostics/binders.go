@@ -416,29 +416,30 @@ func BindA0R0(
 
 	var cachedVersion atomic.Uint64
 	var cachedNext atomic.Value
+	var cachedMetric atomic.Pointer[compiledMetricsRule]
 	cachedNext.Store(baseNext)
 
 	return func() error {
-		start := time.Now()
-
 		var err error
 
 		current := activeEngine.Load()
 		if current == nil {
-			err = base()
-			observePointInvocation(point, time.Since(start), err)
-			return err
+			return base()
 		}
 
 		version := current.version
 		if cachedVersion.Load() != version {
 			cachedNext.Store(buildA0R0Next(current, point, base))
+			cachedMetric.Store(current.Metric(point))
 			cachedVersion.Store(version)
 		}
 
+		metric := cachedMetric.Load()
+		start := beginMetricsObservation(metric)
+
 		next := cachedNext.Load().(NextA0R0)
 		err = next(CallA0R0{})
-		observePointInvocation(point, time.Since(start), err)
+		endMetricsObservation(metric, point, start, err)
 		return err
 	}
 }
@@ -455,11 +456,10 @@ func BindA1R0[A0 any](
 
 	var cachedVersion atomic.Uint64
 	var cachedNext atomic.Value
+	var cachedMetric atomic.Pointer[compiledMetricsRule]
 	cachedNext.Store(baseNext)
 
 	return func(a0 A0) error {
-		start := time.Now()
-
 		var err error
 
 		key := ""
@@ -469,23 +469,25 @@ func BindA1R0[A0 any](
 
 		current := activeEngine.Load()
 		if current == nil {
-			err = base(a0)
-			observePointInvocation(point, time.Since(start), err)
-			return err
+			return base(a0)
 		}
 
 		version := current.version
 		if cachedVersion.Load() != version {
 			cachedNext.Store(buildA1R0Next[A0](current, point, base))
+			cachedMetric.Store(current.Metric(point))
 			cachedVersion.Store(version)
 		}
+
+		metric := cachedMetric.Load()
+		start := beginMetricsObservation(metric)
 
 		next := cachedNext.Load().(NextA1R0[A0])
 		err = next(CallA1R0[A0]{
 			Key: key,
 			A0:  a0,
 		})
-		observePointInvocation(point, time.Since(start), err)
+		endMetricsObservation(metric, point, start, err)
 		return err
 	}
 }
@@ -502,11 +504,10 @@ func BindA2R0[A0, A1 any](
 
 	var cachedVersion atomic.Uint64
 	var cachedNext atomic.Value
+	var cachedMetric atomic.Pointer[compiledMetricsRule]
 	cachedNext.Store(baseNext)
 
 	return func(a0 A0, a1 A1) error {
-		start := time.Now()
-
 		var err error
 
 		key := ""
@@ -516,16 +517,18 @@ func BindA2R0[A0, A1 any](
 
 		current := activeEngine.Load()
 		if current == nil {
-			err = base(a0, a1)
-			observePointInvocation(point, time.Since(start), err)
-			return err
+			return base(a0, a1)
 		}
 
 		version := current.version
 		if cachedVersion.Load() != version {
 			cachedNext.Store(buildA2R0Next[A0, A1](current, point, base))
+			cachedMetric.Store(current.Metric(point))
 			cachedVersion.Store(version)
 		}
+
+		metric := cachedMetric.Load()
+		start := beginMetricsObservation(metric)
 
 		next := cachedNext.Load().(NextA2R0[A0, A1])
 		err = next(CallA2R0[A0, A1]{
@@ -533,7 +536,7 @@ func BindA2R0[A0, A1 any](
 			A0:  a0,
 			A1:  a1,
 		})
-		observePointInvocation(point, time.Since(start), err)
+		endMetricsObservation(metric, point, start, err)
 		return err
 	}
 }
@@ -550,11 +553,10 @@ func BindA3R0[A0, A1, A2 any](
 
 	var cachedVersion atomic.Uint64
 	var cachedNext atomic.Value
+	var cachedMetric atomic.Pointer[compiledMetricsRule]
 	cachedNext.Store(baseNext)
 
 	return func(a0 A0, a1 A1, a2 A2) error {
-		start := time.Now()
-
 		var err error
 
 		key := ""
@@ -564,16 +566,18 @@ func BindA3R0[A0, A1, A2 any](
 
 		current := activeEngine.Load()
 		if current == nil {
-			err = base(a0, a1, a2)
-			observePointInvocation(point, time.Since(start), err)
-			return err
+			return base(a0, a1, a2)
 		}
 
 		version := current.version
 		if cachedVersion.Load() != version {
 			cachedNext.Store(buildA3R0Next[A0, A1, A2](current, point, base))
+			cachedMetric.Store(current.Metric(point))
 			cachedVersion.Store(version)
 		}
+
+		metric := cachedMetric.Load()
+		start := beginMetricsObservation(metric)
 
 		next := cachedNext.Load().(NextA3R0[A0, A1, A2])
 		err = next(CallA3R0[A0, A1, A2]{
@@ -582,7 +586,7 @@ func BindA3R0[A0, A1, A2 any](
 			A1:  a1,
 			A2:  a2,
 		})
-		observePointInvocation(point, time.Since(start), err)
+		endMetricsObservation(metric, point, start, err)
 		return err
 	}
 }
@@ -598,30 +602,31 @@ func BindA0R1[R0 any](
 
 	var cachedVersion atomic.Uint64
 	var cachedNext atomic.Value
+	var cachedMetric atomic.Pointer[compiledMetricsRule]
 	cachedNext.Store(baseNext)
 
 	return func() (error, R0) {
-		start := time.Now()
-
 		var err error
 		var out R0
 
 		current := activeEngine.Load()
 		if current == nil {
-			err, out = base()
-			observePointInvocation(point, time.Since(start), err)
-			return err, out
+			return base()
 		}
 
 		version := current.version
 		if cachedVersion.Load() != version {
 			cachedNext.Store(buildA0R1Next[R0](current, point, base))
+			cachedMetric.Store(current.Metric(point))
 			cachedVersion.Store(version)
 		}
 
+		metric := cachedMetric.Load()
+		start := beginMetricsObservation(metric)
+
 		next := cachedNext.Load().(NextA0R1[R0])
 		err, out = next(CallA0R1{})
-		observePointInvocation(point, time.Since(start), err)
+		endMetricsObservation(metric, point, start, err)
 		return err, out
 	}
 }
@@ -638,11 +643,10 @@ func BindA1R1[A0, R0 any](
 
 	var cachedVersion atomic.Uint64
 	var cachedNext atomic.Value
+	var cachedMetric atomic.Pointer[compiledMetricsRule]
 	cachedNext.Store(baseNext)
 
 	return func(a0 A0) (error, R0) {
-		start := time.Now()
-
 		var err error
 		var out R0
 
@@ -653,23 +657,25 @@ func BindA1R1[A0, R0 any](
 
 		current := activeEngine.Load()
 		if current == nil {
-			err, out = base(a0)
-			observePointInvocation(point, time.Since(start), err)
-			return err, out
+			return base(a0)
 		}
 
 		version := current.version
 		if cachedVersion.Load() != version {
 			cachedNext.Store(buildA1R1Next[A0, R0](current, point, base))
+			cachedMetric.Store(current.Metric(point))
 			cachedVersion.Store(version)
 		}
+
+		metric := cachedMetric.Load()
+		start := beginMetricsObservation(metric)
 
 		next := cachedNext.Load().(NextA1R1[A0, R0])
 		err, out = next(CallA1R1[A0]{
 			Key: key,
 			A0:  a0,
 		})
-		observePointInvocation(point, time.Since(start), err)
+		endMetricsObservation(metric, point, start, err)
 		return err, out
 	}
 }
@@ -686,11 +692,10 @@ func BindA2R1[A0, A1, R0 any](
 
 	var cachedVersion atomic.Uint64
 	var cachedNext atomic.Value
+	var cachedMetric atomic.Pointer[compiledMetricsRule]
 	cachedNext.Store(baseNext)
 
 	return func(a0 A0, a1 A1) (error, R0) {
-		start := time.Now()
-
 		var err error
 		var out R0
 
@@ -701,16 +706,18 @@ func BindA2R1[A0, A1, R0 any](
 
 		current := activeEngine.Load()
 		if current == nil {
-			err, out = base(a0, a1)
-			observePointInvocation(point, time.Since(start), err)
-			return err, out
+			return base(a0, a1)
 		}
 
 		version := current.version
 		if cachedVersion.Load() != version {
 			cachedNext.Store(buildA2R1Next[A0, A1, R0](current, point, base))
+			cachedMetric.Store(current.Metric(point))
 			cachedVersion.Store(version)
 		}
+
+		metric := cachedMetric.Load()
+		start := beginMetricsObservation(metric)
 
 		next := cachedNext.Load().(NextA2R1[A0, A1, R0])
 		err, out = next(CallA2R1[A0, A1]{
@@ -718,7 +725,7 @@ func BindA2R1[A0, A1, R0 any](
 			A0:  a0,
 			A1:  a1,
 		})
-		observePointInvocation(point, time.Since(start), err)
+		endMetricsObservation(metric, point, start, err)
 		return err, out
 	}
 }
@@ -735,11 +742,10 @@ func BindA3R1[A0, A1, A2, R0 any](
 
 	var cachedVersion atomic.Uint64
 	var cachedNext atomic.Value
+	var cachedMetric atomic.Pointer[compiledMetricsRule]
 	cachedNext.Store(baseNext)
 
 	return func(a0 A0, a1 A1, a2 A2) (error, R0) {
-		start := time.Now()
-
 		var err error
 		var out R0
 
@@ -750,16 +756,18 @@ func BindA3R1[A0, A1, A2, R0 any](
 
 		current := activeEngine.Load()
 		if current == nil {
-			err, out = base(a0, a1, a2)
-			observePointInvocation(point, time.Since(start), err)
-			return err, out
+			return base(a0, a1, a2)
 		}
 
 		version := current.version
 		if cachedVersion.Load() != version {
 			cachedNext.Store(buildA3R1Next[A0, A1, A2, R0](current, point, base))
+			cachedMetric.Store(current.Metric(point))
 			cachedVersion.Store(version)
 		}
+
+		metric := cachedMetric.Load()
+		start := beginMetricsObservation(metric)
 
 		next := cachedNext.Load().(NextA3R1[A0, A1, A2, R0])
 		err, out = next(CallA3R1[A0, A1, A2]{
@@ -768,7 +776,7 @@ func BindA3R1[A0, A1, A2, R0 any](
 			A1:  a1,
 			A2:  a2,
 		})
-		observePointInvocation(point, time.Since(start), err)
+		endMetricsObservation(metric, point, start, err)
 		return err, out
 	}
 }

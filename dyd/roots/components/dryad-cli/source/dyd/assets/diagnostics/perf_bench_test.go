@@ -92,3 +92,51 @@ func BenchmarkBindA2R0_EnabledPostErrorNoHit(b *testing.B) {
 		benchSinkErr = bound("a", "b")
 	}
 }
+
+func BenchmarkBindA2R0_EnabledMetricsAll(b *testing.B) {
+	Reset()
+	if err := SetupFromConfig(Config{
+		Version: 1,
+		Metrics: []MetricsRuleConfig{
+			{
+				ID: "m",
+				Op: "os.link",
+			},
+		},
+	}); err != nil {
+		b.Fatal(err)
+	}
+	b.Cleanup(Reset)
+
+	bound := BindA2R0("os.link", func(a0 string, a1 string) string { return a0 }, benchBaseA2R0)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		benchSinkErr = bound("a", "b")
+	}
+}
+
+func BenchmarkBindA2R0_EnabledMetricsNoTiming(b *testing.B) {
+	Reset()
+	disabled := false
+	if err := SetupFromConfig(Config{
+		Version: 1,
+		Metrics: []MetricsRuleConfig{
+			{
+				ID: "m",
+				Op: "os.link",
+				Capture: MetricsCaptureConfig{
+					Timing: &disabled,
+				},
+			},
+		},
+	}); err != nil {
+		b.Fatal(err)
+	}
+	b.Cleanup(Reset)
+
+	bound := BindA2R0("os.link", func(a0 string, a1 string) string { return a0 }, benchBaseA2R0)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		benchSinkErr = bound("a", "b")
+	}
+}
