@@ -409,6 +409,7 @@ func BindA0R0(
 	point string,
 	base func() error,
 ) func() error {
+
 	baseNext := NextA0R0(func(call CallA0R0) error {
 		return base()
 	})
@@ -418,9 +419,15 @@ func BindA0R0(
 	cachedNext.Store(baseNext)
 
 	return func() error {
+		start := time.Now()
+
+		var err error
+
 		current := activeEngine.Load()
 		if current == nil {
-			return base()
+			err = base()
+			observePointInvocation(point, time.Since(start), err)
+			return err
 		}
 
 		version := current.version
@@ -430,7 +437,9 @@ func BindA0R0(
 		}
 
 		next := cachedNext.Load().(NextA0R0)
-		return next(CallA0R0{})
+		err = next(CallA0R0{})
+		observePointInvocation(point, time.Since(start), err)
+		return err
 	}
 }
 
@@ -439,6 +448,7 @@ func BindA1R0[A0 any](
 	keyFn func(A0) string,
 	base func(A0) error,
 ) func(A0) error {
+
 	baseNext := NextA1R0[A0](func(call CallA1R0[A0]) error {
 		return base(call.A0)
 	})
@@ -448,6 +458,10 @@ func BindA1R0[A0 any](
 	cachedNext.Store(baseNext)
 
 	return func(a0 A0) error {
+		start := time.Now()
+
+		var err error
+
 		key := ""
 		if keyFn != nil {
 			key = keyFn(a0)
@@ -455,7 +469,9 @@ func BindA1R0[A0 any](
 
 		current := activeEngine.Load()
 		if current == nil {
-			return base(a0)
+			err = base(a0)
+			observePointInvocation(point, time.Since(start), err)
+			return err
 		}
 
 		version := current.version
@@ -465,10 +481,12 @@ func BindA1R0[A0 any](
 		}
 
 		next := cachedNext.Load().(NextA1R0[A0])
-		return next(CallA1R0[A0]{
+		err = next(CallA1R0[A0]{
 			Key: key,
 			A0:  a0,
 		})
+		observePointInvocation(point, time.Since(start), err)
+		return err
 	}
 }
 
@@ -477,6 +495,7 @@ func BindA2R0[A0, A1 any](
 	keyFn func(A0, A1) string,
 	base func(A0, A1) error,
 ) func(A0, A1) error {
+
 	baseNext := NextA2R0[A0, A1](func(call CallA2R0[A0, A1]) error {
 		return base(call.A0, call.A1)
 	})
@@ -486,6 +505,10 @@ func BindA2R0[A0, A1 any](
 	cachedNext.Store(baseNext)
 
 	return func(a0 A0, a1 A1) error {
+		start := time.Now()
+
+		var err error
+
 		key := ""
 		if keyFn != nil {
 			key = keyFn(a0, a1)
@@ -493,7 +516,9 @@ func BindA2R0[A0, A1 any](
 
 		current := activeEngine.Load()
 		if current == nil {
-			return base(a0, a1)
+			err = base(a0, a1)
+			observePointInvocation(point, time.Since(start), err)
+			return err
 		}
 
 		version := current.version
@@ -503,11 +528,13 @@ func BindA2R0[A0, A1 any](
 		}
 
 		next := cachedNext.Load().(NextA2R0[A0, A1])
-		return next(CallA2R0[A0, A1]{
+		err = next(CallA2R0[A0, A1]{
 			Key: key,
 			A0:  a0,
 			A1:  a1,
 		})
+		observePointInvocation(point, time.Since(start), err)
+		return err
 	}
 }
 
@@ -516,6 +543,7 @@ func BindA3R0[A0, A1, A2 any](
 	keyFn func(A0, A1, A2) string,
 	base func(A0, A1, A2) error,
 ) func(A0, A1, A2) error {
+
 	baseNext := NextA3R0[A0, A1, A2](func(call CallA3R0[A0, A1, A2]) error {
 		return base(call.A0, call.A1, call.A2)
 	})
@@ -525,6 +553,10 @@ func BindA3R0[A0, A1, A2 any](
 	cachedNext.Store(baseNext)
 
 	return func(a0 A0, a1 A1, a2 A2) error {
+		start := time.Now()
+
+		var err error
+
 		key := ""
 		if keyFn != nil {
 			key = keyFn(a0, a1, a2)
@@ -532,7 +564,9 @@ func BindA3R0[A0, A1, A2 any](
 
 		current := activeEngine.Load()
 		if current == nil {
-			return base(a0, a1, a2)
+			err = base(a0, a1, a2)
+			observePointInvocation(point, time.Since(start), err)
+			return err
 		}
 
 		version := current.version
@@ -542,12 +576,14 @@ func BindA3R0[A0, A1, A2 any](
 		}
 
 		next := cachedNext.Load().(NextA3R0[A0, A1, A2])
-		return next(CallA3R0[A0, A1, A2]{
+		err = next(CallA3R0[A0, A1, A2]{
 			Key: key,
 			A0:  a0,
 			A1:  a1,
 			A2:  a2,
 		})
+		observePointInvocation(point, time.Since(start), err)
+		return err
 	}
 }
 
@@ -555,6 +591,7 @@ func BindA0R1[R0 any](
 	point string,
 	base func() (error, R0),
 ) func() (error, R0) {
+
 	baseNext := NextA0R1[R0](func(call CallA0R1) (error, R0) {
 		return base()
 	})
@@ -564,9 +601,16 @@ func BindA0R1[R0 any](
 	cachedNext.Store(baseNext)
 
 	return func() (error, R0) {
+		start := time.Now()
+
+		var err error
+		var out R0
+
 		current := activeEngine.Load()
 		if current == nil {
-			return base()
+			err, out = base()
+			observePointInvocation(point, time.Since(start), err)
+			return err, out
 		}
 
 		version := current.version
@@ -576,7 +620,9 @@ func BindA0R1[R0 any](
 		}
 
 		next := cachedNext.Load().(NextA0R1[R0])
-		return next(CallA0R1{})
+		err, out = next(CallA0R1{})
+		observePointInvocation(point, time.Since(start), err)
+		return err, out
 	}
 }
 
@@ -585,6 +631,7 @@ func BindA1R1[A0, R0 any](
 	keyFn func(A0) string,
 	base func(A0) (error, R0),
 ) func(A0) (error, R0) {
+
 	baseNext := NextA1R1[A0, R0](func(call CallA1R1[A0]) (error, R0) {
 		return base(call.A0)
 	})
@@ -594,6 +641,11 @@ func BindA1R1[A0, R0 any](
 	cachedNext.Store(baseNext)
 
 	return func(a0 A0) (error, R0) {
+		start := time.Now()
+
+		var err error
+		var out R0
+
 		key := ""
 		if keyFn != nil {
 			key = keyFn(a0)
@@ -601,7 +653,9 @@ func BindA1R1[A0, R0 any](
 
 		current := activeEngine.Load()
 		if current == nil {
-			return base(a0)
+			err, out = base(a0)
+			observePointInvocation(point, time.Since(start), err)
+			return err, out
 		}
 
 		version := current.version
@@ -611,10 +665,12 @@ func BindA1R1[A0, R0 any](
 		}
 
 		next := cachedNext.Load().(NextA1R1[A0, R0])
-		return next(CallA1R1[A0]{
+		err, out = next(CallA1R1[A0]{
 			Key: key,
 			A0:  a0,
 		})
+		observePointInvocation(point, time.Since(start), err)
+		return err, out
 	}
 }
 
@@ -623,6 +679,7 @@ func BindA2R1[A0, A1, R0 any](
 	keyFn func(A0, A1) string,
 	base func(A0, A1) (error, R0),
 ) func(A0, A1) (error, R0) {
+
 	baseNext := NextA2R1[A0, A1, R0](func(call CallA2R1[A0, A1]) (error, R0) {
 		return base(call.A0, call.A1)
 	})
@@ -632,6 +689,11 @@ func BindA2R1[A0, A1, R0 any](
 	cachedNext.Store(baseNext)
 
 	return func(a0 A0, a1 A1) (error, R0) {
+		start := time.Now()
+
+		var err error
+		var out R0
+
 		key := ""
 		if keyFn != nil {
 			key = keyFn(a0, a1)
@@ -639,7 +701,9 @@ func BindA2R1[A0, A1, R0 any](
 
 		current := activeEngine.Load()
 		if current == nil {
-			return base(a0, a1)
+			err, out = base(a0, a1)
+			observePointInvocation(point, time.Since(start), err)
+			return err, out
 		}
 
 		version := current.version
@@ -649,11 +713,13 @@ func BindA2R1[A0, A1, R0 any](
 		}
 
 		next := cachedNext.Load().(NextA2R1[A0, A1, R0])
-		return next(CallA2R1[A0, A1]{
+		err, out = next(CallA2R1[A0, A1]{
 			Key: key,
 			A0:  a0,
 			A1:  a1,
 		})
+		observePointInvocation(point, time.Since(start), err)
+		return err, out
 	}
 }
 
@@ -662,6 +728,7 @@ func BindA3R1[A0, A1, A2, R0 any](
 	keyFn func(A0, A1, A2) string,
 	base func(A0, A1, A2) (error, R0),
 ) func(A0, A1, A2) (error, R0) {
+
 	baseNext := NextA3R1[A0, A1, A2, R0](func(call CallA3R1[A0, A1, A2]) (error, R0) {
 		return base(call.A0, call.A1, call.A2)
 	})
@@ -671,6 +738,11 @@ func BindA3R1[A0, A1, A2, R0 any](
 	cachedNext.Store(baseNext)
 
 	return func(a0 A0, a1 A1, a2 A2) (error, R0) {
+		start := time.Now()
+
+		var err error
+		var out R0
+
 		key := ""
 		if keyFn != nil {
 			key = keyFn(a0, a1, a2)
@@ -678,7 +750,9 @@ func BindA3R1[A0, A1, A2, R0 any](
 
 		current := activeEngine.Load()
 		if current == nil {
-			return base(a0, a1, a2)
+			err, out = base(a0, a1, a2)
+			observePointInvocation(point, time.Since(start), err)
+			return err, out
 		}
 
 		version := current.version
@@ -688,11 +762,13 @@ func BindA3R1[A0, A1, A2, R0 any](
 		}
 
 		next := cachedNext.Load().(NextA3R1[A0, A1, A2, R0])
-		return next(CallA3R1[A0, A1, A2]{
+		err, out = next(CallA3R1[A0, A1, A2]{
 			Key: key,
 			A0:  a0,
 			A1:  a1,
 			A2:  a2,
 		})
+		observePointInvocation(point, time.Since(start), err)
+		return err, out
 	}
 }

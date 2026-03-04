@@ -15,6 +15,12 @@ func Disable() {
 	activeEngine.Store(nil)
 }
 
+func Reset() {
+	Disable()
+	ResetMetrics()
+	engineGeneration.Store(0)
+}
+
 func SetupFromConfig(config Config) error {
 	compiled, err := compileConfig(config)
 	if err != nil {
@@ -45,15 +51,30 @@ func SetupFromEnv() error {
 }
 
 func Apply(point string, key string) error {
+	var result error
+
 	current := activeEngine.Load()
+	trackMetrics := current != nil && current.Metric(point) != nil
+	var start time.Time
+	if trackMetrics {
+		start = time.Now()
+	}
+
 	if current == nil {
-		return nil
+		result = nil
+	} else {
+		rules := current.Rules(point)
+		if len(rules) == 0 {
+			result = nil
+		} else {
+			result = applyNoopRules(rules, key, 0)
+		}
 	}
-	rules := current.Rules(point)
-	if len(rules) == 0 {
-		return nil
+
+	if trackMetrics {
+		observePointInvocation(point, time.Since(start), result)
 	}
-	return applyNoopRules(rules, key, 0)
+	return result
 }
 
 func applyNoopRules(rules []*compiledRule, key string, index int) error {

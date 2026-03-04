@@ -27,5 +27,10 @@ func main() {
 	// `dryad`
 	args := os.Args
 	args[0] = "dryad"
-	os.Exit(app.Run(args, os.Stdout))
+
+	exitCode := app.Run(args, os.Stdout)
+	if err := diagnostics.EmitMetricsOnExit(); err != nil {
+		fmt.Fprintln(os.Stderr, "error emitting diagnostics metrics:", err)
+	}
+	os.Exit(exitCode)
 }

@@ -13,10 +13,15 @@ import (
 type engine struct {
 	version uint64
 	rules   map[string][]*compiledRule
+	metrics map[string]*compiledMetricsRule
 }
 
 func (e *engine) Rules(point string) []*compiledRule {
 	return e.rules[point]
+}
+
+func (e *engine) Metric(point string) *compiledMetricsRule {
+	return e.metrics[point]
 }
 
 type keyMatcherKind int
@@ -62,6 +67,19 @@ const (
 	actionDelay
 )
 
+type metricsOutputKind int
+
+const (
+	metricsOutputStdout metricsOutputKind = iota
+	metricsOutputStderr
+)
+
+type compiledMetricsRule struct {
+	id     string
+	op     string
+	output metricsOutputKind
+}
+
 type compiledRule struct {
 	id        string
 	op        string
@@ -87,6 +105,7 @@ func compileConfig(cfg Config) (*engine, error) {
 	}
 
 	rulesByPoint := map[string][]*compiledRule{}
+	metricsByPoint := map[string]*compiledMetricsRule{}
 
 	for idx, rule := range cfg.Rules {
 		if rule.Enabled != nil && !*rule.Enabled {
@@ -100,7 +119,26 @@ func compileConfig(cfg Config) (*engine, error) {
 		rulesByPoint[op] = append(rulesByPoint[op], compiled)
 	}
 
-	return &engine{rules: rulesByPoint}, nil
+	for _, rule := range cfg.Metrics {
+		if rule.Enabled != nil && !*rule.Enabled {
+			continue
+		}
+
+		compiled, op, err := compileMetricsRule(rule)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, exists := metricsByPoint[op]; exists {
+			return nil, fmt.Errorf("duplicate diagnostics metrics rule op %q", op)
+		}
+		metricsByPoint[op] = compiled
+	}
+
+	return &engine{
+		rules:   rulesByPoint,
+		metrics: metricsByPoint,
+	}, nil
 }
 
 func compileRule(seed int64, index int, rule RuleConfig) (*compiledRule, string, error) {
@@ -130,6 +168,24 @@ func compileRule(seed int64, index int, rule RuleConfig) (*compiledRule, string,
 	}
 
 	return compiled, op, nil
+}
+
+func compileMetricsRule(rule MetricsRuleConfig) (*compiledMetricsRule, string, error) {
+	op := strings.TrimSpace(rule.Op)
+	if op == "" {
+		return nil, "", fmt.Errorf("diagnostics metrics rule missing op")
+	}
+
+	output, err := parseMetricsOutput(rule.Output)
+	if err != nil {
+		return nil, "", fmt.Errorf("diagnostics metrics rule %q: %w", rule.ID, err)
+	}
+
+	return &compiledMetricsRule{
+		id:     rule.ID,
+		op:     op,
+		output: output,
+	}, op, nil
 }
 
 func compileKeyMatcher(raw string) (keyMatcher, error) {
@@ -239,6 +295,17 @@ func parseErrorName(name string) (error, error) {
 		return syscall.ETIMEDOUT, nil
 	default:
 		return nil, fmt.Errorf("unsupported error %q", name)
+	}
+}
+
+func parseMetricsOutput(raw string) (metricsOutputKind, error) {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "", "stderr":
+		return metricsOutputStderr, nil
+	case "stdout":
+		return metricsOutputStdout, nil
+	default:
+		return metricsOutputStderr, fmt.Errorf("unsupported metrics output %q", raw)
 	}
 }
 
