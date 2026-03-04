@@ -143,6 +143,48 @@ func TestResetMetrics_ClearsState(t *testing.T) {
 	}
 }
 
+func TestResetMetrics_RebindsActiveMetricStats(t *testing.T) {
+	Reset()
+	t.Cleanup(Reset)
+
+	if err := SetupFromConfig(Config{
+		Version: 1,
+		Metrics: []MetricsRuleConfig{
+			{ID: "m-reset-active", Op: "metrics.reset_active", Output: "stderr"},
+		},
+	}); err != nil {
+		t.Fatalf("setup diagnostics: %v", err)
+	}
+
+	bound := BindA0R0(
+		"metrics.reset_active",
+		func() error { return nil },
+	)
+	if err := bound(); err != nil {
+		t.Fatalf("expected nil on first call, got %v", err)
+	}
+
+	before := MetricsSnapshot()["metrics.reset_active"]
+	if before.Calls != 1 {
+		t.Fatalf("expected calls=1 before reset, got %d", before.Calls)
+	}
+
+	ResetMetrics()
+	resetSnap := MetricsSnapshot()["metrics.reset_active"]
+	if resetSnap.Calls != 0 || resetSnap.Errors != 0 || resetSnap.TotalNanos != 0 {
+		t.Fatalf("expected zeroed stats immediately after reset, got %+v", resetSnap)
+	}
+
+	if err := bound(); err != nil {
+		t.Fatalf("expected nil on second call, got %v", err)
+	}
+
+	after := MetricsSnapshot()["metrics.reset_active"]
+	if after.Calls != 1 {
+		t.Fatalf("expected calls=1 after reset and one new call, got %d", after.Calls)
+	}
+}
+
 func TestEmitMetricsOnExit_UsesConfiguredStream(t *testing.T) {
 	Reset()
 	t.Cleanup(Reset)

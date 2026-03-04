@@ -81,6 +81,7 @@ type compiledMetricsRule struct {
 	captureCalls  bool
 	captureErrors bool
 	captureTiming bool
+	stats         atomic.Pointer[pointStats]
 }
 
 type compiledRule struct {
@@ -135,6 +136,7 @@ func compileConfig(cfg Config) (*engine, error) {
 		if _, exists := metricsByPoint[op]; exists {
 			return nil, fmt.Errorf("duplicate diagnostics metrics rule op %q", op)
 		}
+		compiled.stats.Store(pointStatsFor(op))
 		metricsByPoint[op] = compiled
 	}
 

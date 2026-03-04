@@ -65,7 +65,13 @@ func observePointInvocation(rule *compiledMetricsRule, point string, elapsed tim
 		return
 	}
 
-	stats := pointStatsFor(point)
+	stats := rule.stats.Load()
+	if stats == nil {
+		stats = pointStatsFor(point)
+		if !rule.stats.CompareAndSwap(nil, stats) {
+			stats = rule.stats.Load()
+		}
+	}
 
 	if rule.captureCalls {
 		stats.calls.Add(1)
@@ -138,8 +144,18 @@ func MetricsSnapshot() map[string]PointStatsSnapshot {
 
 func ResetMetrics() {
 	metricsRegistry.mu.Lock()
-	defer metricsRegistry.mu.Unlock()
 	metricsRegistry.points = map[string]*pointStats{}
+	metricsRegistry.mu.Unlock()
+
+	// Keep active compiled metrics rules valid after reset so wrappers can
+	// continue writing into fresh point stats without per-call map lookups.
+	current := activeEngine.Load()
+	if current == nil {
+		return
+	}
+	for point, metric := range current.metrics {
+		metric.stats.Store(pointStatsFor(point))
+	}
 }
 
 func beginMetricsObservation(rule *compiledMetricsRule) time.Time {
