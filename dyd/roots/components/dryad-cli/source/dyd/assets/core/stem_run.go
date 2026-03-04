@@ -120,7 +120,7 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 	}
 
 	// prepare by getting the executable path
-	dryadPath, err := stdos.Executable()
+	dryadPath, err := os.Executable()
 	if err != nil {
 		return nil, err
 	}
