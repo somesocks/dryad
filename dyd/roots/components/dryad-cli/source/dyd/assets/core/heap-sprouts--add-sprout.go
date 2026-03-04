@@ -158,7 +158,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 		}
 
 		targetFingerprintFile := filepath.Join(targetStemPath, "dyd", "fingerprint")
-		targetFingerprintBytes, err := stdos.ReadFile(targetFingerprintFile)
+		targetFingerprintBytes, err := os.ReadFile(targetFingerprintFile)
 		if err != nil {
 			return err, nil
 		}

@@ -36,7 +36,7 @@ func sproutPackPath(path string) (string, error) {
 
 	workingPath := path
 	flagPath := filepath.Join(workingPath, "dyd", "type")
-	fileBytes, fileErr := stdos.ReadFile(flagPath)
+	fileBytes, fileErr := os.ReadFile(flagPath)
 
 	for workingPath != "/" {
 		if fileErr == nil {
@@ -52,7 +52,7 @@ func sproutPackPath(path string) (string, error) {
 
 		workingPath = filepath.Dir(workingPath)
 		flagPath = filepath.Join(workingPath, "dyd", "type")
-		fileBytes, fileErr = stdos.ReadFile(flagPath)
+		fileBytes, fileErr = os.ReadFile(flagPath)
 	}
 
 	return "", errors.New("dyd sprout path not found starting from " + path)

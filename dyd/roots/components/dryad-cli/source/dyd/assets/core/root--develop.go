@@ -267,7 +267,7 @@ func rootDevelop_snapshotStemPath(
 	garden *SafeGardenReference,
 	workspacePath string,
 ) (string, error) {
-	bytes, err := stdos.ReadFile(rootDevelop_snapshotFile(workspacePath))
+	bytes, err := os.ReadFile(rootDevelop_snapshotFile(workspacePath))
 	if err != nil {
 		return "", err
 	}

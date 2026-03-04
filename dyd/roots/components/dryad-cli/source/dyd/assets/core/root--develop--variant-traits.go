@@ -96,7 +96,7 @@ func rootDevelop_materializeVariantTraits(
 		}
 
 		if traitExists {
-			rawBytes, err := stdos.ReadFile(traitPath)
+			rawBytes, err := os.ReadFile(traitPath)
 			if err != nil {
 				return err
 			}

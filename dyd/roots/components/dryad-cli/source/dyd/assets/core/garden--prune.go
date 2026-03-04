@@ -341,7 +341,7 @@ var gardenPrune_sweepDerivations = func(ctx *task.ExecutionContext, req gardenPr
 			return nil, true
 		}
 
-		resultFingerprintBytes, err := stdos.ReadFile(node.Path)
+		resultFingerprintBytes, err := os.ReadFile(node.Path)
 		if err != nil {
 			if errors.Is(err, stdos.ErrNotExist) {
 				return nil, false
