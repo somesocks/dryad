@@ -199,7 +199,7 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 			outputPath = filepath.Join(request.LogStdout.Path, logFile)
 		}
 
-		file, err := stdos.OpenFile(outputPath, stdos.O_CREATE|stdos.O_WRONLY|stdos.O_TRUNC, 0644)
+		file, err := os.OpenFile(outputPath, stdos.O_CREATE|stdos.O_WRONLY|stdos.O_TRUNC, 0644)
 		if err != nil {
 			return nil, err
 		}
@@ -225,7 +225,7 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 			outputPath = filepath.Join(request.LogStderr.Path, logFile)
 		}
 
-		file, err := stdos.OpenFile(outputPath, stdos.O_CREATE|stdos.O_WRONLY|stdos.O_TRUNC, 0644)
+		file, err := os.OpenFile(outputPath, stdos.O_CREATE|stdos.O_WRONLY|stdos.O_TRUNC, 0644)
 		if err != nil {
 			return nil, err
 		}
