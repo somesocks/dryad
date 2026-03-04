@@ -139,3 +139,26 @@ func TestSetupFromConfig_DelayRejectsPhase(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestSetupFromConfig_GeneratesRuleIDWhenMissing(t *testing.T) {
+	err := SetupFromConfig(Config{
+		Version: 1,
+		Rules: []RuleConfig{
+			{
+				Op:   "os.link",
+				Key:  "*",
+				When: WhenConfig{Mode: "every_n", Count: 0},
+				Action: ActionConfig{
+					Type:  "error",
+					Error: "EMLINK",
+				},
+			},
+		},
+	})
+	if err == nil {
+		t.Fatal("expected compile error for invalid when.count")
+	}
+	if !strings.Contains(err.Error(), `diagnostics rule "rule-1":`) {
+		t.Fatalf("expected generated rule id in error, got: %v", err)
+	}
+}

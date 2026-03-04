@@ -16,7 +16,7 @@ type Config struct {
 }
 
 type RuleConfig struct {
-	ID      string       `json:"id" yaml:"id"`
+	ID      string       `json:"id,omitempty" yaml:"id,omitempty"`
 	Enabled *bool        `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 	Op      string       `json:"op" yaml:"op"`
 	Key     string       `json:"key" yaml:"key"`
@@ -39,7 +39,7 @@ type ActionConfig struct {
 }
 
 type MetricsRuleConfig struct {
-	ID      string               `json:"id" yaml:"id"`
+	ID      string               `json:"id,omitempty" yaml:"id,omitempty"`
 	Enabled *bool                `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 	Op      string               `json:"op" yaml:"op"`
 	Output  string               `json:"output,omitempty" yaml:"output,omitempty"` // stdout | stderr | ""

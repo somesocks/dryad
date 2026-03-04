@@ -262,6 +262,31 @@ func TestSetupFromConfig_MetricsCaptureRejectsAllDisabled(t *testing.T) {
 	}
 }
 
+func TestSetupFromConfig_GeneratesMetricsRuleIDWhenMissing(t *testing.T) {
+	Reset()
+	t.Cleanup(Reset)
+
+	err := SetupFromConfig(Config{
+		Version: 1,
+		Metrics: []MetricsRuleConfig{
+			{
+				Op: "metrics.generated_id",
+				Capture: MetricsCaptureConfig{
+					Calls:  boolRef(false),
+					Errors: boolRef(false),
+					Timing: boolRef(false),
+				},
+			},
+		},
+	})
+	if err == nil {
+		t.Fatalf("expected setup to fail when all metrics capture flags are disabled")
+	}
+	if !strings.Contains(err.Error(), `diagnostics metrics rule "metrics-1":`) {
+		t.Fatalf("expected generated metrics rule id in error, got: %v", err)
+	}
+}
+
 func TestSetupFromConfig_MetricsSamplePercentRejectsOutOfRange(t *testing.T) {
 	Reset()
 	t.Cleanup(Reset)

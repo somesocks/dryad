@@ -126,12 +126,12 @@ func compileConfig(cfg Config) (*engine, error) {
 		rulesByPoint[op] = append(rulesByPoint[op], compiled)
 	}
 
-	for _, rule := range cfg.Metrics {
+	for idx, rule := range cfg.Metrics {
 		if rule.Enabled != nil && !*rule.Enabled {
 			continue
 		}
 
-		compiled, op, err := compileMetricsRule(rule)
+		compiled, op, err := compileMetricsRule(idx, rule)
 		if err != nil {
 			return nil, err
 		}
@@ -150,58 +150,62 @@ func compileConfig(cfg Config) (*engine, error) {
 }
 
 func compileRule(seed int64, index int, rule RuleConfig) (*compiledRule, string, error) {
+	ruleID := fallbackRuleID("rule", index, rule.ID)
+
 	op := strings.TrimSpace(rule.Op)
 	if op == "" {
-		return nil, "", fmt.Errorf("diagnostics rule missing op")
+		return nil, "", fmt.Errorf("diagnostics rule %q: missing op", ruleID)
 	}
 
 	matcher, err := compileKeyMatcher(rule.Key)
 	if err != nil {
-		return nil, "", fmt.Errorf("diagnostics rule %q: %w", rule.ID, err)
+		return nil, "", fmt.Errorf("diagnostics rule %q: %w", ruleID, err)
 	}
 
 	compiled := &compiledRule{
-		id:      rule.ID,
+		id:      ruleID,
 		op:      op,
 		matcher: matcher,
 		maxHits: rule.MaxHits,
 		seed:    mix64(uint64(seed) ^ uint64(index+1)),
 	}
 
-	if err := compileWhen(compiled, rule.When, rule.ID); err != nil {
+	if err := compileWhen(compiled, rule.When, ruleID); err != nil {
 		return nil, "", err
 	}
-	if err := compileAction(compiled, rule.Action, rule.ID); err != nil {
+	if err := compileAction(compiled, rule.Action, ruleID); err != nil {
 		return nil, "", err
 	}
 
 	return compiled, op, nil
 }
 
-func compileMetricsRule(rule MetricsRuleConfig) (*compiledMetricsRule, string, error) {
+func compileMetricsRule(index int, rule MetricsRuleConfig) (*compiledMetricsRule, string, error) {
+	ruleID := fallbackRuleID("metrics", index, rule.ID)
+
 	op := strings.TrimSpace(rule.Op)
 	if op == "" {
-		return nil, "", fmt.Errorf("diagnostics metrics rule missing op")
+		return nil, "", fmt.Errorf("diagnostics metrics rule %q: missing op", ruleID)
 	}
 
 	output, err := parseMetricsOutput(rule.Output)
 	if err != nil {
-		return nil, "", fmt.Errorf("diagnostics metrics rule %q: %w", rule.ID, err)
+		return nil, "", fmt.Errorf("diagnostics metrics rule %q: %w", ruleID, err)
 	}
 
 	captureCalls := boolOrDefault(rule.Capture.Calls, true)
 	captureErrors := boolOrDefault(rule.Capture.Errors, true)
 	captureTiming := boolOrDefault(rule.Capture.Timing, true)
 	if !captureCalls && !captureErrors && !captureTiming {
-		return nil, "", fmt.Errorf("diagnostics metrics rule %q: capture must enable at least one of calls, errors, timing", rule.ID)
+		return nil, "", fmt.Errorf("diagnostics metrics rule %q: capture must enable at least one of calls, errors, timing", ruleID)
 	}
 	sampleEvery, err := compileMetricsSampleEvery(rule.Capture.SamplePercent)
 	if err != nil {
-		return nil, "", fmt.Errorf("diagnostics metrics rule %q: %w", rule.ID, err)
+		return nil, "", fmt.Errorf("diagnostics metrics rule %q: %w", ruleID, err)
 	}
 
 	return &compiledMetricsRule{
-		id:            rule.ID,
+		id:            ruleID,
 		op:            op,
 		output:        output,
 		captureCalls:  captureCalls,
@@ -210,6 +214,14 @@ func compileMetricsRule(rule MetricsRuleConfig) (*compiledMetricsRule, string, e
 		sampleEvery:   sampleEvery,
 		sampleMask:    sampleEvery - 1,
 	}, op, nil
+}
+
+func fallbackRuleID(prefix string, index int, configured string) string {
+	id := strings.TrimSpace(configured)
+	if id != "" {
+		return id
+	}
+	return fmt.Sprintf("%s-%d", prefix, index+1)
 }
 
 func compileMetricsSampleEvery(samplePercent *float64) (uint64, error) {
