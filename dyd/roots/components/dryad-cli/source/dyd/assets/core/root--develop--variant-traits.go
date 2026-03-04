@@ -128,7 +128,7 @@ func rootDevelop_materializeVariantTraits(
 		return err
 	}
 	if workspaceVariantsExists {
-		err = stdos.RemoveAll(workspaceVariantsPath)
+		err = os.RemoveAll(workspaceVariantsPath)
 		if err != nil {
 			return err
 		}

@@ -58,7 +58,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 		return err, nil
 	}
 	// Best effort cleanup. Crash/power-loss can still leave tmp dirs behind.
-	defer stdos.RemoveAll(tempSproutPath)
+	defer os.RemoveAll(tempSproutPath)
 
 	// walk the packed sprout files and copy them into the garden heap
 	err, _ = StemWalk(

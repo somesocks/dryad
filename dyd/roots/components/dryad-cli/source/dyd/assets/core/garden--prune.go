@@ -366,7 +366,7 @@ var gardenPrune_sweepDerivations = func(ctx *task.ExecutionContext, req gardenPr
 
 	sweepDerivation := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
 		sweepDerivationStatsCount += 1
-		return stdos.RemoveAll(node.Path), nil
+		return os.RemoveAll(node.Path), nil
 	}
 
 	sweepDerivation = dydfs.ConditionalWalkAction(sweepDerivation, sweepDerivationsShouldMatch)

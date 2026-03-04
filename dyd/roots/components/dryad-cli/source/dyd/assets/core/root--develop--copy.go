@@ -28,7 +28,7 @@ func rootDevelop_removeExistingPath(path string) error {
 		return err
 	}
 	if info.IsDir() && info.Mode()&stdos.ModeSymlink != stdos.ModeSymlink {
-		return stdos.RemoveAll(path)
+		return os.RemoveAll(path)
 	}
 	return os.Remove(path)
 }

@@ -69,7 +69,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 		return err, nil
 	}
 	// Best effort cleanup. Crash/power-loss can still leave tmp dirs behind.
-	defer stdos.RemoveAll(tempStemPath)
+	defer os.RemoveAll(tempStemPath)
 
 	// walk the packed root files and copy them into the garden heap
 	err, _ = StemWalk(
