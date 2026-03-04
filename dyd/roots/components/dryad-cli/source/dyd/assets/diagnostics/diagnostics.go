@@ -58,7 +58,7 @@ func Apply(point string, key string) error {
 	if current != nil {
 		metric = current.Metric(point)
 	}
-	start := beginMetricsObservation(metric)
+	start, sampled := beginMetricsObservation(metric)
 
 	if current == nil {
 		result = nil
@@ -71,7 +71,7 @@ func Apply(point string, key string) error {
 		}
 	}
 
-	endMetricsObservation(metric, point, start, result)
+	endMetricsObservation(metric, point, sampled, start, result)
 	return result
 }
 

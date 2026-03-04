@@ -81,6 +81,9 @@ type compiledMetricsRule struct {
 	captureCalls  bool
 	captureErrors bool
 	captureTiming bool
+	sampleEvery   uint64
+	sampleMask    uint64
+	sampleCounter atomic.Uint64
 	stats         atomic.Pointer[pointStats]
 }
 
@@ -192,6 +195,10 @@ func compileMetricsRule(rule MetricsRuleConfig) (*compiledMetricsRule, string, e
 	if !captureCalls && !captureErrors && !captureTiming {
 		return nil, "", fmt.Errorf("diagnostics metrics rule %q: capture must enable at least one of calls, errors, timing", rule.ID)
 	}
+	sampleEvery, err := compileMetricsSampleEvery(rule.Capture.SamplePercent)
+	if err != nil {
+		return nil, "", fmt.Errorf("diagnostics metrics rule %q: %w", rule.ID, err)
+	}
 
 	return &compiledMetricsRule{
 		id:            rule.ID,
@@ -200,7 +207,55 @@ func compileMetricsRule(rule MetricsRuleConfig) (*compiledMetricsRule, string, e
 		captureCalls:  captureCalls,
 		captureErrors: captureErrors,
 		captureTiming: captureTiming,
+		sampleEvery:   sampleEvery,
+		sampleMask:    sampleEvery - 1,
 	}, op, nil
+}
+
+func compileMetricsSampleEvery(samplePercent *float64) (uint64, error) {
+	if samplePercent == nil {
+		return 1, nil
+	}
+
+	p := *samplePercent
+	if math.IsNaN(p) || math.IsInf(p, 0) || p <= 0 || p > 100 {
+		return 0, fmt.Errorf("capture.sample_percent must be in (0,100]")
+	}
+
+	targetEvery := 100.0 / p
+	if targetEvery <= 1.0 {
+		return 1, nil
+	}
+
+	lower := uint64(1)
+	for float64(lower) < targetEvery && lower < (uint64(1)<<63) {
+		lower <<= 1
+	}
+
+	if float64(lower) == targetEvery {
+		return lower, nil
+	}
+
+	if float64(lower) < targetEvery || lower == 1 {
+		return lower, nil
+	}
+
+	upper := lower
+	lower >>= 1
+
+	rateLower := 100.0 / float64(lower)
+	rateUpper := 100.0 / float64(upper)
+	distLower := math.Abs(rateLower - p)
+	distUpper := math.Abs(rateUpper - p)
+
+	if distUpper < distLower {
+		return upper, nil
+	}
+	if distUpper == distLower {
+		// Prefer lower capture rate when equally close.
+		return upper, nil
+	}
+	return lower, nil
 }
 
 func boolOrDefault(value *bool, defaultValue bool) bool {

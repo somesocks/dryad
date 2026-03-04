@@ -14,6 +14,10 @@ func boolRef(v bool) *bool {
 	return &v
 }
 
+func floatRef(v float64) *float64 {
+	return &v
+}
+
 func TestMetricsSnapshot_BinderCountsAndErrors(t *testing.T) {
 	Reset()
 	t.Cleanup(Reset)
@@ -252,6 +256,110 @@ func TestSetupFromConfig_MetricsCaptureRejectsAllDisabled(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatalf("expected setup to fail when all metrics capture flags are disabled")
+	}
+}
+
+func TestSetupFromConfig_MetricsSamplePercentRejectsOutOfRange(t *testing.T) {
+	Reset()
+	t.Cleanup(Reset)
+
+	err := SetupFromConfig(Config{
+		Version: 1,
+		Metrics: []MetricsRuleConfig{
+			{
+				ID: "m-bad-sample",
+				Op: "metrics.bad_sample",
+				Capture: MetricsCaptureConfig{
+					SamplePercent: floatRef(0),
+				},
+			},
+		},
+	})
+	if err == nil {
+		t.Fatalf("expected setup to fail for invalid sample percent")
+	}
+}
+
+func TestMetricsSnapshot_SamplePercentAffectsAllMetrics(t *testing.T) {
+	Reset()
+	t.Cleanup(Reset)
+
+	if err := SetupFromConfig(Config{
+		Version: 1,
+		Metrics: []MetricsRuleConfig{
+			{
+				ID: "m-sample-all",
+				Op: "metrics.sample_all",
+				Capture: MetricsCaptureConfig{
+					SamplePercent: floatRef(50),
+				},
+			},
+		},
+	}); err != nil {
+		t.Fatalf("setup diagnostics: %v", err)
+	}
+
+	bound := BindA0R0(
+		"metrics.sample_all",
+		func() error {
+			time.Sleep(200 * time.Microsecond)
+			return syscall.EIO
+		},
+	)
+
+	for i := 0; i < 4; i++ {
+		if err := bound(); err != syscall.EIO {
+			t.Fatalf("expected base EIO, got %v", err)
+		}
+	}
+
+	stats := MetricsSnapshot()["metrics.sample_all"]
+	if stats.Calls != 2 {
+		t.Fatalf("expected sampled calls=2, got %d", stats.Calls)
+	}
+	if stats.Errors != 2 {
+		t.Fatalf("expected sampled errors=2, got %d", stats.Errors)
+	}
+	if stats.TotalNanos == 0 || stats.AvgNanos == 0 {
+		t.Fatalf("expected sampled timing metrics to be non-zero, got %+v", stats)
+	}
+}
+
+func TestMetricsSnapshot_SamplePercentRoundsToPowerOfTwoRate(t *testing.T) {
+	Reset()
+	t.Cleanup(Reset)
+
+	if err := SetupFromConfig(Config{
+		Version: 1,
+		Metrics: []MetricsRuleConfig{
+			{
+				ID: "m-sample-round",
+				Op: "metrics.sample_round",
+				Capture: MetricsCaptureConfig{
+					SamplePercent: floatRef(30),
+					Timing:        boolRef(false),
+				},
+			},
+		},
+	}); err != nil {
+		t.Fatalf("setup diagnostics: %v", err)
+	}
+
+	bound := BindA0R0(
+		"metrics.sample_round",
+		func() error { return nil },
+	)
+
+	for i := 0; i < 8; i++ {
+		if err := bound(); err != nil {
+			t.Fatalf("expected nil, got %v", err)
+		}
+	}
+
+	stats := MetricsSnapshot()["metrics.sample_round"]
+	// 30% rounds to nearest power-of-two capture rate: 25% (1-in-4).
+	if stats.Calls != 2 {
+		t.Fatalf("expected sampled calls=2 for 8 invocations at rounded 25%% rate, got %d", stats.Calls)
 	}
 }
 

@@ -254,3 +254,31 @@ func BenchmarkBindA2R0_EnabledMetricsTimingOnly(b *testing.B) {
 		benchSinkErr = bound("a", "b")
 	}
 }
+
+func BenchmarkBindA2R0_EnabledMetricsNoTimingSample50(b *testing.B) {
+	Reset()
+	disabled := false
+	samplePercent := 50.0
+	if err := SetupFromConfig(Config{
+		Version: 1,
+		Metrics: []MetricsRuleConfig{
+			{
+				ID: "m",
+				Op: "os.link",
+				Capture: MetricsCaptureConfig{
+					Timing:        &disabled,
+					SamplePercent: &samplePercent,
+				},
+			},
+		},
+	}); err != nil {
+		b.Fatal(err)
+	}
+	b.Cleanup(Reset)
+
+	bound := BindA2R0("os.link", func(a0 string, a1 string) string { return a0 }, benchBaseA2R0)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		benchSinkErr = bound("a", "b")
+	}
+}

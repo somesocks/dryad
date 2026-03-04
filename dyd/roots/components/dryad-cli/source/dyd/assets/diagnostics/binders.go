@@ -435,11 +435,11 @@ func BindA0R0(
 		}
 
 		metric := cachedMetric.Load()
-		start := beginMetricsObservation(metric)
+		start, sampled := beginMetricsObservation(metric)
 
 		next := cachedNext.Load().(NextA0R0)
 		err = next(CallA0R0{})
-		endMetricsObservation(metric, point, start, err)
+		endMetricsObservation(metric, point, sampled, start, err)
 		return err
 	}
 }
@@ -480,14 +480,14 @@ func BindA1R0[A0 any](
 		}
 
 		metric := cachedMetric.Load()
-		start := beginMetricsObservation(metric)
+		start, sampled := beginMetricsObservation(metric)
 
 		next := cachedNext.Load().(NextA1R0[A0])
 		err = next(CallA1R0[A0]{
 			Key: key,
 			A0:  a0,
 		})
-		endMetricsObservation(metric, point, start, err)
+		endMetricsObservation(metric, point, sampled, start, err)
 		return err
 	}
 }
@@ -528,7 +528,7 @@ func BindA2R0[A0, A1 any](
 		}
 
 		metric := cachedMetric.Load()
-		start := beginMetricsObservation(metric)
+		start, sampled := beginMetricsObservation(metric)
 
 		next := cachedNext.Load().(NextA2R0[A0, A1])
 		err = next(CallA2R0[A0, A1]{
@@ -536,7 +536,7 @@ func BindA2R0[A0, A1 any](
 			A0:  a0,
 			A1:  a1,
 		})
-		endMetricsObservation(metric, point, start, err)
+		endMetricsObservation(metric, point, sampled, start, err)
 		return err
 	}
 }
@@ -577,7 +577,7 @@ func BindA3R0[A0, A1, A2 any](
 		}
 
 		metric := cachedMetric.Load()
-		start := beginMetricsObservation(metric)
+		start, sampled := beginMetricsObservation(metric)
 
 		next := cachedNext.Load().(NextA3R0[A0, A1, A2])
 		err = next(CallA3R0[A0, A1, A2]{
@@ -586,7 +586,7 @@ func BindA3R0[A0, A1, A2 any](
 			A1:  a1,
 			A2:  a2,
 		})
-		endMetricsObservation(metric, point, start, err)
+		endMetricsObservation(metric, point, sampled, start, err)
 		return err
 	}
 }
@@ -622,11 +622,11 @@ func BindA0R1[R0 any](
 		}
 
 		metric := cachedMetric.Load()
-		start := beginMetricsObservation(metric)
+		start, sampled := beginMetricsObservation(metric)
 
 		next := cachedNext.Load().(NextA0R1[R0])
 		err, out = next(CallA0R1{})
-		endMetricsObservation(metric, point, start, err)
+		endMetricsObservation(metric, point, sampled, start, err)
 		return err, out
 	}
 }
@@ -668,14 +668,14 @@ func BindA1R1[A0, R0 any](
 		}
 
 		metric := cachedMetric.Load()
-		start := beginMetricsObservation(metric)
+		start, sampled := beginMetricsObservation(metric)
 
 		next := cachedNext.Load().(NextA1R1[A0, R0])
 		err, out = next(CallA1R1[A0]{
 			Key: key,
 			A0:  a0,
 		})
-		endMetricsObservation(metric, point, start, err)
+		endMetricsObservation(metric, point, sampled, start, err)
 		return err, out
 	}
 }
@@ -717,7 +717,7 @@ func BindA2R1[A0, A1, R0 any](
 		}
 
 		metric := cachedMetric.Load()
-		start := beginMetricsObservation(metric)
+		start, sampled := beginMetricsObservation(metric)
 
 		next := cachedNext.Load().(NextA2R1[A0, A1, R0])
 		err, out = next(CallA2R1[A0, A1]{
@@ -725,7 +725,7 @@ func BindA2R1[A0, A1, R0 any](
 			A0:  a0,
 			A1:  a1,
 		})
-		endMetricsObservation(metric, point, start, err)
+		endMetricsObservation(metric, point, sampled, start, err)
 		return err, out
 	}
 }
@@ -767,7 +767,7 @@ func BindA3R1[A0, A1, A2, R0 any](
 		}
 
 		metric := cachedMetric.Load()
-		start := beginMetricsObservation(metric)
+		start, sampled := beginMetricsObservation(metric)
 
 		next := cachedNext.Load().(NextA3R1[A0, A1, A2, R0])
 		err, out = next(CallA3R1[A0, A1, A2]{
@@ -776,7 +776,7 @@ func BindA3R1[A0, A1, A2, R0 any](
 			A1:  a1,
 			A2:  a2,
 		})
-		endMetricsObservation(metric, point, start, err)
+		endMetricsObservation(metric, point, sampled, start, err)
 		return err, out
 	}
 }
