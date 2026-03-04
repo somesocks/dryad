@@ -194,13 +194,14 @@ func metricsRuleShouldSample(rule *compiledMetricsRule) bool {
 }
 
 type metricsPointOutput struct {
-	Point      string `json:"point"`
-	Calls      uint64 `json:"calls"`
-	Errors     uint64 `json:"errors"`
-	TotalNanos uint64 `json:"total_nanos"`
-	MinNanos   uint64 `json:"min_nanos"`
-	MaxNanos   uint64 `json:"max_nanos"`
-	AvgNanos   uint64 `json:"avg_nanos"`
+	Point       string `json:"point"`
+	Calls       uint64 `json:"calls"`
+	Errors      uint64 `json:"errors"`
+	TotalNanos  uint64 `json:"total_nanos"`
+	MinNanos    uint64 `json:"min_nanos"`
+	MaxNanos    uint64 `json:"max_nanos"`
+	AvgNanos    uint64 `json:"avg_nanos"`
+	SampleEvery uint64 `json:"sample_every"`
 }
 
 func EmitMetricsOnExit() error {
@@ -228,15 +229,17 @@ func EmitMetricsOnExit() error {
 		if !ok {
 			continue
 		}
+		rule := current.metrics[point]
 
 		payload := metricsPointOutput{
-			Point:      point,
-			Calls:      stats.Calls,
-			Errors:     stats.Errors,
-			TotalNanos: stats.TotalNanos,
-			MinNanos:   stats.MinNanos,
-			MaxNanos:   stats.MaxNanos,
-			AvgNanos:   stats.AvgNanos,
+			Point:       point,
+			Calls:       stats.Calls,
+			Errors:      stats.Errors,
+			TotalNanos:  stats.TotalNanos,
+			MinNanos:    stats.MinNanos,
+			MaxNanos:    stats.MaxNanos,
+			AvgNanos:    stats.AvgNanos,
+			SampleEvery: rule.sampleEvery,
 		}
 
 		line, err := json.Marshal(payload)
@@ -244,7 +247,7 @@ func EmitMetricsOnExit() error {
 			return err
 		}
 
-		switch current.metrics[point].output {
+		switch rule.output {
 		case metricsOutputStdout:
 			if _, err := fmt.Fprintln(os.Stdout, string(line)); err != nil {
 				return err

@@ -80,4 +80,7 @@ metrics:
 	if !strings.Contains(out, `"errors":1`) {
 		t.Fatalf("missing errors in output: %s", out)
 	}
+	if !strings.Contains(out, `"sample_every":1`) {
+		t.Fatalf("missing sample_every in output: %s", out)
+	}
 }

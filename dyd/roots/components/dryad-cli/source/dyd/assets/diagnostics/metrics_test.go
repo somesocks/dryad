@@ -234,6 +234,9 @@ func TestEmitMetricsOnExit_UsesConfiguredStream(t *testing.T) {
 	if !strings.Contains(string(data), `"point":"metrics.output"`) {
 		t.Fatalf("expected output to include metrics point, got: %s", string(data))
 	}
+	if !strings.Contains(string(data), `"sample_every":1`) {
+		t.Fatalf("expected output to include sample_every=1, got: %s", string(data))
+	}
 }
 
 func TestSetupFromConfig_MetricsCaptureRejectsAllDisabled(t *testing.T) {
@@ -360,6 +363,61 @@ func TestMetricsSnapshot_SamplePercentRoundsToPowerOfTwoRate(t *testing.T) {
 	// 30% rounds to nearest power-of-two capture rate: 25% (1-in-4).
 	if stats.Calls != 2 {
 		t.Fatalf("expected sampled calls=2 for 8 invocations at rounded 25%% rate, got %d", stats.Calls)
+	}
+}
+
+func TestEmitMetricsOnExit_IncludesSampleEvery(t *testing.T) {
+	Reset()
+	t.Cleanup(Reset)
+
+	if err := SetupFromConfig(Config{
+		Version: 1,
+		Metrics: []MetricsRuleConfig{
+			{
+				ID: "m-sample-every",
+				Op: "metrics.sample_every",
+				Capture: MetricsCaptureConfig{
+					SamplePercent: floatRef(50),
+					Timing:        boolRef(false),
+				},
+			},
+		},
+	}); err != nil {
+		t.Fatalf("setup diagnostics: %v", err)
+	}
+
+	bound := BindA0R0(
+		"metrics.sample_every",
+		func() error { return nil },
+	)
+	if err := bound(); err != nil {
+		t.Fatalf("expected nil, got %v", err)
+	}
+
+	oldStderr := os.Stderr
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+	os.Stderr = w
+	defer func() {
+		os.Stderr = oldStderr
+		_ = r.Close()
+	}()
+
+	if err := EmitMetricsOnExit(); err != nil {
+		t.Fatalf("emit metrics: %v", err)
+	}
+	_ = w.Close()
+
+	data, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("read stderr capture: %v", err)
+	}
+
+	out := string(data)
+	if !strings.Contains(out, `"sample_every":2`) {
+		t.Fatalf("expected sample_every=2 in output, got: %s", out)
 	}
 }
 
