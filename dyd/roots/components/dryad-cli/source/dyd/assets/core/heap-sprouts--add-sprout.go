@@ -89,7 +89,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 				}
 
 				if node.Info.IsDir() {
-					err = stdos.Mkdir(destPath, stdos.ModePerm)
+					err = os.Mkdir(destPath, stdos.ModePerm)
 					if err != nil {
 						return err, nil
 					}

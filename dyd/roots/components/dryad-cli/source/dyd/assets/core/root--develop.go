@@ -138,7 +138,7 @@ func rootDevelop_stage0(ctx *task.ExecutionContext, snapshotStemPath string, wor
 		}
 	}
 
-	err = stdos.Mkdir(filepath.Join(workspacePath, "dyd", "dependencies"), stdos.ModePerm)
+	err = os.Mkdir(filepath.Join(workspacePath, "dyd", "dependencies"), stdos.ModePerm)
 	if err != nil {
 		return err
 	}

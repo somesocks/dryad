@@ -105,7 +105,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 					// 	Str("path", node.Path).
 					// 	Msg("heapAddStem / onMatch isDir")
 
-					err = stdos.Mkdir(destPath, stdos.ModePerm)
+					err = os.Mkdir(destPath, stdos.ModePerm)
 					if err != nil {
 						return err, nil
 					}
