@@ -49,6 +49,66 @@ Running `dryad run build` will build a machine-native version of dryad, and all 
 
 Running `dryad run test` will run all test cases against the native dryad root.
 
+## Diagnostics Engine
+
+Dryad supports runtime diagnostics rules through the `DYD_DG` environment variable.
+
+`DYD_DG` supports:
+
+- `file:/absolute/path/to/diagnostics.yaml`
+- `json:{...}`
+
+### Fault Injection Example
+
+This example injects an `EMLINK` pre-error on every `os.link` call:
+
+```sh
+DYD_DG='json:{"version":1,"seed":1,"rules":[{"id":"inject-emlink","op":"os.link","key":"*","when":{"mode":"every_n","count":1},"action":{"type":"error","error":"EMLINK"}}]}' dryad root build dyd/roots/root-01
+```
+
+For post-error behavior, set `action.phase` to `"post"`:
+
+```json
+{
+  "type": "error",
+  "phase": "post",
+  "error": "EMLINK"
+}
+```
+
+### Metrics Example
+
+Diagnostics metrics can be configured per operation:
+
+```yaml
+version: 1
+seed: 1
+metrics:
+  - id: os-link-metrics
+    op: os.link
+    output: stderr
+    capture:
+      calls: true
+      errors: true
+      timing: true
+      sample_percent: 50
+```
+
+`sample_percent` is compiled to an internal power-of-two `1-in-N` sampler.
+The emitted metrics include `sample_every` so the effective capture rate is explicit.
+
+Example emitted line:
+
+```json
+{"point":"os.link","calls":21,"errors":0,"total_nanos":307521,"min_nanos":3814,"max_nanos":176874,"avg_nanos":14643,"sample_every":2}
+```
+
+Diagnostics-focused E2E roots for dryad CLI live under:
+
+- `dyd/roots/components/dryad-cli/tests/diagnostics-01--pre-error-fails-build`
+- `dyd/roots/components/dryad-cli/tests/diagnostics-02--metrics-sampling`
+- `dyd/roots/components/dryad-cli/tests/diagnostics-03--post-error-fails-build`
+
 ### The docs scope
 
 The docs scope is used for developing and updating this docs site.
