@@ -1,8 +1,8 @@
 package core
 
 import (
+	"dryad/internal/exec"
 	"dryad/internal/os"
-	"os/exec"
 	"runtime"
 
 	zerolog "github.com/rs/zerolog"

@@ -3,12 +3,12 @@ package core
 import (
 	"bufio"
 	dydfs "dryad/filesystem"
+	"dryad/internal/exec"
 	"dryad/internal/os"
 	"dryad/task"
 	"errors"
 	"fmt"
 	"io"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"

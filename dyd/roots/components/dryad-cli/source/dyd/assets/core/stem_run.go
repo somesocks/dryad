@@ -1,10 +1,10 @@
 package core
 
 import (
+	"dryad/internal/exec"
 	"dryad/internal/os"
 	"fmt"
 	"io"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
