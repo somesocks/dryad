@@ -3,7 +3,6 @@ package core
 import (
 	"dryad/internal/os"
 	"errors"
-	stdos "os"
 	"path/filepath"
 	"strings"
 
@@ -146,7 +145,7 @@ func SproutPack(
 		Fingerprints: map[string]string{},
 	}
 
-	err := os.MkdirAll(request.TargetPath, stdos.ModePerm)
+	err := os.MkdirAll(request.TargetPath, os.ModePerm)
 	if err != nil {
 		return "", err
 	}

@@ -4,8 +4,8 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	fs2 "dryad/filesystem"
+	"dryad/internal/os"
 	"dryad/task"
-	"os"
 	"path/filepath"
 
 	"fmt"

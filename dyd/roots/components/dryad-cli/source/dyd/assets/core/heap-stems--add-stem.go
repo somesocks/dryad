@@ -7,7 +7,6 @@ import (
 
 	"errors"
 	"io/ioutil"
-	stdos "os"
 	"path/filepath"
 	"strings"
 
@@ -105,11 +104,11 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 					// 	Str("path", node.Path).
 					// 	Msg("heapAddStem / onMatch isDir")
 
-					err = os.Mkdir(destPath, stdos.ModePerm)
+					err = os.Mkdir(destPath, os.ModePerm)
 					if err != nil {
 						return err, nil
 					}
-				} else if node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
+				} else if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
 					// zlog.
 					// 	Trace().
 					// 	Str("path", node.Path).
@@ -280,7 +279,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 			}
 
 			return nil, &stemRef
-		} else if !errors.Is(statErr, stdos.ErrNotExist) {
+		} else if !errors.Is(statErr, os.ErrNotExist) {
 			return statErr, nil
 		}
 

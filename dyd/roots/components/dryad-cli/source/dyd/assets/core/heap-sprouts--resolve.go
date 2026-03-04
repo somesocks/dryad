@@ -4,7 +4,7 @@ import (
 	fs2 "dryad/filesystem"
 	"dryad/task"
 
-	"os"
+	"dryad/internal/os"
 	// zlog "github.com/rs/zerolog/log"
 )
 

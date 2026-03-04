@@ -1,7 +1,7 @@
 package core
 
 import (
-	"os"
+	"dryad/internal/os"
 	"os/exec"
 	"runtime"
 
@@ -9,11 +9,11 @@ import (
 )
 
 type ScriptRunRequest struct {
-	Garden *SafeGardenReference
-	Scope      string
-	Setting    string
-	Env        map[string]string
-	Args       []string
+	Garden  *SafeGardenReference
+	Scope   string
+	Setting string
+	Env     map[string]string
+	Args    []string
 }
 
 func ScriptRun(request ScriptRunRequest) error {

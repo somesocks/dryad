@@ -6,7 +6,6 @@ import (
 	"dryad/task"
 	"fmt"
 	"io/fs"
-	stdos "os"
 	"path/filepath"
 	"regexp"
 )
@@ -65,7 +64,7 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 			return relErr, false
 		}
 
-		if node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
+		if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
 			return nil, false
 		}
 
@@ -160,7 +159,7 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 		}
 		defer srcFile.Close()
 
-		var destFile *stdos.File
+		var destFile *os.File
 		destFile, err = os.Create(destPath)
 		if err != nil {
 			return err
@@ -207,7 +206,7 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 			if node.Info.IsDir() {
 				err = copyDir(ctx, targetDestPath, node.Info.Mode())
 				return err, nil
-			} else if node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
+			} else if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
 				err = copySymlink(
 					ctx,
 					node.BasePath,

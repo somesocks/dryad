@@ -3,8 +3,8 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/internal/os"
 	"dryad/task"
-	"os"
 	"path/filepath"
 	"regexp"
 

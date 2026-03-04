@@ -4,7 +4,6 @@ import (
 	"dryad/internal/os"
 	"dryad/task"
 	"net/url"
-	stdos "os"
 	"path/filepath"
 	"strings"
 	// zlog "github.com/rs/zerolog/log"
@@ -46,7 +45,7 @@ func (requirements *SafeRootRequirementsReference) Add(
 	var requirementPath = filepath.Join(requirements.BasePath, alias)
 
 	// make sure the roots path exists before trying to link
-	err = os.MkdirAll(requirements.BasePath, stdos.ModePerm)
+	err = os.MkdirAll(requirements.BasePath, os.ModePerm)
 	if err != nil {
 		return err, nil
 	}

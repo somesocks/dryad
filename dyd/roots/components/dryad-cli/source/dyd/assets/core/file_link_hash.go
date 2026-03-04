@@ -1,9 +1,9 @@
 package core
 
 import (
+	"dryad/internal/os"
 	"encoding/hex"
 	"io"
-	"os"
 
 	"golang.org/x/crypto/blake2b"
 )

@@ -8,7 +8,6 @@ import (
 	"errors"
 	"io"
 	"io/fs"
-	stdos "os"
 	"path/filepath"
 )
 
@@ -19,7 +18,7 @@ func sproutRequirementsCopyFile(sourcePath string, destPath string) error {
 	}
 	defer sourceFile.Close()
 
-	if err := os.MkdirAll(filepath.Dir(destPath), stdos.ModePerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(destPath), os.ModePerm); err != nil {
 		return err
 	}
 
@@ -54,10 +53,10 @@ func sproutRequirementsCopyTree(sourcePath string, destPath string, dependencyPa
 		}
 
 		if info.IsDir() {
-			return os.MkdirAll(destEntryPath, stdos.ModePerm)
+			return os.MkdirAll(destEntryPath, os.ModePerm)
 		}
 
-		if info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
+		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
 			linkTarget, err := os.Readlink(path)
 			if err != nil {
 				return err
@@ -76,7 +75,7 @@ func sproutRequirementsCopyTree(sourcePath string, destPath string, dependencyPa
 				return errors.New("sprout requirements prepare - dependency symlink escapes dependency root")
 			}
 
-			if err := os.MkdirAll(filepath.Dir(destEntryPath), stdos.ModePerm); err != nil {
+			if err := os.MkdirAll(filepath.Dir(destEntryPath), os.ModePerm); err != nil {
 				return err
 			}
 
@@ -99,14 +98,14 @@ func sproutRequirementsPrepare(sproutPath string) error {
 		return err
 	}
 
-	if err := os.MkdirAll(requirementsPath, stdos.ModePerm); err != nil {
+	if err := os.MkdirAll(requirementsPath, os.ModePerm); err != nil {
 		return err
 	}
 
 	dependenciesPath := filepath.Join(sproutPath, "dyd", "dependencies")
 	dependencyEntries, err := os.ReadDir(dependenciesPath)
 	if err != nil {
-		if stdos.IsNotExist(err) {
+		if os.IsNotExist(err) {
 			return nil
 		}
 		return err
@@ -127,7 +126,7 @@ func sproutRequirementsPrepare(sproutPath string) error {
 		}
 
 		requirementDependencyPath := filepath.Join(requirementsPath, dependencyName, "dyd")
-		if err := os.MkdirAll(requirementDependencyPath, stdos.ModePerm); err != nil {
+		if err := os.MkdirAll(requirementDependencyPath, os.ModePerm); err != nil {
 			return err
 		}
 

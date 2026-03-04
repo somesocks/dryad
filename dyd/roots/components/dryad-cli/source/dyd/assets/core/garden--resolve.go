@@ -3,8 +3,8 @@ package core
 import (
 	"dryad/task"
 
+	"dryad/internal/os"
 	"errors"
-	"os"
 	"path/filepath"
 	"strings"
 

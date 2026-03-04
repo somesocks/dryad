@@ -3,10 +3,10 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"

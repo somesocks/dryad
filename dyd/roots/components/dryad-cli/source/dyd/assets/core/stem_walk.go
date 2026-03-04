@@ -4,7 +4,7 @@ import (
 	dydfs "dryad/filesystem"
 	"dryad/task"
 
-	"os"
+	"dryad/internal/os"
 	"path/filepath"
 	"regexp"
 

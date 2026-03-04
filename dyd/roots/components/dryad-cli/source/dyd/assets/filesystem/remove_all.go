@@ -3,7 +3,6 @@ package fs2
 import (
 	// "io/fs"
 	"dryad/internal/os"
-	stdos "os"
 	// "path/filepath"
 
 	"dryad/task"
@@ -20,10 +19,10 @@ func RemoveAll(ctx *task.ExecutionContext, path string) (error, any) {
 	if err != nil {
 		zlog.Trace().
 			Err(err).
-			Bool("existsErr", stdos.IsNotExist(err)).
+			Bool("existsErr", os.IsNotExist(err)).
 			Msg("dryad/filesystem/RemoveAll path err")
 		// if the path does not exist, silently return
-		if stdos.IsNotExist(err) {
+		if os.IsNotExist(err) {
 			return nil, nil
 		} else {
 			return err, nil
@@ -31,7 +30,7 @@ func RemoveAll(ctx *task.ExecutionContext, path string) (error, any) {
 	}
 
 	shouldWalk := func(ctx *task.ExecutionContext, node Walk6Node) (error, bool) {
-		isSymlink := node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink
+		isSymlink := node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
 		shouldWalk := !isSymlink
 
 		zlog.Trace().
@@ -103,7 +102,7 @@ func RemoveAll(ctx *task.ExecutionContext, path string) (error, any) {
 	if err != nil {
 		zlog.Trace().
 			Err(err).
-			Bool("existsErr", stdos.IsNotExist(err)).
+			Bool("existsErr", os.IsNotExist(err)).
 			Msg("dryad/filesystem/RemoveAll/DFSWalk err")
 		return err, nil
 	}

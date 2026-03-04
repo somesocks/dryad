@@ -3,9 +3,9 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	core "dryad/core"
+	"dryad/internal/os"
 	task "dryad/task"
 	"fmt"
-	"os"
 
 	zlog "github.com/rs/zerolog/log"
 )

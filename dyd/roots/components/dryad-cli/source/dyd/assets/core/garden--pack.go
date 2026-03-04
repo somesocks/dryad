@@ -4,33 +4,33 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	dydfs "dryad/filesystem"
+	"dryad/internal/os"
 	"dryad/task"
 	"errors"
 	"io"
 	"io/fs"
-	"os"
 	"path/filepath"
-	"sync"
 	"strings"
+	"sync"
 
 	zlog "github.com/rs/zerolog/log"
 )
 
 type gardenPackRequest struct {
-	Garden *SafeGardenReference
-	TargetPath string
-	IncludeRoots bool
-	IncludeHeap bool
+	Garden          *SafeGardenReference
+	TargetPath      string
+	IncludeRoots    bool
+	IncludeHeap     bool
 	IncludeContexts bool
-	IncludeSprouts bool
-	IncludeShed bool
+	IncludeSprouts  bool
+	IncludeShed     bool
 }
 
 func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, string) {
 	var gardenPath = req.Garden.BasePath
 	var targetPath = req.TargetPath
 	var err error
-	
+
 	// convert relative target to absolute
 	if !filepath.IsAbs(targetPath) {
 		wd, err := os.Getwd()
@@ -169,18 +169,17 @@ func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, strin
 		var isBase = (relativePath == ".")
 		var isDyd = (relativePath == "dyd")
 		var isInRoots = (relativePath == "dyd/roots") ||
-			strings.HasPrefix(relativePath, "dyd/roots/") 
+			strings.HasPrefix(relativePath, "dyd/roots/")
 		var isInHeap = (relativePath == "dyd/heap") ||
 			strings.HasPrefix(relativePath, "dyd/heap/")
 		var isInContexts = (relativePath == "dyd/heap/contexts") ||
 			strings.HasPrefix(relativePath, "dyd/heap/contexts/")
 		var isInShed = (relativePath == "dyd/shed") ||
-			strings.HasPrefix(relativePath, "dyd/shed/") 
+			strings.HasPrefix(relativePath, "dyd/shed/")
 		var isInSprouts = (relativePath == "dyd/sprouts") ||
-			strings.HasPrefix(relativePath, "dyd/sprouts/") 
+			strings.HasPrefix(relativePath, "dyd/sprouts/")
 
-		var shouldCrawl = 
-			isBase ||
+		var shouldCrawl = isBase ||
 			isDyd ||
 			(isInRoots && req.IncludeRoots) ||
 			(isInHeap && req.IncludeHeap) ||
@@ -203,18 +202,17 @@ func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, strin
 		var isBase = (relativePath == ".")
 		var isDyd = (relativePath == "dyd")
 		var isInRoots = (relativePath == "dyd/roots") ||
-			strings.HasPrefix(relativePath, "dyd/roots/") 
+			strings.HasPrefix(relativePath, "dyd/roots/")
 		var isInHeap = (relativePath == "dyd/heap") ||
-			strings.HasPrefix(relativePath, "dyd/heap/") 
+			strings.HasPrefix(relativePath, "dyd/heap/")
 		var isInContexts = (relativePath == "dyd/heap/contexts") ||
 			strings.HasPrefix(relativePath, "dyd/heap/contexts/")
 		var isInShed = (relativePath == "dyd/shed") ||
-			strings.HasPrefix(relativePath, "dyd/shed/") 
+			strings.HasPrefix(relativePath, "dyd/shed/")
 		var isInSprouts = (relativePath == "dyd/sprouts") ||
-			strings.HasPrefix(relativePath, "dyd/sprouts/") 
+			strings.HasPrefix(relativePath, "dyd/sprouts/")
 
-		var shouldMatch = 
-			isBase ||
+		var shouldMatch = isBase ||
 			isDyd ||
 			(isInRoots && req.IncludeRoots) ||
 			(isInHeap && req.IncludeHeap) ||
@@ -225,13 +223,13 @@ func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, strin
 
 		return nil, shouldMatch
 	}
-	
+
 	err, _ = dydfs.Walk6(
 		ctx,
 		dydfs.Walk6Request{
-			BasePath: gardenPath,
-			Path: gardenPath,
-			VPath: gardenPath,
+			BasePath:   gardenPath,
+			Path:       gardenPath,
+			VPath:      gardenPath,
 			ShouldWalk: packDirShouldWalk,
 			OnPreMatch: dydfs.ConditionalWalkAction(packEntry, packDirShouldMatch),
 		},
@@ -239,8 +237,6 @@ func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, strin
 	if err != nil {
 		return err, ""
 	}
-
-
 
 	packFilesShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
 		var relativePath string
@@ -254,18 +250,17 @@ func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, strin
 		var isBase = (relativePath == ".")
 		var isDyd = (relativePath == "dyd")
 		var isInRoots = (relativePath == "dyd/roots") ||
-			strings.HasPrefix(relativePath, "dyd/roots/") 
+			strings.HasPrefix(relativePath, "dyd/roots/")
 		var isInHeap = (relativePath == "dyd/heap") ||
-			strings.HasPrefix(relativePath, "dyd/heap/") 
+			strings.HasPrefix(relativePath, "dyd/heap/")
 		var isInContexts = (relativePath == "dyd/heap/contexts") ||
 			strings.HasPrefix(relativePath, "dyd/heap/contexts/")
 		var isInShed = (relativePath == "dyd/shed") ||
-			strings.HasPrefix(relativePath, "dyd/shed/") 
+			strings.HasPrefix(relativePath, "dyd/shed/")
 		var isInSprouts = (relativePath == "dyd/sprouts") ||
-			strings.HasPrefix(relativePath, "dyd/sprouts/") 
+			strings.HasPrefix(relativePath, "dyd/sprouts/")
 
-		var shouldCrawl = 
-			isBase ||
+		var shouldCrawl = isBase ||
 			isDyd ||
 			(isInRoots && req.IncludeRoots) ||
 			(isInHeap && req.IncludeHeap) ||
@@ -289,18 +284,17 @@ func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, strin
 		var isDyd = (relativePath == "dyd")
 		var isTypeFile = (relativePath == "dyd/type")
 		var isInRoots = (relativePath == "dyd/roots") ||
-			strings.HasPrefix(relativePath, "dyd/roots/") 
+			strings.HasPrefix(relativePath, "dyd/roots/")
 		var isInHeap = (relativePath == "dyd/heap") ||
-			strings.HasPrefix(relativePath, "dyd/heap/") 
+			strings.HasPrefix(relativePath, "dyd/heap/")
 		var isInContexts = (relativePath == "dyd/heap/contexts") ||
 			strings.HasPrefix(relativePath, "dyd/heap/contexts/")
 		var isInShed = (relativePath == "dyd/shed") ||
-			strings.HasPrefix(relativePath, "dyd/shed/") 
+			strings.HasPrefix(relativePath, "dyd/shed/")
 		var isInSprouts = (relativePath == "dyd/sprouts") ||
-			strings.HasPrefix(relativePath, "dyd/sprouts/") 
+			strings.HasPrefix(relativePath, "dyd/sprouts/")
 
-		var shouldMatch = 
-			isBase ||
+		var shouldMatch = isBase ||
 			isDyd ||
 			isTypeFile ||
 			(isInRoots && req.IncludeRoots) ||
@@ -316,11 +310,11 @@ func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, strin
 	err, _ = dydfs.Walk6(
 		ctx,
 		dydfs.Walk6Request{
-			BasePath: gardenPath,
-			Path: gardenPath,
-			VPath: gardenPath,
-			ShouldWalk: packFilesShouldWalk,
-			OnPostMatch:     dydfs.ConditionalWalkAction(packEntry, packFilesShouldMatch),
+			BasePath:    gardenPath,
+			Path:        gardenPath,
+			VPath:       gardenPath,
+			ShouldWalk:  packFilesShouldWalk,
+			OnPostMatch: dydfs.ConditionalWalkAction(packEntry, packFilesShouldMatch),
 		},
 	)
 	if err != nil {
@@ -331,25 +325,25 @@ func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, strin
 }
 
 type GardenPackRequest struct {
-	TargetPath string
-	IncludeRoots bool
-	IncludeHeap bool
+	TargetPath      string
+	IncludeRoots    bool
+	IncludeHeap     bool
 	IncludeContexts bool
-	IncludeSprouts bool
-	IncludeShed bool
+	IncludeSprouts  bool
+	IncludeShed     bool
 }
 
 func (sg *SafeGardenReference) Pack(ctx *task.ExecutionContext, req GardenPackRequest) (error, string) {
 	err, res := gardenPack(
 		ctx,
 		gardenPackRequest{
-			Garden: sg,
-			TargetPath: req.TargetPath,
-			IncludeRoots: req.IncludeRoots,
-			IncludeHeap: req.IncludeHeap,
+			Garden:          sg,
+			TargetPath:      req.TargetPath,
+			IncludeRoots:    req.IncludeRoots,
+			IncludeHeap:     req.IncludeHeap,
 			IncludeContexts: req.IncludeContexts,
-			IncludeSprouts: req.IncludeSprouts,
-			IncludeShed: req.IncludeShed,
+			IncludeSprouts:  req.IncludeSprouts,
+			IncludeShed:     req.IncludeShed,
 		},
 	)
 

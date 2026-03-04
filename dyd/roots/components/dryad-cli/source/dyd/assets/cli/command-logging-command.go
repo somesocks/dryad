@@ -2,7 +2,7 @@ package cli
 
 import (
 	clib "dryad/cli-builder"
-	"os"
+	"dryad/internal/os"
 
 	zerolog "github.com/rs/zerolog"
 	log "github.com/rs/zerolog/log"

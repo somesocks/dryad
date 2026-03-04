@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	stdos "os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -194,7 +193,7 @@ func stemArchive(request StemPackRequest) (string, error) {
 		return request.TargetPath, nil
 	case "tar", "tar.gz":
 		var outputPath string
-		var outputWriter *stdos.File
+		var outputWriter *os.File
 		var tarWriter *tar.Writer
 		var packMap = make(map[string]string)
 
@@ -225,7 +224,7 @@ func stemArchive(request StemPackRequest) (string, error) {
 
 		var shouldWalk = func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
 			// don't crawl symlinks
-			if node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
+			if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
 				return nil, false
 			}
 			return nil, true
@@ -259,7 +258,7 @@ func stemArchive(request StemPackRequest) (string, error) {
 					return err, nil
 				}
 
-			} else if node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
+			} else if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
 				// if it's a symlink, read the link target
 				linkPath, err := os.Readlink(node.Path)
 				if err != nil {
@@ -387,7 +386,7 @@ func StemPack(
 		Fingerprints: map[string]string{},
 	}
 
-	err := os.MkdirAll(request.TargetPath, stdos.ModePerm)
+	err := os.MkdirAll(request.TargetPath, os.ModePerm)
 	if err != nil {
 		return "", err
 	}

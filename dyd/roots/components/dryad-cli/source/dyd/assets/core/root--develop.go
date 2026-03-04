@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	stdos "os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -31,7 +30,7 @@ func rootDevelop_stage0(ctx *task.ExecutionContext, snapshotStemPath string, wor
 
 	err = os.MkdirAll(
 		filepath.Join(workspacePath, "dyd"),
-		stdos.ModePerm,
+		os.ModePerm,
 	)
 	if err != nil {
 		return err
@@ -132,13 +131,13 @@ func rootDevelop_stage0(ctx *task.ExecutionContext, snapshotStemPath string, wor
 			return err
 		}
 	} else {
-		err = os.MkdirAll(filepath.Join(workspacePath, "dyd", "requirements"), stdos.ModePerm)
+		err = os.MkdirAll(filepath.Join(workspacePath, "dyd", "requirements"), os.ModePerm)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = os.Mkdir(filepath.Join(workspacePath, "dyd", "dependencies"), stdos.ModePerm)
+	err = os.Mkdir(filepath.Join(workspacePath, "dyd", "dependencies"), os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -286,7 +285,7 @@ func rootDevelop_createSnapshotStem(
 	}
 	defer dydfs.RemoveAll(task.SERIAL_CONTEXT, snapshotWorkspace)
 
-	err = os.MkdirAll(filepath.Join(snapshotWorkspace, "dyd"), stdos.ModePerm)
+	err = os.MkdirAll(filepath.Join(snapshotWorkspace, "dyd"), os.ModePerm)
 	if err != nil {
 		return "", err
 	}
@@ -386,13 +385,13 @@ func rootDevelop_createSnapshotStem(
 			return "", err
 		}
 	} else {
-		err = os.MkdirAll(filepath.Join(snapshotWorkspace, "dyd", "requirements"), stdos.ModePerm)
+		err = os.MkdirAll(filepath.Join(snapshotWorkspace, "dyd", "requirements"), os.ModePerm)
 		if err != nil {
 			return "", err
 		}
 	}
 
-	err = os.MkdirAll(filepath.Join(snapshotWorkspace, "dyd", "dependencies"), stdos.ModePerm)
+	err = os.MkdirAll(filepath.Join(snapshotWorkspace, "dyd", "dependencies"), os.ModePerm)
 	if err != nil {
 		return "", err
 	}
@@ -617,8 +616,8 @@ func (proc *rootDevelopShellProcess) requestStop() error {
 		return nil
 	}
 
-	err := cmd.Process.Signal(stdos.Interrupt)
-	if err != nil && !errors.Is(err, stdos.ErrProcessDone) {
+	err := cmd.Process.Signal(os.Interrupt)
+	if err != nil && !errors.Is(err, os.ErrProcessDone) {
 		return err
 	}
 
@@ -741,25 +740,25 @@ func rootDevelop_handleUnsavedChanges(
 		}
 		return nil
 	case "discard":
-		fmt.Fprintf(stdos.Stderr, "warning: discarded unsaved changes; snapshot %s\n", snapshotFingerprint)
+		fmt.Fprintf(os.Stderr, "warning: discarded unsaved changes; snapshot %s\n", snapshotFingerprint)
 		return nil
 	default:
 		return fmt.Errorf("invalid on-exit action: %s", onExit)
 	}
 
-	if !isatty.IsTerminal(stdos.Stdin.Fd()) {
-		fmt.Fprintf(stdos.Stderr, "warning: root develop exited with unsaved changes; snapshot %s\n", snapshotFingerprint)
+	if !isatty.IsTerminal(os.Stdin.Fd()) {
+		fmt.Fprintf(os.Stderr, "warning: root develop exited with unsaved changes; snapshot %s\n", snapshotFingerprint)
 		return nil
 	}
 
-	fmt.Fprintln(stdos.Stderr, "unsaved changes:")
+	fmt.Fprintln(os.Stderr, "unsaved changes:")
 	for _, entry := range entries {
-		fmt.Fprintln(stdos.Stderr, entry.Code+" "+entry.Path)
+		fmt.Fprintln(os.Stderr, entry.Code+" "+entry.Path)
 	}
 
-	reader := bufio.NewReader(stdos.Stdin)
+	reader := bufio.NewReader(os.Stdin)
 	for {
-		fmt.Fprint(stdos.Stderr, "save changes? [s=save, d=discard]: ")
+		fmt.Fprint(os.Stderr, "save changes? [s=save, d=discard]: ")
 		line, readErr := reader.ReadString('\n')
 		if readErr != nil && !errors.Is(readErr, io.EOF) && !errors.Is(readErr, syscall.EIO) {
 			return readErr
@@ -767,7 +766,7 @@ func rootDevelop_handleUnsavedChanges(
 
 		choice := strings.TrimSpace(strings.ToLower(line))
 		if readErr != nil && (errors.Is(readErr, io.EOF) || errors.Is(readErr, syscall.EIO)) && choice == "" {
-			fmt.Fprintf(stdos.Stderr, "warning: root develop exited with unsaved changes; snapshot %s\n", snapshotFingerprint)
+			fmt.Fprintf(os.Stderr, "warning: root develop exited with unsaved changes; snapshot %s\n", snapshotFingerprint)
 			return nil
 		}
 
@@ -778,15 +777,15 @@ func rootDevelop_handleUnsavedChanges(
 				return err
 			}
 			if len(conflicts) > 0 {
-				fmt.Fprintf(stdos.Stderr, "warning: save reported %d conflicts\n", len(conflicts))
+				fmt.Fprintf(os.Stderr, "warning: save reported %d conflicts\n", len(conflicts))
 				continue
 			}
 			return nil
 		case "d", "discard", "n", "no":
-			fmt.Fprintf(stdos.Stderr, "warning: discarded unsaved changes; snapshot %s\n", snapshotFingerprint)
+			fmt.Fprintf(os.Stderr, "warning: discarded unsaved changes; snapshot %s\n", snapshotFingerprint)
 			return nil
 		default:
-			fmt.Fprintln(stdos.Stderr, "enter 's' to save or 'd' to discard")
+			fmt.Fprintln(os.Stderr, "enter 's' to save or 'd' to discard")
 		}
 	}
 }

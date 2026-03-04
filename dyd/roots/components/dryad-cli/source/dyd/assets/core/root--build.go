@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"dryad/internal/os"
-	stdos "os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -166,7 +165,7 @@ func rootMaterializeSprout(ctx *task.ExecutionContext, req rootMaterializeSprout
 			currentPath = filepath.Join(currentPath, part)
 			currentInfo, currentErr := os.Lstat(currentPath)
 			if currentErr != nil {
-				if stdos.IsNotExist(currentErr) {
+				if os.IsNotExist(currentErr) {
 					continue
 				}
 				return currentErr, ""

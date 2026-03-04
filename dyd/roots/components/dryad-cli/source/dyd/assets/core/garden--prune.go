@@ -5,7 +5,6 @@ import (
 	"dryad/internal/os"
 	"errors"
 	"io/fs"
-	stdos "os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -55,7 +54,7 @@ var gardenPrune_mark = func(ctx *task.ExecutionContext, req gardenPruneRequest) 
 		var shouldCrawl bool = node.Info.ModTime().Before(req.Snapshot) ||
 			strings.HasPrefix(node.Path, sproutsPath)
 
-		var isSymlink bool = node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink
+		var isSymlink bool = node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
 		if isSymlink {
 			var err error
 			_, err = os.Stat(node.Path)
@@ -150,7 +149,7 @@ var gardenPrune_sweepStems = func(ctx *task.ExecutionContext, req gardenPruneReq
 			return relErr, false
 		}
 		matchesPath := REGEX_GARDEN_PRUNE_STEMS_CRAWL.Match([]byte(relPath))
-		isSymlink := node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink
+		isSymlink := node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
 		shouldCrawl := matchesPath && !isSymlink
 
 		zlog.Trace().
@@ -231,7 +230,7 @@ var gardenPrune_sweepSprouts = func(ctx *task.ExecutionContext, req gardenPruneR
 			return relErr, false
 		}
 		matchesPath := REGEX_GARDEN_PRUNE_SPROUTS_CRAWL.Match([]byte(relPath))
-		isSymlink := node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink
+		isSymlink := node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
 		shouldCrawl := matchesPath && !isSymlink
 
 		zlog.Trace().
@@ -343,7 +342,7 @@ var gardenPrune_sweepDerivations = func(ctx *task.ExecutionContext, req gardenPr
 
 		resultFingerprintBytes, err := os.ReadFile(node.Path)
 		if err != nil {
-			if errors.Is(err, stdos.ErrNotExist) {
+			if errors.Is(err, os.ErrNotExist) {
 				return nil, false
 			}
 			return nil, true
@@ -358,7 +357,7 @@ var gardenPrune_sweepDerivations = func(ctx *task.ExecutionContext, req gardenPr
 		if err == nil {
 			return nil, false
 		}
-		if errors.Is(err, stdos.ErrNotExist) {
+		if errors.Is(err, os.ErrNotExist) {
 			return nil, true
 		}
 		return err, false
@@ -404,7 +403,7 @@ var gardenPrune_sweepFiles = func(ctx *task.ExecutionContext, req gardenPruneReq
 			return relErr, false
 		}
 		matchesPath := REGEX_GARDEN_PRUNE_FILES_CRAWL.Match([]byte(relPath))
-		isSymlink := node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink
+		isSymlink := node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
 		shouldCrawl := matchesPath && !isSymlink
 		return nil, shouldCrawl
 	}

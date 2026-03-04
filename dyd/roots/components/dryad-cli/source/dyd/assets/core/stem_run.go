@@ -4,7 +4,6 @@ import (
 	"dryad/internal/os"
 	"fmt"
 	"io"
-	stdos "os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -21,7 +20,7 @@ func sanitizePathSegment(s string) string {
 }
 
 func resolveCommandOnPath(command string, pathValue string) (string, error) {
-	for _, dir := range strings.Split(pathValue, string(stdos.PathListSeparator)) {
+	for _, dir := range strings.Split(pathValue, string(os.PathListSeparator)) {
 		if dir == "" {
 			continue
 		}
@@ -78,7 +77,7 @@ func stemRun_prepContext(request StemRunRequest) (string, error) {
 	gardenPath = request.Garden.BasePath
 
 	contextPath := filepath.Join(gardenPath, "dyd", "heap", "contexts", context)
-	err = os.MkdirAll(contextPath, stdos.ModePerm)
+	err = os.MkdirAll(contextPath, os.ModePerm)
 	if err != nil {
 		return "", err
 	}
@@ -136,7 +135,7 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 	var command string
 	if request.MainOverride != "" {
 		override := request.MainOverride
-		if filepath.IsAbs(override) || strings.ContainsRune(override, stdos.PathSeparator) {
+		if filepath.IsAbs(override) || strings.ContainsRune(override, os.PathSeparator) {
 			command = override
 		} else {
 			resolved, err := resolveCommandOnPath(override, stemPathEnv)
@@ -172,18 +171,18 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 
 	if request.InheritEnv {
 		cmd.Env = append(
-			cmd.Env, stdos.Environ()...)
+			cmd.Env, os.Environ()...)
 	}
 
 	for key, val := range env {
 		cmd.Env = append(cmd.Env, key+"="+val)
 	}
 
-	cmd.Stdin = stdos.Stdin
+	cmd.Stdin = os.Stdin
 
 	// optionally pipe the exec logs to us
 	if request.JoinStdout {
-		cmd.Stdout = stdos.Stdout
+		cmd.Stdout = os.Stdout
 	} else if request.LogStdout.Path != "" {
 		var outputPath string
 
@@ -199,7 +198,7 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 			outputPath = filepath.Join(request.LogStdout.Path, logFile)
 		}
 
-		file, err := os.OpenFile(outputPath, stdos.O_CREATE|stdos.O_WRONLY|stdos.O_TRUNC, 0644)
+		file, err := os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
 			return nil, err
 		}
@@ -209,7 +208,7 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 
 	// optionally pipe the exec stderr to us
 	if request.JoinStderr {
-		cmd.Stderr = stdos.Stderr
+		cmd.Stderr = os.Stderr
 	} else if request.LogStderr.Path != "" {
 		var outputPath string
 
@@ -225,7 +224,7 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 			outputPath = filepath.Join(request.LogStderr.Path, logFile)
 		}
 
-		file, err := os.OpenFile(outputPath, stdos.O_CREATE|stdos.O_WRONLY|stdos.O_TRUNC, 0644)
+		file, err := os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
 			return nil, err
 		}

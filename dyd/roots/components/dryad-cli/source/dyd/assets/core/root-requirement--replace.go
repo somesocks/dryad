@@ -4,8 +4,8 @@ import (
 	fs2 "dryad/filesystem"
 	"dryad/task"
 
+	"dryad/internal/os"
 	"net/url"
-	"os"
 	"path/filepath"
 	"strings"
 	// "errors"

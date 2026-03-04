@@ -4,7 +4,6 @@ import (
 	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
-	stdos "os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -62,7 +61,7 @@ func rootBuild_materializeVariantTraits(
 		}
 	}
 
-	err = os.MkdirAll(traitsDestinationPath, stdos.ModePerm)
+	err = os.MkdirAll(traitsDestinationPath, os.ModePerm)
 	if err != nil {
 		return err
 	}

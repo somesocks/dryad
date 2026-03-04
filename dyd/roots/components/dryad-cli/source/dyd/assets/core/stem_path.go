@@ -1,8 +1,8 @@
 package core
 
 import (
+	"dryad/internal/os"
 	"errors"
-	"os"
 	"path/filepath"
 	"strings"
 )

@@ -5,7 +5,6 @@ import (
 	"dryad/task"
 
 	"dryad/internal/os"
-	stdos "os"
 	"path/filepath"
 	"regexp"
 
@@ -83,7 +82,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 		// 	Msg("rootBuild_requirementsPrepare.fs_on_match")
 
 		reqsParentPath := filepath.Dir(reqsPath)
-		err = os.MkdirAll(reqsParentPath, stdos.ModePerm)
+		err = os.MkdirAll(reqsParentPath, os.ModePerm)
 		if err != nil {
 			return err, nil
 		}
@@ -92,7 +91,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 		// 	Str("reqsParentPath", reqsParentPath).
 		// 	Msg("rootBuild_requirementsPrepare.fs_on_match")
 
-		var isSymlink = node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink
+		var isSymlink = node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
 		var isInternalLink = false
 		var linkTarget = ""
 
@@ -134,7 +133,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 			}
 			defer srcFile.Close()
 
-			var destFile *stdos.File
+			var destFile *os.File
 			destFile, err = os.Create(reqsPath)
 			if err != nil {
 				return err, nil

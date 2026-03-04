@@ -1,8 +1,8 @@
 package core
 
 import (
+	"dryad/internal/os"
 	"fmt"
-	"os"
 	"path/filepath"
 	"runtime"
 )

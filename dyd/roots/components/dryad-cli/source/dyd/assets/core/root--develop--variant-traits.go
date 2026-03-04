@@ -3,7 +3,6 @@ package core
 import (
 	"dryad/internal/os"
 	"fmt"
-	stdos "os"
 	"path/filepath"
 	"strings"
 
@@ -35,7 +34,7 @@ func rootDevelop_materializeVariantTraits(
 	}
 
 	traitsDestinationPath := filepath.Join(workspacePath, "dyd", "traits")
-	err = os.MkdirAll(traitsDestinationPath, stdos.ModePerm)
+	err = os.MkdirAll(traitsDestinationPath, os.ModePerm)
 	if err != nil {
 		return err
 	}

@@ -1,8 +1,8 @@
 package main
 
 import (
+	"dryad/internal/os"
 	"fmt"
-	"os"
 
 	cli "dryad/cli"
 	"dryad/diagnostics"

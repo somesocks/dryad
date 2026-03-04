@@ -1,9 +1,9 @@
 package core
 
 import (
+	"dryad/internal/os"
 	"errors"
 	"io/fs"
-	"os"
 )
 
 func fileExists(filename string) (bool, error) {

@@ -4,9 +4,9 @@ import (
 	"bufio"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"

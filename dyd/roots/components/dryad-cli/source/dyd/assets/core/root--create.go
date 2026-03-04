@@ -3,7 +3,6 @@ package core
 import (
 	"dryad/internal/os"
 	"fmt"
-	stdos "os"
 	"path/filepath"
 
 	"dryad/task"
@@ -35,7 +34,7 @@ func rootCreate(ctx *task.ExecutionContext, req rootCreateRequest) (error, *Safe
 	}
 
 	var basePath string = filepath.Join(path, "dyd")
-	if err := os.MkdirAll(basePath, stdos.ModePerm); err != nil {
+	if err := os.MkdirAll(basePath, os.ModePerm); err != nil {
 		return err, nil
 	}
 
@@ -54,32 +53,32 @@ func rootCreate(ctx *task.ExecutionContext, req rootCreateRequest) (error, *Safe
 	}
 
 	var assetsPath string = filepath.Join(basePath, "assets")
-	if err := os.MkdirAll(assetsPath, stdos.ModePerm); err != nil {
+	if err := os.MkdirAll(assetsPath, os.ModePerm); err != nil {
 		return err, nil
 	}
 
 	var commandsPath string = filepath.Join(basePath, "commands")
-	if err := os.MkdirAll(commandsPath, stdos.ModePerm); err != nil {
+	if err := os.MkdirAll(commandsPath, os.ModePerm); err != nil {
 		return err, nil
 	}
 
 	var docsPath string = filepath.Join(basePath, "docs")
-	if err := os.MkdirAll(docsPath, stdos.ModePerm); err != nil {
+	if err := os.MkdirAll(docsPath, os.ModePerm); err != nil {
 		return err, nil
 	}
 
 	var requirementsPath string = filepath.Join(basePath, "requirements")
-	if err := os.MkdirAll(requirementsPath, stdos.ModePerm); err != nil {
+	if err := os.MkdirAll(requirementsPath, os.ModePerm); err != nil {
 		return err, nil
 	}
 
 	var traitsPath string = filepath.Join(basePath, "traits")
-	if err := os.MkdirAll(traitsPath, stdos.ModePerm); err != nil {
+	if err := os.MkdirAll(traitsPath, os.ModePerm); err != nil {
 		return err, nil
 	}
 
 	var secretsPath string = filepath.Join(basePath, "secrets")
-	if err := os.MkdirAll(secretsPath, stdos.ModePerm); err != nil {
+	if err := os.MkdirAll(secretsPath, os.ModePerm); err != nil {
 		return err, nil
 	}
 

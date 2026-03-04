@@ -2,10 +2,10 @@ package cli
 
 import (
 	clib "dryad/cli-builder"
+	"dryad/internal/os"
 	"dryad/task"
 	"errors"
 	"fmt"
-	"os"
 
 	zlog "github.com/rs/zerolog/log"
 )

@@ -2,8 +2,8 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
+	"dryad/internal/os"
 	"dryad/task"
-	"os"
 	"path/filepath"
 )
 

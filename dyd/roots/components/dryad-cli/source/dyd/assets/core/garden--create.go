@@ -3,7 +3,6 @@ package core
 import (
 	"dryad/internal/os"
 	"fmt"
-	stdos "os"
 	"path/filepath"
 
 	task "dryad/task"
@@ -30,7 +29,7 @@ func gardenCreateBase(
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd")
-	err := os.MkdirAll(path, stdos.ModePerm)
+	err := os.MkdirAll(path, os.ModePerm)
 	return err, req
 }
 
@@ -39,7 +38,7 @@ func gardenCreateHeap(
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "heap")
-	err := os.MkdirAll(path, stdos.ModePerm)
+	err := os.MkdirAll(path, os.ModePerm)
 	return err, req
 }
 
@@ -48,7 +47,7 @@ func gardenCreateHeapFiles(
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "heap", "files")
-	err := os.MkdirAll(path, stdos.ModePerm)
+	err := os.MkdirAll(path, os.ModePerm)
 	return err, req
 }
 
@@ -57,7 +56,7 @@ func gardenCreateHeapStems(
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "heap", "stems")
-	err := os.MkdirAll(path, stdos.ModePerm)
+	err := os.MkdirAll(path, os.ModePerm)
 	return err, req
 }
 
@@ -66,7 +65,7 @@ func gardenCreateHeapSprouts(
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "heap", "sprouts")
-	err := os.MkdirAll(path, stdos.ModePerm)
+	err := os.MkdirAll(path, os.ModePerm)
 	return err, req
 }
 
@@ -75,7 +74,7 @@ func gardenCreateHeapDerivations(
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "heap", "derivations", "roots")
-	err := os.MkdirAll(path, stdos.ModePerm)
+	err := os.MkdirAll(path, os.ModePerm)
 	return err, req
 }
 
@@ -84,7 +83,7 @@ func gardenCreateHeapContexts(
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "heap", "contexts")
-	err := os.MkdirAll(path, stdos.ModePerm)
+	err := os.MkdirAll(path, os.ModePerm)
 	return err, req
 }
 
@@ -93,7 +92,7 @@ func gardenCreateHeapSecrets(
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "heap", "secrets")
-	err := os.MkdirAll(path, stdos.ModePerm)
+	err := os.MkdirAll(path, os.ModePerm)
 	return err, req
 }
 
@@ -102,7 +101,7 @@ func gardenCreateShed(
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "shed")
-	err := os.MkdirAll(path, stdos.ModePerm)
+	err := os.MkdirAll(path, os.ModePerm)
 	return err, req
 }
 
@@ -111,7 +110,7 @@ func gardenCreateShedScopes(
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "shed", "scopes")
-	err := os.MkdirAll(path, stdos.ModePerm)
+	err := os.MkdirAll(path, os.ModePerm)
 	return err, req
 }
 
@@ -120,7 +119,7 @@ func gardenCreateRoots(
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "roots")
-	err := os.MkdirAll(path, stdos.ModePerm)
+	err := os.MkdirAll(path, os.ModePerm)
 	return err, req
 }
 
@@ -129,7 +128,7 @@ func gardenCreateSprouts(
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "sprouts")
-	err := os.MkdirAll(path, stdos.ModePerm)
+	err := os.MkdirAll(path, os.ModePerm)
 	return err, req
 }
 

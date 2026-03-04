@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	stdos "os"
 	"path/filepath"
 	"strings"
 
@@ -22,12 +21,12 @@ type rootDevelopCopyOptions struct {
 func rootDevelop_removeExistingPath(path string) error {
 	info, err := os.Lstat(path)
 	if err != nil {
-		if stdos.IsNotExist(err) {
+		if os.IsNotExist(err) {
 			return nil
 		}
 		return err
 	}
-	if info.IsDir() && info.Mode()&stdos.ModeSymlink != stdos.ModeSymlink {
+	if info.IsDir() && info.Mode()&os.ModeSymlink != os.ModeSymlink {
 		return os.RemoveAll(path)
 	}
 	return os.Remove(path)
@@ -82,7 +81,7 @@ func rootDevelop_copyDirFromStem(
 		if node.Info == nil {
 			return nil, false
 		}
-		if node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
+		if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
 			return nil, false
 		}
 		if !node.Info.IsDir() {
@@ -106,7 +105,7 @@ func rootDevelop_copyDirFromStem(
 		switch {
 		case mode.IsDir():
 			return os.MkdirAll(dest, 0o755), nil
-		case mode&stdos.ModeSymlink == stdos.ModeSymlink:
+		case mode&os.ModeSymlink == os.ModeSymlink:
 			if err := rootDevelop_removeExistingPath(dest); err != nil {
 				return err, nil
 			}
@@ -188,7 +187,7 @@ func rootDevelop_copyDir(
 		if node.Info == nil {
 			return nil, false
 		}
-		if node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
+		if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
 			return nil, false
 		}
 		if !node.Info.IsDir() {
@@ -254,7 +253,7 @@ func rootDevelop_copyDir(
 		switch {
 		case mode.IsDir():
 			return os.MkdirAll(dest, mode), nil
-		case mode&stdos.ModeSymlink == stdos.ModeSymlink:
+		case mode&os.ModeSymlink == os.ModeSymlink:
 			linkTarget, err := os.Readlink(node.Path)
 			if err != nil {
 				return err, nil

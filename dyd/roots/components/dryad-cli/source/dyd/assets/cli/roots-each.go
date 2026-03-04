@@ -6,7 +6,7 @@ import (
 	"dryad/task"
 	// "fmt"
 
-	"os"
+	"dryad/internal/os"
 	"os/exec"
 
 	"strings"

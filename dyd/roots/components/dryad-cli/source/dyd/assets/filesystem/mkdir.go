@@ -1,9 +1,9 @@
 package fs2
 
 import (
+	"dryad/internal/os"
 	"errors"
 	"io/fs"
-	"os"
 	"path/filepath"
 )
 

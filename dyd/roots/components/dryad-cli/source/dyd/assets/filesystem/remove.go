@@ -59,7 +59,7 @@ var remove = func(ctx *task.ExecutionContext, path string) (error, any) {
 		zlog.Error().
 			Str("path", path).
 			Err(err).
-			Msg("dydfs.remove - stdos.remove")
+			Msg("dydfs.remove - os.remove")
 		return err, nil
 	}
 

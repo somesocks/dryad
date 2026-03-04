@@ -7,7 +7,6 @@ import (
 	// "io/fs"
 	// "io/ioutil"
 	"dryad/internal/os"
-	stdos "os"
 	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"
@@ -59,7 +58,7 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 
 		err := os.MkdirAll(
 			filepath.Join(req.WorkspacePath, "dyd"),
-			stdos.ModePerm,
+			os.ModePerm,
 		)
 		return err, req
 	}
@@ -163,7 +162,7 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 
 		err := os.MkdirAll(
 			filepath.Join(req.WorkspacePath, "dyd", "dependencies"),
-			stdos.ModePerm,
+			os.ModePerm,
 		)
 		return err, req
 	}

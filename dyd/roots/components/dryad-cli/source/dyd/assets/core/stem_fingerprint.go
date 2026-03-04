@@ -2,8 +2,8 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
+	"dryad/internal/os"
 	"io"
-	"os"
 
 	"encoding/hex"
 	"path/filepath"

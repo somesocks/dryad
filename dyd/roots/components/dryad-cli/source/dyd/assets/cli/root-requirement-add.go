@@ -4,10 +4,10 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	dydfs "dryad/filesystem"
+	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
 	"net/url"
-	"os"
 	"strings"
 
 	zlog "github.com/rs/zerolog/log"

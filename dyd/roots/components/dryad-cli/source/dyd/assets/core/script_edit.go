@@ -1,8 +1,8 @@
 package core
 
 import (
+	"dryad/internal/os"
 	"fmt"
-	"os"
 	"os/exec"
 	"runtime"
 
@@ -11,10 +11,10 @@ import (
 )
 
 type ScriptEditRequest struct {
-	Garden *SafeGardenReference
-	Scope    string
-	Setting  string
-	Env      map[string]string
+	Garden  *SafeGardenReference
+	Scope   string
+	Setting string
+	Env     map[string]string
 }
 
 func ScriptEdit(request ScriptEditRequest) error {

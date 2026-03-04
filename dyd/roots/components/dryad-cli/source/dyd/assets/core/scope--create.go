@@ -2,7 +2,6 @@ package core
 
 import (
 	"dryad/internal/os"
-	stdos "os"
 )
 
 func ScopeCreate(garden *SafeGardenReference, scope string) (string, error) {
@@ -11,7 +10,7 @@ func ScopeCreate(garden *SafeGardenReference, scope string) (string, error) {
 		return "", err
 	}
 
-	if err := os.MkdirAll(scopePath, stdos.ModePerm); err != nil {
+	if err := os.MkdirAll(scopePath, os.ModePerm); err != nil {
 		return "", err
 	}
 

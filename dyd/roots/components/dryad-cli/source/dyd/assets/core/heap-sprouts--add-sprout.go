@@ -6,7 +6,6 @@ import (
 	"dryad/task"
 
 	"errors"
-	stdos "os"
 	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"
@@ -89,11 +88,11 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 				}
 
 				if node.Info.IsDir() {
-					err = os.Mkdir(destPath, stdos.ModePerm)
+					err = os.Mkdir(destPath, os.ModePerm)
 					if err != nil {
 						return err, nil
 					}
-				} else if node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
+				} else if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
 					linkTarget, err := os.Readlink(node.Path)
 					if err != nil {
 						return err, nil
@@ -237,7 +236,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 			}
 
 			return nil, &sproutRef
-		} else if !errors.Is(statErr, stdos.ErrNotExist) {
+		} else if !errors.Is(statErr, os.ErrNotExist) {
 			return statErr, nil
 		}
 

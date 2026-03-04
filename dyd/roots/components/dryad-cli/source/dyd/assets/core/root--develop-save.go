@@ -7,7 +7,6 @@ import (
 	"dryad/internal/os"
 	"fmt"
 	"io/fs"
-	stdos "os"
 	"path/filepath"
 	"sync"
 
@@ -56,7 +55,7 @@ func rootDevelop_collectState(
 		if node.Info == nil {
 			return nil, false
 		}
-		if node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
+		if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
 			return nil, false
 		}
 		if !node.Info.IsDir() {
@@ -119,7 +118,7 @@ func rootDevelop_collectState(
 		switch {
 		case mode.IsDir():
 			return nil, nil
-		case mode&stdos.ModeSymlink == stdos.ModeSymlink:
+		case mode&os.ModeSymlink == os.ModeSymlink:
 			_, hash, err := linkHash(node.Path)
 			if err != nil {
 				return err, nil
@@ -329,7 +328,7 @@ func rootDevelop_saveChanges(
 					continue
 				}
 				err := os.Remove(destPath)
-				if err != nil && !stdos.IsNotExist(err) {
+				if err != nil && !os.IsNotExist(err) {
 					return conflicts, err
 				}
 				continue

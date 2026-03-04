@@ -6,7 +6,6 @@ import (
 	// "io/fs"
 	// "io/ioutil"
 	"dryad/internal/os"
-	stdos "os"
 	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"
@@ -36,7 +35,7 @@ func init() {
 			Msg("RootBuild/stage2")
 
 		err = os.Remove(filepath.Join(req.WorkspacePath, "dyd", "~requirements"))
-		if err != nil && !stdos.IsNotExist(err) {
+		if err != nil && !os.IsNotExist(err) {
 			return err, nil
 		}
 
