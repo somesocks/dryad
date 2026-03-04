@@ -29,7 +29,7 @@ func rootDevelop_stage0(ctx *task.ExecutionContext, snapshotStemPath string, wor
 		return err
 	}
 
-	err = stdos.MkdirAll(
+	err = os.MkdirAll(
 		filepath.Join(workspacePath, "dyd"),
 		stdos.ModePerm,
 	)
@@ -132,7 +132,7 @@ func rootDevelop_stage0(ctx *task.ExecutionContext, snapshotStemPath string, wor
 			return err
 		}
 	} else {
-		err = stdos.MkdirAll(filepath.Join(workspacePath, "dyd", "requirements"), stdos.ModePerm)
+		err = os.MkdirAll(filepath.Join(workspacePath, "dyd", "requirements"), stdos.ModePerm)
 		if err != nil {
 			return err
 		}
@@ -286,7 +286,7 @@ func rootDevelop_createSnapshotStem(
 	}
 	defer dydfs.RemoveAll(task.SERIAL_CONTEXT, snapshotWorkspace)
 
-	err = stdos.MkdirAll(filepath.Join(snapshotWorkspace, "dyd"), stdos.ModePerm)
+	err = os.MkdirAll(filepath.Join(snapshotWorkspace, "dyd"), stdos.ModePerm)
 	if err != nil {
 		return "", err
 	}
@@ -386,13 +386,13 @@ func rootDevelop_createSnapshotStem(
 			return "", err
 		}
 	} else {
-		err = stdos.MkdirAll(filepath.Join(snapshotWorkspace, "dyd", "requirements"), stdos.ModePerm)
+		err = os.MkdirAll(filepath.Join(snapshotWorkspace, "dyd", "requirements"), stdos.ModePerm)
 		if err != nil {
 			return "", err
 		}
 	}
 
-	err = stdos.MkdirAll(filepath.Join(snapshotWorkspace, "dyd", "dependencies"), stdos.ModePerm)
+	err = os.MkdirAll(filepath.Join(snapshotWorkspace, "dyd", "dependencies"), stdos.ModePerm)
 	if err != nil {
 		return "", err
 	}
@@ -839,7 +839,7 @@ func rootDevelop(
 	defer dydfs.RemoveAll(task.SERIAL_CONTEXT, workspacePath)
 
 	devDir := rootDevelop_devDir(workspacePath)
-	err = stdos.MkdirAll(devDir, 0o755)
+	err = os.MkdirAll(devDir, 0o755)
 	if err != nil {
 		return "", err
 	}

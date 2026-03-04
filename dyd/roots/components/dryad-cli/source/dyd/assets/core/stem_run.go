@@ -1,9 +1,10 @@
 package core
 
 import (
+	"dryad/internal/os"
 	"fmt"
 	"io"
-	"os"
+	stdos "os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -20,13 +21,13 @@ func sanitizePathSegment(s string) string {
 }
 
 func resolveCommandOnPath(command string, pathValue string) (string, error) {
-	for _, dir := range strings.Split(pathValue, string(os.PathListSeparator)) {
+	for _, dir := range strings.Split(pathValue, string(stdos.PathListSeparator)) {
 		if dir == "" {
 			continue
 		}
 
 		candidate := filepath.Join(dir, command)
-		info, err := os.Stat(candidate)
+		info, err := stdos.Stat(candidate)
 		if err != nil {
 			continue
 		}
@@ -44,7 +45,7 @@ func resolveCommandOnPath(command string, pathValue string) (string, error) {
 }
 
 type StemRunRequest struct {
-	Garden *SafeGardenReference
+	Garden       *SafeGardenReference
 	StemPath     string
 	WorkingPath  string
 	MainOverride string
@@ -53,15 +54,15 @@ type StemRunRequest struct {
 	Args         []string
 	JoinStdout   bool
 	LogStdout    struct {
-			Path string
-			Name string
-		}
-	JoinStderr   bool
-	LogStderr    struct {
-			Path string
-			Name string
-		}
-	InheritEnv   bool
+		Path string
+		Name string
+	}
+	JoinStderr bool
+	LogStderr  struct {
+		Path string
+		Name string
+	}
+	InheritEnv bool
 }
 
 func stemRun_prepContext(request StemRunRequest) (string, error) {
@@ -77,7 +78,7 @@ func stemRun_prepContext(request StemRunRequest) (string, error) {
 	gardenPath = request.Garden.BasePath
 
 	contextPath := filepath.Join(gardenPath, "dyd", "heap", "contexts", context)
-	err = os.MkdirAll(contextPath, os.ModePerm)
+	err = os.MkdirAll(contextPath, stdos.ModePerm)
 	if err != nil {
 		return "", err
 	}
@@ -104,7 +105,7 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 	}
 
 	if !filepath.IsAbs(stemPath) {
-		cwd, err := os.Getwd()
+		cwd, err := stdos.Getwd()
 		if err != nil {
 			return nil, err
 		}
@@ -119,7 +120,7 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 	}
 
 	// prepare by getting the executable path
-	dryadPath, err := os.Executable()
+	dryadPath, err := stdos.Executable()
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +136,7 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 	var command string
 	if request.MainOverride != "" {
 		override := request.MainOverride
-		if filepath.IsAbs(override) || strings.ContainsRune(override, os.PathSeparator) {
+		if filepath.IsAbs(override) || strings.ContainsRune(override, stdos.PathSeparator) {
 			command = override
 		} else {
 			resolved, err := resolveCommandOnPath(override, stemPathEnv)
@@ -148,7 +149,7 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 		command = stemPath + "/dyd/commands/dyd-stem-run"
 	}
 
-	info, err := os.Stat(command)
+	info, err := stdos.Stat(command)
 	if err != nil {
 		return nil, fmt.Errorf("missing stem main %q: %w", command, err)
 	}
@@ -171,34 +172,34 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 
 	if request.InheritEnv {
 		cmd.Env = append(
-			cmd.Env, os.Environ()...)
+			cmd.Env, stdos.Environ()...)
 	}
 
 	for key, val := range env {
 		cmd.Env = append(cmd.Env, key+"="+val)
 	}
 
-	cmd.Stdin = os.Stdin
+	cmd.Stdin = stdos.Stdin
 
 	// optionally pipe the exec logs to us
 	if request.JoinStdout {
-		cmd.Stdout = os.Stdout
+		cmd.Stdout = stdos.Stdout
 	} else if request.LogStdout.Path != "" {
 		var outputPath string
 
 		if request.LogStdout.Name != "" {
-			outputPath = filepath.Join(request.LogStdout.Path, request.LogStdout.Name)				
+			outputPath = filepath.Join(request.LogStdout.Path, request.LogStdout.Name)
 		} else {
 			relStemPath, err := filepath.Rel(gardenPath, stemPath)
 			if err != nil {
 				return nil, err
 			}
-	
+
 			logFile := "dyd-stem-run--" + sanitizePathSegment(relStemPath) + ".out"
-			outputPath = filepath.Join(request.LogStdout.Path, logFile)	
+			outputPath = filepath.Join(request.LogStdout.Path, logFile)
 		}
 
-		file, err := os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		file, err := stdos.OpenFile(outputPath, stdos.O_CREATE|stdos.O_WRONLY|stdos.O_TRUNC, 0644)
 		if err != nil {
 			return nil, err
 		}
@@ -208,23 +209,23 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 
 	// optionally pipe the exec stderr to us
 	if request.JoinStderr {
-		cmd.Stderr = os.Stderr
+		cmd.Stderr = stdos.Stderr
 	} else if request.LogStderr.Path != "" {
 		var outputPath string
 
 		if request.LogStderr.Name != "" {
-			outputPath = filepath.Join(request.LogStderr.Path, request.LogStderr.Name)	
+			outputPath = filepath.Join(request.LogStderr.Path, request.LogStderr.Name)
 		} else {
 			relStemPath, err := filepath.Rel(gardenPath, stemPath)
 			if err != nil {
 				return nil, err
 			}
-		
+
 			logFile := "dyd-stem-run--" + sanitizePathSegment(relStemPath) + ".err"
-			outputPath = filepath.Join(request.LogStderr.Path, logFile)	
+			outputPath = filepath.Join(request.LogStderr.Path, logFile)
 		}
 
-		file, err := os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		file, err := stdos.OpenFile(outputPath, stdos.O_CREATE|stdos.O_WRONLY|stdos.O_TRUNC, 0644)
 		if err != nil {
 			return nil, err
 		}

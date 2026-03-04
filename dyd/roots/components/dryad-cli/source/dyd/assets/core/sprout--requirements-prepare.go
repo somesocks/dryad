@@ -19,7 +19,7 @@ func sproutRequirementsCopyFile(sourcePath string, destPath string) error {
 	}
 	defer sourceFile.Close()
 
-	if err := stdos.MkdirAll(filepath.Dir(destPath), stdos.ModePerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(destPath), stdos.ModePerm); err != nil {
 		return err
 	}
 
@@ -54,7 +54,7 @@ func sproutRequirementsCopyTree(sourcePath string, destPath string, dependencyPa
 		}
 
 		if info.IsDir() {
-			return stdos.MkdirAll(destEntryPath, stdos.ModePerm)
+			return os.MkdirAll(destEntryPath, stdos.ModePerm)
 		}
 
 		if info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink {
@@ -76,7 +76,7 @@ func sproutRequirementsCopyTree(sourcePath string, destPath string, dependencyPa
 				return errors.New("sprout requirements prepare - dependency symlink escapes dependency root")
 			}
 
-			if err := stdos.MkdirAll(filepath.Dir(destEntryPath), stdos.ModePerm); err != nil {
+			if err := os.MkdirAll(filepath.Dir(destEntryPath), stdos.ModePerm); err != nil {
 				return err
 			}
 
@@ -99,7 +99,7 @@ func sproutRequirementsPrepare(sproutPath string) error {
 		return err
 	}
 
-	if err := stdos.MkdirAll(requirementsPath, stdos.ModePerm); err != nil {
+	if err := os.MkdirAll(requirementsPath, stdos.ModePerm); err != nil {
 		return err
 	}
 
@@ -127,7 +127,7 @@ func sproutRequirementsPrepare(sproutPath string) error {
 		}
 
 		requirementDependencyPath := filepath.Join(requirementsPath, dependencyName, "dyd")
-		if err := stdos.MkdirAll(requirementDependencyPath, stdos.ModePerm); err != nil {
+		if err := os.MkdirAll(requirementDependencyPath, stdos.ModePerm); err != nil {
 			return err
 		}
 

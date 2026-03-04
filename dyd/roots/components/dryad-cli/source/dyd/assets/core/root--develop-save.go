@@ -248,7 +248,7 @@ func rootDevelop_applyFile(
 	state rootDevelopFileState,
 ) error {
 	parent := filepath.Dir(destPath)
-	if err := stdos.MkdirAll(parent, 0o755); err != nil {
+	if err := os.MkdirAll(parent, 0o755); err != nil {
 		return err
 	}
 
@@ -260,7 +260,7 @@ func rootDevelop_applyFile(
 	case "symlink":
 		return os.Symlink(state.LinkTarget, destPath)
 	case "dir":
-		return stdos.MkdirAll(destPath, state.Mode)
+		return os.MkdirAll(destPath, state.Mode)
 	default:
 		return fmt.Errorf("rootDevelop_applyFile: unsupported kind %s", state.Kind)
 	}

@@ -1,8 +1,9 @@
 package core
 
 import (
+	"dryad/internal/os"
 	"errors"
-	"os"
+	stdos "os"
 	"path/filepath"
 	"strings"
 
@@ -35,7 +36,7 @@ func sproutPackPath(path string) (string, error) {
 
 	workingPath := path
 	flagPath := filepath.Join(workingPath, "dyd", "type")
-	fileBytes, fileErr := os.ReadFile(flagPath)
+	fileBytes, fileErr := stdos.ReadFile(flagPath)
 
 	for workingPath != "/" {
 		if fileErr == nil {
@@ -51,7 +52,7 @@ func sproutPackPath(path string) (string, error) {
 
 		workingPath = filepath.Dir(workingPath)
 		flagPath = filepath.Join(workingPath, "dyd", "type")
-		fileBytes, fileErr = os.ReadFile(flagPath)
+		fileBytes, fileErr = stdos.ReadFile(flagPath)
 	}
 
 	return "", errors.New("dyd sprout path not found starting from " + path)
@@ -145,7 +146,7 @@ func SproutPack(
 		Fingerprints: map[string]string{},
 	}
 
-	err := os.MkdirAll(request.TargetPath, os.ModePerm)
+	err := os.MkdirAll(request.TargetPath, stdos.ModePerm)
 	if err != nil {
 		return "", err
 	}

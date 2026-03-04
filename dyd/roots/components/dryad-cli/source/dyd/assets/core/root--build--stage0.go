@@ -57,7 +57,7 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		zlog.Trace().
 			Msg("RootBuild/stage0/mkBaseDir")
 
-		err := stdos.MkdirAll(
+		err := os.MkdirAll(
 			filepath.Join(req.WorkspacePath, "dyd"),
 			stdos.ModePerm,
 		)
@@ -161,7 +161,7 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		zlog.Trace().
 			Msg("RootBuild/stage0/mkDependenciesDir")
 
-		err := stdos.MkdirAll(
+		err := os.MkdirAll(
 			filepath.Join(req.WorkspacePath, "dyd", "dependencies"),
 			stdos.ModePerm,
 		)

@@ -85,7 +85,7 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 
 	var copyDir = func(ctx *task.ExecutionContext, path string, mode fs.FileMode) error {
 		// for a directory, make a new dir
-		var err = stdos.MkdirAll(path, mode)
+		var err = os.MkdirAll(path, mode)
 		return err
 	}
 

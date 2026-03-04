@@ -83,7 +83,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 		// 	Msg("rootBuild_requirementsPrepare.fs_on_match")
 
 		reqsParentPath := filepath.Dir(reqsPath)
-		err = stdos.MkdirAll(reqsParentPath, stdos.ModePerm)
+		err = os.MkdirAll(reqsParentPath, stdos.ModePerm)
 		if err != nil {
 			return err, nil
 		}

@@ -73,7 +73,7 @@ func rootDevelop_copyDirFromStem(
 		return fmt.Errorf("rootDevelop_copyDirFromStem: source is not a directory: %s", srcPath)
 	}
 
-	err = stdos.MkdirAll(destPath, 0o755)
+	err = os.MkdirAll(destPath, 0o755)
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func rootDevelop_copyDirFromStem(
 		mode := node.Info.Mode()
 		switch {
 		case mode.IsDir():
-			return stdos.MkdirAll(dest, 0o755), nil
+			return os.MkdirAll(dest, 0o755), nil
 		case mode&stdos.ModeSymlink == stdos.ModeSymlink:
 			if err := rootDevelop_removeExistingPath(dest); err != nil {
 				return err, nil
@@ -115,13 +115,13 @@ func rootDevelop_copyDirFromStem(
 				return err, nil
 			}
 			parent := filepath.Dir(dest)
-			if err := stdos.MkdirAll(parent, 0o755); err != nil {
+			if err := os.MkdirAll(parent, 0o755); err != nil {
 				return err, nil
 			}
 			return os.Symlink(linkTarget, dest), nil
 		case mode.IsRegular():
 			parent := filepath.Dir(dest)
-			if err := stdos.MkdirAll(parent, 0o755); err != nil {
+			if err := os.MkdirAll(parent, 0o755); err != nil {
 				return err, nil
 			}
 			if err := rootDevelop_removeExistingPath(dest); err != nil {
@@ -179,7 +179,7 @@ func rootDevelop_copyDir(
 		return fmt.Errorf("rootDevelop_copyDir: source is not a directory: %s", srcPath)
 	}
 
-	err = stdos.MkdirAll(destPath, info.Mode())
+	err = os.MkdirAll(destPath, info.Mode())
 	if err != nil {
 		return err
 	}
@@ -253,7 +253,7 @@ func rootDevelop_copyDir(
 		mode := node.Info.Mode()
 		switch {
 		case mode.IsDir():
-			return stdos.MkdirAll(dest, mode), nil
+			return os.MkdirAll(dest, mode), nil
 		case mode&stdos.ModeSymlink == stdos.ModeSymlink:
 			linkTarget, err := stdos.Readlink(node.Path)
 			if err != nil {

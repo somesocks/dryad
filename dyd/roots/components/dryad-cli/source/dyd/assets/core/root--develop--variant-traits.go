@@ -35,7 +35,7 @@ func rootDevelop_materializeVariantTraits(
 	}
 
 	traitsDestinationPath := filepath.Join(workspacePath, "dyd", "traits")
-	err = stdos.MkdirAll(traitsDestinationPath, stdos.ModePerm)
+	err = os.MkdirAll(traitsDestinationPath, stdos.ModePerm)
 	if err != nil {
 		return err
 	}

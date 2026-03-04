@@ -4,8 +4,9 @@ import (
 	dydfs "dryad/filesystem"
 	"dryad/task"
 
+	"dryad/internal/os"
 	"io/fs"
-	"os"
+	stdos "os"
 	"path/filepath"
 )
 
@@ -53,7 +54,7 @@ func rootBuild_pathPrepare(workspacePath string) error {
 				stubName = baseName + "--" + commandName
 			}
 
-			err = os.WriteFile(
+			err = stdos.WriteFile(
 				filepath.Join(pathPath, stubName),
 				[]byte(baseTemplate),
 				fs.ModePerm,

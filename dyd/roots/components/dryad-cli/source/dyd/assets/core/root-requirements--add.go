@@ -1,9 +1,10 @@
 package core
 
 import (
+	"dryad/internal/os"
 	"dryad/task"
 	"net/url"
-	"os"
+	stdos "os"
 	"path/filepath"
 	"strings"
 	// zlog "github.com/rs/zerolog/log"
@@ -45,7 +46,7 @@ func (requirements *SafeRootRequirementsReference) Add(
 	var requirementPath = filepath.Join(requirements.BasePath, alias)
 
 	// make sure the roots path exists before trying to link
-	err = os.MkdirAll(requirements.BasePath, os.ModePerm)
+	err = os.MkdirAll(requirements.BasePath, stdos.ModePerm)
 	if err != nil {
 		return err, nil
 	}
@@ -62,7 +63,7 @@ func (requirements *SafeRootRequirementsReference) Add(
 	}
 	linkUrl.RawQuery = strings.TrimPrefix(depSelectorRaw, "?")
 
-	err = os.WriteFile(requirementPath, []byte(linkUrl.String()), 0644)
+	err = stdos.WriteFile(requirementPath, []byte(linkUrl.String()), 0644)
 	if err != nil {
 		return err, nil
 	}

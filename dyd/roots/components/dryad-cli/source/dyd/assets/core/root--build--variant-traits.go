@@ -62,7 +62,7 @@ func rootBuild_materializeVariantTraits(
 		}
 	}
 
-	err = stdos.MkdirAll(traitsDestinationPath, stdos.ModePerm)
+	err = os.MkdirAll(traitsDestinationPath, stdos.ModePerm)
 	if err != nil {
 		return err
 	}

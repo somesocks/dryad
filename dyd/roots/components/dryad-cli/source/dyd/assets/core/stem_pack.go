@@ -387,7 +387,7 @@ func StemPack(
 		Fingerprints: map[string]string{},
 	}
 
-	err := stdos.MkdirAll(request.TargetPath, stdos.ModePerm)
+	err := os.MkdirAll(request.TargetPath, stdos.ModePerm)
 	if err != nil {
 		return "", err
 	}
