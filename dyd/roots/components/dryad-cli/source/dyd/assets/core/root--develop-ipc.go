@@ -2,12 +2,12 @@ package core
 
 import (
 	"bufio"
+	"dryad/internal/net"
 	"dryad/internal/os"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"strings"
 
 	zlog "github.com/rs/zerolog/log"
