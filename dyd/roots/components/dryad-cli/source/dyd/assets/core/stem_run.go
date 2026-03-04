@@ -105,7 +105,7 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 	}
 
 	if !filepath.IsAbs(stemPath) {
-		cwd, err := stdos.Getwd()
+		cwd, err := os.Getwd()
 		if err != nil {
 			return nil, err
 		}
