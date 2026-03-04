@@ -116,7 +116,7 @@ func rootDevelop_materializeVariantTraits(
 			}
 		}
 
-		err = stdos.WriteFile(traitPath, []byte(selectedOption), 0o644)
+		err = os.WriteFile(traitPath, []byte(selectedOption), 0o644)
 		if err != nil {
 			return err
 		}

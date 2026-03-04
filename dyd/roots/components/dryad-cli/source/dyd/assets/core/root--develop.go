@@ -849,7 +849,7 @@ func rootDevelop(
 		return "", err
 	}
 
-	err = stdos.WriteFile(rootDevelop_snapshotFile(workspacePath), []byte(initialSnapshotFingerprint), 0o644)
+	err = os.WriteFile(rootDevelop_snapshotFile(workspacePath), []byte(initialSnapshotFingerprint), 0o644)
 	if err != nil {
 		return "", err
 	}
@@ -871,7 +871,7 @@ func rootDevelop(
 		return "", err
 	}
 
-	err = stdos.WriteFile(rootDevelop_snapshotFile(workspacePath), []byte(materializedSnapshotFingerprint), 0o644)
+	err = os.WriteFile(rootDevelop_snapshotFile(workspacePath), []byte(materializedSnapshotFingerprint), 0o644)
 	if err != nil {
 		return "", err
 	}
@@ -921,7 +921,7 @@ func rootDevelop(
 			if err != nil {
 				return "", err
 			}
-			if err := stdos.WriteFile(rootDevelop_snapshotFile(workspacePath), []byte(fingerprint), 0o644); err != nil {
+			if err := os.WriteFile(rootDevelop_snapshotFile(workspacePath), []byte(fingerprint), 0o644); err != nil {
 				return "", err
 			}
 			return fingerprint, nil

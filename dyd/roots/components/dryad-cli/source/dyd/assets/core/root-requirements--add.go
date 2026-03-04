@@ -63,7 +63,7 @@ func (requirements *SafeRootRequirementsReference) Add(
 	}
 	linkUrl.RawQuery = strings.TrimPrefix(depSelectorRaw, "?")
 
-	err = stdos.WriteFile(requirementPath, []byte(linkUrl.String()), 0644)
+	err = os.WriteFile(requirementPath, []byte(linkUrl.String()), 0644)
 	if err != nil {
 		return err, nil
 	}
