@@ -273,7 +273,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 	err = os.Rename(tempStemPath, finalStemPath)
 	if err != nil {
 		// If another process published this fingerprint first, treat as success.
-		if _, statErr := stdos.Stat(finalStemPath); statErr == nil {
+		if _, statErr := os.Stat(finalStemPath); statErr == nil {
 			stemRef := SafeHeapStemReference{
 				BasePath: finalStemPath,
 				Stems:    req.HeapStems,

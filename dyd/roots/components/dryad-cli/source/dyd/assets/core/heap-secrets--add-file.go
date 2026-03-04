@@ -39,7 +39,7 @@ func heapAddSecretFile(ctx *task.ExecutionContext, req heapAddSecretFileRequest)
 	now := time.Now()
 
 	// Fast path: if the CAS entry already exists, avoid unnecessary temp writes.
-	if _, err := stdos.Stat(destPath); err == nil {
+	if _, err := os.Stat(destPath); err == nil {
 		err = stdos.Chtimes(destPath, now, now)
 		if err != nil {
 			zlog.Warn().

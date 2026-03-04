@@ -58,7 +58,7 @@ var gardenPrune_mark = func(ctx *task.ExecutionContext, req gardenPruneRequest) 
 		var isSymlink bool = node.Info.Mode()&stdos.ModeSymlink == stdos.ModeSymlink
 		if isSymlink {
 			var err error
-			_, err = stdos.Stat(node.Path)
+			_, err = os.Stat(node.Path)
 			if errors.Is(err, fs.ErrNotExist) {
 				shouldCrawl = false
 
@@ -354,7 +354,7 @@ var gardenPrune_sweepDerivations = func(ctx *task.ExecutionContext, req gardenPr
 		}
 
 		resultStemPath := filepath.Join(heapPath, "stems", resultFingerprint)
-		_, err = stdos.Stat(resultStemPath)
+		_, err = os.Stat(resultStemPath)
 		if err == nil {
 			return nil, false
 		}

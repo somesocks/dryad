@@ -230,7 +230,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 	err = os.Rename(tempSproutPath, finalSproutPath)
 	if err != nil {
 		// If another process published this fingerprint first, treat as success.
-		if _, statErr := stdos.Stat(finalSproutPath); statErr == nil {
+		if _, statErr := os.Stat(finalSproutPath); statErr == nil {
 			sproutRef := SafeHeapSproutReference{
 				BasePath: finalSproutPath,
 				Sprouts:  req.HeapSprouts,

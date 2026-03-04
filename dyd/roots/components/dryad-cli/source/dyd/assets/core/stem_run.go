@@ -27,7 +27,7 @@ func resolveCommandOnPath(command string, pathValue string) (string, error) {
 		}
 
 		candidate := filepath.Join(dir, command)
-		info, err := stdos.Stat(candidate)
+		info, err := os.Stat(candidate)
 		if err != nil {
 			continue
 		}
@@ -149,7 +149,7 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 		command = stemPath + "/dyd/commands/dyd-stem-run"
 	}
 
-	info, err := stdos.Stat(command)
+	info, err := os.Stat(command)
 	if err != nil {
 		return nil, fmt.Errorf("missing stem main %q: %w", command, err)
 	}
