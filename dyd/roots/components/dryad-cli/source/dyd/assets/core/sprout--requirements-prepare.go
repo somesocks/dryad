@@ -104,7 +104,7 @@ func sproutRequirementsPrepare(sproutPath string) error {
 	}
 
 	dependenciesPath := filepath.Join(sproutPath, "dyd", "dependencies")
-	dependencyEntries, err := stdos.ReadDir(dependenciesPath)
+	dependencyEntries, err := os.ReadDir(dependenciesPath)
 	if err != nil {
 		if stdos.IsNotExist(err) {
 			return nil
