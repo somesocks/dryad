@@ -61,6 +61,7 @@ Dryad supports runtime diagnostics rules through the `DYD_DIAG` environment vari
 Diagnostics metrics are configured as a rule action (`rules[].action.type=metrics`).
 There is no separate top-level `metrics` section.
 Rule `id` is optional; when omitted, dryad generates `rule-<1-based index>`.
+`when.limit` sets a global per-rule match cap across all keys.
 
 ### Diagnostics Examples
 
@@ -82,6 +83,13 @@ Inject delay on `os.open_file`:
 
 ```sh
 DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"delay-open","op":"os.open_file","key":"*","when":{"mode":"every_n","count":1},"action":{"type":"delay","delay_ms":25}}]}' \
+dryad root build dyd/roots/root-01
+```
+
+Inject a bounded number of failures (global cap across all keys):
+
+```sh
+DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"inject-bounded","op":"os.link","key":"*","when":{"mode":"first_n_per_key","count":1,"limit":3},"action":{"type":"error","error":"EMLINK"}}]}' \
 dryad root build dyd/roots/root-01
 ```
 

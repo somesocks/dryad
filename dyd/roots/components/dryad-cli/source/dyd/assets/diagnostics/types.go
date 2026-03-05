@@ -21,12 +21,12 @@ type RuleConfig struct {
 	Key     string       `json:"key" yaml:"key"`
 	When    WhenConfig   `json:"when" yaml:"when"`
 	Action  ActionConfig `json:"action" yaml:"action"`
-	MaxHits int64        `json:"max_hits,omitempty" yaml:"max_hits,omitempty"`
 }
 
 type WhenConfig struct {
 	Mode  string `json:"mode" yaml:"mode"`
 	Count int64  `json:"count,omitempty" yaml:"count,omitempty"`
+	Limit int64  `json:"limit,omitempty" yaml:"limit,omitempty"`
 }
 
 type ActionConfig struct {

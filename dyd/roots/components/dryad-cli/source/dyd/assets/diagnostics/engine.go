@@ -85,7 +85,7 @@ type compiledRule struct {
 	matcher   keyMatcher
 	when      whenMode
 	n         uint64
-	maxHits   int64
+	limit     int64
 	hitCount  atomic.Int64
 	counter   atomic.Uint64
 	perKeyMu  sync.Mutex
@@ -147,7 +147,7 @@ func compileRule(index int, rule RuleConfig) (*compiledRule, string, error) {
 		id:      ruleID,
 		op:      op,
 		matcher: matcher,
-		maxHits: rule.MaxHits,
+		limit:   rule.When.Limit,
 	}
 
 	if err := compileWhen(compiled, rule.When, ruleID); err != nil {
@@ -379,13 +379,13 @@ func (rule *compiledRule) whenMatches(key string) bool {
 }
 
 func (rule *compiledRule) consumeHit() bool {
-	if rule.maxHits <= 0 {
+	if rule.limit <= 0 {
 		return true
 	}
 
 	for {
 		current := rule.hitCount.Load()
-		if current >= rule.maxHits {
+		if current >= rule.limit {
 			return false
 		}
 		if rule.hitCount.CompareAndSwap(current, current+1) {
