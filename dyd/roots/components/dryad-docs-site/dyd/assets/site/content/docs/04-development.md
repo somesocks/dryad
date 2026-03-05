@@ -58,6 +58,10 @@ Dryad supports runtime diagnostics rules through the `DYD_DIAG` environment vari
 - `file:/absolute/path/to/diagnostics.yaml`
 - `json:{...}`
 
+Diagnostics metrics are configured as a rule action (`rules[].action.type=metrics`).
+There is no separate top-level `metrics` section.
+Rule `id` is optional; when omitted, dryad generates `rule-<1-based index>`.
+
 ### Diagnostics Examples
 
 Inject a pre-error on every `os.link` call:
@@ -84,7 +88,7 @@ dryad root build dyd/roots/root-01
 Emit metrics for `os.link` to stdout with 50% sampling:
 
 ```sh
-DYD_DIAG='json:{"version":1,"seed":1,"metrics":[{"id":"m-os-link","op":"os.link","output":"stdout","capture":{"calls":true,"errors":true,"timing":true,"sample_percent":50}}]}' \
+DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"m-os-link","op":"os.link","key":"*","when":{"mode":"every_n","count":1},"action":{"type":"metrics","output":"stdout","capture":{"calls":true,"errors":true,"timing":true,"sample_percent":50}}}]}' \
 dryad root build dyd/roots/root-01
 ```
 
@@ -112,7 +116,7 @@ DYD_DIAG='file:/tmp/dyd-diagnostics.yaml' dryad root build dyd/roots/root-01
 Quick local metrics check:
 
 ```sh
-DYD_DIAG='json:{"version":1,"seed":1,"metrics":[{"id":"m-os-link","op":"os.link","output":"stderr","capture":{"calls":true,"errors":true,"timing":true,"sample_percent":100}}]}' \
+DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"m-os-link","op":"os.link","key":"*","when":{"mode":"every_n","count":1},"action":{"type":"metrics","output":"stderr","capture":{"calls":true,"errors":true,"timing":true,"sample_percent":100}}}]}' \
 dryad root build dyd/roots/root-01 --log-level=warn > /tmp/dyd-build.out 2> /tmp/dyd-build.err
 
 grep -F '"point":"os.link"' /tmp/dyd-build.err
@@ -121,7 +125,7 @@ grep -F '"point":"os.link"' /tmp/dyd-build.err
 Example emitted metrics line:
 
 ```json
-{"point":"os.link","calls":21,"errors":0,"total_nanos":307521,"min_nanos":3814,"max_nanos":176874,"avg_nanos":14643,"sample_every":2}
+{"rule_id":"m-os-link","point":"os.link","calls":21,"errors":0,"total_nanos":307521,"min_nanos":3814,"max_nanos":176874,"avg_nanos":14643,"sample_every":2}
 ```
 
 ### Sampling Rounding Contract

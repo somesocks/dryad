@@ -51,28 +51,15 @@ func SetupFromEnv() error {
 }
 
 func Apply(point string, key string) error {
-	var result error
-
 	current := activeEngine.Load()
-	var metric *compiledMetricsRule
-	if current != nil {
-		metric = current.Metric(point)
-	}
-	start, sampled := beginMetricsObservation(metric)
-
 	if current == nil {
-		result = nil
-	} else {
-		rules := current.Rules(point)
-		if len(rules) == 0 {
-			result = nil
-		} else {
-			result = applyNoopRules(rules, key, 0)
-		}
+		return nil
 	}
-
-	endMetricsObservation(metric, point, sampled, start, result)
-	return result
+	rules := current.Rules(point)
+	if len(rules) == 0 {
+		return nil
+	}
+	return applyNoopRules(rules, key, 0)
 }
 
 func applyNoopRules(rules []*compiledRule, key string, index int) error {
@@ -103,6 +90,16 @@ func applyNoopRules(rules []*compiledRule, key string, index int) error {
 			return rule.err
 		}
 		return nil
+
+	case actionMetrics:
+		hit := rule.matches(key)
+		if !hit {
+			return applyNoopRules(rules, key, index+1)
+		}
+		start, sampled := beginMetricsObservation(rule.metric)
+		err := applyNoopRules(rules, key, index+1)
+		endMetricsObservation(rule.metric, sampled, start, err)
+		return err
 
 	default:
 		return applyNoopRules(rules, key, index+1)

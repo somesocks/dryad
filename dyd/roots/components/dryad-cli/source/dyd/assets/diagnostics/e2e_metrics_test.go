@@ -18,6 +18,15 @@ func TestE2E_MetricsFromEnv_EmitOnExit(t *testing.T) {
 version: 1
 seed: 1
 rules:
+  - id: m-e2e
+    op: e2e.point
+    key: "*"
+    when:
+      mode: every_n
+      count: 1
+    action:
+      type: metrics
+      output: stderr
   - id: inject
     op: e2e.point
     key: "*"
@@ -27,10 +36,6 @@ rules:
     action:
       type: error
       error: EIO
-metrics:
-  - id: m-e2e
-    op: e2e.point
-    output: stderr
 `)
 	if err := os.WriteFile(configPath, configBody, 0o644); err != nil {
 		t.Fatalf("write config: %v", err)

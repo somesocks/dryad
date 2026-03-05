@@ -9,10 +9,9 @@ const (
 )
 
 type Config struct {
-	Version int                 `json:"version" yaml:"version"`
-	Seed    int64               `json:"seed" yaml:"seed"`
-	Rules   []RuleConfig        `json:"rules" yaml:"rules"`
-	Metrics []MetricsRuleConfig `json:"metrics,omitempty" yaml:"metrics,omitempty"`
+	Version int          `json:"version" yaml:"version"`
+	Seed    int64        `json:"seed" yaml:"seed"`
+	Rules   []RuleConfig `json:"rules" yaml:"rules"`
 }
 
 type RuleConfig struct {
@@ -32,16 +31,10 @@ type WhenConfig struct {
 }
 
 type ActionConfig struct {
-	Type    string `json:"type" yaml:"type"`
-	Phase   string `json:"phase,omitempty" yaml:"phase,omitempty"`
-	Error   string `json:"error,omitempty" yaml:"error,omitempty"`
-	DelayMS int64  `json:"delay_ms,omitempty" yaml:"delay_ms,omitempty"`
-}
-
-type MetricsRuleConfig struct {
-	ID      string               `json:"id,omitempty" yaml:"id,omitempty"`
-	Enabled *bool                `json:"enabled,omitempty" yaml:"enabled,omitempty"`
-	Op      string               `json:"op" yaml:"op"`
+	Type    string               `json:"type" yaml:"type"`
+	Phase   string               `json:"phase,omitempty" yaml:"phase,omitempty"`
+	Error   string               `json:"error,omitempty" yaml:"error,omitempty"`
+	DelayMS int64                `json:"delay_ms,omitempty" yaml:"delay_ms,omitempty"`
 	Output  string               `json:"output,omitempty" yaml:"output,omitempty"` // stdout | stderr | ""
 	Capture MetricsCaptureConfig `json:"capture,omitempty" yaml:"capture,omitempty"`
 }

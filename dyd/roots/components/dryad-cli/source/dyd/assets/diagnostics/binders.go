@@ -103,6 +103,15 @@ func ruleDecoratorA0R0(rule *compiledRule) DecoratorA0R0 {
 					return rule.err
 				}
 				return nil
+			case actionMetrics:
+				hit := rule.matches(call.Key)
+				if !hit {
+					return next(call)
+				}
+				start, sampled := beginMetricsObservation(rule.metric)
+				err := next(call)
+				endMetricsObservation(rule.metric, sampled, start, err)
+				return err
 			default:
 				return next(call)
 			}
@@ -132,6 +141,15 @@ func ruleDecoratorA1R0[A0 any](rule *compiledRule) DecoratorA1R0[A0] {
 					return rule.err
 				}
 				return nil
+			case actionMetrics:
+				hit := rule.matches(call.Key)
+				if !hit {
+					return next(call)
+				}
+				start, sampled := beginMetricsObservation(rule.metric)
+				err := next(call)
+				endMetricsObservation(rule.metric, sampled, start, err)
+				return err
 			default:
 				return next(call)
 			}
@@ -161,6 +179,15 @@ func ruleDecoratorA2R0[A0, A1 any](rule *compiledRule) DecoratorA2R0[A0, A1] {
 					return rule.err
 				}
 				return nil
+			case actionMetrics:
+				hit := rule.matches(call.Key)
+				if !hit {
+					return next(call)
+				}
+				start, sampled := beginMetricsObservation(rule.metric)
+				err := next(call)
+				endMetricsObservation(rule.metric, sampled, start, err)
+				return err
 			default:
 				return next(call)
 			}
@@ -190,6 +217,15 @@ func ruleDecoratorA3R0[A0, A1, A2 any](rule *compiledRule) DecoratorA3R0[A0, A1,
 					return rule.err
 				}
 				return nil
+			case actionMetrics:
+				hit := rule.matches(call.Key)
+				if !hit {
+					return next(call)
+				}
+				start, sampled := beginMetricsObservation(rule.metric)
+				err := next(call)
+				endMetricsObservation(rule.metric, sampled, start, err)
+				return err
 			default:
 				return next(call)
 			}
@@ -220,6 +256,15 @@ func ruleDecoratorA0R1[R0 any](rule *compiledRule) DecoratorA0R1[R0] {
 					return rule.err, out
 				}
 				return nil, out
+			case actionMetrics:
+				hit := rule.matches(call.Key)
+				if !hit {
+					return next(call)
+				}
+				start, sampled := beginMetricsObservation(rule.metric)
+				err, out := next(call)
+				endMetricsObservation(rule.metric, sampled, start, err)
+				return err, out
 			default:
 				return next(call)
 			}
@@ -250,6 +295,15 @@ func ruleDecoratorA1R1[A0, R0 any](rule *compiledRule) DecoratorA1R1[A0, R0] {
 					return rule.err, out
 				}
 				return nil, out
+			case actionMetrics:
+				hit := rule.matches(call.Key)
+				if !hit {
+					return next(call)
+				}
+				start, sampled := beginMetricsObservation(rule.metric)
+				err, out := next(call)
+				endMetricsObservation(rule.metric, sampled, start, err)
+				return err, out
 			default:
 				return next(call)
 			}
@@ -280,6 +334,15 @@ func ruleDecoratorA2R1[A0, A1, R0 any](rule *compiledRule) DecoratorA2R1[A0, A1,
 					return rule.err, out
 				}
 				return nil, out
+			case actionMetrics:
+				hit := rule.matches(call.Key)
+				if !hit {
+					return next(call)
+				}
+				start, sampled := beginMetricsObservation(rule.metric)
+				err, out := next(call)
+				endMetricsObservation(rule.metric, sampled, start, err)
+				return err, out
 			default:
 				return next(call)
 			}
@@ -310,6 +373,15 @@ func ruleDecoratorA3R1[A0, A1, A2, R0 any](rule *compiledRule) DecoratorA3R1[A0,
 					return rule.err, out
 				}
 				return nil, out
+			case actionMetrics:
+				hit := rule.matches(call.Key)
+				if !hit {
+					return next(call)
+				}
+				start, sampled := beginMetricsObservation(rule.metric)
+				err, out := next(call)
+				endMetricsObservation(rule.metric, sampled, start, err)
+				return err, out
 			default:
 				return next(call)
 			}
@@ -416,7 +488,6 @@ func BindA0R0(
 
 	var cachedVersion atomic.Uint64
 	var cachedNext atomic.Value
-	var cachedMetric atomic.Pointer[compiledMetricsRule]
 	cachedNext.Store(baseNext)
 
 	return func() error {
@@ -430,16 +501,11 @@ func BindA0R0(
 		version := current.version
 		if cachedVersion.Load() != version {
 			cachedNext.Store(buildA0R0Next(current, point, base))
-			cachedMetric.Store(current.Metric(point))
 			cachedVersion.Store(version)
 		}
 
-		metric := cachedMetric.Load()
-		start, sampled := beginMetricsObservation(metric)
-
 		next := cachedNext.Load().(NextA0R0)
 		err = next(CallA0R0{})
-		endMetricsObservation(metric, point, sampled, start, err)
 		return err
 	}
 }
@@ -456,7 +522,6 @@ func BindA1R0[A0 any](
 
 	var cachedVersion atomic.Uint64
 	var cachedNext atomic.Value
-	var cachedMetric atomic.Pointer[compiledMetricsRule]
 	cachedNext.Store(baseNext)
 
 	return func(a0 A0) error {
@@ -475,19 +540,14 @@ func BindA1R0[A0 any](
 		version := current.version
 		if cachedVersion.Load() != version {
 			cachedNext.Store(buildA1R0Next[A0](current, point, base))
-			cachedMetric.Store(current.Metric(point))
 			cachedVersion.Store(version)
 		}
-
-		metric := cachedMetric.Load()
-		start, sampled := beginMetricsObservation(metric)
 
 		next := cachedNext.Load().(NextA1R0[A0])
 		err = next(CallA1R0[A0]{
 			Key: key,
 			A0:  a0,
 		})
-		endMetricsObservation(metric, point, sampled, start, err)
 		return err
 	}
 }
@@ -504,7 +564,6 @@ func BindA2R0[A0, A1 any](
 
 	var cachedVersion atomic.Uint64
 	var cachedNext atomic.Value
-	var cachedMetric atomic.Pointer[compiledMetricsRule]
 	cachedNext.Store(baseNext)
 
 	return func(a0 A0, a1 A1) error {
@@ -523,12 +582,8 @@ func BindA2R0[A0, A1 any](
 		version := current.version
 		if cachedVersion.Load() != version {
 			cachedNext.Store(buildA2R0Next[A0, A1](current, point, base))
-			cachedMetric.Store(current.Metric(point))
 			cachedVersion.Store(version)
 		}
-
-		metric := cachedMetric.Load()
-		start, sampled := beginMetricsObservation(metric)
 
 		next := cachedNext.Load().(NextA2R0[A0, A1])
 		err = next(CallA2R0[A0, A1]{
@@ -536,7 +591,6 @@ func BindA2R0[A0, A1 any](
 			A0:  a0,
 			A1:  a1,
 		})
-		endMetricsObservation(metric, point, sampled, start, err)
 		return err
 	}
 }
@@ -553,7 +607,6 @@ func BindA3R0[A0, A1, A2 any](
 
 	var cachedVersion atomic.Uint64
 	var cachedNext atomic.Value
-	var cachedMetric atomic.Pointer[compiledMetricsRule]
 	cachedNext.Store(baseNext)
 
 	return func(a0 A0, a1 A1, a2 A2) error {
@@ -572,12 +625,8 @@ func BindA3R0[A0, A1, A2 any](
 		version := current.version
 		if cachedVersion.Load() != version {
 			cachedNext.Store(buildA3R0Next[A0, A1, A2](current, point, base))
-			cachedMetric.Store(current.Metric(point))
 			cachedVersion.Store(version)
 		}
-
-		metric := cachedMetric.Load()
-		start, sampled := beginMetricsObservation(metric)
 
 		next := cachedNext.Load().(NextA3R0[A0, A1, A2])
 		err = next(CallA3R0[A0, A1, A2]{
@@ -586,7 +635,6 @@ func BindA3R0[A0, A1, A2 any](
 			A1:  a1,
 			A2:  a2,
 		})
-		endMetricsObservation(metric, point, sampled, start, err)
 		return err
 	}
 }
@@ -602,7 +650,6 @@ func BindA0R1[R0 any](
 
 	var cachedVersion atomic.Uint64
 	var cachedNext atomic.Value
-	var cachedMetric atomic.Pointer[compiledMetricsRule]
 	cachedNext.Store(baseNext)
 
 	return func() (error, R0) {
@@ -617,16 +664,11 @@ func BindA0R1[R0 any](
 		version := current.version
 		if cachedVersion.Load() != version {
 			cachedNext.Store(buildA0R1Next[R0](current, point, base))
-			cachedMetric.Store(current.Metric(point))
 			cachedVersion.Store(version)
 		}
 
-		metric := cachedMetric.Load()
-		start, sampled := beginMetricsObservation(metric)
-
 		next := cachedNext.Load().(NextA0R1[R0])
 		err, out = next(CallA0R1{})
-		endMetricsObservation(metric, point, sampled, start, err)
 		return err, out
 	}
 }
@@ -643,7 +685,6 @@ func BindA1R1[A0, R0 any](
 
 	var cachedVersion atomic.Uint64
 	var cachedNext atomic.Value
-	var cachedMetric atomic.Pointer[compiledMetricsRule]
 	cachedNext.Store(baseNext)
 
 	return func(a0 A0) (error, R0) {
@@ -663,19 +704,14 @@ func BindA1R1[A0, R0 any](
 		version := current.version
 		if cachedVersion.Load() != version {
 			cachedNext.Store(buildA1R1Next[A0, R0](current, point, base))
-			cachedMetric.Store(current.Metric(point))
 			cachedVersion.Store(version)
 		}
-
-		metric := cachedMetric.Load()
-		start, sampled := beginMetricsObservation(metric)
 
 		next := cachedNext.Load().(NextA1R1[A0, R0])
 		err, out = next(CallA1R1[A0]{
 			Key: key,
 			A0:  a0,
 		})
-		endMetricsObservation(metric, point, sampled, start, err)
 		return err, out
 	}
 }
@@ -692,7 +728,6 @@ func BindA2R1[A0, A1, R0 any](
 
 	var cachedVersion atomic.Uint64
 	var cachedNext atomic.Value
-	var cachedMetric atomic.Pointer[compiledMetricsRule]
 	cachedNext.Store(baseNext)
 
 	return func(a0 A0, a1 A1) (error, R0) {
@@ -712,12 +747,8 @@ func BindA2R1[A0, A1, R0 any](
 		version := current.version
 		if cachedVersion.Load() != version {
 			cachedNext.Store(buildA2R1Next[A0, A1, R0](current, point, base))
-			cachedMetric.Store(current.Metric(point))
 			cachedVersion.Store(version)
 		}
-
-		metric := cachedMetric.Load()
-		start, sampled := beginMetricsObservation(metric)
 
 		next := cachedNext.Load().(NextA2R1[A0, A1, R0])
 		err, out = next(CallA2R1[A0, A1]{
@@ -725,7 +756,6 @@ func BindA2R1[A0, A1, R0 any](
 			A0:  a0,
 			A1:  a1,
 		})
-		endMetricsObservation(metric, point, sampled, start, err)
 		return err, out
 	}
 }
@@ -742,7 +772,6 @@ func BindA3R1[A0, A1, A2, R0 any](
 
 	var cachedVersion atomic.Uint64
 	var cachedNext atomic.Value
-	var cachedMetric atomic.Pointer[compiledMetricsRule]
 	cachedNext.Store(baseNext)
 
 	return func(a0 A0, a1 A1, a2 A2) (error, R0) {
@@ -762,12 +791,8 @@ func BindA3R1[A0, A1, A2, R0 any](
 		version := current.version
 		if cachedVersion.Load() != version {
 			cachedNext.Store(buildA3R1Next[A0, A1, A2, R0](current, point, base))
-			cachedMetric.Store(current.Metric(point))
 			cachedVersion.Store(version)
 		}
-
-		metric := cachedMetric.Load()
-		start, sampled := beginMetricsObservation(metric)
 
 		next := cachedNext.Load().(NextA3R1[A0, A1, A2, R0])
 		err, out = next(CallA3R1[A0, A1, A2]{
@@ -776,7 +801,6 @@ func BindA3R1[A0, A1, A2, R0 any](
 			A1:  a1,
 			A2:  a2,
 		})
-		endMetricsObservation(metric, point, sampled, start, err)
 		return err, out
 	}
 }

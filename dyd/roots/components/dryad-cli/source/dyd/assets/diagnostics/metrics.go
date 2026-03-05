@@ -36,9 +36,9 @@ var metricsRegistry = struct {
 	points: map[string]*pointStats{},
 }
 
-func pointStatsFor(point string) *pointStats {
+func pointStatsFor(metricID string) *pointStats {
 	metricsRegistry.mu.RLock()
-	stats := metricsRegistry.points[point]
+	stats := metricsRegistry.points[metricID]
 	metricsRegistry.mu.RUnlock()
 	if stats != nil {
 		return stats
@@ -46,18 +46,18 @@ func pointStatsFor(point string) *pointStats {
 
 	metricsRegistry.mu.Lock()
 	defer metricsRegistry.mu.Unlock()
-	stats = metricsRegistry.points[point]
+	stats = metricsRegistry.points[metricID]
 	if stats != nil {
 		return stats
 	}
 
 	stats = &pointStats{}
 	stats.minNanos.Store(math.MaxUint64)
-	metricsRegistry.points[point] = stats
+	metricsRegistry.points[metricID] = stats
 	return stats
 }
 
-func observePointInvocation(rule *compiledMetricsRule, point string, elapsed time.Duration, err error) {
+func observePointInvocation(rule *compiledMetricsRule, elapsed time.Duration, err error) {
 	if rule == nil {
 		return
 	}
@@ -67,7 +67,7 @@ func observePointInvocation(rule *compiledMetricsRule, point string, elapsed tim
 
 	stats := rule.stats.Load()
 	if stats == nil {
-		stats = pointStatsFor(point)
+		stats = pointStatsFor(rule.id)
 		if !rule.stats.CompareAndSwap(nil, stats) {
 			stats = rule.stats.Load()
 		}
@@ -153,8 +153,8 @@ func ResetMetrics() {
 	if current == nil {
 		return
 	}
-	for point, metric := range current.metrics {
-		metric.stats.Store(pointStatsFor(point))
+	for metricID, metric := range current.metrics {
+		metric.stats.Store(pointStatsFor(metricID))
 	}
 }
 
@@ -171,7 +171,7 @@ func beginMetricsObservation(rule *compiledMetricsRule) (time.Time, bool) {
 	return time.Time{}, true
 }
 
-func endMetricsObservation(rule *compiledMetricsRule, point string, sampled bool, start time.Time, err error) {
+func endMetricsObservation(rule *compiledMetricsRule, sampled bool, start time.Time, err error) {
 	if rule == nil {
 		return
 	}
@@ -182,7 +182,7 @@ func endMetricsObservation(rule *compiledMetricsRule, point string, sampled bool
 	if rule.captureTiming {
 		elapsed = time.Since(start)
 	}
-	observePointInvocation(rule, point, elapsed, err)
+	observePointInvocation(rule, elapsed, err)
 }
 
 func metricsRuleShouldSample(rule *compiledMetricsRule) bool {
@@ -194,6 +194,7 @@ func metricsRuleShouldSample(rule *compiledMetricsRule) bool {
 }
 
 type metricsPointOutput struct {
+	RuleID      string `json:"rule_id"`
 	Point       string `json:"point"`
 	Calls       uint64 `json:"calls"`
 	Errors      uint64 `json:"errors"`
@@ -218,21 +219,22 @@ func EmitMetricsOnExit() error {
 		return nil
 	}
 
-	points := make([]string, 0, len(current.metrics))
-	for point := range current.metrics {
-		points = append(points, point)
+	metricIDs := make([]string, 0, len(current.metrics))
+	for metricID := range current.metrics {
+		metricIDs = append(metricIDs, metricID)
 	}
-	sort.Strings(points)
+	sort.Strings(metricIDs)
 
-	for _, point := range points {
-		stats, ok := snapshot[point]
+	for _, metricID := range metricIDs {
+		stats, ok := snapshot[metricID]
 		if !ok {
 			continue
 		}
-		rule := current.metrics[point]
+		rule := current.metrics[metricID]
 
 		payload := metricsPointOutput{
-			Point:       point,
+			RuleID:      metricID,
+			Point:       rule.op,
 			Calls:       stats.Calls,
 			Errors:      stats.Errors,
 			TotalNanos:  stats.TotalNanos,

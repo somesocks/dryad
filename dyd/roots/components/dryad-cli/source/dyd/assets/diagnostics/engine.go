@@ -20,10 +20,6 @@ func (e *engine) Rules(point string) []*compiledRule {
 	return e.rules[point]
 }
 
-func (e *engine) Metric(point string) *compiledMetricsRule {
-	return e.metrics[point]
-}
-
 type keyMatcherKind int
 
 const (
@@ -65,6 +61,7 @@ type actionType int
 const (
 	actionError actionType = iota
 	actionDelay
+	actionMetrics
 )
 
 type metricsOutputKind int
@@ -103,6 +100,7 @@ type compiledRule struct {
 	postError bool
 	delay     time.Duration
 	err       error
+	metric    *compiledMetricsRule
 	seed      uint64
 }
 
@@ -112,7 +110,7 @@ func compileConfig(cfg Config) (*engine, error) {
 	}
 
 	rulesByPoint := map[string][]*compiledRule{}
-	metricsByPoint := map[string]*compiledMetricsRule{}
+	metricsByID := map[string]*compiledMetricsRule{}
 
 	for idx, rule := range cfg.Rules {
 		if rule.Enabled != nil && !*rule.Enabled {
@@ -124,28 +122,18 @@ func compileConfig(cfg Config) (*engine, error) {
 			return nil, err
 		}
 		rulesByPoint[op] = append(rulesByPoint[op], compiled)
-	}
-
-	for idx, rule := range cfg.Metrics {
-		if rule.Enabled != nil && !*rule.Enabled {
-			continue
+		if compiled.metric != nil {
+			if _, exists := metricsByID[compiled.metric.id]; exists {
+				return nil, fmt.Errorf("duplicate diagnostics metrics rule id %q", compiled.metric.id)
+			}
+			compiled.metric.stats.Store(pointStatsFor(compiled.metric.id))
+			metricsByID[compiled.metric.id] = compiled.metric
 		}
-
-		compiled, op, err := compileMetricsRule(idx, rule)
-		if err != nil {
-			return nil, err
-		}
-
-		if _, exists := metricsByPoint[op]; exists {
-			return nil, fmt.Errorf("duplicate diagnostics metrics rule op %q", op)
-		}
-		compiled.stats.Store(pointStatsFor(op))
-		metricsByPoint[op] = compiled
 	}
 
 	return &engine{
 		rules:   rulesByPoint,
-		metrics: metricsByPoint,
+		metrics: metricsByID,
 	}, nil
 }
 
@@ -178,42 +166,6 @@ func compileRule(seed int64, index int, rule RuleConfig) (*compiledRule, string,
 	}
 
 	return compiled, op, nil
-}
-
-func compileMetricsRule(index int, rule MetricsRuleConfig) (*compiledMetricsRule, string, error) {
-	ruleID := fallbackRuleID("metrics", index, rule.ID)
-
-	op := strings.TrimSpace(rule.Op)
-	if op == "" {
-		return nil, "", fmt.Errorf("diagnostics metrics rule %q: missing op", ruleID)
-	}
-
-	output, err := parseMetricsOutput(rule.Output)
-	if err != nil {
-		return nil, "", fmt.Errorf("diagnostics metrics rule %q: %w", ruleID, err)
-	}
-
-	captureCalls := boolOrDefault(rule.Capture.Calls, true)
-	captureErrors := boolOrDefault(rule.Capture.Errors, true)
-	captureTiming := boolOrDefault(rule.Capture.Timing, true)
-	if !captureCalls && !captureErrors && !captureTiming {
-		return nil, "", fmt.Errorf("diagnostics metrics rule %q: capture must enable at least one of calls, errors, timing", ruleID)
-	}
-	sampleEvery, err := compileMetricsSampleEvery(rule.Capture.SamplePercent)
-	if err != nil {
-		return nil, "", fmt.Errorf("diagnostics metrics rule %q: %w", ruleID, err)
-	}
-
-	return &compiledMetricsRule{
-		id:            ruleID,
-		op:            op,
-		output:        output,
-		captureCalls:  captureCalls,
-		captureErrors: captureErrors,
-		captureTiming: captureTiming,
-		sampleEvery:   sampleEvery,
-		sampleMask:    sampleEvery - 1,
-	}, op, nil
 }
 
 func fallbackRuleID(prefix string, index int, configured string) string {
@@ -277,6 +229,45 @@ func boolOrDefault(value *bool, defaultValue bool) bool {
 	return *value
 }
 
+func compileMetricsAction(ruleID string, op string, action ActionConfig) (*compiledMetricsRule, error) {
+	if strings.TrimSpace(action.Phase) != "" {
+		return nil, fmt.Errorf("diagnostics rule %q: action.phase is only supported for action.type=\"error\"", ruleID)
+	}
+	if strings.TrimSpace(action.Error) != "" {
+		return nil, fmt.Errorf("diagnostics rule %q: action.error is only supported for action.type=\"error\"", ruleID)
+	}
+	if action.DelayMS != 0 {
+		return nil, fmt.Errorf("diagnostics rule %q: action.delay_ms is only supported for action.type=\"delay\"", ruleID)
+	}
+
+	output, err := parseMetricsOutput(action.Output)
+	if err != nil {
+		return nil, fmt.Errorf("diagnostics rule %q: %w", ruleID, err)
+	}
+
+	captureCalls := boolOrDefault(action.Capture.Calls, true)
+	captureErrors := boolOrDefault(action.Capture.Errors, true)
+	captureTiming := boolOrDefault(action.Capture.Timing, true)
+	if !captureCalls && !captureErrors && !captureTiming {
+		return nil, fmt.Errorf("diagnostics rule %q: capture must enable at least one of calls, errors, timing", ruleID)
+	}
+	sampleEvery, err := compileMetricsSampleEvery(action.Capture.SamplePercent)
+	if err != nil {
+		return nil, fmt.Errorf("diagnostics rule %q: %w", ruleID, err)
+	}
+
+	return &compiledMetricsRule{
+		id:            ruleID,
+		op:            op,
+		output:        output,
+		captureCalls:  captureCalls,
+		captureErrors: captureErrors,
+		captureTiming: captureTiming,
+		sampleEvery:   sampleEvery,
+		sampleMask:    sampleEvery - 1,
+	}, nil
+}
+
 func compileKeyMatcher(raw string) (keyMatcher, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
@@ -334,6 +325,9 @@ func compileWhen(out *compiledRule, when WhenConfig, id string) error {
 func compileAction(out *compiledRule, action ActionConfig, id string) error {
 	switch action.Type {
 	case "error":
+		if strings.TrimSpace(action.Output) != "" || hasActionCaptureConfig(action.Capture) {
+			return fmt.Errorf("diagnostics rule %q: action.output and action.capture are only supported for action.type=\"metrics\"", id)
+		}
 		errValue, err := parseErrorName(action.Error)
 		if err != nil {
 			return fmt.Errorf("diagnostics rule %q: %w", id, err)
@@ -346,6 +340,9 @@ func compileAction(out *compiledRule, action ActionConfig, id string) error {
 		out.postError = post
 		out.err = errValue
 	case "delay":
+		if strings.TrimSpace(action.Output) != "" || hasActionCaptureConfig(action.Capture) {
+			return fmt.Errorf("diagnostics rule %q: action.output and action.capture are only supported for action.type=\"metrics\"", id)
+		}
 		if strings.TrimSpace(action.Phase) != "" {
 			return fmt.Errorf("diagnostics rule %q: action.phase is only supported for action.type=\"error\"", id)
 		}
@@ -354,11 +351,22 @@ func compileAction(out *compiledRule, action ActionConfig, id string) error {
 		}
 		out.action = actionDelay
 		out.delay = time.Duration(action.DelayMS) * time.Millisecond
+	case "metrics":
+		metric, err := compileMetricsAction(id, out.op, action)
+		if err != nil {
+			return err
+		}
+		out.action = actionMetrics
+		out.metric = metric
 	default:
 		return fmt.Errorf("diagnostics rule %q: unsupported action.type %q", id, action.Type)
 	}
 
 	return nil
+}
+
+func hasActionCaptureConfig(capture MetricsCaptureConfig) bool {
+	return capture.Calls != nil || capture.Errors != nil || capture.Timing != nil || capture.SamplePercent != nil
 }
 
 func parseErrorPhase(raw string) (bool, error) {

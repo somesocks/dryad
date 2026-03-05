@@ -8,7 +8,7 @@ GARDEN_STDERR=''
 
 _metrics_config_for_output() {
   local output_stream="$1"
-  printf 'json:{"version":1,"seed":1,"metrics":[{"id":"m-os-link","op":"os.link","output":"%s","capture":{"calls":true,"errors":true,"timing":false,"sample_percent":100}}]}' "$output_stream"
+  printf 'json:{"version":1,"seed":1,"rules":[{"id":"m-os-link","op":"os.link","key":"*","when":{"mode":"every_n","count":1},"action":{"type":"metrics","output":"%s","capture":{"calls":true,"errors":true,"timing":false,"sample_percent":100}}}]}' "$output_stream"
 }
 
 _setup() {

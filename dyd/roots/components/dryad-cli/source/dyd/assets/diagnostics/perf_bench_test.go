@@ -12,6 +12,19 @@ func benchBaseA2R0(a0 string, a1 string) error {
 	return nil
 }
 
+func benchMetricsRule(capture MetricsCaptureConfig) RuleConfig {
+	return RuleConfig{
+		ID:   "m",
+		Op:   "os.link",
+		Key:  "*",
+		When: WhenConfig{Mode: "every_n", Count: 1},
+		Action: ActionConfig{
+			Type:    "metrics",
+			Capture: capture,
+		},
+	}
+}
+
 func BenchmarkBindA2R0_Direct(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		benchSinkErr = benchBaseA2R0("a", "b")
@@ -97,11 +110,8 @@ func BenchmarkBindA2R0_EnabledMetricsAll(b *testing.B) {
 	Reset()
 	if err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{
-				ID: "m",
-				Op: "os.link",
-			},
+		Rules: []RuleConfig{
+			benchMetricsRule(MetricsCaptureConfig{}),
 		},
 	}); err != nil {
 		b.Fatal(err)
@@ -120,14 +130,10 @@ func BenchmarkBindA2R0_EnabledMetricsNoTiming(b *testing.B) {
 	disabled := false
 	if err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{
-				ID: "m",
-				Op: "os.link",
-				Capture: MetricsCaptureConfig{
-					Timing: &disabled,
-				},
-			},
+		Rules: []RuleConfig{
+			benchMetricsRule(MetricsCaptureConfig{
+				Timing: &disabled,
+			}),
 		},
 	}); err != nil {
 		b.Fatal(err)
@@ -146,16 +152,12 @@ func BenchmarkBindA2R0_EnabledMetricsCallsOnly(b *testing.B) {
 	disabled := false
 	if err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{
-				ID: "m",
-				Op: "os.link",
-				Capture: MetricsCaptureConfig{
-					Calls:  nil,
-					Errors: &disabled,
-					Timing: &disabled,
-				},
-			},
+		Rules: []RuleConfig{
+			benchMetricsRule(MetricsCaptureConfig{
+				Calls:  nil,
+				Errors: &disabled,
+				Timing: &disabled,
+			}),
 		},
 	}); err != nil {
 		b.Fatal(err)
@@ -175,16 +177,12 @@ func BenchmarkBindA2R0_EnabledMetricsErrorsOnly(b *testing.B) {
 	disabled := false
 	if err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{
-				ID: "m",
-				Op: "os.link",
-				Capture: MetricsCaptureConfig{
-					Calls:  &disabled,
-					Errors: &enabled,
-					Timing: &disabled,
-				},
-			},
+		Rules: []RuleConfig{
+			benchMetricsRule(MetricsCaptureConfig{
+				Calls:  &disabled,
+				Errors: &enabled,
+				Timing: &disabled,
+			}),
 		},
 	}); err != nil {
 		b.Fatal(err)
@@ -204,16 +202,12 @@ func BenchmarkBindA2R0_EnabledMetricsCallsAndErrorsOnly(b *testing.B) {
 	disabled := false
 	if err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{
-				ID: "m",
-				Op: "os.link",
-				Capture: MetricsCaptureConfig{
-					Calls:  &enabled,
-					Errors: &enabled,
-					Timing: &disabled,
-				},
-			},
+		Rules: []RuleConfig{
+			benchMetricsRule(MetricsCaptureConfig{
+				Calls:  &enabled,
+				Errors: &enabled,
+				Timing: &disabled,
+			}),
 		},
 	}); err != nil {
 		b.Fatal(err)
@@ -232,16 +226,12 @@ func BenchmarkBindA2R0_EnabledMetricsTimingOnly(b *testing.B) {
 	disabled := false
 	if err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{
-				ID: "m",
-				Op: "os.link",
-				Capture: MetricsCaptureConfig{
-					Calls:  &disabled,
-					Errors: &disabled,
-					Timing: nil,
-				},
-			},
+		Rules: []RuleConfig{
+			benchMetricsRule(MetricsCaptureConfig{
+				Calls:  &disabled,
+				Errors: &disabled,
+				Timing: nil,
+			}),
 		},
 	}); err != nil {
 		b.Fatal(err)
@@ -261,15 +251,11 @@ func BenchmarkBindA2R0_EnabledMetricsNoTimingSample50(b *testing.B) {
 	samplePercent := 50.0
 	if err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{
-				ID: "m",
-				Op: "os.link",
-				Capture: MetricsCaptureConfig{
-					Timing:        &disabled,
-					SamplePercent: &samplePercent,
-				},
-			},
+		Rules: []RuleConfig{
+			benchMetricsRule(MetricsCaptureConfig{
+				Timing:        &disabled,
+				SamplePercent: &samplePercent,
+			}),
 		},
 	}); err != nil {
 		b.Fatal(err)
@@ -288,14 +274,10 @@ func BenchmarkBindA2R0_EnabledMetricsAllSample50(b *testing.B) {
 	samplePercent := 50.0
 	if err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{
-				ID: "m",
-				Op: "os.link",
-				Capture: MetricsCaptureConfig{
-					SamplePercent: &samplePercent,
-				},
-			},
+		Rules: []RuleConfig{
+			benchMetricsRule(MetricsCaptureConfig{
+				SamplePercent: &samplePercent,
+			}),
 		},
 	}); err != nil {
 		b.Fatal(err)
@@ -314,14 +296,10 @@ func BenchmarkBindA2R0_EnabledMetricsAllSample1(b *testing.B) {
 	samplePercent := 1.0
 	if err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{
-				ID: "m",
-				Op: "os.link",
-				Capture: MetricsCaptureConfig{
-					SamplePercent: &samplePercent,
-				},
-			},
+		Rules: []RuleConfig{
+			benchMetricsRule(MetricsCaptureConfig{
+				SamplePercent: &samplePercent,
+			}),
 		},
 	}); err != nil {
 		b.Fatal(err)

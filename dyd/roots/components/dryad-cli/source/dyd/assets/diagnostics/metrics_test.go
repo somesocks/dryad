@@ -18,14 +18,28 @@ func floatRef(v float64) *float64 {
 	return &v
 }
 
+func metricsRule(id string, op string, output string, capture MetricsCaptureConfig) RuleConfig {
+	return RuleConfig{
+		ID:   id,
+		Op:   op,
+		Key:  "*",
+		When: WhenConfig{Mode: "every_n", Count: 1},
+		Action: ActionConfig{
+			Type:    "metrics",
+			Output:  output,
+			Capture: capture,
+		},
+	}
+}
+
 func TestMetricsSnapshot_BinderCountsAndErrors(t *testing.T) {
 	Reset()
 	t.Cleanup(Reset)
 
 	if err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{ID: "m-bind", Op: "metrics.bind", Output: "stderr"},
+		Rules: []RuleConfig{
+			metricsRule("m-bind", "metrics.bind", "stderr", MetricsCaptureConfig{}),
 		},
 	}); err != nil {
 		t.Fatalf("setup diagnostics: %v", err)
@@ -51,9 +65,9 @@ func TestMetricsSnapshot_BinderCountsAndErrors(t *testing.T) {
 	}
 
 	snapshot := MetricsSnapshot()
-	stats, ok := snapshot["metrics.bind"]
+	stats, ok := snapshot["m-bind"]
 	if !ok {
-		t.Fatalf("missing metrics point metrics.bind")
+		t.Fatalf("missing metrics rule m-bind")
 	}
 	if stats.Calls != 2 {
 		t.Fatalf("expected calls=2, got %d", stats.Calls)
@@ -77,6 +91,7 @@ func TestMetricsSnapshot_ApplyCounts(t *testing.T) {
 		Version: 1,
 		Seed:    1,
 		Rules: []RuleConfig{
+			metricsRule("m-apply", "metrics.apply", "stderr", MetricsCaptureConfig{}),
 			{
 				ID:   "inject",
 				Op:   "metrics.apply",
@@ -88,9 +103,6 @@ func TestMetricsSnapshot_ApplyCounts(t *testing.T) {
 				},
 			},
 		},
-		Metrics: []MetricsRuleConfig{
-			{ID: "m-apply", Op: "metrics.apply", Output: "stderr"},
-		},
 	})
 	if err != nil {
 		t.Fatalf("setup diagnostics: %v", err)
@@ -101,9 +113,9 @@ func TestMetricsSnapshot_ApplyCounts(t *testing.T) {
 	}
 
 	snapshot := MetricsSnapshot()
-	stats, ok := snapshot["metrics.apply"]
+	stats, ok := snapshot["m-apply"]
 	if !ok {
-		t.Fatalf("missing metrics point metrics.apply")
+		t.Fatalf("missing metrics rule m-apply")
 	}
 	if stats.Calls != 1 {
 		t.Fatalf("expected calls=1, got %d", stats.Calls)
@@ -119,8 +131,8 @@ func TestResetMetrics_ClearsState(t *testing.T) {
 
 	if err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{ID: "m-reset", Op: "metrics.reset", Output: "stderr"},
+		Rules: []RuleConfig{
+			metricsRule("m-reset", "metrics.reset", "stderr", MetricsCaptureConfig{}),
 		},
 	}); err != nil {
 		t.Fatalf("setup diagnostics: %v", err)
@@ -153,8 +165,8 @@ func TestResetMetrics_RebindsActiveMetricStats(t *testing.T) {
 
 	if err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{ID: "m-reset-active", Op: "metrics.reset_active", Output: "stderr"},
+		Rules: []RuleConfig{
+			metricsRule("m-reset-active", "metrics.reset_active", "stderr", MetricsCaptureConfig{}),
 		},
 	}); err != nil {
 		t.Fatalf("setup diagnostics: %v", err)
@@ -168,13 +180,13 @@ func TestResetMetrics_RebindsActiveMetricStats(t *testing.T) {
 		t.Fatalf("expected nil on first call, got %v", err)
 	}
 
-	before := MetricsSnapshot()["metrics.reset_active"]
+	before := MetricsSnapshot()["m-reset-active"]
 	if before.Calls != 1 {
 		t.Fatalf("expected calls=1 before reset, got %d", before.Calls)
 	}
 
 	ResetMetrics()
-	resetSnap := MetricsSnapshot()["metrics.reset_active"]
+	resetSnap := MetricsSnapshot()["m-reset-active"]
 	if resetSnap.Calls != 0 || resetSnap.Errors != 0 || resetSnap.TotalNanos != 0 {
 		t.Fatalf("expected zeroed stats immediately after reset, got %+v", resetSnap)
 	}
@@ -183,7 +195,7 @@ func TestResetMetrics_RebindsActiveMetricStats(t *testing.T) {
 		t.Fatalf("expected nil on second call, got %v", err)
 	}
 
-	after := MetricsSnapshot()["metrics.reset_active"]
+	after := MetricsSnapshot()["m-reset-active"]
 	if after.Calls != 1 {
 		t.Fatalf("expected calls=1 after reset and one new call, got %d", after.Calls)
 	}
@@ -195,8 +207,8 @@ func TestEmitMetricsOnExit_UsesConfiguredStream(t *testing.T) {
 
 	if err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{ID: "m-out", Op: "metrics.output", Output: "stdout"},
+		Rules: []RuleConfig{
+			metricsRule("m-out", "metrics.output", "stdout", MetricsCaptureConfig{}),
 		},
 	}); err != nil {
 		t.Fatalf("setup diagnostics: %v", err)
@@ -245,16 +257,12 @@ func TestSetupFromConfig_MetricsCaptureRejectsAllDisabled(t *testing.T) {
 
 	err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{
-				ID: "m-disabled",
-				Op: "metrics.none",
-				Capture: MetricsCaptureConfig{
-					Calls:  boolRef(false),
-					Errors: boolRef(false),
-					Timing: boolRef(false),
-				},
-			},
+		Rules: []RuleConfig{
+			metricsRule("m-disabled", "metrics.none", "", MetricsCaptureConfig{
+				Calls:  boolRef(false),
+				Errors: boolRef(false),
+				Timing: boolRef(false),
+			}),
 		},
 	})
 	if err == nil {
@@ -268,21 +276,18 @@ func TestSetupFromConfig_GeneratesMetricsRuleIDWhenMissing(t *testing.T) {
 
 	err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{
-				Op: "metrics.generated_id",
-				Capture: MetricsCaptureConfig{
-					Calls:  boolRef(false),
-					Errors: boolRef(false),
-					Timing: boolRef(false),
-				},
-			},
+		Rules: []RuleConfig{
+			metricsRule("", "metrics.generated_id", "", MetricsCaptureConfig{
+				Calls:  boolRef(false),
+				Errors: boolRef(false),
+				Timing: boolRef(false),
+			}),
 		},
 	})
 	if err == nil {
 		t.Fatalf("expected setup to fail when all metrics capture flags are disabled")
 	}
-	if !strings.Contains(err.Error(), `diagnostics metrics rule "metrics-1":`) {
+	if !strings.Contains(err.Error(), `diagnostics rule "rule-1":`) {
 		t.Fatalf("expected generated metrics rule id in error, got: %v", err)
 	}
 }
@@ -293,14 +298,10 @@ func TestSetupFromConfig_MetricsSamplePercentRejectsOutOfRange(t *testing.T) {
 
 	err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{
-				ID: "m-bad-sample",
-				Op: "metrics.bad_sample",
-				Capture: MetricsCaptureConfig{
-					SamplePercent: floatRef(0),
-				},
-			},
+		Rules: []RuleConfig{
+			metricsRule("m-bad-sample", "metrics.bad_sample", "", MetricsCaptureConfig{
+				SamplePercent: floatRef(0),
+			}),
 		},
 	})
 	if err == nil {
@@ -314,14 +315,10 @@ func TestMetricsSnapshot_SamplePercentAffectsAllMetrics(t *testing.T) {
 
 	if err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{
-				ID: "m-sample-all",
-				Op: "metrics.sample_all",
-				Capture: MetricsCaptureConfig{
-					SamplePercent: floatRef(50),
-				},
-			},
+		Rules: []RuleConfig{
+			metricsRule("m-sample-all", "metrics.sample_all", "", MetricsCaptureConfig{
+				SamplePercent: floatRef(50),
+			}),
 		},
 	}); err != nil {
 		t.Fatalf("setup diagnostics: %v", err)
@@ -341,7 +338,7 @@ func TestMetricsSnapshot_SamplePercentAffectsAllMetrics(t *testing.T) {
 		}
 	}
 
-	stats := MetricsSnapshot()["metrics.sample_all"]
+	stats := MetricsSnapshot()["m-sample-all"]
 	if stats.Calls != 2 {
 		t.Fatalf("expected sampled calls=2, got %d", stats.Calls)
 	}
@@ -359,15 +356,11 @@ func TestMetricsSnapshot_SamplePercentRoundsToPowerOfTwoRate(t *testing.T) {
 
 	if err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{
-				ID: "m-sample-round",
-				Op: "metrics.sample_round",
-				Capture: MetricsCaptureConfig{
-					SamplePercent: floatRef(30),
-					Timing:        boolRef(false),
-				},
-			},
+		Rules: []RuleConfig{
+			metricsRule("m-sample-round", "metrics.sample_round", "", MetricsCaptureConfig{
+				SamplePercent: floatRef(30),
+				Timing:        boolRef(false),
+			}),
 		},
 	}); err != nil {
 		t.Fatalf("setup diagnostics: %v", err)
@@ -384,7 +377,7 @@ func TestMetricsSnapshot_SamplePercentRoundsToPowerOfTwoRate(t *testing.T) {
 		}
 	}
 
-	stats := MetricsSnapshot()["metrics.sample_round"]
+	stats := MetricsSnapshot()["m-sample-round"]
 	// 30% rounds to nearest power-of-two capture rate: 25% (1-in-4).
 	if stats.Calls != 2 {
 		t.Fatalf("expected sampled calls=2 for 8 invocations at rounded 25%% rate, got %d", stats.Calls)
@@ -397,15 +390,11 @@ func TestEmitMetricsOnExit_IncludesSampleEvery(t *testing.T) {
 
 	if err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{
-				ID: "m-sample-every",
-				Op: "metrics.sample_every",
-				Capture: MetricsCaptureConfig{
-					SamplePercent: floatRef(50),
-					Timing:        boolRef(false),
-				},
-			},
+		Rules: []RuleConfig{
+			metricsRule("m-sample-every", "metrics.sample_every", "", MetricsCaptureConfig{
+				SamplePercent: floatRef(50),
+				Timing:        boolRef(false),
+			}),
 		},
 	}); err != nil {
 		t.Fatalf("setup diagnostics: %v", err)
@@ -452,14 +441,10 @@ func TestMetricsSnapshot_CaptureTimingDisabled(t *testing.T) {
 
 	if err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{
-				ID: "m-no-timing",
-				Op: "metrics.no_timing",
-				Capture: MetricsCaptureConfig{
-					Timing: boolRef(false),
-				},
-			},
+		Rules: []RuleConfig{
+			metricsRule("m-no-timing", "metrics.no_timing", "", MetricsCaptureConfig{
+				Timing: boolRef(false),
+			}),
 		},
 	}); err != nil {
 		t.Fatalf("setup diagnostics: %v", err)
@@ -473,7 +458,7 @@ func TestMetricsSnapshot_CaptureTimingDisabled(t *testing.T) {
 		t.Fatalf("expected nil, got %v", err)
 	}
 
-	stats := MetricsSnapshot()["metrics.no_timing"]
+	stats := MetricsSnapshot()["m-no-timing"]
 	if stats.Calls != 1 {
 		t.Fatalf("expected calls=1, got %d", stats.Calls)
 	}
@@ -488,14 +473,10 @@ func TestMetricsSnapshot_CaptureErrorsDisabled(t *testing.T) {
 
 	if err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{
-				ID: "m-no-errors",
-				Op: "metrics.no_errors",
-				Capture: MetricsCaptureConfig{
-					Errors: boolRef(false),
-				},
-			},
+		Rules: []RuleConfig{
+			metricsRule("m-no-errors", "metrics.no_errors", "", MetricsCaptureConfig{
+				Errors: boolRef(false),
+			}),
 		},
 	}); err != nil {
 		t.Fatalf("setup diagnostics: %v", err)
@@ -511,7 +492,7 @@ func TestMetricsSnapshot_CaptureErrorsDisabled(t *testing.T) {
 		t.Fatalf("expected error from base call, got %v", err)
 	}
 
-	stats := MetricsSnapshot()["metrics.no_errors"]
+	stats := MetricsSnapshot()["m-no-errors"]
 	if stats.Calls != 1 {
 		t.Fatalf("expected calls=1, got %d", stats.Calls)
 	}
@@ -526,14 +507,10 @@ func TestMetricsSnapshot_CaptureCallsDisabled(t *testing.T) {
 
 	if err := SetupFromConfig(Config{
 		Version: 1,
-		Metrics: []MetricsRuleConfig{
-			{
-				ID: "m-no-calls",
-				Op: "metrics.no_calls",
-				Capture: MetricsCaptureConfig{
-					Calls: boolRef(false),
-				},
-			},
+		Rules: []RuleConfig{
+			metricsRule("m-no-calls", "metrics.no_calls", "", MetricsCaptureConfig{
+				Calls: boolRef(false),
+			}),
 		},
 	}); err != nil {
 		t.Fatalf("setup diagnostics: %v", err)
@@ -550,7 +527,7 @@ func TestMetricsSnapshot_CaptureCallsDisabled(t *testing.T) {
 		t.Fatalf("expected nil, got %v", err)
 	}
 
-	stats := MetricsSnapshot()["metrics.no_calls"]
+	stats := MetricsSnapshot()["m-no-calls"]
 	if stats.Calls != 0 {
 		t.Fatalf("expected calls=0 when calls capture is disabled, got %d", stats.Calls)
 	}
