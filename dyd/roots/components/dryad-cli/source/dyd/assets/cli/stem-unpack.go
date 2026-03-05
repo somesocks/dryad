@@ -64,7 +64,7 @@ var stemUnpackCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while unpacking stem")
+				zlog.Error().Err(err).Msg("error while unpacking stem")
 				return 1
 			}
 

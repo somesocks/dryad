@@ -67,10 +67,10 @@ var rootDevelopStopCommand = func() clib.Command {
 		func(err error, val any) int {
 			if err != nil {
 				if errors.Is(err, errDevSocketNotSet) {
-					zlog.Fatal().Err(err).Msg("not running inside a root development environment")
+					zlog.Error().Err(err).Msg("not running inside a root development environment")
 					return 1
 				}
-				zlog.Fatal().Err(err).Msg("stop request failed")
+				zlog.Error().Err(err).Msg("stop request failed")
 				return 1
 			}
 

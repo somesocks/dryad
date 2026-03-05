@@ -77,7 +77,7 @@ var sproutPackCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while packing sprout")
+				zlog.Error().Err(err).Msg("error while packing sprout")
 				return 1
 			}
 

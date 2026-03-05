@@ -71,7 +71,7 @@ var scopesPathCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while finding scopes path")
+				zlog.Error().Err(err).Msg("error while finding scopes path")
 				return 1
 			}
 			return 0

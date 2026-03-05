@@ -73,7 +73,7 @@ var scopesDefaultSetCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while setting active scope")
+				zlog.Error().Err(err).Msg("error while setting active scope")
 				return 1
 			}
 			return 0

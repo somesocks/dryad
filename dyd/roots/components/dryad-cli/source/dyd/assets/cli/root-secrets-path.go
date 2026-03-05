@@ -87,7 +87,7 @@ var rootSecretsPathCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while finding secrets path")
+				zlog.Error().Err(err).Msg("error while finding secrets path")
 				return 1
 			}
 			return 0

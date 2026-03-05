@@ -107,7 +107,7 @@ var rootVariantsListCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while listing root variants")
+				zlog.Error().Err(err).Msg("error while listing root variants")
 				return 1
 			}
 

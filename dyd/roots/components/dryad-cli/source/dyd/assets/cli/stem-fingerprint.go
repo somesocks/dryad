@@ -91,7 +91,7 @@ var stemFingerprintCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while building stem fingerprint")
+				zlog.Error().Err(err).Msg("error while building stem fingerprint")
 				return 1
 			}
 

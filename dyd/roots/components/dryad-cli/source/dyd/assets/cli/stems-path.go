@@ -59,7 +59,7 @@ var stemsPathCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while finding stems path")
+				zlog.Error().Err(err).Msg("error while finding stems path")
 				return 1
 			}
 

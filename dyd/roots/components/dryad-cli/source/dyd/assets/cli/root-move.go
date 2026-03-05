@@ -102,7 +102,7 @@ var rootMoveCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error during root move")
+				zlog.Error().Err(err).Msg("error during root move")
 				return 1
 			}
 

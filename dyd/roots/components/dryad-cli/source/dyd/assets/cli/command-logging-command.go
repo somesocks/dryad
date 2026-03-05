@@ -36,7 +36,7 @@ var LoggingCommand = func(
 		case "json":
 			break
 		default:
-			log.Fatal().Msg("unrecognized log format " + logFormat)
+			log.Error().Msg("unrecognized log format " + logFormat)
 			return 1
 		}
 
@@ -56,7 +56,7 @@ var LoggingCommand = func(
 		case "trace":
 			zerolog.SetGlobalLevel(zerolog.TraceLevel)
 		default:
-			log.Fatal().Msg("unrecognized log level " + logLevel)
+			log.Error().Msg("unrecognized log level " + logLevel)
 			return 1
 		}
 

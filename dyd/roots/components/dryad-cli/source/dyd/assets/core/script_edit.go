@@ -43,14 +43,14 @@ func ScriptEdit(request ScriptEditRequest) error {
 	f, err := os.OpenFile(scriptPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
 	if err != nil {
 		zlog.
-			Fatal().
+			Error().
 			Err(err).
 			Msg("error creating script file")
 		return err
 	}
 	if err := f.Close(); err != nil {
 		zlog.
-			Fatal().
+			Error().
 			Err(err).
 			Msg("error closing script file after creation")
 		return err

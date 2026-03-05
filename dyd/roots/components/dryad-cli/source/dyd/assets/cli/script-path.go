@@ -104,7 +104,7 @@ var scriptPathAction = func(req clib.ActionRequest) int {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error finding script path")
+				zlog.Error().Err(err).Msg("error finding script path")
 				return 1
 			}
 			return 0

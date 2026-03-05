@@ -124,7 +124,7 @@ var rootsOwningCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while finding owning roots")
+				zlog.Error().Err(err).Msg("error while finding owning roots")
 				return 1
 			}
 

@@ -71,7 +71,7 @@ var sproutsWipeAction = func(req clib.ActionRequest) int {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while wiping sprouts")
+				zlog.Error().Err(err).Msg("error while wiping sprouts")
 				return 1
 			}
 

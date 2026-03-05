@@ -76,7 +76,7 @@ var scopeSettingUnsetCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while removing scope setting")
+				zlog.Error().Err(err).Msg("error while removing scope setting")
 				return 1
 			}
 			return 0

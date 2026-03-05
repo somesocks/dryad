@@ -126,7 +126,7 @@ var scriptEditAction = func(req clib.ActionRequest) int {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while editing script")
+				zlog.Error().Err(err).Msg("error while editing script")
 				return 1
 			}
 			return 0

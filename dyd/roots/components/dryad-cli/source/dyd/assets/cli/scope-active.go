@@ -91,7 +91,7 @@ var scopeActiveCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while loading active scope")
+				zlog.Error().Err(err).Msg("error while loading active scope")
 				return 1
 			}
 			return 0

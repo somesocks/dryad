@@ -81,7 +81,7 @@ var scopeSettingGetCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while getting scope setting")
+				zlog.Error().Err(err).Msg("error while getting scope setting")
 				return 1
 			}
 			return 0

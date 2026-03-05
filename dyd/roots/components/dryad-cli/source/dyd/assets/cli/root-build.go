@@ -149,7 +149,7 @@ var rootBuildCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while building root")
+				zlog.Error().Err(err).Msg("error while building root")
 				return 1
 			}
 

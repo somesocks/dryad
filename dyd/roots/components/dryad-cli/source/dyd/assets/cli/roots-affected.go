@@ -137,7 +137,7 @@ var rootsAffectedCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while finding affected roots")
+				zlog.Error().Err(err).Msg("error while finding affected roots")
 				return 1
 			}
 			return 0

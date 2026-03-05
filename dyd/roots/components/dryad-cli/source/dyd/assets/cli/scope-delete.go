@@ -73,7 +73,7 @@ var scopeDeleteCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while deleting scope")
+				zlog.Error().Err(err).Msg("error while deleting scope")
 				return 1
 			}
 			return 0

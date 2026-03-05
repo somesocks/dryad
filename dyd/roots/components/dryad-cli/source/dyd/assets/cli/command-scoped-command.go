@@ -40,7 +40,7 @@ var ScopedCommand = func(
 			scope, err = dryad.ScopeGetDefault(garden)
 			zlog.Debug().Msg("loading default scope: " + scope)
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while loading default scope")
+				zlog.Error().Err(err).Msg("error while loading default scope")
 				return 1
 			}
 		}
@@ -56,13 +56,13 @@ var ScopedCommand = func(
 
 		setting, err := dryad.ScopeSettingGet(garden, scope, settingName)
 		if err != nil {
-			zlog.Fatal().Err(err).Msg("error while loading setting")
+			zlog.Error().Err(err).Msg("error while loading setting")
 			return 1
 		}
 
 		settings, err := dryad.ScopeSettingParseShell(setting)
 		if err != nil {
-			zlog.Fatal().Err(err).Msg("error while parsing setting")
+			zlog.Error().Err(err).Msg("error while parsing setting")
 			return 1
 		}
 

@@ -91,7 +91,7 @@ var rootSecretsListCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while crawling secrets")
+				zlog.Error().Err(err).Msg("error while crawling secrets")
 				return 1
 			}
 			return 0

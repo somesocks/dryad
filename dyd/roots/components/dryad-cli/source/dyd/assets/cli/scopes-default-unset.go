@@ -68,7 +68,7 @@ var scopesDefaultUnsetCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while removing active scope")
+				zlog.Error().Err(err).Msg("error while removing active scope")
 				return 1
 			}
 			return 0

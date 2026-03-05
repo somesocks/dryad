@@ -68,7 +68,7 @@ var sproutsPathAction = func(req clib.ActionRequest) int {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while finding sprouts path")
+				zlog.Error().Err(err).Msg("error while finding sprouts path")
 				return 1
 			}
 

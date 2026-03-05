@@ -141,7 +141,7 @@ var rootsGraphCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while building roots graph")
+				zlog.Error().Err(err).Msg("error while building roots graph")
 				return 1
 			}
 

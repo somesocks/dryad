@@ -64,7 +64,7 @@ var stemsListCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while crawling stems")
+				zlog.Error().Err(err).Msg("error while crawling stems")
 				return 1
 			}
 

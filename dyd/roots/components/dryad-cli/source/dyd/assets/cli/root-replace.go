@@ -111,7 +111,7 @@ var rootReplaceCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while replacing root")
+				zlog.Error().Err(err).Msg("error while replacing root")
 				return 1
 			}
 
