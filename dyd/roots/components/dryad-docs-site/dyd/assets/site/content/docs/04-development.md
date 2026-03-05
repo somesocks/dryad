@@ -73,17 +73,17 @@ Supported `when.mode` values are:
 
 ### Diagnostics Examples
 
-Inject a pre-error on every `os.link` call:
+Inject a pre-error on the first `os.link` call:
 
 ```sh
-DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"inject-emlink-pre","op":"os.link","key":"*","when":{"mode":"every_x","x":1},"action":{"type":"error","error":"EMLINK"}}]}' \
+DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"inject-emlink-pre","op":"os.link","key":"*","when":{"mode":"before_x","x":1},"action":{"type":"error","error":"EMLINK"}}]}' \
 dryad root build dyd/roots/root-01
 ```
 
-Inject a post-error on every `os.link` call:
+Inject a post-error after the first `os.link` call:
 
 ```sh
-DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"inject-emlink-post","op":"os.link","key":"*","when":{"mode":"every_x","x":1},"action":{"type":"error","phase":"post","error":"EMLINK"}}]}' \
+DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"inject-emlink-post","op":"os.link","key":"*","when":{"mode":"after_x","x":1},"action":{"type":"error","phase":"post","error":"EMLINK"}}]}' \
 dryad root build dyd/roots/root-01
 ```
 
@@ -119,7 +119,7 @@ rules:
     op: os.link
     key: "*"
     when:
-      mode: every_x
+      mode: before_x
       x: 1
     action:
       type: error
