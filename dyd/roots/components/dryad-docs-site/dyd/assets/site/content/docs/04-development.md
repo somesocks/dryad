@@ -145,18 +145,6 @@ Example emitted metrics line:
 
 `sample_every` in emitted metrics is derived from `when.mode=every_x` (`x` value).
 
-Diagnostics-focused E2E roots for dryad CLI live under:
-
-- `dyd/roots/components/dryad-cli/tests/diagnostics-01--pre-error-fails-build`
-- `dyd/roots/components/dryad-cli/tests/diagnostics-02--metrics-sampling`
-- `dyd/roots/components/dryad-cli/tests/diagnostics-03--post-error-fails-build`
-- `dyd/roots/components/dryad-cli/tests/diagnostics-04--metrics-output-streams`
-- `dyd/roots/components/dryad-cli/tests/diagnostics-05--file-config`
-- `dyd/roots/components/dryad-cli/tests/diagnostics-06--post-error-preserves-side-effects`
-- `dyd/roots/components/dryad-cli/tests/diagnostics-07--file-config-invalid`
-- `dyd/roots/components/dryad-cli/tests/diagnostics-08--metrics-on-error-exit`
-- `dyd/roots/components/dryad-cli/tests/diagnostics-09--metrics-after-injected-fault`
-
 ### The docs scope
 
 The docs scope is used for developing and updating this docs site.

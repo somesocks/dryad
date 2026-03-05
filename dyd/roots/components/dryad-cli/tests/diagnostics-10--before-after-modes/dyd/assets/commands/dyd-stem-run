@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+  TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+  chmod -R 755 "$TEMP_DIR"
+  cd "$TEMP_DIR"
+}
+
+_wipe() {
+  dryad garden wipe --log-level="$DYD_LOG_LEVEL"
+}
+
+_test() {
+  metrics_log="$TEMP_DIR/build-metrics.log"
+  fail_before_log="$TEMP_DIR/build-before-x.log"
+  fail_after_log="$TEMP_DIR/build-after-x.log"
+  fail_before_per_key_log="$TEMP_DIR/build-before-x-per-key.log"
+  fail_after_per_key_log="$TEMP_DIR/build-after-x-per-key.log"
+  success_log="$TEMP_DIR/build-without-diagnostics.log"
+
+  metrics_cfg='json:{"version":1,"seed":1,"rules":[{"id":"m-os-link","op":"os.link","key":"*","when":{"mode":"every_x","x":1},"action":{"type":"metrics","output":"stderr","capture":{"calls":true,"errors":true,"timing":false}}}]}'
+  _wipe
+  if ! DYD_DIAG="$metrics_cfg" dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" > /dev/null 2>"$metrics_log"; then
+    echo "[ERROR] Fail: expected metrics-only build to succeed" 1>&2
+    cat "$metrics_log" 1>&2
+    return 1
+  fi
+  metrics_line=$(grep -F '"point":"os.link"' "$metrics_log" | tail -n 1 || true)
+  if [ -z "$metrics_line" ]; then
+    echo "[ERROR] Fail: expected metrics output with point os.link" 1>&2
+    cat "$metrics_log" 1>&2
+    return 1
+  fi
+  calls=$(printf '%s\n' "$metrics_line" | sed -n 's/.*"calls":\([0-9][0-9]*\).*/\1/p')
+  if [ -z "$calls" ] || [ "$calls" -lt 2 ]; then
+    echo "[ERROR] Fail: expected os.link call count >= 2, got '$calls'" 1>&2
+    cat "$metrics_log" 1>&2
+    return 1
+  fi
+  after_x=$((calls - 1))
+
+  before_cfg='json:{"version":1,"seed":1,"rules":[{"id":"inject-before","op":"os.link","key":"*","when":{"mode":"before_x","x":1},"action":{"type":"error","error":"EMLINK"}}]}'
+  _wipe
+  if DYD_DIAG="$before_cfg" dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" > /dev/null 2>"$fail_before_log"; then
+    echo "[ERROR] Fail: expected build to fail with before_x on os.link" 1>&2
+    cat "$fail_before_log" 1>&2
+    return 1
+  fi
+
+  after_cfg=$(printf 'json:{"version":1,"seed":1,"rules":[{"id":"inject-after","op":"os.link","key":"*","when":{"mode":"after_x","x":%s},"action":{"type":"error","error":"EMLINK"}}]}' "$after_x")
+  _wipe
+  if DYD_DIAG="$after_cfg" dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" > /dev/null 2>"$fail_after_log"; then
+    echo "[ERROR] Fail: expected build to fail with after_x threshold on os.link" 1>&2
+    cat "$fail_after_log" 1>&2
+    return 1
+  fi
+
+  before_per_key_cfg='json:{"version":1,"seed":1,"rules":[{"id":"inject-before-per-key","op":"os.link","key":"*","when":{"mode":"before_x_per_key","x":1},"action":{"type":"error","error":"EMLINK"}}]}'
+  _wipe
+  if DYD_DIAG="$before_per_key_cfg" dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" > /dev/null 2>"$fail_before_per_key_log"; then
+    echo "[ERROR] Fail: expected build to fail with before_x_per_key on os.link" 1>&2
+    cat "$fail_before_per_key_log" 1>&2
+    return 1
+  fi
+
+  cat > "$TEMP_DIR/dyd/roots/root-01/dyd/assets/test-file-01" <<'EOF'
+same-content
+EOF
+  cat > "$TEMP_DIR/dyd/roots/root-01/dyd/assets/test-dir-01/test-file-02" <<'EOF'
+same-content
+EOF
+  after_per_key_cfg='json:{"version":1,"seed":1,"rules":[{"id":"inject-after-per-key","op":"os.link","key":"*","when":{"mode":"after_x_per_key","x":1},"action":{"type":"error","error":"EMLINK"}}]}'
+  _wipe
+  if DYD_DIAG="$after_per_key_cfg" dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" > /dev/null 2>"$fail_after_per_key_log"; then
+    echo "[ERROR] Fail: expected build to fail with after_x_per_key when duplicate content exists" 1>&2
+    cat "$fail_after_per_key_log" 1>&2
+    return 1
+  fi
+
+  _wipe
+  if dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" >"$success_log" 2>&1; then
+    :
+  else
+    echo "[ERROR] Fail: expected build without diagnostics config to succeed" 1>&2
+    cat "$success_log" 1>&2
+    return 1
+  fi
+}
+
+_verify() {
+  assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01"
+  assert_file_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/fingerprint"
+}
+
+_teardown() {
+  if [ -d "$TEMP_DIR" ]; then
+    chmod -R 755 "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+  fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
