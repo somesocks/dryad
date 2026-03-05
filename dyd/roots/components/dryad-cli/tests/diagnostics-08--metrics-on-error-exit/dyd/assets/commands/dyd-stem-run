@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+GARDEN_DIR=''
+NON_GARDEN_DIR=''
+
+_diag_config() {
+  printf '%s' 'json:{"version":1,"seed":1,"rules":[{"id":"m-os-read-file","op":"os.read_file","key":"*","when":{"mode":"every_x","x":1},"action":{"type":"metrics","output":"stdout","capture":{"calls":true,"errors":true,"timing":false}}}]}'
+}
+
+_setup() {
+  TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+  GARDEN_DIR="$TEMP_DIR/garden"
+  NON_GARDEN_DIR="$TEMP_DIR/no-garden"
+}
+
+_prepare() {
+  mkdir -p "$GARDEN_DIR" "$NON_GARDEN_DIR"
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$GARDEN_DIR"
+  chmod -R 755 "$TEMP_DIR"
+}
+
+_test() {
+  local stdout_log="$TEMP_DIR/non-garden-with-diagnostics.stdout.log"
+  local stderr_log="$TEMP_DIR/non-garden-with-diagnostics.stderr.log"
+  local success_log="$TEMP_DIR/build-without-diagnostics.log"
+
+  (
+    cd "$NON_GARDEN_DIR"
+    if DYD_DIAG="$(_diag_config)" dryad root build --log-level="$DYD_LOG_LEVEL" >"$stdout_log" 2>"$stderr_log"; then
+      echo "[ERROR] Fail: expected root build to fail outside a garden" 1>&2
+      cat "$stdout_log" 1>&2
+      cat "$stderr_log" 1>&2
+      exit 1
+    fi
+  )
+
+  if ! grep -Fq '"point":"os.read_file"' "$stdout_log"; then
+    echo "[ERROR] Fail: expected os.read_file metrics line in stdout on non-zero exit" 1>&2
+    cat "$stdout_log" 1>&2
+    cat "$stderr_log" 1>&2
+    return 1
+  fi
+
+  if (cd "$GARDEN_DIR" && dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" >"$success_log" 2>&1); then
+    :
+  else
+    echo "[ERROR] Fail: expected build without diagnostics config to succeed" 1>&2
+    cat "$success_log" 1>&2
+    return 1
+  fi
+}
+
+_verify() {
+  if [ ! -d "$GARDEN_DIR/dyd/sprouts/root-01" ]; then
+    echo "[ERROR] Fail: expected successful follow-up build to produce sprout" 1>&2
+    return 1
+  fi
+}
+
+_teardown() {
+  if [ -d "$TEMP_DIR" ]; then
+    chmod -R 755 "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+  fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

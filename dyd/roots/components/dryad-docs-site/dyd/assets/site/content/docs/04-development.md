@@ -147,6 +147,7 @@ Diagnostics-focused E2E roots for dryad CLI live under:
 - `dyd/roots/components/dryad-cli/tests/diagnostics-05--file-config`
 - `dyd/roots/components/dryad-cli/tests/diagnostics-06--post-error-preserves-side-effects`
 - `dyd/roots/components/dryad-cli/tests/diagnostics-07--file-config-invalid`
+- `dyd/roots/components/dryad-cli/tests/diagnostics-08--metrics-on-error-exit`
 
 ### The docs scope
 
