@@ -49,8 +49,7 @@ func (m keyMatcher) Matches(key string) bool {
 type whenMode int
 
 const (
-	whenOncePerKey whenMode = iota
-	whenFirstNPerKey
+	whenFirstNPerKey whenMode = iota
 	whenEveryN
 )
 
@@ -240,9 +239,6 @@ func compileWhen(out *compiledRule, when WhenConfig, id string) error {
 	count := when.Count
 
 	switch when.Mode {
-	case "once_per_key":
-		out.when = whenOncePerKey
-		out.perKey = map[uint64]uint64{}
 	case "first_n_per_key":
 		if count <= 0 {
 			return fmt.Errorf("diagnostics rule %q: when.count must be > 0", id)
@@ -362,16 +358,6 @@ func (rule *compiledRule) matches(key string) bool {
 
 func (rule *compiledRule) whenMatches(key string) bool {
 	switch rule.when {
-	case whenOncePerKey:
-		keyHash := hashString64(key)
-		rule.perKeyMu.Lock()
-		defer rule.perKeyMu.Unlock()
-		if rule.perKey[keyHash] > 0 {
-			return false
-		}
-		rule.perKey[keyHash] = 1
-		return true
-
 	case whenFirstNPerKey:
 		keyHash := hashString64(key)
 		rule.perKeyMu.Lock()

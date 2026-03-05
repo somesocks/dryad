@@ -10,10 +10,10 @@ import (
 	"time"
 )
 
-func TestSetupFromEnv_JSON_OncePerKeyError(t *testing.T) {
+func TestSetupFromEnv_JSON_FirstNPerKeyCount1Error(t *testing.T) {
 	t.Setenv(
 		EnvVar,
-		`json:{"version":1,"seed":123,"rules":[{"id":"x","op":"heap.link_to_stem","key":"*","when":{"mode":"once_per_key"},"action":{"type":"error","error":"EMLINK"}}]}`,
+		`json:{"version":1,"seed":123,"rules":[{"id":"x","op":"heap.link_to_stem","key":"*","when":{"mode":"first_n_per_key","count":1},"action":{"type":"error","error":"EMLINK"}}]}`,
 	)
 
 	if err := SetupFromEnv(); err != nil {

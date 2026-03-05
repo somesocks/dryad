@@ -1,6 +1,9 @@
 package diagnostics
 
-import "testing"
+import (
+	"strconv"
+	"testing"
+)
 
 var benchSinkErr error
 var benchSinkInt int
@@ -17,16 +20,28 @@ func benchMetricsRule(capture MetricsCaptureConfig) RuleConfig {
 }
 
 func benchMetricsRuleEveryN(capture MetricsCaptureConfig, n int64) RuleConfig {
+	return benchMetricsRuleWithWhen(capture, WhenConfig{Mode: "every_n", Count: n})
+}
+
+func benchMetricsRuleWithWhen(capture MetricsCaptureConfig, when WhenConfig) RuleConfig {
 	return RuleConfig{
 		ID:   "m",
 		Op:   "os.link",
 		Key:  "*",
-		When: WhenConfig{Mode: "every_n", Count: n},
+		When: when,
 		Action: ActionConfig{
 			Type:    "metrics",
 			Capture: capture,
 		},
 	}
+}
+
+func benchStaticKeys(count int) []string {
+	keys := make([]string, count)
+	for i := range count {
+		keys[i] = "k-" + strconv.Itoa(i)
+	}
+	return keys
 }
 
 func BenchmarkBindA2R0_Direct(b *testing.B) {
@@ -306,5 +321,103 @@ func BenchmarkBindA2R0_EnabledMetricsAllSample1(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		benchSinkErr = bound("a", "b")
+	}
+}
+
+func BenchmarkBindA2R0_EnabledMetricsFirstNPerKeyCount1NoTiming_SameKey(b *testing.B) {
+	Reset()
+	disabled := false
+	if err := SetupFromConfig(Config{
+		Version: 1,
+		Rules: []RuleConfig{
+			benchMetricsRuleWithWhen(
+				MetricsCaptureConfig{Timing: &disabled},
+				WhenConfig{Mode: "first_n_per_key", Count: 1},
+			),
+		},
+	}); err != nil {
+		b.Fatal(err)
+	}
+	b.Cleanup(Reset)
+
+	bound := BindA2R0("os.link", func(a0 string, a1 string) string { return a1 }, benchBaseA2R0)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		benchSinkErr = bound("a", "shared")
+	}
+}
+
+func BenchmarkBindA2R0_EnabledMetricsFirstNPerKeyCount4NoTiming_SameKey(b *testing.B) {
+	Reset()
+	disabled := false
+	if err := SetupFromConfig(Config{
+		Version: 1,
+		Rules: []RuleConfig{
+			benchMetricsRuleWithWhen(
+				MetricsCaptureConfig{Timing: &disabled},
+				WhenConfig{Mode: "first_n_per_key", Count: 4},
+			),
+		},
+	}); err != nil {
+		b.Fatal(err)
+	}
+	b.Cleanup(Reset)
+
+	bound := BindA2R0("os.link", func(a0 string, a1 string) string { return a1 }, benchBaseA2R0)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		benchSinkErr = bound("a", "shared")
+	}
+}
+
+func BenchmarkBindA2R0_EnabledMetricsFirstNPerKeyCount1NoTiming_UniqueKeys(b *testing.B) {
+	Reset()
+	disabled := false
+	const keyCount = 1 << 16
+	keys := benchStaticKeys(keyCount)
+	if err := SetupFromConfig(Config{
+		Version: 1,
+		Rules: []RuleConfig{
+			benchMetricsRuleWithWhen(
+				MetricsCaptureConfig{Timing: &disabled},
+				WhenConfig{Mode: "first_n_per_key", Count: 1},
+			),
+		},
+	}); err != nil {
+		b.Fatal(err)
+	}
+	b.Cleanup(Reset)
+
+	bound := BindA2R0("os.link", func(a0 string, a1 string) string { return a1 }, benchBaseA2R0)
+	mask := keyCount - 1
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		benchSinkErr = bound("a", keys[i&mask])
+	}
+}
+
+func BenchmarkBindA2R0_EnabledMetricsFirstNPerKeyCount4NoTiming_UniqueKeys(b *testing.B) {
+	Reset()
+	disabled := false
+	const keyCount = 1 << 16
+	keys := benchStaticKeys(keyCount)
+	if err := SetupFromConfig(Config{
+		Version: 1,
+		Rules: []RuleConfig{
+			benchMetricsRuleWithWhen(
+				MetricsCaptureConfig{Timing: &disabled},
+				WhenConfig{Mode: "first_n_per_key", Count: 4},
+			),
+		},
+	}); err != nil {
+		b.Fatal(err)
+	}
+	b.Cleanup(Reset)
+
+	bound := BindA2R0("os.link", func(a0 string, a1 string) string { return a1 }, benchBaseA2R0)
+	mask := keyCount - 1
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		benchSinkErr = bound("a", keys[i&mask])
 	}
 }
