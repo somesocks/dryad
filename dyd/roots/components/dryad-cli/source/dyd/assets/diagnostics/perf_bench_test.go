@@ -13,11 +13,15 @@ func benchBaseA2R0(a0 string, a1 string) error {
 }
 
 func benchMetricsRule(capture MetricsCaptureConfig) RuleConfig {
+	return benchMetricsRuleEveryN(capture, 1)
+}
+
+func benchMetricsRuleEveryN(capture MetricsCaptureConfig, n int64) RuleConfig {
 	return RuleConfig{
 		ID:   "m",
 		Op:   "os.link",
 		Key:  "*",
-		When: WhenConfig{Mode: "every_n", Count: 1},
+		When: WhenConfig{Mode: "every_n", Count: n},
 		Action: ActionConfig{
 			Type:    "metrics",
 			Capture: capture,
@@ -248,14 +252,12 @@ func BenchmarkBindA2R0_EnabledMetricsTimingOnly(b *testing.B) {
 func BenchmarkBindA2R0_EnabledMetricsNoTimingSample50(b *testing.B) {
 	Reset()
 	disabled := false
-	samplePercent := 50.0
 	if err := SetupFromConfig(Config{
 		Version: 1,
 		Rules: []RuleConfig{
-			benchMetricsRule(MetricsCaptureConfig{
-				Timing:        &disabled,
-				SamplePercent: &samplePercent,
-			}),
+			benchMetricsRuleEveryN(MetricsCaptureConfig{
+				Timing: &disabled,
+			}, 2),
 		},
 	}); err != nil {
 		b.Fatal(err)
@@ -271,13 +273,10 @@ func BenchmarkBindA2R0_EnabledMetricsNoTimingSample50(b *testing.B) {
 
 func BenchmarkBindA2R0_EnabledMetricsAllSample50(b *testing.B) {
 	Reset()
-	samplePercent := 50.0
 	if err := SetupFromConfig(Config{
 		Version: 1,
 		Rules: []RuleConfig{
-			benchMetricsRule(MetricsCaptureConfig{
-				SamplePercent: &samplePercent,
-			}),
+			benchMetricsRuleEveryN(MetricsCaptureConfig{}, 2),
 		},
 	}); err != nil {
 		b.Fatal(err)
@@ -293,13 +292,10 @@ func BenchmarkBindA2R0_EnabledMetricsAllSample50(b *testing.B) {
 
 func BenchmarkBindA2R0_EnabledMetricsAllSample1(b *testing.B) {
 	Reset()
-	samplePercent := 1.0
 	if err := SetupFromConfig(Config{
 		Version: 1,
 		Rules: []RuleConfig{
-			benchMetricsRule(MetricsCaptureConfig{
-				SamplePercent: &samplePercent,
-			}),
+			benchMetricsRuleEveryN(MetricsCaptureConfig{}, 128),
 		},
 	}); err != nil {
 		b.Fatal(err)

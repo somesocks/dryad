@@ -14,16 +14,16 @@ func boolRef(v bool) *bool {
 	return &v
 }
 
-func floatRef(v float64) *float64 {
-	return &v
+func metricsRule(id string, op string, output string, capture MetricsCaptureConfig) RuleConfig {
+	return metricsRuleWithWhen(id, op, output, WhenConfig{Mode: "every_n", Count: 1}, capture)
 }
 
-func metricsRule(id string, op string, output string, capture MetricsCaptureConfig) RuleConfig {
+func metricsRuleWithWhen(id string, op string, output string, when WhenConfig, capture MetricsCaptureConfig) RuleConfig {
 	return RuleConfig{
 		ID:   id,
 		Op:   op,
 		Key:  "*",
-		When: WhenConfig{Mode: "every_n", Count: 1},
+		When: when,
 		Action: ActionConfig{
 			Type:    "metrics",
 			Output:  output,
@@ -292,33 +292,20 @@ func TestSetupFromConfig_GeneratesMetricsRuleIDWhenMissing(t *testing.T) {
 	}
 }
 
-func TestSetupFromConfig_MetricsSamplePercentRejectsOutOfRange(t *testing.T) {
-	Reset()
-	t.Cleanup(Reset)
-
-	err := SetupFromConfig(Config{
-		Version: 1,
-		Rules: []RuleConfig{
-			metricsRule("m-bad-sample", "metrics.bad_sample", "", MetricsCaptureConfig{
-				SamplePercent: floatRef(0),
-			}),
-		},
-	})
-	if err == nil {
-		t.Fatalf("expected setup to fail for invalid sample percent")
-	}
-}
-
-func TestMetricsSnapshot_SamplePercentAffectsAllMetrics(t *testing.T) {
+func TestMetricsSnapshot_EveryNControlsSampling(t *testing.T) {
 	Reset()
 	t.Cleanup(Reset)
 
 	if err := SetupFromConfig(Config{
 		Version: 1,
 		Rules: []RuleConfig{
-			metricsRule("m-sample-all", "metrics.sample_all", "", MetricsCaptureConfig{
-				SamplePercent: floatRef(50),
-			}),
+			metricsRuleWithWhen(
+				"m-sample-every2",
+				"metrics.sample_all",
+				"",
+				WhenConfig{Mode: "every_n", Count: 2},
+				MetricsCaptureConfig{},
+			),
 		},
 	}); err != nil {
 		t.Fatalf("setup diagnostics: %v", err)
@@ -338,7 +325,7 @@ func TestMetricsSnapshot_SamplePercentAffectsAllMetrics(t *testing.T) {
 		}
 	}
 
-	stats := MetricsSnapshot()["m-sample-all"]
+	stats := MetricsSnapshot()["m-sample-every2"]
 	if stats.Calls != 2 {
 		t.Fatalf("expected sampled calls=2, got %d", stats.Calls)
 	}
@@ -350,51 +337,20 @@ func TestMetricsSnapshot_SamplePercentAffectsAllMetrics(t *testing.T) {
 	}
 }
 
-func TestMetricsSnapshot_SamplePercentRoundsToPowerOfTwoRate(t *testing.T) {
+func TestEmitMetricsOnExit_IncludesSampleEveryFromWhenEveryN(t *testing.T) {
 	Reset()
 	t.Cleanup(Reset)
 
 	if err := SetupFromConfig(Config{
 		Version: 1,
 		Rules: []RuleConfig{
-			metricsRule("m-sample-round", "metrics.sample_round", "", MetricsCaptureConfig{
-				SamplePercent: floatRef(30),
-				Timing:        boolRef(false),
-			}),
-		},
-	}); err != nil {
-		t.Fatalf("setup diagnostics: %v", err)
-	}
-
-	bound := BindA0R0(
-		"metrics.sample_round",
-		func() error { return nil },
-	)
-
-	for i := 0; i < 8; i++ {
-		if err := bound(); err != nil {
-			t.Fatalf("expected nil, got %v", err)
-		}
-	}
-
-	stats := MetricsSnapshot()["m-sample-round"]
-	// 30% rounds to nearest power-of-two capture rate: 25% (1-in-4).
-	if stats.Calls != 2 {
-		t.Fatalf("expected sampled calls=2 for 8 invocations at rounded 25%% rate, got %d", stats.Calls)
-	}
-}
-
-func TestEmitMetricsOnExit_IncludesSampleEvery(t *testing.T) {
-	Reset()
-	t.Cleanup(Reset)
-
-	if err := SetupFromConfig(Config{
-		Version: 1,
-		Rules: []RuleConfig{
-			metricsRule("m-sample-every", "metrics.sample_every", "", MetricsCaptureConfig{
-				SamplePercent: floatRef(50),
-				Timing:        boolRef(false),
-			}),
+			metricsRuleWithWhen(
+				"m-sample-every",
+				"metrics.sample_every",
+				"",
+				WhenConfig{Mode: "every_n", Count: 2},
+				MetricsCaptureConfig{Timing: boolRef(false)},
+			),
 		},
 	}); err != nil {
 		t.Fatalf("setup diagnostics: %v", err)
@@ -533,5 +489,137 @@ func TestMetricsSnapshot_CaptureCallsDisabled(t *testing.T) {
 	}
 	if stats.TotalNanos == 0 || stats.AvgNanos == 0 {
 		t.Fatalf("expected non-zero timing stats when timing capture is enabled, got %+v", stats)
+	}
+}
+
+func TestMetricsRuleOrdering_PreErrorCanBypassLaterMetrics(t *testing.T) {
+	Reset()
+	t.Cleanup(Reset)
+
+	err := SetupFromConfig(Config{
+		Version: 1,
+		Rules: []RuleConfig{
+			{
+				ID:   "pre-error-first",
+				Op:   "metrics.order",
+				Key:  "*",
+				When: WhenConfig{Mode: "every_n", Count: 1},
+				Action: ActionConfig{
+					Type:  "error",
+					Error: "EIO",
+				},
+			},
+			metricsRule("m-later", "metrics.order", "", MetricsCaptureConfig{}),
+		},
+	})
+	if err != nil {
+		t.Fatalf("setup diagnostics: %v", err)
+	}
+
+	if err := Apply("metrics.order", "x"); !errors.Is(err, syscall.EIO) {
+		t.Fatalf("expected EIO, got %v", err)
+	}
+
+	snapshot := MetricsSnapshot()
+	if stats, ok := snapshot["m-later"]; ok && stats.Calls != 0 {
+		t.Fatalf("expected later metrics rule to observe zero calls, got %+v", stats)
+	}
+}
+
+func TestMetricsRuleOrdering_MetricsBeforePreErrorObservesError(t *testing.T) {
+	Reset()
+	t.Cleanup(Reset)
+
+	err := SetupFromConfig(Config{
+		Version: 1,
+		Rules: []RuleConfig{
+			metricsRule("m-first", "metrics.order", "", MetricsCaptureConfig{}),
+			{
+				ID:   "pre-error-second",
+				Op:   "metrics.order",
+				Key:  "*",
+				When: WhenConfig{Mode: "every_n", Count: 1},
+				Action: ActionConfig{
+					Type:  "error",
+					Error: "EIO",
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("setup diagnostics: %v", err)
+	}
+
+	if err := Apply("metrics.order", "x"); !errors.Is(err, syscall.EIO) {
+		t.Fatalf("expected EIO, got %v", err)
+	}
+
+	stats, ok := MetricsSnapshot()["m-first"]
+	if !ok {
+		t.Fatalf("missing metrics rule m-first")
+	}
+	if stats.Calls != 1 || stats.Errors != 1 {
+		t.Fatalf("expected calls=1 errors=1, got %+v", stats)
+	}
+}
+
+func TestMetricsSnapshot_MultipleMetricsRulesOnSameOp(t *testing.T) {
+	Reset()
+	t.Cleanup(Reset)
+
+	err := SetupFromConfig(Config{
+		Version: 1,
+		Rules: []RuleConfig{
+			{
+				ID:   "m-a-prefix",
+				Op:   "metrics.multi",
+				Key:  "prefix:prefix:a",
+				When: WhenConfig{Mode: "every_n", Count: 1},
+				Action: ActionConfig{
+					Type:    "metrics",
+					Capture: MetricsCaptureConfig{Timing: boolRef(false)},
+				},
+			},
+			{
+				ID:   "m-b-prefix",
+				Op:   "metrics.multi",
+				Key:  "prefix:prefix:b",
+				When: WhenConfig{Mode: "every_n", Count: 1},
+				Action: ActionConfig{
+					Type:    "metrics",
+					Capture: MetricsCaptureConfig{Timing: boolRef(false)},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("setup diagnostics: %v", err)
+	}
+
+	if err := Apply("metrics.multi", "prefix:a"); err != nil {
+		t.Fatalf("expected nil, got %v", err)
+	}
+	if err := Apply("metrics.multi", "prefix:a"); err != nil {
+		t.Fatalf("expected nil, got %v", err)
+	}
+	if err := Apply("metrics.multi", "prefix:b"); err != nil {
+		t.Fatalf("expected nil, got %v", err)
+	}
+
+	snapshot := MetricsSnapshot()
+	statsA, ok := snapshot["m-a-prefix"]
+	if !ok {
+		t.Fatalf("missing metrics rule m-a-prefix")
+	}
+	statsB, ok := snapshot["m-b-prefix"]
+	if !ok {
+		t.Fatalf("missing metrics rule m-b-prefix")
+	}
+
+	if statsA.Calls != 2 || statsA.Errors != 0 {
+		t.Fatalf("expected m-a-prefix calls=2 errors=0, got %+v", statsA)
+	}
+	if statsB.Calls != 1 || statsB.Errors != 0 {
+		t.Fatalf("expected m-b-prefix calls=1 errors=0, got %+v", statsB)
 	}
 }

@@ -25,9 +25,8 @@ type RuleConfig struct {
 }
 
 type WhenConfig struct {
-	Mode    string  `json:"mode" yaml:"mode"`
-	Count   int64   `json:"count,omitempty" yaml:"count,omitempty"`
-	Percent float64 `json:"percent,omitempty" yaml:"percent,omitempty"`
+	Mode  string `json:"mode" yaml:"mode"`
+	Count int64  `json:"count,omitempty" yaml:"count,omitempty"`
 }
 
 type ActionConfig struct {
@@ -40,8 +39,7 @@ type ActionConfig struct {
 }
 
 type MetricsCaptureConfig struct {
-	Calls         *bool    `json:"calls,omitempty" yaml:"calls,omitempty"`
-	Errors        *bool    `json:"errors,omitempty" yaml:"errors,omitempty"`
-	Timing        *bool    `json:"timing,omitempty" yaml:"timing,omitempty"`
-	SamplePercent *float64 `json:"sample_percent,omitempty" yaml:"sample_percent,omitempty"`
+	Calls  *bool `json:"calls,omitempty" yaml:"calls,omitempty"`
+	Errors *bool `json:"errors,omitempty" yaml:"errors,omitempty"`
+	Timing *bool `json:"timing,omitempty" yaml:"timing,omitempty"`
 }

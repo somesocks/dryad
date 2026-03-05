@@ -7,8 +7,8 @@ GARDEN_100=''
 GARDEN_50=''
 
 _metrics_config() {
-  local sample_percent="$1"
-  printf 'json:{"version":1,"seed":1,"rules":[{"id":"m-os-link","op":"os.link","key":"*","when":{"mode":"every_n","count":1},"action":{"type":"metrics","output":"stderr","capture":{"calls":true,"errors":true,"timing":false,"sample_percent":%s}}}]}' "$sample_percent"
+  local sample_every="$1"
+  printf 'json:{"version":1,"seed":1,"rules":[{"id":"m-os-link","op":"os.link","key":"*","when":{"mode":"every_n","count":%s},"action":{"type":"metrics","output":"stderr","capture":{"calls":true,"errors":true,"timing":false}}}]}' "$sample_every"
 }
 
 _extract_calls() {
@@ -55,12 +55,12 @@ _test() {
 
   (
     cd "$GARDEN_100"
-    DYD_DIAG="$(_metrics_config 100)" dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" > /dev/null 2>"$log_100"
+    DYD_DIAG="$(_metrics_config 1)" dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" > /dev/null 2>"$log_100"
   )
 
   (
     cd "$GARDEN_50"
-    DYD_DIAG="$(_metrics_config 50)" dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" > /dev/null 2>"$log_50"
+    DYD_DIAG="$(_metrics_config 2)" dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" > /dev/null 2>"$log_50"
   )
 
   calls_100=$(_extract_calls "$log_100")

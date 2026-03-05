@@ -162,9 +162,6 @@ func beginMetricsObservation(rule *compiledMetricsRule) (time.Time, bool) {
 	if rule == nil {
 		return time.Time{}, false
 	}
-	if !metricsRuleShouldSample(rule) {
-		return time.Time{}, false
-	}
 	if rule.captureTiming {
 		return time.Now(), true
 	}
@@ -183,14 +180,6 @@ func endMetricsObservation(rule *compiledMetricsRule, sampled bool, start time.T
 		elapsed = time.Since(start)
 	}
 	observePointInvocation(rule, elapsed, err)
-}
-
-func metricsRuleShouldSample(rule *compiledMetricsRule) bool {
-	if rule.sampleEvery <= 1 {
-		return true
-	}
-	n := rule.sampleCounter.Add(1)
-	return (n & rule.sampleMask) == 0
 }
 
 type metricsPointOutput struct {

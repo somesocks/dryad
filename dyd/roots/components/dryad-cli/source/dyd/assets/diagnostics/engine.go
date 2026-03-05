@@ -2,7 +2,6 @@ package diagnostics
 
 import (
 	"fmt"
-	"math"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -53,7 +52,6 @@ const (
 	whenOncePerKey whenMode = iota
 	whenFirstNPerKey
 	whenEveryN
-	whenPercent
 )
 
 type actionType int
@@ -79,8 +77,6 @@ type compiledMetricsRule struct {
 	captureErrors bool
 	captureTiming bool
 	sampleEvery   uint64
-	sampleMask    uint64
-	sampleCounter atomic.Uint64
 	stats         atomic.Pointer[pointStats]
 }
 
@@ -90,7 +86,6 @@ type compiledRule struct {
 	matcher   keyMatcher
 	when      whenMode
 	n         uint64
-	percent   uint64
 	maxHits   int64
 	hitCount  atomic.Int64
 	counter   atomic.Uint64
@@ -101,7 +96,6 @@ type compiledRule struct {
 	delay     time.Duration
 	err       error
 	metric    *compiledMetricsRule
-	seed      uint64
 }
 
 func compileConfig(cfg Config) (*engine, error) {
@@ -117,7 +111,7 @@ func compileConfig(cfg Config) (*engine, error) {
 			continue
 		}
 
-		compiled, op, err := compileRule(cfg.Seed, idx, rule)
+		compiled, op, err := compileRule(idx, rule)
 		if err != nil {
 			return nil, err
 		}
@@ -137,7 +131,7 @@ func compileConfig(cfg Config) (*engine, error) {
 	}, nil
 }
 
-func compileRule(seed int64, index int, rule RuleConfig) (*compiledRule, string, error) {
+func compileRule(index int, rule RuleConfig) (*compiledRule, string, error) {
 	ruleID := fallbackRuleID("rule", index, rule.ID)
 
 	op := strings.TrimSpace(rule.Op)
@@ -155,7 +149,6 @@ func compileRule(seed int64, index int, rule RuleConfig) (*compiledRule, string,
 		op:      op,
 		matcher: matcher,
 		maxHits: rule.MaxHits,
-		seed:    mix64(uint64(seed) ^ uint64(index+1)),
 	}
 
 	if err := compileWhen(compiled, rule.When, ruleID); err != nil {
@@ -176,52 +169,6 @@ func fallbackRuleID(prefix string, index int, configured string) string {
 	return fmt.Sprintf("%s-%d", prefix, index+1)
 }
 
-func compileMetricsSampleEvery(samplePercent *float64) (uint64, error) {
-	if samplePercent == nil {
-		return 1, nil
-	}
-
-	p := *samplePercent
-	if math.IsNaN(p) || math.IsInf(p, 0) || p <= 0 || p > 100 {
-		return 0, fmt.Errorf("capture.sample_percent must be in (0,100]")
-	}
-
-	targetEvery := 100.0 / p
-	if targetEvery <= 1.0 {
-		return 1, nil
-	}
-
-	lower := uint64(1)
-	for float64(lower) < targetEvery && lower < (uint64(1)<<63) {
-		lower <<= 1
-	}
-
-	if float64(lower) == targetEvery {
-		return lower, nil
-	}
-
-	if float64(lower) < targetEvery || lower == 1 {
-		return lower, nil
-	}
-
-	upper := lower
-	lower >>= 1
-
-	rateLower := 100.0 / float64(lower)
-	rateUpper := 100.0 / float64(upper)
-	distLower := math.Abs(rateLower - p)
-	distUpper := math.Abs(rateUpper - p)
-
-	if distUpper < distLower {
-		return upper, nil
-	}
-	if distUpper == distLower {
-		// Prefer lower capture rate when equally close.
-		return upper, nil
-	}
-	return lower, nil
-}
-
 func boolOrDefault(value *bool, defaultValue bool) bool {
 	if value == nil {
 		return defaultValue
@@ -229,7 +176,7 @@ func boolOrDefault(value *bool, defaultValue bool) bool {
 	return *value
 }
 
-func compileMetricsAction(ruleID string, op string, action ActionConfig) (*compiledMetricsRule, error) {
+func compileMetricsAction(ruleID string, when whenMode, n uint64, op string, action ActionConfig) (*compiledMetricsRule, error) {
 	if strings.TrimSpace(action.Phase) != "" {
 		return nil, fmt.Errorf("diagnostics rule %q: action.phase is only supported for action.type=\"error\"", ruleID)
 	}
@@ -251,9 +198,10 @@ func compileMetricsAction(ruleID string, op string, action ActionConfig) (*compi
 	if !captureCalls && !captureErrors && !captureTiming {
 		return nil, fmt.Errorf("diagnostics rule %q: capture must enable at least one of calls, errors, timing", ruleID)
 	}
-	sampleEvery, err := compileMetricsSampleEvery(action.Capture.SamplePercent)
-	if err != nil {
-		return nil, fmt.Errorf("diagnostics rule %q: %w", ruleID, err)
+
+	sampleEvery := uint64(1)
+	if when == whenEveryN {
+		sampleEvery = n
 	}
 
 	return &compiledMetricsRule{
@@ -264,7 +212,6 @@ func compileMetricsAction(ruleID string, op string, action ActionConfig) (*compi
 		captureErrors: captureErrors,
 		captureTiming: captureTiming,
 		sampleEvery:   sampleEvery,
-		sampleMask:    sampleEvery - 1,
 	}, nil
 }
 
@@ -309,12 +256,6 @@ func compileWhen(out *compiledRule, when WhenConfig, id string) error {
 		}
 		out.when = whenEveryN
 		out.n = uint64(count)
-	case "percent":
-		if when.Percent < 0 || when.Percent > 100 {
-			return fmt.Errorf("diagnostics rule %q: when.percent must be in [0,100]", id)
-		}
-		out.when = whenPercent
-		out.percent = uint64(math.Round((when.Percent / 100.0) * 1_000_000.0))
 	default:
 		return fmt.Errorf("diagnostics rule %q: unsupported when.mode %q", id, when.Mode)
 	}
@@ -352,7 +293,7 @@ func compileAction(out *compiledRule, action ActionConfig, id string) error {
 		out.action = actionDelay
 		out.delay = time.Duration(action.DelayMS) * time.Millisecond
 	case "metrics":
-		metric, err := compileMetricsAction(id, out.op, action)
+		metric, err := compileMetricsAction(id, out.when, out.n, out.op, action)
 		if err != nil {
 			return err
 		}
@@ -366,7 +307,7 @@ func compileAction(out *compiledRule, action ActionConfig, id string) error {
 }
 
 func hasActionCaptureConfig(capture MetricsCaptureConfig) bool {
-	return capture.Calls != nil || capture.Errors != nil || capture.Timing != nil || capture.SamplePercent != nil
+	return capture.Calls != nil || capture.Errors != nil || capture.Timing != nil
 }
 
 func parseErrorPhase(raw string) (bool, error) {
@@ -446,11 +387,6 @@ func (rule *compiledRule) whenMatches(key string) bool {
 		count := rule.counter.Add(1)
 		return count%rule.n == 0
 
-	case whenPercent:
-		count := rule.counter.Add(1)
-		roll := mix64(rule.seed ^ hashString64(key) ^ count)
-		return (roll % 1_000_000) < rule.percent
-
 	default:
 		return false
 	}
@@ -482,11 +418,4 @@ func hashString64(s string) uint64 {
 		h *= prime
 	}
 	return h
-}
-
-func mix64(x uint64) uint64 {
-	x += 0x9e3779b97f4a7c15
-	x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9
-	x = (x ^ (x >> 27)) * 0x94d049bb133111eb
-	return x ^ (x >> 31)
 }
