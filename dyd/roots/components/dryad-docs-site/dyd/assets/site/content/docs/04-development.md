@@ -69,6 +69,7 @@ Supported `when.mode` values are:
 - `after_x`
 - `before_x_per_key`
 - `after_x_per_key`
+- `every_x_per_key`
 
 ### Diagnostics Examples
 

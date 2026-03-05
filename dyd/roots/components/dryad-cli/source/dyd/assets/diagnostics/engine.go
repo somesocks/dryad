@@ -53,6 +53,7 @@ const (
 	whenAfterN
 	whenBeforeNPerKey
 	whenAfterNPerKey
+	whenEveryNPerKey
 	whenEveryN
 )
 
@@ -268,6 +269,13 @@ func compileWhen(out *compiledRule, when WhenConfig, id string) error {
 		out.when = whenAfterNPerKey
 		out.n = uint64(x)
 		out.perKey = map[uint64]uint64{}
+	case "every_x_per_key":
+		if x <= 0 {
+			return fmt.Errorf("diagnostics rule %q: when.x must be > 0", id)
+		}
+		out.when = whenEveryNPerKey
+		out.n = uint64(x)
+		out.perKey = map[uint64]uint64{}
 	case "every_x":
 		if x <= 0 {
 			return fmt.Errorf("diagnostics rule %q: when.x must be > 0", id)
@@ -406,6 +414,14 @@ func (rule *compiledRule) whenMatches(key string) bool {
 		current := rule.perKey[keyHash] + 1
 		rule.perKey[keyHash] = current
 		return current > rule.n
+
+	case whenEveryNPerKey:
+		keyHash := hashString64(key)
+		rule.perKeyMu.Lock()
+		defer rule.perKeyMu.Unlock()
+		current := rule.perKey[keyHash] + 1
+		rule.perKey[keyHash] = current
+		return current%rule.n == 0
 
 	case whenEveryN:
 		count := rule.counter.Add(1)

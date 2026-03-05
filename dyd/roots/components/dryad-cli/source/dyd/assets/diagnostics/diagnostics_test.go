@@ -142,6 +142,50 @@ func TestSetupFromConfig_AfterXPerKey(t *testing.T) {
 	}
 }
 
+func TestSetupFromConfig_EveryXPerKey(t *testing.T) {
+	Reset()
+	t.Cleanup(Reset)
+
+	err := SetupFromConfig(Config{
+		Version: 1,
+		Rules: []RuleConfig{
+			{
+				ID:   "every-per-key",
+				Op:   "heap.link_to_stem",
+				Key:  "*",
+				When: WhenConfig{Mode: "every_x_per_key", X: 2},
+				Action: ActionConfig{
+					Type:  "error",
+					Error: "EMLINK",
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("setup diagnostics: %v", err)
+	}
+
+	if err := Apply("heap.link_to_stem", "alpha"); err != nil {
+		t.Fatalf("expected nil on alpha call 1, got: %v", err)
+	}
+	if err := Apply("heap.link_to_stem", "alpha"); !errors.Is(err, syscall.EMLINK) {
+		t.Fatalf("expected EMLINK on alpha call 2, got: %v", err)
+	}
+	if err := Apply("heap.link_to_stem", "alpha"); err != nil {
+		t.Fatalf("expected nil on alpha call 3, got: %v", err)
+	}
+	if err := Apply("heap.link_to_stem", "alpha"); !errors.Is(err, syscall.EMLINK) {
+		t.Fatalf("expected EMLINK on alpha call 4, got: %v", err)
+	}
+
+	if err := Apply("heap.link_to_stem", "beta"); err != nil {
+		t.Fatalf("expected nil on beta call 1, got: %v", err)
+	}
+	if err := Apply("heap.link_to_stem", "beta"); !errors.Is(err, syscall.EMLINK) {
+		t.Fatalf("expected EMLINK on beta call 2, got: %v", err)
+	}
+}
+
 func TestSetupFromEnv_File_EveryNDelay(t *testing.T) {
 	tempDir := t.TempDir()
 	configPath := filepath.Join(tempDir, "diag.yaml")
