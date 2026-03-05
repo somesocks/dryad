@@ -68,35 +68,35 @@ Rule `id` is optional; when omitted, dryad generates `rule-<1-based index>`.
 Inject a pre-error on every `os.link` call:
 
 ```sh
-DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"inject-emlink-pre","op":"os.link","key":"*","when":{"mode":"every_n","count":1},"action":{"type":"error","error":"EMLINK"}}]}' \
+DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"inject-emlink-pre","op":"os.link","key":"*","when":{"mode":"every_x","x":1},"action":{"type":"error","error":"EMLINK"}}]}' \
 dryad root build dyd/roots/root-01
 ```
 
 Inject a post-error on every `os.link` call:
 
 ```sh
-DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"inject-emlink-post","op":"os.link","key":"*","when":{"mode":"every_n","count":1},"action":{"type":"error","phase":"post","error":"EMLINK"}}]}' \
+DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"inject-emlink-post","op":"os.link","key":"*","when":{"mode":"every_x","x":1},"action":{"type":"error","phase":"post","error":"EMLINK"}}]}' \
 dryad root build dyd/roots/root-01
 ```
 
 Inject delay on `os.open_file`:
 
 ```sh
-DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"delay-open","op":"os.open_file","key":"*","when":{"mode":"every_n","count":1},"action":{"type":"delay","delay_ms":25}}]}' \
+DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"delay-open","op":"os.open_file","key":"*","when":{"mode":"every_x","x":1},"action":{"type":"delay","delay_ms":25}}]}' \
 dryad root build dyd/roots/root-01
 ```
 
 Inject a bounded number of failures (global cap across all keys):
 
 ```sh
-DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"inject-bounded","op":"os.link","key":"*","when":{"mode":"first_n_per_key","count":1,"limit":3},"action":{"type":"error","error":"EMLINK"}}]}' \
+DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"inject-bounded","op":"os.link","key":"*","when":{"mode":"first_x_per_key","x":1,"limit":3},"action":{"type":"error","error":"EMLINK"}}]}' \
 dryad root build dyd/roots/root-01
 ```
 
-Emit metrics for `os.link` to stdout with `every_n=2` sampling (~50%):
+Emit metrics for `os.link` to stdout with `every_x=2` sampling (~50%):
 
 ```sh
-DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"m-os-link","op":"os.link","key":"*","when":{"mode":"every_n","count":2},"action":{"type":"metrics","output":"stdout","capture":{"calls":true,"errors":true,"timing":true}}}]}' \
+DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"m-os-link","op":"os.link","key":"*","when":{"mode":"every_x","x":2},"action":{"type":"metrics","output":"stdout","capture":{"calls":true,"errors":true,"timing":true}}}]}' \
 dryad root build dyd/roots/root-01
 ```
 
@@ -111,8 +111,8 @@ rules:
     op: os.link
     key: "*"
     when:
-      mode: every_n
-      count: 1
+      mode: every_x
+      x: 1
     action:
       type: error
       error: EMLINK
@@ -124,7 +124,7 @@ DYD_DIAG='file:/tmp/dyd-diagnostics.yaml' dryad root build dyd/roots/root-01
 Quick local metrics check:
 
 ```sh
-DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"m-os-link","op":"os.link","key":"*","when":{"mode":"every_n","count":1},"action":{"type":"metrics","output":"stderr","capture":{"calls":true,"errors":true,"timing":true}}}]}' \
+DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"m-os-link","op":"os.link","key":"*","when":{"mode":"every_x","x":1},"action":{"type":"metrics","output":"stderr","capture":{"calls":true,"errors":true,"timing":true}}}]}' \
 dryad root build dyd/roots/root-01 --log-level=warn > /tmp/dyd-build.out 2> /tmp/dyd-build.err
 
 grep -F '"point":"os.link"' /tmp/dyd-build.err
@@ -136,7 +136,7 @@ Example emitted metrics line:
 {"rule_id":"m-os-link","point":"os.link","calls":21,"errors":0,"total_nanos":307521,"min_nanos":3814,"max_nanos":176874,"avg_nanos":14643,"sample_every":1}
 ```
 
-`sample_every` in emitted metrics is derived from `when.mode=every_n` (`count` value).
+`sample_every` in emitted metrics is derived from `when.mode=every_x` (`x` value).
 
 Diagnostics-focused E2E roots for dryad CLI live under:
 

@@ -20,7 +20,7 @@ func benchMetricsRule(capture MetricsCaptureConfig) RuleConfig {
 }
 
 func benchMetricsRuleEveryN(capture MetricsCaptureConfig, n int64) RuleConfig {
-	return benchMetricsRuleWithWhen(capture, WhenConfig{Mode: "every_n", Count: n})
+	return benchMetricsRuleWithWhen(capture, WhenConfig{Mode: "every_x", X: n})
 }
 
 func benchMetricsRuleWithWhen(capture MetricsCaptureConfig, when WhenConfig) RuleConfig {
@@ -80,7 +80,7 @@ func BenchmarkBindA2R0_EnabledPreErrorNoHit(b *testing.B) {
 			ID:   "e",
 			Op:   "os.link",
 			Key:  "zzz",
-			When: WhenConfig{Mode: "every_n", Count: 1},
+			When: WhenConfig{Mode: "every_x", X: 1},
 			Action: ActionConfig{
 				Type:  "error",
 				Error: "EMLINK",
@@ -106,7 +106,7 @@ func BenchmarkBindA2R0_EnabledPostErrorNoHit(b *testing.B) {
 			ID:   "e",
 			Op:   "os.link",
 			Key:  "zzz",
-			When: WhenConfig{Mode: "every_n", Count: 1},
+			When: WhenConfig{Mode: "every_x", X: 1},
 			Action: ActionConfig{
 				Type:  "error",
 				Phase: "post",
@@ -332,7 +332,7 @@ func BenchmarkBindA2R0_EnabledMetricsFirstNPerKeyCount1NoTiming_SameKey(b *testi
 		Rules: []RuleConfig{
 			benchMetricsRuleWithWhen(
 				MetricsCaptureConfig{Timing: &disabled},
-				WhenConfig{Mode: "first_n_per_key", Count: 1},
+				WhenConfig{Mode: "first_x_per_key", X: 1},
 			),
 		},
 	}); err != nil {
@@ -355,7 +355,7 @@ func BenchmarkBindA2R0_EnabledMetricsFirstNPerKeyCount4NoTiming_SameKey(b *testi
 		Rules: []RuleConfig{
 			benchMetricsRuleWithWhen(
 				MetricsCaptureConfig{Timing: &disabled},
-				WhenConfig{Mode: "first_n_per_key", Count: 4},
+				WhenConfig{Mode: "first_x_per_key", X: 4},
 			),
 		},
 	}); err != nil {
@@ -380,7 +380,7 @@ func BenchmarkBindA2R0_EnabledMetricsFirstNPerKeyCount1NoTiming_UniqueKeys(b *te
 		Rules: []RuleConfig{
 			benchMetricsRuleWithWhen(
 				MetricsCaptureConfig{Timing: &disabled},
-				WhenConfig{Mode: "first_n_per_key", Count: 1},
+				WhenConfig{Mode: "first_x_per_key", X: 1},
 			),
 		},
 	}); err != nil {
@@ -406,7 +406,7 @@ func BenchmarkBindA2R0_EnabledMetricsFirstNPerKeyCount4NoTiming_UniqueKeys(b *te
 		Rules: []RuleConfig{
 			benchMetricsRuleWithWhen(
 				MetricsCaptureConfig{Timing: &disabled},
-				WhenConfig{Mode: "first_n_per_key", Count: 4},
+				WhenConfig{Mode: "first_x_per_key", X: 4},
 			),
 		},
 	}); err != nil {

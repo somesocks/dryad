@@ -15,7 +15,7 @@ func boolRef(v bool) *bool {
 }
 
 func metricsRule(id string, op string, output string, capture MetricsCaptureConfig) RuleConfig {
-	return metricsRuleWithWhen(id, op, output, WhenConfig{Mode: "every_n", Count: 1}, capture)
+	return metricsRuleWithWhen(id, op, output, WhenConfig{Mode: "every_x", X: 1}, capture)
 }
 
 func metricsRuleWithWhen(id string, op string, output string, when WhenConfig, capture MetricsCaptureConfig) RuleConfig {
@@ -96,7 +96,7 @@ func TestMetricsSnapshot_ApplyCounts(t *testing.T) {
 				ID:   "inject",
 				Op:   "metrics.apply",
 				Key:  "*",
-				When: WhenConfig{Mode: "every_n", Count: 1},
+				When: WhenConfig{Mode: "every_x", X: 1},
 				Action: ActionConfig{
 					Type:  "error",
 					Error: "EIO",
@@ -303,7 +303,7 @@ func TestMetricsSnapshot_EveryNControlsSampling(t *testing.T) {
 				"m-sample-every2",
 				"metrics.sample_all",
 				"",
-				WhenConfig{Mode: "every_n", Count: 2},
+				WhenConfig{Mode: "every_x", X: 2},
 				MetricsCaptureConfig{},
 			),
 		},
@@ -348,7 +348,7 @@ func TestEmitMetricsOnExit_IncludesSampleEveryFromWhenEveryN(t *testing.T) {
 				"m-sample-every",
 				"metrics.sample_every",
 				"",
-				WhenConfig{Mode: "every_n", Count: 2},
+				WhenConfig{Mode: "every_x", X: 2},
 				MetricsCaptureConfig{Timing: boolRef(false)},
 			),
 		},
@@ -503,7 +503,7 @@ func TestMetricsRuleOrdering_PreErrorCanBypassLaterMetrics(t *testing.T) {
 				ID:   "pre-error-first",
 				Op:   "metrics.order",
 				Key:  "*",
-				When: WhenConfig{Mode: "every_n", Count: 1},
+				When: WhenConfig{Mode: "every_x", X: 1},
 				Action: ActionConfig{
 					Type:  "error",
 					Error: "EIO",
@@ -538,7 +538,7 @@ func TestMetricsRuleOrdering_MetricsBeforePreErrorObservesError(t *testing.T) {
 				ID:   "pre-error-second",
 				Op:   "metrics.order",
 				Key:  "*",
-				When: WhenConfig{Mode: "every_n", Count: 1},
+				When: WhenConfig{Mode: "every_x", X: 1},
 				Action: ActionConfig{
 					Type:  "error",
 					Error: "EIO",
@@ -574,7 +574,7 @@ func TestMetricsSnapshot_MultipleMetricsRulesOnSameOp(t *testing.T) {
 				ID:   "m-a-prefix",
 				Op:   "metrics.multi",
 				Key:  "prefix:prefix:a",
-				When: WhenConfig{Mode: "every_n", Count: 1},
+				When: WhenConfig{Mode: "every_x", X: 1},
 				Action: ActionConfig{
 					Type:    "metrics",
 					Capture: MetricsCaptureConfig{Timing: boolRef(false)},
@@ -584,7 +584,7 @@ func TestMetricsSnapshot_MultipleMetricsRulesOnSameOp(t *testing.T) {
 				ID:   "m-b-prefix",
 				Op:   "metrics.multi",
 				Key:  "prefix:prefix:b",
-				When: WhenConfig{Mode: "every_n", Count: 1},
+				When: WhenConfig{Mode: "every_x", X: 1},
 				Action: ActionConfig{
 					Type:    "metrics",
 					Capture: MetricsCaptureConfig{Timing: boolRef(false)},

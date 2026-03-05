@@ -8,7 +8,7 @@ GARDEN_50=''
 
 _metrics_config() {
   local sample_every="$1"
-  printf 'json:{"version":1,"seed":1,"rules":[{"id":"m-os-link","op":"os.link","key":"*","when":{"mode":"every_n","count":%s},"action":{"type":"metrics","output":"stderr","capture":{"calls":true,"errors":true,"timing":false}}}]}' "$sample_every"
+  printf 'json:{"version":1,"seed":1,"rules":[{"id":"m-os-link","op":"os.link","key":"*","when":{"mode":"every_x","x":%s},"action":{"type":"metrics","output":"stderr","capture":{"calls":true,"errors":true,"timing":false}}}]}' "$sample_every"
 }
 
 _extract_calls() {

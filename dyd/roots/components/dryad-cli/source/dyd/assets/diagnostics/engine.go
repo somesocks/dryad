@@ -236,22 +236,22 @@ func compileKeyMatcher(raw string) (keyMatcher, error) {
 }
 
 func compileWhen(out *compiledRule, when WhenConfig, id string) error {
-	count := when.Count
+	x := when.X
 
 	switch when.Mode {
-	case "first_n_per_key":
-		if count <= 0 {
-			return fmt.Errorf("diagnostics rule %q: when.count must be > 0", id)
+	case "first_x_per_key":
+		if x <= 0 {
+			return fmt.Errorf("diagnostics rule %q: when.x must be > 0", id)
 		}
 		out.when = whenFirstNPerKey
-		out.n = uint64(count)
+		out.n = uint64(x)
 		out.perKey = map[uint64]uint64{}
-	case "every_n":
-		if count <= 0 {
-			return fmt.Errorf("diagnostics rule %q: when.count must be > 0", id)
+	case "every_x":
+		if x <= 0 {
+			return fmt.Errorf("diagnostics rule %q: when.x must be > 0", id)
 		}
 		out.when = whenEveryN
-		out.n = uint64(count)
+		out.n = uint64(x)
 	default:
 		return fmt.Errorf("diagnostics rule %q: unsupported when.mode %q", id, when.Mode)
 	}

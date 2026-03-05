@@ -22,8 +22,8 @@ rules:
     op: e2e.point
     key: "*"
     when:
-      mode: every_n
-      count: 1
+      mode: every_x
+      x: 1
     action:
       type: metrics
       output: stderr
@@ -31,8 +31,8 @@ rules:
     op: e2e.point
     key: "*"
     when:
-      mode: every_n
-      count: 1
+      mode: every_x
+      x: 1
     action:
       type: error
       error: EIO

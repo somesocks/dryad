@@ -13,7 +13,7 @@ import (
 func TestSetupFromEnv_JSON_FirstNPerKeyCount1Error(t *testing.T) {
 	t.Setenv(
 		EnvVar,
-		`json:{"version":1,"seed":123,"rules":[{"id":"x","op":"heap.link_to_stem","key":"*","when":{"mode":"first_n_per_key","count":1},"action":{"type":"error","error":"EMLINK"}}]}`,
+		`json:{"version":1,"seed":123,"rules":[{"id":"x","op":"heap.link_to_stem","key":"*","when":{"mode":"first_x_per_key","x":1},"action":{"type":"error","error":"EMLINK"}}]}`,
 	)
 
 	if err := SetupFromEnv(); err != nil {
@@ -48,8 +48,8 @@ rules:
     op: heap.link_to_sprout
     key: "*"
     when:
-      mode: every_n
-      count: 2
+      mode: every_x
+      x: 2
     action:
       type: delay
       delay_ms: 5
@@ -98,7 +98,7 @@ func TestSetupFromConfig_ErrorPhaseRejectsUnknownValue(t *testing.T) {
 				ID:   "bad-phase",
 				Op:   "os.link",
 				Key:  "*",
-				When: WhenConfig{Mode: "every_n", Count: 1},
+				When: WhenConfig{Mode: "every_x", X: 1},
 				Action: ActionConfig{
 					Type:  "error",
 					Phase: "later",
@@ -123,7 +123,7 @@ func TestSetupFromConfig_DelayRejectsPhase(t *testing.T) {
 				ID:   "bad-delay-phase",
 				Op:   "os.link",
 				Key:  "*",
-				When: WhenConfig{Mode: "every_n", Count: 1},
+				When: WhenConfig{Mode: "every_x", X: 1},
 				Action: ActionConfig{
 					Type:    "delay",
 					Phase:   "post",
@@ -147,7 +147,7 @@ func TestSetupFromConfig_GeneratesRuleIDWhenMissing(t *testing.T) {
 			{
 				Op:   "os.link",
 				Key:  "*",
-				When: WhenConfig{Mode: "every_n", Count: 0},
+				When: WhenConfig{Mode: "every_x", X: 0},
 				Action: ActionConfig{
 					Type:  "error",
 					Error: "EMLINK",
@@ -156,7 +156,7 @@ func TestSetupFromConfig_GeneratesRuleIDWhenMissing(t *testing.T) {
 		},
 	})
 	if err == nil {
-		t.Fatal("expected compile error for invalid when.count")
+		t.Fatal("expected compile error for invalid when.x")
 	}
 	if !strings.Contains(err.Error(), `diagnostics rule "rule-1":`) {
 		t.Fatalf("expected generated rule id in error, got: %v", err)

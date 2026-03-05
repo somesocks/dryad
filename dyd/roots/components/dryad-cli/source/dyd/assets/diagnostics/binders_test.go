@@ -42,7 +42,7 @@ func TestBindA2R0_PicksUpEngineChangesWithoutRebinding(t *testing.T) {
 				ID:   "inject-error",
 				Op:   "os.link",
 				Key:  "*",
-				When: WhenConfig{Mode: "every_n", Count: 1},
+				When: WhenConfig{Mode: "every_x", X: 1},
 				Action: ActionConfig{
 					Type:  "error",
 					Error: "EMLINK",
@@ -106,7 +106,7 @@ func TestBindA2R1_ReturnsZeroResultOnInjectedError(t *testing.T) {
 				ID:   "inject-error",
 				Op:   "query.fetch",
 				Key:  "*",
-				When: WhenConfig{Mode: "every_n", Count: 1},
+				When: WhenConfig{Mode: "every_x", X: 1},
 				Action: ActionConfig{
 					Type:  "error",
 					Error: "EIO",
@@ -153,7 +153,7 @@ func TestBindA2R0_PostErrorRunsAfterBase(t *testing.T) {
 				ID:   "inject-post-error",
 				Op:   "os.link",
 				Key:  "*",
-				When: WhenConfig{Mode: "every_n", Count: 1},
+				When: WhenConfig{Mode: "every_x", X: 1},
 				Action: ActionConfig{
 					Type:  "error",
 					Phase: "post",
@@ -199,7 +199,7 @@ func TestBindA2R1_PostErrorPreservesResult(t *testing.T) {
 				ID:   "inject-post-error",
 				Op:   "query.fetch",
 				Key:  "*",
-				When: WhenConfig{Mode: "every_n", Count: 1},
+				When: WhenConfig{Mode: "every_x", X: 1},
 				Action: ActionConfig{
 					Type:  "error",
 					Phase: "post",
@@ -254,7 +254,7 @@ func TestBindA3R0_PicksUpEngineChangesWithoutRebinding(t *testing.T) {
 				ID:   "inject-error",
 				Op:   "os.open_file",
 				Key:  "*",
-				When: WhenConfig{Mode: "every_n", Count: 1},
+				When: WhenConfig{Mode: "every_x", X: 1},
 				Action: ActionConfig{
 					Type:  "error",
 					Error: "EMLINK",
@@ -299,7 +299,7 @@ func TestBindA3R1_PostErrorPreservesResult(t *testing.T) {
 				ID:   "inject-post-error",
 				Op:   "query.open_file",
 				Key:  "*",
-				When: WhenConfig{Mode: "every_n", Count: 1},
+				When: WhenConfig{Mode: "every_x", X: 1},
 				Action: ActionConfig{
 					Type:  "error",
 					Phase: "post",

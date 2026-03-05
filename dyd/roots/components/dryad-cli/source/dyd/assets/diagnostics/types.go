@@ -25,7 +25,7 @@ type RuleConfig struct {
 
 type WhenConfig struct {
 	Mode  string `json:"mode" yaml:"mode"`
-	Count int64  `json:"count,omitempty" yaml:"count,omitempty"`
+	X     int64  `json:"x,omitempty" yaml:"x,omitempty"`
 	Limit int64  `json:"limit,omitempty" yaml:"limit,omitempty"`
 }
 
