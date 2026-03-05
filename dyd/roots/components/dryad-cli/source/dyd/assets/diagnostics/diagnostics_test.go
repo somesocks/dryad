@@ -10,10 +10,10 @@ import (
 	"time"
 )
 
-func TestSetupFromEnv_JSON_FirstNPerKeyCount1Error(t *testing.T) {
+func TestSetupFromEnv_JSON_BeforeXPerKeyCount1Error(t *testing.T) {
 	t.Setenv(
 		EnvVar,
-		`json:{"version":1,"seed":123,"rules":[{"id":"x","op":"heap.link_to_stem","key":"*","when":{"mode":"first_x_per_key","x":1},"action":{"type":"error","error":"EMLINK"}}]}`,
+		`json:{"version":1,"seed":123,"rules":[{"id":"x","op":"heap.link_to_stem","key":"*","when":{"mode":"before_x_per_key","x":1},"action":{"type":"error","error":"EMLINK"}}]}`,
 	)
 
 	if err := SetupFromEnv(); err != nil {
@@ -34,6 +34,111 @@ func TestSetupFromEnv_JSON_FirstNPerKeyCount1Error(t *testing.T) {
 	err = Apply("heap.link_to_stem", "beta")
 	if !errors.Is(err, syscall.EMLINK) {
 		t.Fatalf("expected EMLINK on new key hit, got: %v", err)
+	}
+}
+
+func TestSetupFromConfig_BeforeX_Global(t *testing.T) {
+	Reset()
+	t.Cleanup(Reset)
+
+	err := SetupFromConfig(Config{
+		Version: 1,
+		Rules: []RuleConfig{
+			{
+				ID:   "before-global",
+				Op:   "heap.link_to_stem",
+				Key:  "*",
+				When: WhenConfig{Mode: "before_x", X: 2},
+				Action: ActionConfig{
+					Type:  "error",
+					Error: "EMLINK",
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("setup diagnostics: %v", err)
+	}
+
+	if err := Apply("heap.link_to_stem", "k"); !errors.Is(err, syscall.EMLINK) {
+		t.Fatalf("expected EMLINK on first global hit, got: %v", err)
+	}
+	if err := Apply("heap.link_to_stem", "k"); !errors.Is(err, syscall.EMLINK) {
+		t.Fatalf("expected EMLINK on second global hit, got: %v", err)
+	}
+	if err := Apply("heap.link_to_stem", "k"); err != nil {
+		t.Fatalf("expected nil after before_x window closes, got: %v", err)
+	}
+}
+
+func TestSetupFromConfig_AfterX_Global(t *testing.T) {
+	Reset()
+	t.Cleanup(Reset)
+
+	err := SetupFromConfig(Config{
+		Version: 1,
+		Rules: []RuleConfig{
+			{
+				ID:   "after-global",
+				Op:   "heap.link_to_stem",
+				Key:  "*",
+				When: WhenConfig{Mode: "after_x", X: 2},
+				Action: ActionConfig{
+					Type:  "error",
+					Error: "EMLINK",
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("setup diagnostics: %v", err)
+	}
+
+	if err := Apply("heap.link_to_stem", "k"); err != nil {
+		t.Fatalf("expected nil before after_x threshold, got: %v", err)
+	}
+	if err := Apply("heap.link_to_stem", "k"); err != nil {
+		t.Fatalf("expected nil before after_x threshold, got: %v", err)
+	}
+	if err := Apply("heap.link_to_stem", "k"); !errors.Is(err, syscall.EMLINK) {
+		t.Fatalf("expected EMLINK once after_x threshold is crossed, got: %v", err)
+	}
+}
+
+func TestSetupFromConfig_AfterXPerKey(t *testing.T) {
+	Reset()
+	t.Cleanup(Reset)
+
+	err := SetupFromConfig(Config{
+		Version: 1,
+		Rules: []RuleConfig{
+			{
+				ID:   "after-per-key",
+				Op:   "heap.link_to_stem",
+				Key:  "*",
+				When: WhenConfig{Mode: "after_x_per_key", X: 1},
+				Action: ActionConfig{
+					Type:  "error",
+					Error: "EMLINK",
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("setup diagnostics: %v", err)
+	}
+
+	if err := Apply("heap.link_to_stem", "alpha"); err != nil {
+		t.Fatalf("expected nil before alpha threshold, got: %v", err)
+	}
+	if err := Apply("heap.link_to_stem", "alpha"); !errors.Is(err, syscall.EMLINK) {
+		t.Fatalf("expected EMLINK after alpha threshold, got: %v", err)
+	}
+	if err := Apply("heap.link_to_stem", "beta"); err != nil {
+		t.Fatalf("expected nil before beta threshold, got: %v", err)
+	}
+	if err := Apply("heap.link_to_stem", "beta"); !errors.Is(err, syscall.EMLINK) {
+		t.Fatalf("expected EMLINK after beta threshold, got: %v", err)
 	}
 }
 

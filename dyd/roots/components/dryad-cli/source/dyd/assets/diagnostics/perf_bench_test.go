@@ -324,7 +324,7 @@ func BenchmarkBindA2R0_EnabledMetricsAllSample1(b *testing.B) {
 	}
 }
 
-func BenchmarkBindA2R0_EnabledMetricsFirstNPerKeyCount1NoTiming_SameKey(b *testing.B) {
+func BenchmarkBindA2R0_EnabledMetricsBeforeXPerKeyCount1NoTiming_SameKey(b *testing.B) {
 	Reset()
 	disabled := false
 	if err := SetupFromConfig(Config{
@@ -332,7 +332,7 @@ func BenchmarkBindA2R0_EnabledMetricsFirstNPerKeyCount1NoTiming_SameKey(b *testi
 		Rules: []RuleConfig{
 			benchMetricsRuleWithWhen(
 				MetricsCaptureConfig{Timing: &disabled},
-				WhenConfig{Mode: "first_x_per_key", X: 1},
+				WhenConfig{Mode: "before_x_per_key", X: 1},
 			),
 		},
 	}); err != nil {
@@ -347,7 +347,7 @@ func BenchmarkBindA2R0_EnabledMetricsFirstNPerKeyCount1NoTiming_SameKey(b *testi
 	}
 }
 
-func BenchmarkBindA2R0_EnabledMetricsFirstNPerKeyCount4NoTiming_SameKey(b *testing.B) {
+func BenchmarkBindA2R0_EnabledMetricsBeforeXPerKeyCount4NoTiming_SameKey(b *testing.B) {
 	Reset()
 	disabled := false
 	if err := SetupFromConfig(Config{
@@ -355,7 +355,7 @@ func BenchmarkBindA2R0_EnabledMetricsFirstNPerKeyCount4NoTiming_SameKey(b *testi
 		Rules: []RuleConfig{
 			benchMetricsRuleWithWhen(
 				MetricsCaptureConfig{Timing: &disabled},
-				WhenConfig{Mode: "first_x_per_key", X: 4},
+				WhenConfig{Mode: "before_x_per_key", X: 4},
 			),
 		},
 	}); err != nil {
@@ -370,7 +370,7 @@ func BenchmarkBindA2R0_EnabledMetricsFirstNPerKeyCount4NoTiming_SameKey(b *testi
 	}
 }
 
-func BenchmarkBindA2R0_EnabledMetricsFirstNPerKeyCount1NoTiming_UniqueKeys(b *testing.B) {
+func BenchmarkBindA2R0_EnabledMetricsBeforeXPerKeyCount1NoTiming_UniqueKeys(b *testing.B) {
 	Reset()
 	disabled := false
 	const keyCount = 1 << 16
@@ -380,7 +380,7 @@ func BenchmarkBindA2R0_EnabledMetricsFirstNPerKeyCount1NoTiming_UniqueKeys(b *te
 		Rules: []RuleConfig{
 			benchMetricsRuleWithWhen(
 				MetricsCaptureConfig{Timing: &disabled},
-				WhenConfig{Mode: "first_x_per_key", X: 1},
+				WhenConfig{Mode: "before_x_per_key", X: 1},
 			),
 		},
 	}); err != nil {
@@ -396,7 +396,7 @@ func BenchmarkBindA2R0_EnabledMetricsFirstNPerKeyCount1NoTiming_UniqueKeys(b *te
 	}
 }
 
-func BenchmarkBindA2R0_EnabledMetricsFirstNPerKeyCount4NoTiming_UniqueKeys(b *testing.B) {
+func BenchmarkBindA2R0_EnabledMetricsBeforeXPerKeyCount4NoTiming_UniqueKeys(b *testing.B) {
 	Reset()
 	disabled := false
 	const keyCount = 1 << 16
@@ -406,7 +406,7 @@ func BenchmarkBindA2R0_EnabledMetricsFirstNPerKeyCount4NoTiming_UniqueKeys(b *te
 		Rules: []RuleConfig{
 			benchMetricsRuleWithWhen(
 				MetricsCaptureConfig{Timing: &disabled},
-				WhenConfig{Mode: "first_x_per_key", X: 4},
+				WhenConfig{Mode: "before_x_per_key", X: 4},
 			),
 		},
 	}); err != nil {

@@ -62,6 +62,13 @@ Diagnostics metrics are configured as a rule action (`rules[].action.type=metric
 There is no separate top-level `metrics` section.
 Rule `id` is optional; when omitted, dryad generates `rule-<1-based index>`.
 `when.limit` sets a global per-rule match cap across all keys.
+Supported `when.mode` values are:
+
+- `every_x`
+- `before_x`
+- `after_x`
+- `before_x_per_key`
+- `after_x_per_key`
 
 ### Diagnostics Examples
 
@@ -89,7 +96,7 @@ dryad root build dyd/roots/root-01
 Inject a bounded number of failures (global cap across all keys):
 
 ```sh
-DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"inject-bounded","op":"os.link","key":"*","when":{"mode":"first_x_per_key","x":1,"limit":3},"action":{"type":"error","error":"EMLINK"}}]}' \
+DYD_DIAG='json:{"version":1,"seed":1,"rules":[{"id":"inject-bounded","op":"os.link","key":"*","when":{"mode":"before_x_per_key","x":1,"limit":3},"action":{"type":"error","error":"EMLINK"}}]}' \
 dryad root build dyd/roots/root-01
 ```
 

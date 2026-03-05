@@ -49,7 +49,10 @@ func (m keyMatcher) Matches(key string) bool {
 type whenMode int
 
 const (
-	whenFirstNPerKey whenMode = iota
+	whenBeforeN whenMode = iota
+	whenAfterN
+	whenBeforeNPerKey
+	whenAfterNPerKey
 	whenEveryN
 )
 
@@ -239,11 +242,30 @@ func compileWhen(out *compiledRule, when WhenConfig, id string) error {
 	x := when.X
 
 	switch when.Mode {
-	case "first_x_per_key":
+	case "before_x":
 		if x <= 0 {
 			return fmt.Errorf("diagnostics rule %q: when.x must be > 0", id)
 		}
-		out.when = whenFirstNPerKey
+		out.when = whenBeforeN
+		out.n = uint64(x)
+	case "after_x":
+		if x <= 0 {
+			return fmt.Errorf("diagnostics rule %q: when.x must be > 0", id)
+		}
+		out.when = whenAfterN
+		out.n = uint64(x)
+	case "before_x_per_key":
+		if x <= 0 {
+			return fmt.Errorf("diagnostics rule %q: when.x must be > 0", id)
+		}
+		out.when = whenBeforeNPerKey
+		out.n = uint64(x)
+		out.perKey = map[uint64]uint64{}
+	case "after_x_per_key":
+		if x <= 0 {
+			return fmt.Errorf("diagnostics rule %q: when.x must be > 0", id)
+		}
+		out.when = whenAfterNPerKey
 		out.n = uint64(x)
 		out.perKey = map[uint64]uint64{}
 	case "every_x":
@@ -358,7 +380,15 @@ func (rule *compiledRule) matches(key string) bool {
 
 func (rule *compiledRule) whenMatches(key string) bool {
 	switch rule.when {
-	case whenFirstNPerKey:
+	case whenBeforeN:
+		count := rule.counter.Add(1)
+		return count <= rule.n
+
+	case whenAfterN:
+		count := rule.counter.Add(1)
+		return count > rule.n
+
+	case whenBeforeNPerKey:
 		keyHash := hashString64(key)
 		rule.perKeyMu.Lock()
 		defer rule.perKeyMu.Unlock()
@@ -368,6 +398,14 @@ func (rule *compiledRule) whenMatches(key string) bool {
 		}
 		rule.perKey[keyHash] = current + 1
 		return true
+
+	case whenAfterNPerKey:
+		keyHash := hashString64(key)
+		rule.perKeyMu.Lock()
+		defer rule.perKeyMu.Unlock()
+		current := rule.perKey[keyHash] + 1
+		rule.perKey[keyHash] = current
+		return current > rule.n
 
 	case whenEveryN:
 		count := rule.counter.Add(1)
