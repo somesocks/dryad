@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+DEST_DIR=$DYD_BUILD
+
+mkdir -p "$DEST_DIR/dyd/assets"
+cp "$SRC_DIR/dyd/assets/name.txt" "$DEST_DIR/dyd/assets/name.txt"

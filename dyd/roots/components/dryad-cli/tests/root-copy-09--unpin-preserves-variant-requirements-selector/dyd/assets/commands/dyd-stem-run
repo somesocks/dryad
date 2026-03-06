@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+SELECTOR='arch=amd64+os=linux'
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	dryad root copy dyd/roots/group-01/root-02 dyd/roots/group-02/root-02 --unpin --log-level="$DYD_LOG_LEVEL" 1>&2
+	dryad root copy dyd/roots/group-01/root-02 dyd/roots/group-02/root-03 --log-level="$DYD_LOG_LEVEL" 1>&2
+	dryad root copy dyd/roots/group-01/root-02 dyd/roots/group-03/root-02 --unpin --log-level="$DYD_LOG_LEVEL" 1>&2
+	dryad roots build --log-level="$DYD_LOG_LEVEL" 1>&2
+}
+
+_verify() {
+	assert_directory_exists "$TEMP_DIR/dyd/roots/group-02/root-02/dyd/requirements~$SELECTOR"
+	assert_directory_exists "$TEMP_DIR/dyd/roots/group-02/root-03/dyd/requirements~$SELECTOR"
+	assert_directory_exists "$TEMP_DIR/dyd/roots/group-03/root-02/dyd/requirements~$SELECTOR"
+
+	assert_file_content_equals \
+		"$TEMP_DIR/dyd/roots/group-02/root-02/dyd/requirements~$SELECTOR/root-01" \
+		"root:../../../root-01"
+	assert_file_content_equals \
+		"$TEMP_DIR/dyd/roots/group-02/root-03/dyd/requirements~$SELECTOR/root-01" \
+		"root:../../../../group-01/root-01"
+	assert_file_content_equals \
+		"$TEMP_DIR/dyd/roots/group-03/root-02/dyd/requirements~$SELECTOR/root-01" \
+		"root:../../../../group-01/root-01"
+
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/group-02/root-02/dyd/type" "sprout"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/group-02/root-03/dyd/type" "sprout"
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/group-03/root-02/dyd/type" "sprout"
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
