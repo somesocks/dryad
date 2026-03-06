@@ -2,7 +2,6 @@ package core
 
 import (
 	"dryad/diagnostics"
-	dfilepath "dryad/internal/filepath"
 	dydos "dryad/internal/os"
 
 	"errors"
@@ -14,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHeapMaterializeFile_RollsOverToReplicaOnEMLINK(t *testing.T) {
+func TestHeapMaterializeFile_ReplacesCanonicalOnEMLINK(t *testing.T) {
 	assert := assert.New(t)
 
 	diagnostics.Disable()
@@ -27,6 +26,9 @@ func TestHeapMaterializeFile_RollsOverToReplicaOnEMLINK(t *testing.T) {
 	err := stdos.Chmod(sourcePath, 0o511)
 	assert.Nil(err)
 
+	sourceInfoBefore, err := dydos.Stat(sourcePath)
+	assert.Nil(err)
+
 	err = diagnostics.SetupFromConfig(diagnostics.Config{
 		Version: 1,
 		Seed:    1,
@@ -35,7 +37,7 @@ func TestHeapMaterializeFile_RollsOverToReplicaOnEMLINK(t *testing.T) {
 				ID:   "inject-canonical-link-failure",
 				Op:   "os.link",
 				Key:  sourcePath,
-				When: diagnostics.WhenConfig{Mode: "every_x", X: 1},
+				When: diagnostics.WhenConfig{Mode: "before_x_per_key", X: 2},
 				Action: diagnostics.ActionConfig{
 					Type:  "error",
 					Error: "EMLINK",
@@ -57,15 +59,9 @@ func TestHeapMaterializeFile_RollsOverToReplicaOnEMLINK(t *testing.T) {
 	destInfo, err := dydos.Stat(destPath)
 	assert.Nil(err)
 
-	replicas, err := dfilepath.Glob(sourcePath + heapReplicaPathSeparator + "*")
-	assert.Nil(err)
-	assert.Len(replicas, 1)
-
-	replicaInfo, err := dydos.Stat(replicas[0])
-	assert.Nil(err)
 	assert.Equal(sourceInfo.Mode().Perm(), destInfo.Mode().Perm())
-	assert.Equal(fileInodeForTest(t, replicaInfo), fileInodeForTest(t, destInfo))
-	assert.NotEqual(fileInodeForTest(t, sourceInfo), fileInodeForTest(t, destInfo))
+	assert.Equal(fileInodeForTest(t, sourceInfo), fileInodeForTest(t, destInfo))
+	assert.NotEqual(fileInodeForTest(t, sourceInfoBefore), fileInodeForTest(t, destInfo))
 }
 
 func TestHeapMaterializeFile_PreservesPostErrorBehavior(t *testing.T) {
@@ -105,10 +101,6 @@ func TestHeapMaterializeFile_PreservesPostErrorBehavior(t *testing.T) {
 	destInfo, err := dydos.Stat(destPath)
 	assert.Nil(err)
 	assert.Equal(fileInodeForTest(t, sourceInfo), fileInodeForTest(t, destInfo))
-
-	replicas, err := dfilepath.Glob(sourcePath + heapReplicaPathSeparator + "*")
-	assert.Nil(err)
-	assert.Len(replicas, 0)
 }
 
 func fileInodeForTest(t *testing.T, info dydos.FileInfo) uint64 {

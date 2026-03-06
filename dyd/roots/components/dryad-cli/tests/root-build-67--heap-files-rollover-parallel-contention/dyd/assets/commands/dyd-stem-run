@@ -71,6 +71,7 @@ _test() {
     echo "[ERROR] Fail: expected to locate canonical heap file for preseeded shared asset" 1>&2
     return 1
   fi
+  printf '%s' "$canonical_path" > "$TEMP_DIR/canonical-path"
 
   diag_cfg=$(_diag_config "$canonical_path" "$TEMP_DIR/dyd/heap/files")
 
@@ -93,14 +94,12 @@ _verify() {
   local root_01_shared
   local root_02_shared
   local root_03_shared
-  local replica_paths
-  local replica_count
-  local replica_path
+  local root_01_inode
   local canonical_inode
-  local replica_inode
   local root_02_inode
   local root_03_inode
 
+  canonical_path=$(cat "$TEMP_DIR/canonical-path")
   root_01_shared="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/shared.txt"
   root_02_shared="$TEMP_DIR/dyd/sprouts/root-02/dyd/dependencies/stem/dyd/assets/shared.txt"
   root_03_shared="$TEMP_DIR/dyd/sprouts/root-03/dyd/dependencies/stem/dyd/assets/shared.txt"
@@ -112,35 +111,33 @@ _verify() {
   assert_file_content_equals "$root_03_shared" "shared-content"
   assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-02/dyd/dependencies/stem/dyd/assets/unique.txt" "unique-root-02"
   assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-03/dyd/dependencies/stem/dyd/assets/unique.txt" "unique-root-03"
+  assert_file_exists "$canonical_path"
 
-  canonical_path=$(find "$TEMP_DIR/dyd/heap/files" -maxdepth 1 -type f -samefile "$root_01_shared" | head -n 1 || true)
-  if [ -z "$canonical_path" ]; then
-    echo "[ERROR] Fail: expected canonical heap file to remain addressable via root-01 shared asset" 1>&2
+  if find "$TEMP_DIR/dyd/heap/files" -maxdepth 1 -type f -name "$(basename "$canonical_path").replica.*" | grep -q .; then
+    echo "[ERROR] Fail: expected canonical replacement instead of side-by-side heap replicas" 1>&2
+    find "$TEMP_DIR/dyd/heap/files" -maxdepth 1 -type f -name "$(basename "$canonical_path").replica.*" 1>&2
     return 1
   fi
 
-  replica_paths=$(find "$TEMP_DIR/dyd/heap/files" -maxdepth 1 -type f -name "$(basename "$canonical_path").replica.*" | sort)
-  replica_count=$(printf '%s\n' "$replica_paths" | sed '/^$/d' | wc -l | tr -d ' ')
-  if [ "$replica_count" != "1" ]; then
-    echo "[ERROR] Fail: expected exactly 1 heap file replica, got $replica_count" 1>&2
-    printf '%s\n' "$replica_paths" 1>&2
-    return 1
-  fi
-  replica_path=$(printf '%s\n' "$replica_paths" | sed -n '1p')
-
+  root_01_inode="$(_inode_of "$root_01_shared")"
   canonical_inode="$(_inode_of "$canonical_path")"
-  replica_inode="$(_inode_of "$replica_path")"
   root_02_inode="$(_inode_of "$root_02_shared")"
   root_03_inode="$(_inode_of "$root_03_shared")"
 
-  if [ "$root_02_inode" != "$replica_inode" ] || [ "$root_03_inode" != "$replica_inode" ]; then
-    echo "[ERROR] Fail: expected both concurrent builds to reuse the same heap replica" 1>&2
-    echo "replica_inode=$replica_inode root_02_inode=$root_02_inode root_03_inode=$root_03_inode" 1>&2
+  if [ "$canonical_inode" = "$root_01_inode" ]; then
+    echo "[ERROR] Fail: expected canonical heap path to be refreshed away from the preseeded inode" 1>&2
+    echo "canonical_inode=$canonical_inode root_01_inode=$root_01_inode" 1>&2
     return 1
   fi
 
-  if [ "$root_02_inode" = "$canonical_inode" ] || [ "$root_03_inode" = "$canonical_inode" ]; then
-    echo "[ERROR] Fail: expected concurrent builds to avoid the canonical saturated heap file" 1>&2
+  if [ "$root_02_inode" = "$root_01_inode" ] || [ "$root_03_inode" = "$root_01_inode" ]; then
+    echo "[ERROR] Fail: expected concurrent builds to stop using the preseeded saturated inode" 1>&2
+    echo "root_01_inode=$root_01_inode root_02_inode=$root_02_inode root_03_inode=$root_03_inode" 1>&2
+    return 1
+  fi
+
+  if [ "$canonical_inode" != "$root_02_inode" ] && [ "$canonical_inode" != "$root_03_inode" ]; then
+    echo "[ERROR] Fail: expected the refreshed canonical heap path to match one concurrent build output inode" 1>&2
     echo "canonical_inode=$canonical_inode root_02_inode=$root_02_inode root_03_inode=$root_03_inode" 1>&2
     return 1
   fi
