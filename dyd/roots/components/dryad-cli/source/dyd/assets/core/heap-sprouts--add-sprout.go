@@ -129,7 +129,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 
 					fileHeapPath := filepath.Join(heapFilesPath, fileFingerprint)
 
-					err = os.Link(fileHeapPath, destPath)
+					err = heapMaterializeFile(fileHeapPath, destPath)
 					if err != nil {
 						return err, nil
 					}
