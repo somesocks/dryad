@@ -60,6 +60,7 @@ Dryad supports runtime diagnostics rules through the `DYD_DIAG` environment vari
 
 Diagnostics metrics are configured as a rule action (`rules[].action.type=metrics`).
 There is no separate top-level `metrics` section.
+Metrics actions are only supported with non-per-key `when.mode` values.
 Rule `id` is optional; when omitted, dryad generates `rule-<1-based index>`.
 `when.limit` sets a global per-rule match cap across all keys.
 Supported `when.mode` values are:
