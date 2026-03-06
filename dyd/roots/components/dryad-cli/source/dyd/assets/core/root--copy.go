@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 type rootCopyRequest struct {
@@ -24,14 +25,18 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 		"^(" +
 			"(\\.)" +
 			"|(dyd)" +
-			"|(dyd/assets)" +
-			"|(dyd/assets/.*)" +
-			"|(dyd/commands)" +
-			"|(dyd/commands/.*)" +
+			"|(dyd/assets(~[^/]+)?)" +
+			"|(dyd/assets(~[^/]+)?/.*)" +
+			"|(dyd/commands(~[^/]+)?)" +
+			"|(dyd/commands(~[^/]+)?/.*)" +
 			"|(dyd/docs)" +
-			"|(dyd/docs/.*)" +
-			"|(dyd/secrets)" +
-			"|(dyd/secrets/.*)" +
+			"|(dyd/docs(~[^/]+)?)" +
+			"|(dyd/docs(~[^/]+)?/.*)" +
+			"|(dyd/requirements)" +
+			"|(dyd/requirements(~[^/]+)?)" +
+			"|(dyd/requirements(~[^/]+)?/.*)" +
+			"|(dyd/secrets(~[^/]+)?)" +
+			"|(dyd/secrets(~[^/]+)?/.*)" +
 			"|(dyd/traits)" +
 			"|(dyd/traits/.*)" +
 			")$",
@@ -41,14 +46,18 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 		"^(" +
 			"(\\.)" +
 			"|(dyd)" +
-			"|(dyd/assets)" +
-			"|(dyd/assets/.*)" +
-			"|(dyd/commands)" +
-			"|(dyd/commands/.*)" +
-			"|(dyd/docs)" +
-			"|(dyd/docs/.*)" +
+			"|(dyd/assets(~[^/]+)?)" +
+			"|(dyd/assets(~[^/]+)?/.*)" +
+			"|(dyd/commands(~[^/]+)?)" +
+			"|(dyd/commands(~[^/]+)?/.*)" +
+			"|(dyd/docs(~[^/]+)?)" +
+			"|(dyd/docs(~[^/]+)?/.*)" +
 			"|(dyd/secrets)" +
-			"|(dyd/secrets/.*)" +
+			"|(dyd/requirements)" +
+			"|(dyd/requirements(~[^/]+)?)" +
+			"|(dyd/requirements(~[^/]+)?/.*)" +
+			"|(dyd/secrets(~[^/]+)?)" +
+			"|(dyd/secrets(~[^/]+)?/.*)" +
 			"|(dyd/fingerprint)" +
 			"|(dyd/type)" +
 			"|(dyd/root)" +
@@ -179,6 +188,12 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 		return nil
 	}
 
+	var isRequirementsPath = func(relPath string) bool {
+		return relPath == "dyd/requirements" ||
+			strings.HasPrefix(relPath, "dyd/requirements/") ||
+			strings.HasPrefix(relPath, "dyd/requirements~")
+	}
+
 	var rootCopy = func(ctx *task.ExecutionContext, req rootCopyRequest) (error, *SafeRootReference) {
 		var sourcePath string = req.Source.BasePath
 		var destPath string = req.Dest.BasePath
@@ -201,6 +216,10 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 				return err, nil
 			} else if targetDestExists {
 				return fmt.Errorf("error: copy destination %s already exists", targetDestPath), nil
+			}
+
+			if isRequirementsPath(relPath) && !node.Info.IsDir() {
+				return nil, nil
 			}
 
 			if node.Info.IsDir() {
@@ -242,30 +261,36 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 			return err, nil
 		}
 
-		err, sourceRequirements := req.Source.Requirements().Resolve(ctx)
-		if err != nil {
-			return err, nil
-		}
-
 		var newRoot SafeRootReference
 		err, newRoot = req.Dest.Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}
 
-		err, newRequirements := newRoot.Requirements().Resolve(ctx)
-		if err != nil {
-			return err, nil
-		}
-
-		sourceRequirements.Walk(
+		err = req.Source.WalkAllRequirements(
 			ctx,
-			RootRequirementsWalkRequest{
+			RootWalkAllRequirementsRequest{
 				OnMatch: func(
 					ctx *task.ExecutionContext,
 					requirement *SafeRootRequirementReference,
 				) (error, any) {
-					err, _ := requirement.Copy(ctx, RootRequirementCopyRequest{
+					relRequirementsPath, err := filepath.Rel(req.Source.BasePath, requirement.Requirements.BasePath)
+					if err != nil {
+						return err, nil
+					}
+
+					destRequirementsPath := filepath.Join(newRoot.BasePath, relRequirementsPath)
+					err = os.MkdirAll(destRequirementsPath, os.ModePerm)
+					if err != nil {
+						return err, nil
+					}
+
+					newRequirements := &SafeRootRequirementsReference{
+						BasePath: destRequirementsPath,
+						Root:     &newRoot,
+					}
+
+					err, _ = requirement.Copy(ctx, RootRequirementCopyRequest{
 						DestRequirements: newRequirements,
 						Unpin:            req.Unpin,
 					})
@@ -273,6 +298,9 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 				},
 			},
 		)
+		if err != nil {
+			return err, nil
+		}
 
 		return nil, &newRoot
 	}

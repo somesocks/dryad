@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+SELECTOR='arch=amd64+os=linux'
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	dryad root copy dyd/roots/root-01 dyd/roots/root-02 --log-level="$DYD_LOG_LEVEL" 1>&2
+	dryad root build dyd/roots/root-02 --log-level="$DYD_LOG_LEVEL" 1>&2
+}
+
+_verify() {
+	root_stem="$TEMP_DIR/dyd/sprouts/root-02/dyd/dependencies/stem~$SELECTOR"
+
+	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02"
+	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02/dyd/assets~$SELECTOR"
+	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02/dyd/commands~$SELECTOR"
+	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02/dyd/docs~$SELECTOR"
+	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02/dyd/secrets~$SELECTOR"
+	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02/dyd/requirements~$SELECTOR"
+
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-02/dyd/assets~$SELECTOR/value.txt" "selector-asset"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-02/dyd/docs~$SELECTOR/about.md" "selector-doc"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-02/dyd/secrets~$SELECTOR/secret.txt" "selector-secret"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-02/dyd/requirements~$SELECTOR/root-dep" "root:../../../root-dep"
+	assert_file_exists "$TEMP_DIR/dyd/roots/root-02/dyd/commands~$SELECTOR/dyd-root-build"
+
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-02/dyd/type" "sprout"
+	assert_file_content_equals "$root_stem/dyd/assets/value.txt" "selector-asset"
+	assert_file_content_equals "$root_stem/dyd/assets/about.txt" "selector-doc"
+	assert_file_content_equals "$root_stem/dyd/assets/secret.txt" "selector-secret"
+	assert_file_content_equals "$root_stem/dyd/assets/dep.txt" "root-dep"
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
