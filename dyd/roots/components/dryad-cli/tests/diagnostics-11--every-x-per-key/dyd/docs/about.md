@@ -1,3 +1,3 @@
 # diagnostics-11--every-x-per-key
 
-Ensures diagnostics `every_x_per_key` behaves correctly on `os.link`, succeeding with a large per-key period and failing when the periodic hit lands on repeated heap-file links.
+Ensures diagnostics `every_x_per_key` on `os.link` can simulate repeated heap-link exhaustion, and that root builds recover from injected `EMLINK` by materializing repeated content without requiring every destination to remain hard-linked.

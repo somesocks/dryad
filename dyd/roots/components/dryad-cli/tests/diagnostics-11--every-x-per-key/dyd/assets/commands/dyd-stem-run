@@ -16,13 +16,18 @@ _prepare() {
   cd "$TEMP_DIR"
 }
 
-_wipe() {
-  dryad garden wipe --log-level="$DYD_LOG_LEVEL"
+_inode_of() {
+  local path="$1"
+  if stat -c %i "$path" >/dev/null 2>&1; then
+    stat -c %i "$path"
+  else
+    stat -f %i "$path"
+  fi
 }
 
 _test() {
   success_every100_log="$TEMP_DIR/build-every-x-per-key-100.log"
-  fail_every2_log="$TEMP_DIR/build-every-x-per-key-2.log"
+  success_every2_log="$TEMP_DIR/build-every-x-per-key-2.log"
   success_log="$TEMP_DIR/build-without-diagnostics.log"
 
   cat > "$TEMP_DIR/dyd/roots/root-01/dyd/assets/test-file-01" <<'EOF'
@@ -33,7 +38,7 @@ same-content
 EOF
 
   every100_cfg='json:{"version":1,"seed":1,"rules":[{"id":"inject-every100-per-key","op":"os.link","key":"*","when":{"mode":"every_x_per_key","x":100},"action":{"type":"error","error":"EMLINK"}}]}'
-  _wipe
+  dryad garden wipe --log-level="$DYD_LOG_LEVEL"
   if ! DYD_DIAG="$every100_cfg" dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" >"$success_every100_log" 2>&1; then
     echo "[ERROR] Fail: expected build to succeed with every_x_per_key x=100" 1>&2
     cat "$success_every100_log" 1>&2
@@ -41,19 +46,26 @@ EOF
   fi
 
   every2_cfg='json:{"version":1,"seed":1,"rules":[{"id":"inject-every2-per-key","op":"os.link","key":"*","when":{"mode":"every_x_per_key","x":2},"action":{"type":"error","error":"EMLINK"}}]}'
-  _wipe
-  if DYD_DIAG="$every2_cfg" dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" > /dev/null 2>"$fail_every2_log"; then
-    echo "[ERROR] Fail: expected build to fail with every_x_per_key x=2" 1>&2
-    cat "$fail_every2_log" 1>&2
-    return 1
-  fi
-  if ! grep -Fq "too many links" "$fail_every2_log"; then
-    echo "[ERROR] Fail: expected every_x_per_key failure to surface EMLINK-style build error" 1>&2
-    cat "$fail_every2_log" 1>&2
+  dryad garden wipe --log-level="$DYD_LOG_LEVEL"
+  if ! DYD_DIAG="$every2_cfg" dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" >"$success_every2_log" 2>&1; then
+    echo "[ERROR] Fail: expected build to recover from every_x_per_key x=2" 1>&2
+    cat "$success_every2_log" 1>&2
     return 1
   fi
 
-  _wipe
+  asset_1="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-file-01"
+  asset_2="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-dir-01/test-file-02"
+  assert_file_content_equals "$asset_1" "same-content"
+  assert_file_content_equals "$asset_2" "same-content"
+
+  inode_1="$(_inode_of "$asset_1")"
+  inode_2="$(_inode_of "$asset_2")"
+  if [ "$inode_1" = "$inode_2" ]; then
+    echo "[ERROR] Fail: expected repeated content to stop sharing an inode when one heap link falls back from EMLINK" 1>&2
+    return 1
+  fi
+
+  dryad garden wipe --log-level="$DYD_LOG_LEVEL"
   if dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" >"$success_log" 2>&1; then
     :
   else
