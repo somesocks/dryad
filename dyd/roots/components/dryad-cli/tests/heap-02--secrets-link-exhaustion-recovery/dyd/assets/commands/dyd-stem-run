@@ -51,7 +51,7 @@ _test() {
 shared-secret
 EOF
   cat > "$TEMP_DIR/dyd/roots/root-01/dyd/secrets/test-dir-01/test-secret-02" <<'EOF'
-other-secret
+shared-secret
 EOF
   cat > "$TEMP_DIR/dyd/roots/root-01/dyd/secrets/unique-secret.txt" <<'EOF'
 unique-secret-v1
@@ -87,9 +87,9 @@ EOF
 unique-secret-v2
 EOF
 
-  diag_cfg=$(printf 'json:{"version":1,"seed":1,"rules":[{"id":"inject-canonical-emlink","op":"os.link","key":"%s","when":{"mode":"every_x","x":1},"action":{"type":"error","error":"EMLINK"}}]}' "$canonical_path")
+  diag_cfg='json:{"version":1,"seed":1,"rules":[{"id":"inject-every2-per-key","op":"os.link","key":"*","when":{"mode":"every_x_per_key","x":2},"action":{"type":"error","error":"EMLINK"}}]}'
   if ! DYD_DIAG="$diag_cfg" dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" >"$second_build_log" 2>&1; then
-    echo "[ERROR] Fail: expected second secret build to recover from a forced canonical EMLINK" 1>&2
+    echo "[ERROR] Fail: expected second secret build to recover from every_x_per_key link exhaustion" 1>&2
     cat "$second_build_log" 1>&2
     return 1
   fi
@@ -123,7 +123,7 @@ unique-secret-v3
 EOF
 
   if ! DYD_DIAG="$diag_cfg" dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" >"$third_build_log" 2>&1; then
-    echo "[ERROR] Fail: expected third secret build to recover from a second forced canonical EMLINK" 1>&2
+    echo "[ERROR] Fail: expected third secret build to recover from a second every_x_per_key rollover" 1>&2
     cat "$third_build_log" 1>&2
     return 1
   fi
@@ -151,6 +151,7 @@ _verify() {
   local middle_inode
   local new_stem_path
   local new_secret_path
+  local new_secret_path_2
   local new_unique_path
   local canonical_inode
   local new_inode
@@ -164,15 +165,17 @@ _verify() {
   middle_inode=$(cat "$TEMP_DIR/middle-inode")
   new_stem_path="$(_realpath_dir "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem")"
   new_secret_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/secrets/test-secret-01"
+  new_secret_path_2="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/secrets/test-dir-01/test-secret-02"
   new_unique_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/secrets/unique-secret.txt"
 
   assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01"
   assert_file_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/fingerprint"
   assert_file_exists "$canonical_path"
   assert_file_exists "$new_secret_path"
+  assert_file_exists "$new_secret_path_2"
   assert_file_exists "$new_unique_path"
   assert_file_content_equals "$new_secret_path" "shared-secret"
-  assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/secrets/test-dir-01/test-secret-02" "other-secret"
+  assert_file_content_equals "$new_secret_path_2" "shared-secret"
   assert_file_content_equals "$new_unique_path" "unique-secret-v3"
 
   canonical_inode="$(_inode_of "$canonical_path")"
