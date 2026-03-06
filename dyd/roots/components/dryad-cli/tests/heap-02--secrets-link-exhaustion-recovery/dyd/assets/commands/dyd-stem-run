@@ -16,6 +16,13 @@ _prepare() {
   cd "$TEMP_DIR"
 }
 
+_realpath_dir() {
+  (
+    cd "$1"
+    pwd -P
+  )
+}
+
 _inode_of() {
   local path="$1"
   if stat -c %i "$path" >/dev/null 2>&1; then
@@ -26,59 +33,210 @@ _inode_of() {
 }
 
 _test() {
-  local success_every100_log="$TEMP_DIR/build-every-x-per-key-100.log"
-  local success_every2_log="$TEMP_DIR/build-every-x-per-key-2.log"
-  local secret_1
-  local secret_2
-  local inode_1
-  local inode_2
-  local heap_secret_file
+  local first_build_log="$TEMP_DIR/build-first.log"
+  local second_build_log="$TEMP_DIR/build-second.log"
+  local third_build_log="$TEMP_DIR/build-third.log"
+  local fourth_build_log="$TEMP_DIR/build-fourth.log"
+  local secret_path
+  local old_stem_path
+  local old_stem_fingerprint
+  local old_inode
+  local middle_stem_path
+  local middle_stem_fingerprint
+  local middle_inode
+  local canonical_path
+  local diag_cfg
 
-  every100_cfg='json:{"version":1,"seed":1,"rules":[{"id":"inject-every100-per-key","op":"os.link","key":"*","when":{"mode":"every_x_per_key","x":100},"action":{"type":"error","error":"EMLINK"}}]}'
-  dryad garden wipe --log-level="$DYD_LOG_LEVEL"
-  if ! DYD_DIAG="$every100_cfg" dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" >"$success_every100_log" 2>&1; then
-    echo "[ERROR] Fail: expected secret build to succeed with every_x_per_key x=100" 1>&2
-    cat "$success_every100_log" 1>&2
+  cat > "$TEMP_DIR/dyd/roots/root-01/dyd/secrets/test-secret-01" <<'EOF'
+shared-secret
+EOF
+  cat > "$TEMP_DIR/dyd/roots/root-01/dyd/secrets/test-dir-01/test-secret-02" <<'EOF'
+other-secret
+EOF
+  cat > "$TEMP_DIR/dyd/roots/root-01/dyd/secrets/unique-secret.txt" <<'EOF'
+unique-secret-v1
+EOF
+
+  if ! dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" >"$first_build_log" 2>&1; then
+    echo "[ERROR] Fail: expected initial secret build to succeed" 1>&2
+    cat "$first_build_log" 1>&2
     return 1
   fi
 
-  every2_cfg='json:{"version":1,"seed":1,"rules":[{"id":"inject-every2-per-key","op":"os.link","key":"*","when":{"mode":"every_x_per_key","x":2},"action":{"type":"error","error":"EMLINK"}}]}'
-  dryad garden wipe --log-level="$DYD_LOG_LEVEL"
-  if ! DYD_DIAG="$every2_cfg" dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" >"$success_every2_log" 2>&1; then
-    echo "[ERROR] Fail: expected secret build to recover from every_x_per_key x=2" 1>&2
-    cat "$success_every2_log" 1>&2
+  secret_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/secrets/test-secret-01"
+  old_stem_path="$(_realpath_dir "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem")"
+  old_stem_fingerprint=$(cat "$old_stem_path/dyd/fingerprint")
+  old_inode="$(_inode_of "$secret_path")"
+  canonical_path=$(find "$TEMP_DIR/dyd/heap/secrets" -maxdepth 1 -type f -samefile "$secret_path" | head -n 1 || true)
+
+  if [ -z "$canonical_path" ]; then
+    echo "[ERROR] Fail: expected to locate canonical heap secret for the shared secret" 1>&2
     return 1
   fi
 
-  secret_1="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/secrets/test-secret-01"
-  secret_2="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/secrets/test-dir-01/test-secret-02"
+  printf '%s' "$old_stem_path" > "$TEMP_DIR/old-stem-path"
+  printf '%s' "$old_stem_fingerprint" > "$TEMP_DIR/old-stem-fingerprint"
+  printf '%s' "$old_inode" > "$TEMP_DIR/old-inode"
+  printf '%s' "$canonical_path" > "$TEMP_DIR/canonical-path"
 
-  assert_file_content_equals "$secret_1" "same-secret"
-  assert_file_content_equals "$secret_2" "same-secret"
+  find "$TEMP_DIR/dyd" \
+    \( -type l -o -type f -o -type d \) \
+    -exec touch -h -d "2000-01-01 00:00:00" {} +
 
-  inode_1="$(_inode_of "$secret_1")"
-  inode_2="$(_inode_of "$secret_2")"
-  if [ "$inode_1" != "$inode_2" ]; then
-    echo "[ERROR] Fail: expected repeated secret content to keep sharing an inode after recovery" 1>&2
+  cat > "$TEMP_DIR/dyd/roots/root-01/dyd/secrets/unique-secret.txt" <<'EOF'
+unique-secret-v2
+EOF
+
+  diag_cfg=$(printf 'json:{"version":1,"seed":1,"rules":[{"id":"inject-canonical-emlink","op":"os.link","key":"%s","when":{"mode":"every_x","x":1},"action":{"type":"error","error":"EMLINK"}}]}' "$canonical_path")
+  if ! DYD_DIAG="$diag_cfg" dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" >"$second_build_log" 2>&1; then
+    echo "[ERROR] Fail: expected second secret build to recover from a forced canonical EMLINK" 1>&2
+    cat "$second_build_log" 1>&2
     return 1
   fi
 
-  heap_secret_file=$(find "$TEMP_DIR/dyd/heap/secrets" -maxdepth 1 -type f -inum "$inode_1" -print -quit)
-  if [ -z "$heap_secret_file" ]; then
-    echo "[ERROR] Fail: expected recovered secret inode to remain hardlinked from heap/secrets" 1>&2
+  middle_stem_path="$(_realpath_dir "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem")"
+  middle_stem_fingerprint=$(cat "$middle_stem_path/dyd/fingerprint")
+  middle_inode="$(_inode_of "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/secrets/test-secret-01")"
+
+  if [ "$middle_stem_path" = "$old_stem_path" ]; then
+    echo "[ERROR] Fail: expected the first refreshed secret build to move to a new stem path" 1>&2
+    echo "old_stem_path=$old_stem_path middle_stem_path=$middle_stem_path" 1>&2
     return 1
   fi
 
-  if find "$TEMP_DIR/dyd/heap/secrets" -maxdepth 1 -type f -name '.tmp-*' | grep -q .; then
-    echo "[ERROR] Fail: expected no temp files left in heap/secrets after recovery" 1>&2
-    find "$TEMP_DIR/dyd/heap/secrets" -maxdepth 1 -type f -name '.tmp-*' 1>&2
+  if [ "$middle_inode" = "$old_inode" ]; then
+    echo "[ERROR] Fail: expected the first refreshed secret build to stop using the original inode" 1>&2
+    echo "middle_inode=$middle_inode old_inode=$old_inode" 1>&2
+    return 1
+  fi
+
+  printf '%s' "$middle_stem_path" > "$TEMP_DIR/middle-stem-path"
+  printf '%s' "$middle_stem_fingerprint" > "$TEMP_DIR/middle-stem-fingerprint"
+  printf '%s' "$middle_inode" > "$TEMP_DIR/middle-inode"
+
+  find "$TEMP_DIR/dyd" \
+    \( -type l -o -type f -o -type d \) \
+    -exec touch -h -d "2000-01-01 00:00:00" {} +
+
+  cat > "$TEMP_DIR/dyd/roots/root-01/dyd/secrets/unique-secret.txt" <<'EOF'
+unique-secret-v3
+EOF
+
+  if ! DYD_DIAG="$diag_cfg" dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" >"$third_build_log" 2>&1; then
+    echo "[ERROR] Fail: expected third secret build to recover from a second forced canonical EMLINK" 1>&2
+    cat "$third_build_log" 1>&2
+    return 1
+  fi
+
+  if ! dryad garden prune --log-level="$DYD_LOG_LEVEL" >"$TEMP_DIR/prune.log" 2>&1; then
+    echo "[ERROR] Fail: expected garden prune to succeed after repeated secret canonical refreshes" 1>&2
+    cat "$TEMP_DIR/prune.log" 1>&2
+    return 1
+  fi
+
+  if ! dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" >"$fourth_build_log" 2>&1; then
+    echo "[ERROR] Fail: expected secret build after prune to succeed" 1>&2
+    cat "$fourth_build_log" 1>&2
     return 1
   fi
 }
 
 _verify() {
+  local canonical_path
+  local old_stem_path
+  local old_stem_fingerprint
+  local old_inode
+  local middle_stem_path
+  local middle_stem_fingerprint
+  local middle_inode
+  local new_stem_path
+  local new_secret_path
+  local new_unique_path
+  local canonical_inode
+  local new_inode
+
+  canonical_path=$(cat "$TEMP_DIR/canonical-path")
+  old_stem_path=$(cat "$TEMP_DIR/old-stem-path")
+  old_stem_fingerprint=$(cat "$TEMP_DIR/old-stem-fingerprint")
+  old_inode=$(cat "$TEMP_DIR/old-inode")
+  middle_stem_path=$(cat "$TEMP_DIR/middle-stem-path")
+  middle_stem_fingerprint=$(cat "$TEMP_DIR/middle-stem-fingerprint")
+  middle_inode=$(cat "$TEMP_DIR/middle-inode")
+  new_stem_path="$(_realpath_dir "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem")"
+  new_secret_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/secrets/test-secret-01"
+  new_unique_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/secrets/unique-secret.txt"
+
   assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01"
   assert_file_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/fingerprint"
+  assert_file_exists "$canonical_path"
+  assert_file_exists "$new_secret_path"
+  assert_file_exists "$new_unique_path"
+  assert_file_content_equals "$new_secret_path" "shared-secret"
+  assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/secrets/test-dir-01/test-secret-02" "other-secret"
+  assert_file_content_equals "$new_unique_path" "unique-secret-v3"
+
+  canonical_inode="$(_inode_of "$canonical_path")"
+  new_inode="$(_inode_of "$new_secret_path")"
+
+  if [ "$new_stem_path" = "$old_stem_path" ] || [ "$new_stem_path" = "$middle_stem_path" ]; then
+    echo "[ERROR] Fail: expected the second refreshed secret build to move to a third stem path" 1>&2
+    echo "old_stem_path=$old_stem_path middle_stem_path=$middle_stem_path new_stem_path=$new_stem_path" 1>&2
+    return 1
+  fi
+
+  if [ -e "$old_stem_path" ]; then
+    echo "[ERROR] Fail: expected prune to remove the unreachable original secret stem" 1>&2
+    echo "old_stem_path=$old_stem_path" 1>&2
+    return 1
+  fi
+
+  if [ -e "$TEMP_DIR/dyd/heap/stems/$old_stem_fingerprint" ]; then
+    echo "[ERROR] Fail: expected prune to remove the original heap stem directory for secrets" 1>&2
+    echo "old_stem_fingerprint=$old_stem_fingerprint" 1>&2
+    return 1
+  fi
+
+  if [ -e "$middle_stem_path" ]; then
+    echo "[ERROR] Fail: expected prune to remove the first refreshed secret stem once a newer generation existed" 1>&2
+    echo "middle_stem_path=$middle_stem_path" 1>&2
+    return 1
+  fi
+
+  if [ -e "$TEMP_DIR/dyd/heap/stems/$middle_stem_fingerprint" ]; then
+    echo "[ERROR] Fail: expected prune to remove the middle heap stem directory for secrets" 1>&2
+    echo "middle_stem_fingerprint=$middle_stem_fingerprint" 1>&2
+    return 1
+  fi
+
+  if [ "$canonical_inode" = "$old_inode" ]; then
+    echo "[ERROR] Fail: expected the canonical heap secret to stay refreshed after prune" 1>&2
+    echo "canonical_inode=$canonical_inode old_inode=$old_inode" 1>&2
+    return 1
+  fi
+
+  if [ "$canonical_inode" = "$middle_inode" ]; then
+    echo "[ERROR] Fail: expected the canonical heap secret to refresh again for the second generation" 1>&2
+    echo "canonical_inode=$canonical_inode middle_inode=$middle_inode" 1>&2
+    return 1
+  fi
+
+  if [ "$new_inode" = "$old_inode" ] || [ "$new_inode" = "$middle_inode" ]; then
+    echo "[ERROR] Fail: expected the final secret stem to stop using both earlier inodes" 1>&2
+    echo "new_inode=$new_inode old_inode=$old_inode middle_inode=$middle_inode" 1>&2
+    return 1
+  fi
+
+  if [ "$canonical_inode" != "$new_inode" ]; then
+    echo "[ERROR] Fail: expected the refreshed canonical heap secret to match the rebuilt stem inode" 1>&2
+    echo "canonical_inode=$canonical_inode new_inode=$new_inode" 1>&2
+    return 1
+  fi
+
+  if find "$TEMP_DIR/dyd/heap/secrets" -maxdepth 1 -type f -name '.tmp-*' | grep -q .; then
+    echo "[ERROR] Fail: expected no temp files left in heap/secrets after repeated refreshes" 1>&2
+    find "$TEMP_DIR/dyd/heap/secrets" -maxdepth 1 -type f -name '.tmp-*' 1>&2
+    return 1
+  fi
 }
 
 _teardown() {
