@@ -2,9 +2,9 @@ package cli
 
 import (
 	clib "dryad/cli-builder"
+	"dryad/internal/os"
 	"dryad/task"
 	"errors"
-	"os"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -67,10 +67,10 @@ var rootDevelopSaveCommand = func() clib.Command {
 		func(err error, val any) int {
 			if err != nil {
 				if errors.Is(err, errDevSocketNotSet) {
-					zlog.Fatal().Err(err).Msg("not running inside a root development environment")
+					zlog.Error().Err(err).Msg("not running inside a root development environment")
 					return 1
 				}
-				zlog.Fatal().Err(err).Msg("save request failed")
+				zlog.Error().Err(err).Msg("save request failed")
 				return 1
 			}
 

@@ -1,10 +1,10 @@
 package core
 
 import (
+	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"

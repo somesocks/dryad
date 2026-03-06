@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+  TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+  chmod -R 755 "$TEMP_DIR"
+  cd "$TEMP_DIR"
+}
+
+_test() {
+  fail_log="$TEMP_DIR/build-with-diagnostics.log"
+  success_log="$TEMP_DIR/build-without-diagnostics.log"
+
+  diag_cfg='json:{"version":1,"seed":1,"rules":[{"id":"inject-emlink","op":"os.link","key":"*","when":{"mode":"every_x","x":1},"action":{"type":"error","error":"EMLINK"}}]}'
+
+  if DYD_DIAG="$diag_cfg" dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" >"$success_log" 2>"$fail_log"; then
+    echo "[ERROR] Fail: expected build to fail when diagnostics injects EMLINK on os.link" 1>&2
+    cat "$fail_log" 1>&2
+    return 1
+  fi
+
+  if dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" >"$success_log" 2>&1; then
+    :
+  else
+    echo "[ERROR] Fail: expected build without diagnostics config to succeed" 1>&2
+    cat "$success_log" 1>&2
+    return 1
+  fi
+}
+
+_verify() {
+  assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01"
+  assert_file_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/fingerprint"
+}
+
+_teardown() {
+  if [ -d "$TEMP_DIR" ]; then
+    chmod -R 755 "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+  fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

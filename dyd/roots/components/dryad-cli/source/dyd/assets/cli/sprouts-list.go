@@ -160,7 +160,7 @@ var sproutsListCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error during sprouts list")
+				zlog.Error().Err(err).Msg("error during sprouts list")
 				return 1
 			}
 

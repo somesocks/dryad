@@ -1,17 +1,14 @@
-
 package core
 
 import (
 	fs2 "dryad/filesystem"
 	"dryad/task"
 
-	"os"
-
+	"dryad/internal/os"
 	// zlog "github.com/rs/zerolog/log"
 )
 
-
-func (heapFiles *UnsafeHeapFilesReference) Resolve(ctx * task.ExecutionContext) (error, *SafeHeapFilesReference) {
+func (heapFiles *UnsafeHeapFilesReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapFilesReference) {
 	var heapFilesExists bool
 	var err error
 	var safeRef SafeHeapFilesReference
@@ -37,8 +34,8 @@ func (heapFiles *UnsafeHeapFilesReference) Resolve(ctx * task.ExecutionContext) 
 
 	safeRef = SafeHeapFilesReference{
 		BasePath: heapFiles.BasePath,
-		Heap: heapFiles.Heap,
+		Heap:     heapFiles.Heap,
 	}
 
-	return nil, &safeRef 
+	return nil, &safeRef
 }

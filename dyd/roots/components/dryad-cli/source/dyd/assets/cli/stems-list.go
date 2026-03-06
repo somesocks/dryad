@@ -3,10 +3,10 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
 	"io/fs"
-	"os"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -64,7 +64,7 @@ var stemsListCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while crawling stems")
+				zlog.Error().Err(err).Msg("error while crawling stems")
 				return 1
 			}
 

@@ -69,7 +69,7 @@ var gardenWipeCommand = func() clib.Command {
 		),
 		func (err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while wiping garden")
+				zlog.Error().Err(err).Msg("error while wiping garden")
 				return 1
 			}
 

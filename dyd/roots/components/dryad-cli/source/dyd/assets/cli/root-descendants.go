@@ -120,7 +120,7 @@ var rootDescendantsCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while finding root descendants")
+				zlog.Error().Err(err).Msg("error while finding root descendants")
 				return 1
 			}
 

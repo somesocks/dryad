@@ -2,23 +2,23 @@ package core
 
 import (
 	"bufio"
+	"dryad/internal/net"
+	"dryad/internal/os"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"net"
-	"os"
 	"strings"
 
 	zlog "github.com/rs/zerolog/log"
 )
 
 type rootDevelopIPCHandlers struct {
-	OnSave func() error
-	OnStatus func() ([]rootDevelopStatusEntry, error)
+	OnSave     func() error
+	OnStatus   func() ([]rootDevelopStatusEntry, error)
 	OnSnapshot func() (string, error)
-	OnReset func() error
-	OnStop func() error
+	OnReset    func() error
+	OnStop     func() error
 }
 
 type rootDevelopIPCRequest struct {
@@ -26,9 +26,9 @@ type rootDevelopIPCRequest struct {
 }
 
 type rootDevelopIPCResponse struct {
-	Status  string                  `json:"status"`
+	Status  string                   `json:"status"`
 	Entries []rootDevelopStatusEntry `json:"entries,omitempty"`
-	Message string                  `json:"message,omitempty"`
+	Message string                   `json:"message,omitempty"`
 }
 
 type rootDevelopIPCServer struct {

@@ -3,8 +3,8 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/internal/os"
 	"dryad/task"
-	"os"
 	"path/filepath"
 	"regexp"
 
@@ -94,7 +94,7 @@ var stemFilesCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while listing files")
+				zlog.Error().Err(err).Msg("error while listing files")
 				return 1
 			}
 

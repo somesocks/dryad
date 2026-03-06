@@ -2,7 +2,7 @@ package core
 
 import (
 	dydfs "dryad/filesystem"
-	"os"
+	"dryad/internal/os"
 	"path/filepath"
 
 	"dryad/task"
@@ -12,7 +12,7 @@ import (
 
 func sproutsPrune(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) error {
 	var roots *SafeRootsReference
-	var err error 
+	var err error
 
 	err, roots = sprouts.Garden.Roots().Resolve(ctx)
 	if err != nil {
@@ -47,7 +47,7 @@ func sproutsPrune(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) err
 		// if the roots path does not exist, then we should wipe the sprouts path
 		rootsPathExists, err := fileExists(rootsEquivalentPath)
 		if err != nil {
-			return  err, false
+			return err, false
 		}
 		if !rootsPathExists {
 			return nil, true
@@ -72,7 +72,7 @@ func sproutsPrune(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) err
 	}
 
 	onMatch = dydfs.ConditionalWalkAction(onMatch, shouldMatch)
-	
+
 	// NOTE: this needs to run serially until we fix the concurrency issue
 	// with parent permissions in onMatch
 	err, _ = dydfs.Walk6(
@@ -81,8 +81,8 @@ func sproutsPrune(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) err
 			BasePath:    sprouts.BasePath,
 			Path:        sprouts.BasePath,
 			VPath:       sprouts.BasePath,
-			ShouldWalk: shouldWalk,
-			OnPostMatch:     onMatch,
+			ShouldWalk:  shouldWalk,
+			OnPostMatch: onMatch,
 		},
 	)
 	if err != nil {
@@ -94,7 +94,7 @@ func sproutsPrune(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) err
 
 func (sprouts *SafeSproutsReference) Prune(
 	ctx *task.ExecutionContext,
-) (error) {
+) error {
 	err := sproutsPrune(
 		ctx,
 		sprouts,

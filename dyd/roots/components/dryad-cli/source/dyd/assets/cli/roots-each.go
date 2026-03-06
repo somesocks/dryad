@@ -6,8 +6,8 @@ import (
 	"dryad/task"
 	// "fmt"
 
-	"os"
-	"os/exec"
+	"dryad/internal/exec"
+	"dryad/internal/os"
 
 	"strings"
 
@@ -169,7 +169,7 @@ var rootsEachCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while executing commands")
+				zlog.Error().Err(err).Msg("error while executing commands")
 				return 1
 			}
 

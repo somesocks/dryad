@@ -1,9 +1,9 @@
 package core
 
 import (
+	"dryad/internal/exec"
+	"dryad/internal/os"
 	"fmt"
-	"os"
-	"os/exec"
 	"runtime"
 
 	zerolog "github.com/rs/zerolog"
@@ -11,10 +11,10 @@ import (
 )
 
 type ScriptEditRequest struct {
-	Garden *SafeGardenReference
-	Scope    string
-	Setting  string
-	Env      map[string]string
+	Garden  *SafeGardenReference
+	Scope   string
+	Setting string
+	Env     map[string]string
 }
 
 func ScriptEdit(request ScriptEditRequest) error {
@@ -43,14 +43,14 @@ func ScriptEdit(request ScriptEditRequest) error {
 	f, err := os.OpenFile(scriptPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
 	if err != nil {
 		zlog.
-			Fatal().
+			Error().
 			Err(err).
 			Msg("error creating script file")
 		return err
 	}
 	if err := f.Close(); err != nil {
 		zlog.
-			Fatal().
+			Error().
 			Err(err).
 			Msg("error closing script file after creation")
 		return err

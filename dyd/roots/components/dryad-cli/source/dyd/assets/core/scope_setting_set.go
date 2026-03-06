@@ -1,8 +1,8 @@
 package core
 
 import (
+	"dryad/internal/os"
 	"io/fs"
-	"os"
 	"path/filepath"
 )
 

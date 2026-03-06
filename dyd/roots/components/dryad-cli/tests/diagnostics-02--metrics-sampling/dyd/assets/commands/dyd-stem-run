@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+GARDEN_100=''
+GARDEN_50=''
+
+_metrics_config() {
+  local sample_every="$1"
+  printf 'json:{"version":1,"seed":1,"rules":[{"id":"m-os-link","op":"os.link","key":"*","when":{"mode":"every_x","x":%s},"action":{"type":"metrics","output":"stderr","capture":{"calls":true,"errors":true,"timing":false}}}]}' "$sample_every"
+}
+
+_extract_calls() {
+  local log_path="$1"
+  local line
+  local calls
+
+  line=$(grep -F '"point":"os.link"' "$log_path" | tail -n 1 || true)
+  if [ -z "$line" ]; then
+    echo "[ERROR] Fail: missing os.link metrics output in '$log_path'" 1>&2
+    return 1
+  fi
+
+  calls=$(echo "$line" | sed -E 's/.*"calls":([0-9]+).*/\1/')
+  if ! echo "$calls" | grep -Eq '^[0-9]+$'; then
+    echo "[ERROR] Fail: unable to parse calls from metrics line: $line" 1>&2
+    return 1
+  fi
+
+  echo "$calls"
+}
+
+_setup() {
+  TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+  GARDEN_100="$TEMP_DIR/garden-100"
+  GARDEN_50="$TEMP_DIR/garden-50"
+}
+
+_prepare() {
+  mkdir -p "$GARDEN_100" "$GARDEN_50"
+
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$GARDEN_100"
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$GARDEN_50"
+
+  chmod -R 755 "$GARDEN_100" "$GARDEN_50"
+}
+
+_test() {
+  local log_100="$TEMP_DIR/build-100.log"
+  local log_50="$TEMP_DIR/build-50.log"
+  local calls_100
+  local calls_50
+  local expected_50
+
+  (
+    cd "$GARDEN_100"
+    DYD_DIAG="$(_metrics_config 1)" dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" > /dev/null 2>"$log_100"
+  )
+
+  (
+    cd "$GARDEN_50"
+    DYD_DIAG="$(_metrics_config 2)" dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" > /dev/null 2>"$log_50"
+  )
+
+  calls_100=$(_extract_calls "$log_100")
+  calls_50=$(_extract_calls "$log_50")
+
+  if [ "$calls_100" -le 0 ]; then
+    echo "[ERROR] Fail: expected unsampled os.link call count to be > 0" 1>&2
+    cat "$log_100" 1>&2
+    return 1
+  fi
+
+  expected_50=$((calls_100 / 2))
+  if [ "$calls_50" -ne "$expected_50" ]; then
+    echo "[ERROR] Fail: expected sampled call count to be exactly half (floor)" 1>&2
+    echo "calls_100=$calls_100 expected_50=$expected_50 calls_50=$calls_50" 1>&2
+    cat "$log_50" 1>&2
+    return 1
+  fi
+}
+
+_verify() {
+  if [ ! -d "$GARDEN_100/dyd/sprouts/root-01" ]; then
+    echo "[ERROR] Fail: expected sampled-100 build to produce sprout" 1>&2
+    return 1
+  fi
+
+  if [ ! -d "$GARDEN_50/dyd/sprouts/root-01" ]; then
+    echo "[ERROR] Fail: expected sampled-50 build to produce sprout" 1>&2
+    return 1
+  fi
+}
+
+_teardown() {
+  if [ -d "$TEMP_DIR" ]; then
+    chmod -R 755 "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+  fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

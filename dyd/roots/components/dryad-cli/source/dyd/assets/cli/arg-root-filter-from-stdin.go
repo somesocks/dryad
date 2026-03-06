@@ -1,4 +1,3 @@
-
 package cli
 
 import (
@@ -9,12 +8,12 @@ import (
 	"path/filepath"
 
 	"bufio"
-	"os"
+	"dryad/internal/os"
 
 	zlog "github.com/rs/zerolog/log"
 )
 
-var ArgRootFilterFromStdin = func (
+var ArgRootFilterFromStdin = func(
 	ctx *task.ExecutionContext,
 	req clib.ActionRequest,
 ) (error, core.RootFilter) {
@@ -49,7 +48,7 @@ var ArgRootFilterFromStdin = func (
 
 		for scanner.Scan() {
 			var path = scanner.Text()
-			var err error 
+			var err error
 			var root core.SafeRootReference
 
 			path, err = filepath.Abs(path)
@@ -79,13 +78,13 @@ var ArgRootFilterFromStdin = func (
 			return err, fromStdinFilter
 		}
 
-		fromStdinFilter = func (ctx *task.ExecutionContext, root *core.SafeRootReference) (error, bool) {
+		fromStdinFilter = func(ctx *task.ExecutionContext, root *core.SafeRootReference) (error, bool) {
 			_, ok := rootSet[root.BasePath]
 			return nil, ok
 		}
 
 	} else {
-		fromStdinFilter = func (ctx *task.ExecutionContext, root *core.SafeRootReference) (error, bool) {
+		fromStdinFilter = func(ctx *task.ExecutionContext, root *core.SafeRootReference) (error, bool) {
 			return nil, true
 		}
 	}

@@ -3,9 +3,9 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
-	"os"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -70,7 +70,7 @@ var rootsPathCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while finding roots path")
+				zlog.Error().Err(err).Msg("error while finding roots path")
 				return 1
 			}
 

@@ -1,7 +1,7 @@
 package core
 
 import (
-	"os"
+	"dryad/internal/os"
 )
 
 func ScopeCreate(garden *SafeGardenReference, scope string) (string, error) {

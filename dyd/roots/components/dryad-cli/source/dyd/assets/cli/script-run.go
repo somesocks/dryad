@@ -3,9 +3,9 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/internal/os"
 	"dryad/task"
 	"errors"
-	"os"
 	"strings"
 
 	zlog "github.com/rs/zerolog/log"
@@ -132,7 +132,7 @@ var scriptRunAction = func(req clib.ActionRequest) int {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while running script")
+				zlog.Error().Err(err).Msg("error while running script")
 				return 1
 			}
 			return 0

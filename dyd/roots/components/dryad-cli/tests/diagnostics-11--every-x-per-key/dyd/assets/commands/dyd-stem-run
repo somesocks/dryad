@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+  TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+  chmod -R 755 "$TEMP_DIR"
+  cd "$TEMP_DIR"
+}
+
+_wipe() {
+  dryad garden wipe --log-level="$DYD_LOG_LEVEL"
+}
+
+_test() {
+  success_every100_log="$TEMP_DIR/build-every-x-per-key-100.log"
+  fail_every2_log="$TEMP_DIR/build-every-x-per-key-2.log"
+  success_log="$TEMP_DIR/build-without-diagnostics.log"
+
+  cat > "$TEMP_DIR/dyd/roots/root-01/dyd/assets/test-file-01" <<'EOF'
+same-content
+EOF
+  cat > "$TEMP_DIR/dyd/roots/root-01/dyd/assets/test-dir-01/test-file-02" <<'EOF'
+same-content
+EOF
+
+  every100_cfg='json:{"version":1,"seed":1,"rules":[{"id":"inject-every100-per-key","op":"os.link","key":"*","when":{"mode":"every_x_per_key","x":100},"action":{"type":"error","error":"EMLINK"}}]}'
+  _wipe
+  if ! DYD_DIAG="$every100_cfg" dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" >"$success_every100_log" 2>&1; then
+    echo "[ERROR] Fail: expected build to succeed with every_x_per_key x=100" 1>&2
+    cat "$success_every100_log" 1>&2
+    return 1
+  fi
+
+  every2_cfg='json:{"version":1,"seed":1,"rules":[{"id":"inject-every2-per-key","op":"os.link","key":"*","when":{"mode":"every_x_per_key","x":2},"action":{"type":"error","error":"EMLINK"}}]}'
+  _wipe
+  if DYD_DIAG="$every2_cfg" dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" > /dev/null 2>"$fail_every2_log"; then
+    echo "[ERROR] Fail: expected build to fail with every_x_per_key x=2" 1>&2
+    cat "$fail_every2_log" 1>&2
+    return 1
+  fi
+  if ! grep -Fq "too many links" "$fail_every2_log"; then
+    echo "[ERROR] Fail: expected every_x_per_key failure to surface EMLINK-style build error" 1>&2
+    cat "$fail_every2_log" 1>&2
+    return 1
+  fi
+
+  _wipe
+  if dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" >"$success_log" 2>&1; then
+    :
+  else
+    echo "[ERROR] Fail: expected build without diagnostics config to succeed" 1>&2
+    cat "$success_log" 1>&2
+    return 1
+  fi
+}
+
+_verify() {
+  assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01"
+  assert_file_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/fingerprint"
+}
+
+_teardown() {
+  if [ -d "$TEMP_DIR" ]; then
+    chmod -R 755 "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+  fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

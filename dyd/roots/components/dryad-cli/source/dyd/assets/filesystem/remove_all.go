@@ -2,7 +2,7 @@ package fs2
 
 import (
 	// "io/fs"
-	"os"
+	"dryad/internal/os"
 	// "path/filepath"
 
 	"dryad/task"
@@ -15,7 +15,7 @@ func RemoveAll(ctx *task.ExecutionContext, path string) (error, any) {
 		Str("path", path).
 		Msg("dryad/filesystem/RemoveAll")
 
-	_, err := os.Lstat(path);
+	_, err := os.Lstat(path)
 	if err != nil {
 		zlog.Trace().
 			Err(err).
@@ -26,13 +26,13 @@ func RemoveAll(ctx *task.ExecutionContext, path string) (error, any) {
 			return nil, nil
 		} else {
 			return err, nil
-		}	
+		}
 	}
 
 	shouldWalk := func(ctx *task.ExecutionContext, node Walk6Node) (error, bool) {
 		isSymlink := node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
 		shouldWalk := !isSymlink
- 
+
 		zlog.Trace().
 			Str("path", node.Path).
 			Str("vpath", node.VPath).
@@ -93,8 +93,8 @@ func RemoveAll(ctx *task.ExecutionContext, path string) (error, any) {
 			BasePath:    path,
 			Path:        path,
 			VPath:       path,
-			ShouldWalk: shouldWalk,
-			OnPreMatch: onPreMatch,
+			ShouldWalk:  shouldWalk,
+			OnPreMatch:  onPreMatch,
 			OnPostMatch: onPostMatch,
 		},
 	)

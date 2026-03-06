@@ -1,16 +1,13 @@
-
 package core
 
 import (
 	"dryad/task"
 
-	"os"
-
+	"dryad/internal/os"
 	// zlog "github.com/rs/zerolog/log"
 )
 
-
-func (ur *UnsafeRootsReference) Resolve(ctx * task.ExecutionContext) (error, *SafeRootsReference) {
+func (ur *UnsafeRootsReference) Resolve(ctx *task.ExecutionContext) (error, *SafeRootsReference) {
 	var rootsExists bool
 	var err error
 	var safeRef SafeRootsReference
@@ -29,8 +26,8 @@ func (ur *UnsafeRootsReference) Resolve(ctx * task.ExecutionContext) (error, *Sa
 
 	safeRef = SafeRootsReference{
 		BasePath: ur.BasePath,
-		Garden: ur.Garden,
+		Garden:   ur.Garden,
 	}
 
-	return nil, &safeRef 
+	return nil, &safeRef
 }

@@ -1,9 +1,9 @@
 package core
 
 import (
+	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
-	"os"
 	"path/filepath"
 	"sort"
 )

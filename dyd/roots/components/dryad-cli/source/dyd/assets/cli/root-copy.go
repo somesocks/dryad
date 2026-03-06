@@ -103,7 +103,7 @@ var rootCopyCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error during root copy")
+				zlog.Error().Err(err).Msg("error during root copy")
 				return 1
 			}
 

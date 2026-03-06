@@ -4,9 +4,9 @@ import (
 	dydfs "dryad/filesystem"
 	"dryad/task"
 
+	"dryad/internal/os"
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"sync"
 

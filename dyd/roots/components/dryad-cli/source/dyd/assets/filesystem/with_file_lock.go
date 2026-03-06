@@ -1,10 +1,9 @@
-
 package fs2
 
 import (
 	"dryad/task"
 
-	"os"
+	"dryad/internal/os"
 	"io/fs"
 	"path/filepath"
 	// "fmt"
@@ -12,11 +11,11 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-func WithFileLock[A any, B any] (
+func WithFileLock[A any, B any](
 	baseTask task.Task[A, B],
 	pathFunc task.Task[A, string],
 ) task.Task[A, B] {
-	var wrapper task.Task[A, B] = func (ctx *task.ExecutionContext, req A) (error, B) {
+	var wrapper task.Task[A, B] = func(ctx *task.ExecutionContext, req A) (error, B) {
 		var path string
 		var err error
 		var res B
@@ -81,7 +80,7 @@ func WithFileLock[A any, B any] (
 					Msg("dydfs.WithFileLock - grab lock error")
 				return err, res
 			}
-			defer func () {
+			defer func() {
 				zlog.Trace().
 					Str("path", path).
 					Msg("dydfs.WithFileLock - release lock")

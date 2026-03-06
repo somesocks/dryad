@@ -3,10 +3,10 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"
@@ -91,7 +91,7 @@ var rootSecretsListCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while crawling secrets")
+				zlog.Error().Err(err).Msg("error while crawling secrets")
 				return 1
 			}
 			return 0

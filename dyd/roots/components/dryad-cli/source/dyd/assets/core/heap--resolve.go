@@ -1,15 +1,13 @@
-
 package core
 
 import (
 	fs2 "dryad/filesystem"
 	"dryad/task"
 
-	"os"
+	"dryad/internal/os"
 
 	zlog "github.com/rs/zerolog/log"
 )
-
 
 func (heap *UnsafeHeapReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapReference) {
 	zlog.Trace().
@@ -41,8 +39,8 @@ func (heap *UnsafeHeapReference) Resolve(ctx *task.ExecutionContext) (error, *Sa
 
 	safeRef = SafeHeapReference{
 		BasePath: heap.BasePath,
-		Garden: heap.Garden,
+		Garden:   heap.Garden,
 	}
 
-	return nil, &safeRef 
+	return nil, &safeRef
 }

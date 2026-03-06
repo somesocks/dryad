@@ -4,9 +4,9 @@ import (
 	"bufio"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -200,7 +200,7 @@ var sproutsRunCommand = func() clib.Command {
 			)
 
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while crawling sprouts")
+				zlog.Error().Err(err).Msg("error while crawling sprouts")
 				return err, nil
 			}
 
@@ -210,14 +210,14 @@ var sproutsRunCommand = func() clib.Command {
 
 			input, err := reader.ReadString('\n')
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while reading input")
+				zlog.Error().Err(err).Msg("error while reading input")
 				return err, nil
 			}
 
 			input = strings.TrimSuffix(input, "\n")
 
 			if input != args.Confirm {
-				zlog.Fatal().Msg("input does not match confirmation, aborting")
+				zlog.Error().Msg("input does not match confirmation, aborting")
 				return err, nil
 			}
 
@@ -302,7 +302,7 @@ var sproutsRunCommand = func() clib.Command {
 			},
 		)
 		if err != nil {
-			zlog.Fatal().Err(err).Msg("error while crawling sprouts")
+			zlog.Error().Err(err).Msg("error while crawling sprouts")
 			return err, nil
 		}
 
@@ -323,7 +323,7 @@ var sproutsRunCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while running sprouts")
+				zlog.Error().Err(err).Msg("error while running sprouts")
 				return 1
 			}
 

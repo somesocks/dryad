@@ -4,8 +4,8 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	fs2 "dryad/filesystem"
+	"dryad/internal/os"
 	"dryad/task"
-	"os"
 	"path/filepath"
 
 	"fmt"
@@ -116,7 +116,7 @@ var stemAncestorsCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while listing stem ancestors")
+				zlog.Error().Err(err).Msg("error while listing stem ancestors")
 				return 1
 			}
 

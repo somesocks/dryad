@@ -3,11 +3,11 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/internal/os"
 	"dryad/task"
 	"errors"
 	"fmt"
 	"io/fs"
-	"os"
 	"sort"
 	"strings"
 
@@ -141,7 +141,7 @@ var scriptsListAction = func(req clib.ActionRequest) int {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while crawling scripts")
+				zlog.Error().Err(err).Msg("error while crawling scripts")
 				return 1
 			}
 			return 0

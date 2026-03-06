@@ -3,17 +3,17 @@ package fs2
 import (
 	"dryad/task"
 
+	"dryad/internal/os"
 	"errors"
 	"io/fs"
-	"os"
 	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"
 )
 
-var PartialEvalSymlinks = func () task.Task[string, string] {
+var PartialEvalSymlinks = func() task.Task[string, string] {
 
-	var partialEvalSymlinks = func(ctx *task.ExecutionContext, path string) (error, string) {		
+	var partialEvalSymlinks = func(ctx *task.ExecutionContext, path string) (error, string) {
 		var existsPath string
 		var nonExistsPath string
 		var err error
@@ -37,7 +37,7 @@ var PartialEvalSymlinks = func () task.Task[string, string] {
 			} else {
 				return err, ""
 			}
-	
+
 		}
 
 		if existsPath == "." {
@@ -53,7 +53,7 @@ var PartialEvalSymlinks = func () task.Task[string, string] {
 	}
 
 	partialEvalSymlinks = task.Series2(
-		func (ctx *task.ExecutionContext, path string) (error, string) {
+		func(ctx *task.ExecutionContext, path string) (error, string) {
 			zlog.Trace().
 				Str("path", path).
 				Msg("dydfs.PartialEvalSymlinks")

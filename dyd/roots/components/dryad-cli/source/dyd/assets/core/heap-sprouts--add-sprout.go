@@ -2,10 +2,11 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
+	dfilepath "dryad/internal/filepath"
+	"dryad/internal/os"
 	"dryad/task"
 
 	"errors"
-	"os"
 	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"
@@ -145,7 +146,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 	// rebuild dependency links from the source sprout dependencies.
 	sourceDependenciesPath := filepath.Join(sproutPath, "dyd", "dependencies")
 	dependenciesPath := filepath.Join(tempSproutPath, "dyd", "dependencies")
-	dependencies, err := filepath.Glob(filepath.Join(sourceDependenciesPath, "*"))
+	dependencies, err := dfilepath.Glob(filepath.Join(sourceDependenciesPath, "*"))
 	if err != nil {
 		return err, nil
 	}

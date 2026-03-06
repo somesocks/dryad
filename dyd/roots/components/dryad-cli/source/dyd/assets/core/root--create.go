@@ -1,8 +1,8 @@
 package core
 
 import (
+	"dryad/internal/os"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"dryad/task"
@@ -11,7 +11,6 @@ import (
 type rootCreateRequest struct {
 	Root *UnsafeRootReference
 }
-
 
 func rootCreate(ctx *task.ExecutionContext, req rootCreateRequest) (error, *SafeRootReference) {
 	var path string = req.Root.BasePath
@@ -103,6 +102,6 @@ func rootCreate(ctx *task.ExecutionContext, req rootCreateRequest) (error, *Safe
 }
 
 func (root *UnsafeRootReference) Create(ctx *task.ExecutionContext) (error, *SafeRootReference) {
-	err, res := rootCreate(ctx, rootCreateRequest{ Root: root })
+	err, res := rootCreate(ctx, rootCreateRequest{Root: root})
 	return err, res
 }

@@ -1,8 +1,8 @@
 package fs2
 
 import (
+	"dryad/internal/os"
 	"io/fs"
-	"os"
 	"path/filepath"
 
 	"dryad/task"
@@ -10,7 +10,7 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-var remove = func (ctx *task.ExecutionContext, path string) (error, any) {
+var remove = func(ctx *task.ExecutionContext, path string) (error, any) {
 	var parentPath string = filepath.Dir(path)
 	var err error
 
@@ -32,8 +32,8 @@ var remove = func (ctx *task.ExecutionContext, path string) (error, any) {
 		err, _ = Chmod(
 			ctx,
 			ChmodRequest{
-				Path: parentPath,
-				Mode: parentPerms | 0o200,
+				Path:     parentPath,
+				Mode:     parentPerms | 0o200,
 				SkipLock: true,
 			},
 		)
@@ -47,8 +47,8 @@ var remove = func (ctx *task.ExecutionContext, path string) (error, any) {
 		defer Chmod(
 			ctx,
 			ChmodRequest{
-				Path: parentPath,
-				Mode: parentPerms,
+				Path:     parentPath,
+				Mode:     parentPerms,
 				SkipLock: true,
 			},
 		)
@@ -68,7 +68,7 @@ var remove = func (ctx *task.ExecutionContext, path string) (error, any) {
 
 var remove2 = WithFileLock(
 	remove,
-	func (ctx *task.ExecutionContext, path string) (error, string) {
+	func(ctx *task.ExecutionContext, path string) (error, string) {
 		return nil, filepath.Dir(path)
 	},
 )

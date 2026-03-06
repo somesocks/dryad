@@ -5,8 +5,8 @@
 package fs2
 
 import (
+	"dryad/internal/unix"
 	"time"
-	"golang.org/x/sys/unix"
 )
 
 func Chtimes(path string, at time.Time, mt time.Time) error {

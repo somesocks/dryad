@@ -4,10 +4,10 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	dydfs "dryad/filesystem"
+	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
 	"net/url"
-	"os"
 	"strings"
 
 	zlog "github.com/rs/zerolog/log"
@@ -152,7 +152,7 @@ var rootRequirementAddCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while linking root")
+				zlog.Error().Err(err).Msg("error while linking root")
 				return 1
 			}
 

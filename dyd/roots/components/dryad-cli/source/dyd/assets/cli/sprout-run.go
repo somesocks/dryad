@@ -4,9 +4,9 @@ import (
 	"bufio"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -265,7 +265,7 @@ var sproutRunCommand = func() clib.Command {
 				),
 				func(err error, val any) int {
 					if err != nil {
-						zlog.Fatal().Err(err).Msg("error executing stem")
+						zlog.Error().Err(err).Msg("error executing stem")
 						return 1
 					}
 					return 0

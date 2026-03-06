@@ -1,19 +1,19 @@
 package core
 
 import (
-	"os"
-	"os/exec"
+	"dryad/internal/exec"
+	"dryad/internal/os"
 	"runtime"
 
 	zerolog "github.com/rs/zerolog"
 )
 
 type ScriptRunRequest struct {
-	Garden *SafeGardenReference
-	Scope      string
-	Setting    string
-	Env        map[string]string
-	Args       []string
+	Garden  *SafeGardenReference
+	Scope   string
+	Setting string
+	Env     map[string]string
+	Args    []string
 }
 
 func ScriptRun(request ScriptRunRequest) error {

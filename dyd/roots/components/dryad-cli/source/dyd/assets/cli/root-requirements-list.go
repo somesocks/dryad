@@ -162,7 +162,7 @@ var rootRequirementsListCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while crawling root requirements")
+				zlog.Error().Err(err).Msg("error while crawling root requirements")
 				return 1
 			}
 

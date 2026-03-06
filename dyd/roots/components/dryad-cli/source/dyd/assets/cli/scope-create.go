@@ -3,9 +3,9 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
-	"os"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -76,7 +76,7 @@ var scopeCreateCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while creating scope")
+				zlog.Error().Err(err).Msg("error while creating scope")
 				return 1
 			}
 			return 0

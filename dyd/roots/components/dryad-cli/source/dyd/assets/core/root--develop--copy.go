@@ -4,10 +4,10 @@ import (
 	dydfs "dryad/filesystem"
 	"dryad/task"
 
+	"dryad/internal/os"
 	"fmt"
 	"io"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -130,9 +130,9 @@ func rootDevelop_copyDirFromStem(
 			if relBase != "" {
 				unfreezeRelPath = filepath.Join(relBase, relPath)
 			}
-		destMode := rootDevelop_unfreezeMode(unfreezeRelPath, mode)
-		return rootDevelop_copyFile(node.Path, dest, destMode), nil
-	default:
+			destMode := rootDevelop_unfreezeMode(unfreezeRelPath, mode)
+			return rootDevelop_copyFile(node.Path, dest, destMode), nil
+		default:
 			return fmt.Errorf("rootDevelop_copyDirFromStem: unsupported file type: %s", node.Path), nil
 		}
 	}

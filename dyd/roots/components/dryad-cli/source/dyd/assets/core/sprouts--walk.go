@@ -2,9 +2,9 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
+	"dryad/internal/os"
 	"dryad/task"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 )

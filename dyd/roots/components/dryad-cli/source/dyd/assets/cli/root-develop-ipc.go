@@ -2,11 +2,11 @@ package cli
 
 import (
 	"bufio"
+	"dryad/internal/net"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"strings"
 )
 
@@ -15,9 +15,9 @@ type rootDevelopIPCRequest struct {
 }
 
 type rootDevelopIPCResponse struct {
-	Status  string                  `json:"status"`
+	Status  string                   `json:"status"`
 	Entries []rootDevelopStatusEntry `json:"entries,omitempty"`
-	Message string                  `json:"message,omitempty"`
+	Message string                   `json:"message,omitempty"`
 }
 
 type rootDevelopStatusEntry struct {

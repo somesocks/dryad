@@ -2,12 +2,11 @@ package fs2
 
 import (
 	// "errors"
-	"os"
+	"dryad/internal/os"
 	// "runtime"
 
-	"golang.org/x/sys/unix"
+	"dryad/internal/unix"
 	// "golang.org/x/sys/windows"
-
 	// "dryad/task"
 )
 

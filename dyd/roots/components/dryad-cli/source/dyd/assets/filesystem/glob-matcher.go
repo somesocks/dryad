@@ -5,21 +5,20 @@ import (
 
 	"path"
 	"path/filepath"
-    "strings"
+	"strings"
 
-	"os"
+	"dryad/internal/os"
 	"io/fs"
 
 	"github.com/bmatcuk/doublestar/v4"
 )
 
-
 type GlobPath struct {
-	path string
+	path   string
 	is_dir bool
 }
 
-func NewGlobPath(raw_path string, is_dir bool) (GlobPath) {
+func NewGlobPath(raw_path string, is_dir bool) GlobPath {
 	raw_path = strings.ReplaceAll(raw_path, "\\", "/")
 	raw_path = path.Clean(raw_path)
 	if !strings.HasPrefix(raw_path, "/") {
@@ -37,15 +36,15 @@ const (
 )
 
 type GlobPattern struct {
-	pattern string
-	inclusion bool
-	matches_dirs bool
+	pattern       string
+	inclusion     bool
+	matches_dirs  bool
 	matches_files bool
 }
 
-func (p * GlobPattern) Match(path GlobPath) (error, GlobPatternMatchResult) {
+func (p *GlobPattern) Match(path GlobPath) (error, GlobPatternMatchResult) {
 	can_match := (path.is_dir && p.matches_dirs) || (!path.is_dir && p.matches_files)
-	if (!can_match) {
+	if !can_match {
 		return nil, PATTERN_NO_MATCH
 	}
 
@@ -61,18 +60,18 @@ func (p * GlobPattern) Match(path GlobPath) (error, GlobPatternMatchResult) {
 	}
 }
 
-func NewGlobPattern (pattern string, base string) (error, *GlobPattern) {
+func NewGlobPattern(pattern string, base string) (error, *GlobPattern) {
 	inclusion := true
 	if pattern == "" || strings.TrimSpace(pattern) == "" {
 		// empty line -> no pattern
 		return nil, nil
-	} else if strings.HasPrefix(pattern, "#")  {
+	} else if strings.HasPrefix(pattern, "#") {
 		// comment line -> no pattern
 		return nil, nil
 	} else if strings.HasPrefix(pattern, "!") {
 		inclusion = false
 		pattern = pattern[1:]
-	} else if strings.HasPrefix(pattern, "\\!") || strings.HasPrefix(pattern, "\\#") {		
+	} else if strings.HasPrefix(pattern, "\\!") || strings.HasPrefix(pattern, "\\#") {
 		pattern = pattern[1:]
 	}
 
@@ -91,25 +90,25 @@ func NewGlobPattern (pattern string, base string) (error, *GlobPattern) {
 	matches_dirs := true
 	matches_files := !directory
 
-	err := doublestar.ValidatePattern(pattern)	
+	err := doublestar.ValidatePattern(pattern)
 	if !err {
 		return errors.New("ParseGlobPattern: invalid glob pattern " + pattern), nil
 	}
-	
+
 	return nil, &GlobPattern{
-		pattern:  pattern,
-		inclusion: inclusion,
-		matches_dirs: matches_dirs,
+		pattern:       pattern,
+		inclusion:     inclusion,
+		matches_dirs:  matches_dirs,
 		matches_files: matches_files,
 	}
 }
 
 type GlobMatcher struct {
 	patterns []GlobPattern
-	parent *GlobMatcher
+	parent   *GlobMatcher
 }
 
-func (m * GlobMatcher) Match(path GlobPath) (error, bool) {
+func (m *GlobMatcher) Match(path GlobPath) (error, bool) {
 	for _, pattern := range m.patterns {
 		err, result := pattern.Match(path)
 		if err != nil {
@@ -148,7 +147,7 @@ func NewGlobMatcher(rules []string, base string, parent *GlobMatcher) (error, *G
 
 	return nil, &GlobMatcher{
 		patterns: patterns,
-		parent: parent,
+		parent:   parent,
 	}
 }
 
@@ -173,4 +172,3 @@ func NewGlobMatcherFromFile(filePath string, parent *GlobMatcher) (error, *GlobM
 	rules := strings.Split(s, "\n")
 	return NewGlobMatcher(rules, base, parent)
 }
-

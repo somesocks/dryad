@@ -1,11 +1,11 @@
 package fs2
 
 import (
+	"dryad/internal/os"
+	"dryad/task"
 	"io"
 	"io/fs"
-	"os"
 	"path/filepath"
-	"dryad/task"
 )
 
 type Walk6Node struct {
@@ -15,15 +15,15 @@ type Walk6Node struct {
 	Info     fs.FileInfo
 }
 
-type WalkDecision func (ctx *task.ExecutionContext, node Walk6Node) (error, bool)
+type WalkDecision func(ctx *task.ExecutionContext, node Walk6Node) (error, bool)
 
-type WalkAction func (ctx *task.ExecutionContext, node Walk6Node) (error, any)
+type WalkAction func(ctx *task.ExecutionContext, node Walk6Node) (error, any)
 
 func ConditionalWalkAction(
 	action WalkAction,
 	decision WalkDecision,
 ) WalkAction {
-	return func (ctx *task.ExecutionContext, node Walk6Node) (error, any) {
+	return func(ctx *task.ExecutionContext, node Walk6Node) (error, any) {
 		err, match := decision(ctx, node)
 		if err != nil {
 			return err, nil
@@ -40,25 +40,24 @@ type Walk6Request struct {
 	BasePath    string
 	Path        string
 	VPath       string
-	ShouldWalk WalkDecision
-	OnPreMatch WalkAction
+	ShouldWalk  WalkDecision
+	OnPreMatch  WalkAction
 	OnPostMatch WalkAction
 }
 
-var defaultShouldWalk6 WalkDecision = func (ctx *task.ExecutionContext, node Walk6Node) (error, bool) {
+var defaultShouldWalk6 WalkDecision = func(ctx *task.ExecutionContext, node Walk6Node) (error, bool) {
 	return nil, true
 }
 
-var defaultOnPreMatch6 WalkAction = func (ctx *task.ExecutionContext, node Walk6Node) (error, any) {
+var defaultOnPreMatch6 WalkAction = func(ctx *task.ExecutionContext, node Walk6Node) (error, any) {
 	return nil, nil
 }
 
-var defaultOnPostMatch6 WalkAction = func (ctx *task.ExecutionContext, node Walk6Node) (error, any) {
+var defaultOnPostMatch6 WalkAction = func(ctx *task.ExecutionContext, node Walk6Node) (error, any) {
 	return nil, nil
 }
 
-
-func _walk6(ctx *task.ExecutionContext, request Walk6Request) (error) {
+func _walk6(ctx *task.ExecutionContext, request Walk6Request) error {
 
 	var err error
 	var info fs.FileInfo
@@ -72,7 +71,7 @@ func _walk6(ctx *task.ExecutionContext, request Walk6Request) (error) {
 
 	// --------------------------------------
 	// STEP 1
-	// run pre-matching (breadth-first) 
+	// run pre-matching (breadth-first)
 	err, _ = request.OnPreMatch(
 		ctx,
 		Walk6Node{
@@ -80,7 +79,7 @@ func _walk6(ctx *task.ExecutionContext, request Walk6Request) (error) {
 			Path:     request.Path,
 			VPath:    request.VPath,
 			Info:     info,
-		},	
+		},
 	)
 	if err != nil {
 		return err
@@ -125,9 +124,9 @@ func _walk6(ctx *task.ExecutionContext, request Walk6Request) (error) {
 				BasePath:    request.BasePath,
 				Path:        linkPath,
 				VPath:       request.VPath,
-				ShouldWalk: request.ShouldWalk,
-				OnPreMatch:     request.OnPreMatch,
-				OnPostMatch:     request.OnPostMatch,
+				ShouldWalk:  request.ShouldWalk,
+				OnPreMatch:  request.OnPreMatch,
+				OnPostMatch: request.OnPostMatch,
 			})
 			if err != nil {
 				return err
@@ -165,7 +164,7 @@ func _walk6(ctx *task.ExecutionContext, request Walk6Request) (error) {
 					return err
 				}
 
-				parallelWalk := func (ctx *task.ExecutionContext, entry fs.DirEntry) (error, any) {
+				parallelWalk := func(ctx *task.ExecutionContext, entry fs.DirEntry) (error, any) {
 					err := _walk6(
 						ctx,
 						Walk6Request{
@@ -174,7 +173,7 @@ func _walk6(ctx *task.ExecutionContext, request Walk6Request) (error) {
 							VPath:       filepath.Join(request.VPath, entry.Name()),
 							ShouldWalk:  request.ShouldWalk,
 							OnPreMatch:  request.OnPreMatch,
-							OnPostMatch:  request.OnPostMatch,
+							OnPostMatch: request.OnPostMatch,
 						},
 					)
 					return err, nil
@@ -186,13 +185,12 @@ func _walk6(ctx *task.ExecutionContext, request Walk6Request) (error) {
 				}
 				entries, err = dir.ReadDir(128)
 			}
-		}		
+		}
 	}
-
 
 	// --------------------------------------
 	// STEP 3
-	// run post-matching (depth-first) 
+	// run post-matching (depth-first)
 	err, _ = request.OnPostMatch(
 		ctx,
 		Walk6Node{
@@ -214,12 +212,12 @@ func Walk6(ctx *task.ExecutionContext, request Walk6Request) (error, any) {
 	if request.ShouldWalk == nil {
 		request.ShouldWalk = defaultShouldWalk6
 	}
-	
+
 	if request.OnPreMatch == nil {
 		request.OnPreMatch = defaultOnPreMatch6
 	}
 
-	if  request.OnPostMatch == nil {
+	if request.OnPostMatch == nil {
 		request.OnPostMatch = defaultOnPostMatch6
 	}
 

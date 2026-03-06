@@ -3,12 +3,13 @@ package core
 import (
 	"bufio"
 	dydfs "dryad/filesystem"
+	"dryad/internal/exec"
+	"dryad/internal/os"
+	"dryad/internal/process"
 	"dryad/task"
 	"errors"
 	"fmt"
 	"io"
-	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -616,7 +617,7 @@ func (proc *rootDevelopShellProcess) requestStop() error {
 		return nil
 	}
 
-	err := cmd.Process.Signal(os.Interrupt)
+	err := process.Signal(cmd.Process, os.Interrupt)
 	if err != nil && !errors.Is(err, os.ErrProcessDone) {
 		return err
 	}

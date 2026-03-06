@@ -3,10 +3,10 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"sort"
 
@@ -109,7 +109,7 @@ var scopesListCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while crawling scopes")
+				zlog.Error().Err(err).Msg("error while crawling scopes")
 				return 1
 			}
 			return 0

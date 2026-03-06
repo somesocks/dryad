@@ -2,12 +2,13 @@ package core
 
 import (
 	dydfs "dryad/filesystem"
+	dfilepath "dryad/internal/filepath"
 	"dryad/task"
 
+	"dryad/internal/os"
 	"errors"
 	"io"
 	"io/fs"
-	"os"
 	"path/filepath"
 )
 
@@ -36,7 +37,7 @@ func sproutRequirementsCopyFile(sourcePath string, destPath string) error {
 }
 
 func sproutRequirementsCopyTree(sourcePath string, destPath string, dependencyPath string) error {
-	return filepath.WalkDir(sourcePath, func(path string, entry fs.DirEntry, walkErr error) error {
+	return dfilepath.WalkDir(sourcePath, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}

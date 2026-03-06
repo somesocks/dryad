@@ -3,8 +3,8 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/internal/os"
 	"dryad/task"
-	"os"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -78,7 +78,7 @@ var scopeUseCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while setting active scope")
+				zlog.Error().Err(err).Msg("error while setting active scope")
 				return 1
 			}
 			return 0

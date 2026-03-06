@@ -1,15 +1,22 @@
 package main
 
 import (
-	"os"
+	"dryad/internal/os"
+	"fmt"
 
 	cli "dryad/cli"
+	"dryad/diagnostics"
 )
 
 var Version string
 var Fingerprint string
 
 func main() {
+	if err := diagnostics.SetupFromEnv(); err != nil {
+		fmt.Fprintln(os.Stderr, "error initializing diagnostics:", err)
+		os.Exit(2)
+	}
+
 	app := cli.BuildCLI(
 		Version,
 		Fingerprint,
@@ -20,5 +27,10 @@ func main() {
 	// `dryad`
 	args := os.Args
 	args[0] = "dryad"
-	os.Exit(app.Run(args, os.Stdout))
+
+	exitCode := app.Run(args, os.Stdout)
+	if err := diagnostics.EmitMetricsOnExit(); err != nil {
+		fmt.Fprintln(os.Stderr, "error emitting diagnostics metrics:", err)
+	}
+	os.Exit(exitCode)
 }

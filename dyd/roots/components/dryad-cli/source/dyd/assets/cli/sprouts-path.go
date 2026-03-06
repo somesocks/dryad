@@ -3,9 +3,9 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
-	"os"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -68,7 +68,7 @@ var sproutsPathAction = func(req clib.ActionRequest) int {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error while finding sprouts path")
+				zlog.Error().Err(err).Msg("error while finding sprouts path")
 				return 1
 			}
 

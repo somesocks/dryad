@@ -129,7 +129,7 @@ var rootDevelopStartCommand = func() clib.Command {
 		),
 		func(err error, val any) int {
 			if err != nil {
-				zlog.Fatal().Err(err).Msg("error from root development environment")
+				zlog.Error().Err(err).Msg("error from root development environment")
 				return 1
 			}
 
