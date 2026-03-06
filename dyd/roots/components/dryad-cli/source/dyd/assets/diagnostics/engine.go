@@ -189,6 +189,14 @@ func compileMetricsAction(ruleID string, when whenMode, n uint64, op string, act
 	if action.DelayMS != 0 {
 		return nil, fmt.Errorf("diagnostics rule %q: action.delay_ms is only supported for action.type=\"delay\"", ruleID)
 	}
+	switch when {
+	case whenBeforeNPerKey:
+		return nil, fmt.Errorf("diagnostics rule %q: when.mode=\"before_x_per_key\" does not support action.type=\"metrics\"", ruleID)
+	case whenAfterNPerKey:
+		return nil, fmt.Errorf("diagnostics rule %q: when.mode=\"after_x_per_key\" does not support action.type=\"metrics\"", ruleID)
+	case whenEveryNPerKey:
+		return nil, fmt.Errorf("diagnostics rule %q: when.mode=\"every_x_per_key\" does not support action.type=\"metrics\"", ruleID)
+	}
 
 	output, err := parseMetricsOutput(action.Output)
 	if err != nil {

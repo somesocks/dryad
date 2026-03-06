@@ -292,6 +292,78 @@ func TestSetupFromConfig_GeneratesMetricsRuleIDWhenMissing(t *testing.T) {
 	}
 }
 
+func TestSetupFromConfig_MetricsRejectsBeforeXPerKey(t *testing.T) {
+	Reset()
+	t.Cleanup(Reset)
+
+	err := SetupFromConfig(Config{
+		Version: 1,
+		Rules: []RuleConfig{
+			metricsRuleWithWhen(
+				"m-before-per-key",
+				"metrics.before_per_key",
+				"",
+				WhenConfig{Mode: "before_x_per_key", X: 1},
+				MetricsCaptureConfig{},
+			),
+		},
+	})
+	if err == nil {
+		t.Fatalf("expected setup to fail for metrics with before_x_per_key")
+	}
+	if !strings.Contains(err.Error(), `when.mode="before_x_per_key" does not support action.type="metrics"`) {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestSetupFromConfig_MetricsRejectsAfterXPerKey(t *testing.T) {
+	Reset()
+	t.Cleanup(Reset)
+
+	err := SetupFromConfig(Config{
+		Version: 1,
+		Rules: []RuleConfig{
+			metricsRuleWithWhen(
+				"m-after-per-key",
+				"metrics.after_per_key",
+				"",
+				WhenConfig{Mode: "after_x_per_key", X: 1},
+				MetricsCaptureConfig{},
+			),
+		},
+	})
+	if err == nil {
+		t.Fatalf("expected setup to fail for metrics with after_x_per_key")
+	}
+	if !strings.Contains(err.Error(), `when.mode="after_x_per_key" does not support action.type="metrics"`) {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestSetupFromConfig_MetricsRejectsEveryXPerKey(t *testing.T) {
+	Reset()
+	t.Cleanup(Reset)
+
+	err := SetupFromConfig(Config{
+		Version: 1,
+		Rules: []RuleConfig{
+			metricsRuleWithWhen(
+				"m-every-per-key",
+				"metrics.every_per_key",
+				"",
+				WhenConfig{Mode: "every_x_per_key", X: 2},
+				MetricsCaptureConfig{},
+			),
+		},
+	})
+	if err == nil {
+		t.Fatalf("expected setup to fail for metrics with every_x_per_key")
+	}
+	if !strings.Contains(err.Error(), `when.mode="every_x_per_key" does not support action.type="metrics"`) {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestMetricsSnapshot_EveryNControlsSampling(t *testing.T) {
 	Reset()
 	t.Cleanup(Reset)
