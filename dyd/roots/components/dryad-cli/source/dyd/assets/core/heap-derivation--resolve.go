@@ -17,6 +17,18 @@ var ErrUnresolvableHeapDerivation = errors.New("unable to resolve derivation")
 func (heapDerivation *UnsafeHeapDerivationReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapDerivationReference) {
 	var err error
 	var safeRef SafeHeapDerivationReference
+	var expectedPath string
+
+	expectedPath, err = heapDerivationsRootsFingerprintPath(
+		heapDerivation.Derivations.BasePath,
+		heapDerivation.SourceFingerprint,
+	)
+	if err != nil {
+		return err, nil
+	}
+	if filepath.Clean(heapDerivation.BasePath) != filepath.Clean(expectedPath) {
+		return ErrUnresolvableHeapDerivation, nil
+	}
 
 	info, err := os.Lstat(heapDerivation.BasePath)
 	if err != nil {
@@ -34,7 +46,7 @@ func (heapDerivation *UnsafeHeapDerivationReference) Resolve(ctx *task.Execution
 		Heap:     heapDerivation.Derivations.Heap,
 	}
 
-	sourceStem := heapStems.Stem(filepath.Base(heapDerivation.BasePath))
+	sourceStem := heapStems.Stem(heapDerivation.SourceFingerprint)
 
 	resultFingerprintBytes, err := os.ReadFile(heapDerivation.BasePath)
 	if err != nil {
@@ -45,7 +57,10 @@ func (heapDerivation *UnsafeHeapDerivationReference) Resolve(ctx *task.Execution
 		return ErrUnresolvableHeapDerivation, nil
 	}
 
-	resultStemPath := filepath.Join(heapDerivation.Derivations.Heap.BasePath, "stems", resultFingerprint)
+	resultStemPath, err := heapStemsFingerprintPath(heapStems.BasePath, resultFingerprint)
+	if err != nil {
+		return err, nil
+	}
 	_, err = os.Stat(resultStemPath)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -57,10 +72,12 @@ func (heapDerivation *UnsafeHeapDerivationReference) Resolve(ctx *task.Execution
 	resultStem := heapStems.Stem(resultFingerprint)
 
 	safeRef = SafeHeapDerivationReference{
-		BasePath:    heapDerivation.BasePath,
-		Source:      sourceStem,
-		Result:      resultStem,
-		Derivations: heapDerivation.Derivations,
+		BasePath:          heapDerivation.BasePath,
+		SourceFingerprint: heapDerivation.SourceFingerprint,
+		ResultFingerprint: resultFingerprint,
+		Source:            sourceStem,
+		Result:            resultStem,
+		Derivations:       heapDerivation.Derivations,
 	}
 
 	return nil, &safeRef

@@ -1,12 +1,13 @@
 package core
 
 type UnsafeHeapStemReference struct {
-	BasePath string
-	Stems *SafeHeapStemsReference
+	BasePath     string
+	Fingerprint  string
+	Stems        *SafeHeapStemsReference
 }
 
 type SafeHeapStemReference struct {
-	BasePath string
-	Stems *SafeHeapStemsReference
+	BasePath     string
+	Fingerprint  string
+	Stems        *SafeHeapStemsReference
 }
-

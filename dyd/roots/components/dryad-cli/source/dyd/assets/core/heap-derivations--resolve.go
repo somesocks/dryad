@@ -56,6 +56,18 @@ func (heapDerivations *UnsafeHeapDerivationsReference) Resolve(ctx *task.Executi
 		return fs.ErrInvalid, nil
 	}
 
+	err, _ = fs2.Mkdir2(
+		ctx,
+		fs2.MkdirRequest{
+			Path:      heapDerivationsRootsVersionDir(heapDerivations.BasePath),
+			Mode:      os.ModePerm,
+			Recursive: true,
+		},
+	)
+	if err != nil {
+		return err, nil
+	}
+
 	safeRef = SafeHeapDerivationsReference{
 		BasePath: heapDerivations.BasePath,
 		Heap:     heapDerivations.Heap,

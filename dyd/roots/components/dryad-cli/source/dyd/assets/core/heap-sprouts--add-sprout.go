@@ -32,7 +32,11 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 		return err, nil
 	}
 
-	finalSproutPath := filepath.Join(heapSproutsPath, sproutFingerprint)
+	finalSproutPath, err := heapSproutsFingerprintPath(heapSproutsPath, sproutFingerprint)
+	if err != nil {
+		return err, nil
+	}
+	heapSproutsVersionPath := filepath.Dir(finalSproutPath)
 
 	// check to see if the sprout already exists in the garden
 	sproutExists, err := fileExists(finalSproutPath)
@@ -43,15 +47,16 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 	// if sprout exists, do nothing
 	if sproutExists {
 		sproutRef := SafeHeapSproutReference{
-			BasePath: finalSproutPath,
-			Sprouts:  req.HeapSprouts,
+			BasePath:    finalSproutPath,
+			Fingerprint: sproutFingerprint,
+			Sprouts:     req.HeapSprouts,
 		}
 
 		return nil, &sproutRef
 	}
 
 	tempSproutPath, err := os.MkdirTemp(
-		heapSproutsPath,
+		heapSproutsVersionPath,
 		".tmp-"+sproutFingerprint+"-*",
 	)
 	if err != nil {
@@ -127,7 +132,10 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 						return err, nil
 					}
 
-					fileHeapPath := filepath.Join(heapFilesPath, fileFingerprint)
+					fileHeapPath, err := heapFilesFingerprintPath(heapFilesPath, fileFingerprint)
+					if err != nil {
+						return err, nil
+					}
 
 					err = heapMaterializeFile(fileHeapPath, destPath)
 					if err != nil {
@@ -165,7 +173,10 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 		targetFingerprint := string(targetFingerprintBytes)
 
 		dependencyPath := filepath.Join(dependenciesPath, filepath.Base(dependencySourcePath))
-		dependencyGardenPath := filepath.Join(heapStemsPath, targetFingerprint)
+		dependencyGardenPath, err := heapStemsFingerprintPath(heapStemsPath, targetFingerprint)
+		if err != nil {
+			return err, nil
+		}
 		relPath, err := filepath.Rel(dependenciesPath, dependencyGardenPath)
 		if err != nil {
 			return err, nil
@@ -232,8 +243,9 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 		// If another process published this fingerprint first, treat as success.
 		if _, statErr := os.Stat(finalSproutPath); statErr == nil {
 			sproutRef := SafeHeapSproutReference{
-				BasePath: finalSproutPath,
-				Sprouts:  req.HeapSprouts,
+				BasePath:    finalSproutPath,
+				Fingerprint: sproutFingerprint,
+				Sprouts:     req.HeapSprouts,
 			}
 
 			return nil, &sproutRef
@@ -261,8 +273,9 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 	}
 
 	sproutRef := SafeHeapSproutReference{
-		BasePath: finalSproutPath,
-		Sprouts:  req.HeapSprouts,
+		BasePath:    finalSproutPath,
+		Fingerprint: sproutFingerprint,
+		Sprouts:     req.HeapSprouts,
 	}
 
 	return nil, &sproutRef

@@ -15,17 +15,17 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-var REGEX_GARDEN_PRUNE_STEMS_CRAWL = regexp.MustCompile(`^((\.)|(stems))$`)
-var REGEX_GARDEN_PRUNE_STEMS_MATCH = regexp.MustCompile(`^(stems/.*)$`)
+var REGEX_GARDEN_PRUNE_STEMS_CRAWL = regexp.MustCompile(`^((\.)|(stems)|(stems/v2))$`)
+var REGEX_GARDEN_PRUNE_STEMS_MATCH = regexp.MustCompile(`^(stems/v2/.*)$`)
 
-var REGEX_GARDEN_PRUNE_SPROUTS_CRAWL = regexp.MustCompile(`^((\.)|(sprouts))$`)
-var REGEX_GARDEN_PRUNE_SPROUTS_MATCH = regexp.MustCompile(`^(sprouts/.*)$`)
+var REGEX_GARDEN_PRUNE_SPROUTS_CRAWL = regexp.MustCompile(`^((\.)|(sprouts)|(sprouts/v2))$`)
+var REGEX_GARDEN_PRUNE_SPROUTS_MATCH = regexp.MustCompile(`^(sprouts/v2/.*)$`)
 
-var REGEX_GARDEN_PRUNE_FILES_CRAWL = regexp.MustCompile(`^((\.)|(files))$`)
-var REGEX_GARDEN_PRUNE_FIlES_MATCH = regexp.MustCompile(`^(files/.*)$`)
+var REGEX_GARDEN_PRUNE_FILES_CRAWL = regexp.MustCompile(`^((\.)|(files)|(files/v2))$`)
+var REGEX_GARDEN_PRUNE_FIlES_MATCH = regexp.MustCompile(`^(files/v2/.*)$`)
 
-var REGEX_GARDEN_PRUNE_DERIVATIONS_CRAWL = regexp.MustCompile(`^((\.)|(derivations)|(derivations/roots))$`)
-var REGEX_GARDEN_PRUNE_DERIVATIONS_MATCH = regexp.MustCompile(`^(derivations/roots/.*)$`)
+var REGEX_GARDEN_PRUNE_DERIVATIONS_CRAWL = regexp.MustCompile(`^((\.)|(derivations)|(derivations/roots)|(derivations/roots/v2))$`)
+var REGEX_GARDEN_PRUNE_DERIVATIONS_MATCH = regexp.MustCompile(`^(derivations/roots/v2/.*)$`)
 
 type gardenPruneRequest struct {
 	Garden   *SafeGardenReference
@@ -352,7 +352,10 @@ var gardenPrune_sweepDerivations = func(ctx *task.ExecutionContext, req gardenPr
 			return nil, true
 		}
 
-		resultStemPath := filepath.Join(heapPath, "stems", resultFingerprint)
+		resultStemPath, err := heapStemsFingerprintPath(filepath.Join(heapPath, "stems"), resultFingerprint)
+		if err != nil {
+			return err, false
+		}
 		_, err = os.Stat(resultStemPath)
 		if err == nil {
 			return nil, false

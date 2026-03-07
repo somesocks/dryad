@@ -34,7 +34,11 @@ func heapAddFile(ctx *task.ExecutionContext, req heapAddFileRequest) (error, str
 
 	fingerprint := sourceHashAlgorithm + "-" + sourceHash
 
-	destPath := filepath.Join(heapFilesPath, fingerprint)
+	destPath, err := heapFilesFingerprintPath(heapFilesPath, fingerprint)
+	if err != nil {
+		return err, ""
+	}
+	heapFilesVersionPath := filepath.Dir(destPath)
 	now := time.Now()
 
 	// Fast path: if the CAS entry already exists, avoid unnecessary temp writes.
@@ -58,7 +62,7 @@ func heapAddFile(ctx *task.ExecutionContext, req heapAddFileRequest) (error, str
 	defer srcFile.Close()
 
 	tempFile, err := os.CreateTemp(
-		heapFilesPath,
+		heapFilesVersionPath,
 		".tmp-"+fingerprint+"-*",
 	)
 	if err != nil {

@@ -70,14 +70,14 @@ _test() {
   shared_seed_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/shared.txt"
   assert_file_exists "$shared_seed_path"
 
-  canonical_path=$(find "$TEMP_DIR/dyd/heap/files" -maxdepth 1 -type f -samefile "$shared_seed_path" | head -n 1 || true)
+  canonical_path=$(find "$TEMP_DIR/dyd/heap/files/v2" -maxdepth 1 -type f -samefile "$shared_seed_path" | head -n 1 || true)
   if [ -z "$canonical_path" ]; then
     echo "[ERROR] Fail: expected to locate canonical heap file for preseeded shared asset" 1>&2
     return 1
   fi
   printf '%s' "$canonical_path" > "$TEMP_DIR/canonical-path"
 
-  diag_cfg=$(_diag_config "$canonical_path" "$TEMP_DIR/dyd/heap/files")
+  diag_cfg=$(_diag_config "$canonical_path" "$TEMP_DIR/dyd/heap/files/v2")
 
   (
     DYD_DIAG="$diag_cfg" dryad root build "dyd/roots/root-02" --scope=none --log-level="$DYD_LOG_LEVEL" >"$root_02_log" 2>&1
@@ -117,9 +117,9 @@ _verify() {
   assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-03/dyd/dependencies/stem/dyd/assets/unique.txt" "unique-root-03"
   assert_file_exists "$canonical_path"
 
-  if find "$TEMP_DIR/dyd/heap/files" -maxdepth 1 -type f -name "$(basename "$canonical_path").replica.*" | grep -q .; then
+  if find "$TEMP_DIR/dyd/heap/files/v2" -maxdepth 1 -type f -name "$(basename "$canonical_path").replica.*" | grep -q .; then
     echo "[ERROR] Fail: expected canonical replacement instead of side-by-side heap replicas" 1>&2
-    find "$TEMP_DIR/dyd/heap/files" -maxdepth 1 -type f -name "$(basename "$canonical_path").replica.*" 1>&2
+    find "$TEMP_DIR/dyd/heap/files/v2" -maxdepth 1 -type f -name "$(basename "$canonical_path").replica.*" 1>&2
     return 1
   fi
 
@@ -146,9 +146,9 @@ _verify() {
     return 1
   fi
 
-  if find "$TEMP_DIR/dyd/heap/files" -maxdepth 1 -type f -name '.tmp-*' | grep -q .; then
+  if find "$TEMP_DIR/dyd/heap/files/v2" -maxdepth 1 -type f -name '.tmp-*' | grep -q .; then
     echo "[ERROR] Fail: expected no temp files left in heap/files after concurrent rollover" 1>&2
-    find "$TEMP_DIR/dyd/heap/files" -maxdepth 1 -type f -name '.tmp-*' 1>&2
+    find "$TEMP_DIR/dyd/heap/files/v2" -maxdepth 1 -type f -name '.tmp-*' 1>&2
     return 1
   fi
 }

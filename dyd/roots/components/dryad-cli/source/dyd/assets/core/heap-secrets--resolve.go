@@ -32,6 +32,18 @@ func (heapSecrets *UnsafeHeapSecretsReference) Resolve(ctx *task.ExecutionContex
 		}
 	}
 
+	err, _ = fs2.Mkdir2(
+		ctx,
+		fs2.MkdirRequest{
+			Path:      heapSecretsVersionDir(heapSecrets.BasePath),
+			Mode:      os.ModePerm,
+			Recursive: true,
+		},
+	)
+	if err != nil {
+		return err, nil
+	}
+
 	safeRef = SafeHeapSecretsReference{
 		BasePath: heapSecrets.BasePath,
 		Heap:     heapSecrets.Heap,

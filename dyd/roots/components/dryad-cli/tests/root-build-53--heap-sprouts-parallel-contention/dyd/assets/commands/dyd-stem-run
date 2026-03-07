@@ -33,12 +33,12 @@ _verify() {
   assert_file_exists "$fp_path"
   fp=$(cat "$fp_path")
 
-  heap_sprout_path="$TEMP_DIR/dyd/heap/sprouts/$fp"
+  heap_sprout_path="$TEMP_DIR/dyd/heap/sprouts/v2/${fp#v2-}"
   assert_directory_exists "$heap_sprout_path"
 
-  if find "$TEMP_DIR/dyd/heap/sprouts" -maxdepth 1 -mindepth 1 -type d -name '.tmp-*' | grep -q .; then
-    echo "[ERROR] Fail: expected no temp sprout directories left in heap/sprouts" 1>&2
-    find "$TEMP_DIR/dyd/heap/sprouts" -maxdepth 1 -mindepth 1 -type d -name '.tmp-*' 1>&2
+  if find "$TEMP_DIR/dyd/heap/sprouts/v2" -maxdepth 1 -mindepth 1 -type d -name '.tmp-*' | grep -q .; then
+    echo "[ERROR] Fail: expected no temp sprout directories left in heap/sprouts/v2" 1>&2
+    find "$TEMP_DIR/dyd/heap/sprouts/v2" -maxdepth 1 -mindepth 1 -type d -name '.tmp-*' 1>&2
     return 1
   fi
 }

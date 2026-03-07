@@ -15,7 +15,10 @@ func (derivations *SafeHeapDerivationsReference) Add(
 	resultFingerprint string,
 ) (error, *SafeHeapDerivationReference) {
 
-	derivationPath := filepath.Join(derivations.BasePath, "roots", sourceFingerprint)
+	derivationPath, err := heapDerivationsRootsFingerprintPath(derivations.BasePath, sourceFingerprint)
+	if err != nil {
+		return err, nil
+	}
 	derivationsRootsPath := filepath.Dir(derivationPath)
 
 	tempFile, err := os.CreateTemp(
@@ -53,14 +56,15 @@ func (derivations *SafeHeapDerivationsReference) Add(
 	}
 
 	sourceStem := heapStems.Stem(sourceFingerprint)
-
 	resultStem := heapStems.Stem(resultFingerprint)
 
 	safeRef := SafeHeapDerivationReference{
-		BasePath:    derivationPath,
-		Source:      sourceStem,
-		Result:      resultStem,
-		Derivations: derivations,
+		BasePath:          derivationPath,
+		SourceFingerprint: sourceFingerprint,
+		ResultFingerprint: resultFingerprint,
+		Source:            sourceStem,
+		Result:            resultStem,
+		Derivations:       derivations,
 	}
 
 	return nil, &safeRef

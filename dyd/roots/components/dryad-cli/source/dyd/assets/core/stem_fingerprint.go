@@ -5,7 +5,6 @@ import (
 	"dryad/internal/os"
 	"io"
 
-	"encoding/hex"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -138,7 +137,7 @@ var StemFingerprint task.Task[StemFingerprintRequest, string] = func() task.Task
 		var checksumString = strings.Join(checksumTable, "\u0000")
 		// log.Print("checksumString ", checksumString)
 
-		hash, err := blake2b.New(16, []byte{})
+		hash, err := blake2b.New(fingerprintDigestLen, []byte{})
 		if err != nil {
 			return err, ""
 		}
@@ -154,8 +153,8 @@ var StemFingerprint task.Task[StemFingerprintRequest, string] = func() task.Task
 		}
 
 		var fingerprintHashBytes = hash.Sum([]byte{})
-		var fingerprintHash = hex.EncodeToString(fingerprintHashBytes[:])
-		var fingerprint = "dyd-v1-" + fingerprintHash
+		var fingerprintHash = fingerprintEncode(fingerprintHashBytes[:])
+		var fingerprint = fingerprintFormat(fingerprintVersionV2, fingerprintHash)
 
 		// fmt.Println("StemFingerprint", args.BasePath, fingerprint)
 

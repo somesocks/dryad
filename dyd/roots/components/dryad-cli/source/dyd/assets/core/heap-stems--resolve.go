@@ -32,6 +32,18 @@ func (heapStems *UnsafeHeapStemsReference) Resolve(ctx *task.ExecutionContext) (
 		}
 	}
 
+	err, _ = fs2.Mkdir2(
+		ctx,
+		fs2.MkdirRequest{
+			Path:      heapStemsVersionDir(heapStems.BasePath),
+			Mode:      os.ModePerm,
+			Recursive: true,
+		},
+	)
+	if err != nil {
+		return err, nil
+	}
+
 	safeRef = SafeHeapStemsReference{
 		BasePath: heapStems.BasePath,
 		Heap:     heapStems.Heap,
