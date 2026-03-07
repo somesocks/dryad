@@ -24,6 +24,9 @@ var REGEX_GARDEN_PRUNE_SPROUTS_MATCH = regexp.MustCompile(`^(sprouts/v2/.*)$`)
 var REGEX_GARDEN_PRUNE_FILES_CRAWL = regexp.MustCompile(`^((\.)|(files)|(files/v2))$`)
 var REGEX_GARDEN_PRUNE_FIlES_MATCH = regexp.MustCompile(`^(files/v2/.*)$`)
 
+var REGEX_GARDEN_PRUNE_SECRETS_CRAWL = regexp.MustCompile(`^((\.)|(secrets)|(secrets/v2))$`)
+var REGEX_GARDEN_PRUNE_SECRETS_MATCH = regexp.MustCompile(`^(secrets/v2/.*)$`)
+
 var REGEX_GARDEN_PRUNE_DERIVATIONS_CRAWL = regexp.MustCompile(`^((\.)|(derivations)|(derivations/roots)|(derivations/roots/v2))$`)
 var REGEX_GARDEN_PRUNE_DERIVATIONS_MATCH = regexp.MustCompile(`^(derivations/roots/v2/.*)$`)
 
@@ -473,13 +476,92 @@ var gardenPrune_sweepFiles = func(ctx *task.ExecutionContext, req gardenPruneReq
 
 }
 
-var gardenPrune = task.Series7(
+var gardenPrune_sweepSecrets = func(ctx *task.ExecutionContext, req gardenPruneRequest) (error, gardenPruneRequest) {
+	heapPath := filepath.Join(req.Garden.BasePath, "dyd", "heap")
+	sweepSecretStatsCheck := 0
+	sweepSecretStatsCount := 0
+
+	sweepSecretShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
+		if relErr != nil {
+			return relErr, false
+		}
+		matchesPath := REGEX_GARDEN_PRUNE_SECRETS_CRAWL.Match([]byte(relPath))
+		isSymlink := node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
+		shouldCrawl := matchesPath && !isSymlink
+		return nil, shouldCrawl
+	}
+
+	sweepSecretsShouldMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+		sweepSecretStatsCheck += 1
+
+		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
+		if relErr != nil {
+			return relErr, false
+		}
+		shouldMatch := REGEX_GARDEN_PRUNE_SECRETS_MATCH.Match([]byte(relPath))
+		return nil, shouldMatch
+	}
+
+	sweepSecret := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+		if node.Info.ModTime().Before(req.Snapshot) {
+			parentPath := filepath.Dir(node.Path)
+			parentInfo, err := os.Lstat(parentPath)
+			if err != nil {
+				return err, nil
+			}
+
+			if parentInfo.Mode()&0o200 != 0o200 {
+				err := os.Chmod(parentPath, parentInfo.Mode()|0o200)
+				if err != nil {
+					return err, nil
+				}
+			}
+
+			err = os.Remove(node.Path)
+			if err != nil {
+				return err, nil
+			}
+
+			sweepSecretStatsCount += 1
+		}
+
+		return nil, nil
+	}
+
+	sweepSecret = dydfs.ConditionalWalkAction(sweepSecret, sweepSecretsShouldMatch)
+
+	var err, _ = dydfs.Walk6(
+		ctx,
+		dydfs.Walk6Request{
+			BasePath:    heapPath,
+			Path:        heapPath,
+			VPath:       heapPath,
+			ShouldWalk:  sweepSecretShouldWalk,
+			OnPostMatch: sweepSecret,
+		},
+	)
+	if err != nil {
+		return err, req
+	}
+
+	zlog.Info().
+		Int("checked", sweepSecretStatsCheck).
+		Int("swept", sweepSecretStatsCount).
+		Msg("garden prune - secrets swept")
+
+	return nil, req
+
+}
+
+var gardenPrune = task.Series8(
 	gardenPrune_prepareRequest,
 	gardenPrune_mark,
 	gardenPrune_sweepStems,
 	gardenPrune_sweepSprouts,
 	gardenPrune_sweepDerivations,
 	gardenPrune_sweepFiles,
+	gardenPrune_sweepSecrets,
 	func(ctx *task.ExecutionContext, req gardenPruneRequest) (error, any) {
 		return nil, nil
 	},

@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+HEAP_ASSET_PATH=''
+HEAP_SECRET_PATH=''
+
+# import assertion functions
+. $SRC_DIR/dyd/assets/assertions.sh
+
+_setup() {
+	#
+	# make a temporary working directory
+	# this command is linux / osx agnostic
+	# https://unix.stackexchange.com/questions/30091/fix-or-alternative-for-mktemp-in-os-x
+	# echo "\[INFO\] creating temporary working directory" 1>&2;
+	TEMP_DIR=''
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	# echo "[INFO] creating garden" 1>&2;
+
+	# copy the sample garden to the working directory
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR" 
+	chmod -R 755 "$TEMP_DIR"
+
+	(cd "$TEMP_DIR" \
+		&& dryad roots build --log-level="$DYD_LOG_LEVEL" \
+	)
+
+	asset_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-file-01"
+	secret_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/secrets/test-secret-01"
+
+	if stat -c %i "$asset_path" >/dev/null 2>&1; then
+		asset_inode=$(stat -c %i "$asset_path")
+		secret_inode=$(stat -c %i "$secret_path")
+	else
+		asset_inode=$(stat -f %i "$asset_path")
+		secret_inode=$(stat -f %i "$secret_path")
+	fi
+
+	HEAP_ASSET_PATH=$(find "$TEMP_DIR/dyd/heap/files" -type f -inum "$asset_inode" -print -quit)
+	if [ -z "$HEAP_ASSET_PATH" ]; then
+		echo "[ERROR] Fail: expected hardlinked asset file in heap/files" 1>&2
+		exit 1
+	fi
+
+	HEAP_SECRET_PATH=$(find "$TEMP_DIR/dyd/heap/secrets" -type f -inum "$secret_inode" -print -quit)
+	if [ -z "$HEAP_SECRET_PATH" ]; then
+		echo "[ERROR] Fail: expected hardlinked secret file in heap/secrets" 1>&2
+		exit 1
+	fi
+
+	(cd "$TEMP_DIR" \
+		&& dryad sprouts wipe --log-level="$DYD_LOG_LEVEL" \
+	)
+
+	# set the whole garden to a timestamp in the past
+	# NOTE: only use shorthand touch flags to keep it mac-compatible
+	find "$TEMP_DIR" \
+		\( -type l -o -type f -o -type d \) \
+		-exec touch -h -d "2000-01-01 00:00:00" {} +
+
+	:;
+}
+
+_test() {
+	( \
+	cd "$TEMP_DIR" \
+		&& dryad garden prune --log-level="$DYD_LOG_LEVEL" \
+	) 1>&2;
+}
+
+_verify() {
+	assert_directory_exists "$TEMP_DIR/dyd"
+	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
+
+	if [ -e "$TEMP_DIR/dyd/sprouts/root-01" ]; then
+		echo "[ERROR] Fail: expected wiped sprout link to stay absent after prune" 1>&2
+		exit 1
+	fi
+
+	if [ -e "$HEAP_ASSET_PATH" ]; then
+		echo "[ERROR] Fail: expected stale regular heap file to be pruned" 1>&2
+		echo "heap_asset_path=$HEAP_ASSET_PATH" 1>&2
+		exit 1
+	fi
+
+	if [ -e "$HEAP_SECRET_PATH" ]; then
+		echo "[ERROR] Fail: expected stale secret heap file to be pruned" 1>&2
+		echo "heap_secret_path=$HEAP_SECRET_PATH" 1>&2
+		exit 1
+	fi
+	:;
+}
+
+_teardown() {
+	# echo "\[INFO\] tearing down fixtures" 1>&2;
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
