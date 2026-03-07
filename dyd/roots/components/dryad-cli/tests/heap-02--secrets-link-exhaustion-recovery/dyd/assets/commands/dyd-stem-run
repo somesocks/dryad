@@ -8,6 +8,7 @@ TEMP_DIR=''
 
 _setup() {
   TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+  TEMP_DIR="$(_realpath_dir "$TEMP_DIR")"
 }
 
 _prepare() {
