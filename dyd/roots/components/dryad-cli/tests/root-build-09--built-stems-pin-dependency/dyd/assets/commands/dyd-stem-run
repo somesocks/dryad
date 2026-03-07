@@ -57,8 +57,13 @@ _verify() {
 	dependency_fingerprint=$(cat "$dependency_target/dyd/fingerprint")
 	assert_file_content_equals "$requirements_path/dyd/fingerprint" "$dependency_fingerprint"
 
-	if [ "$(basename "$dependency_target")" != "$dependency_fingerprint" ]; then
-		echo "[ERROR] Fail: dependency stem path basename should match dyd/fingerprint" 1>&2
+	if [ "$(basename "$(dirname "$dependency_target")")" != "v2" ]; then
+		echo "[ERROR] Fail: dependency stem should be stored under the v2 heap directory" 1>&2
+		return 1
+	fi
+
+	if [ "$(basename "$dependency_target")" != "${dependency_fingerprint#v2-}" ]; then
+		echo "[ERROR] Fail: dependency stem path basename should match dyd/fingerprint payload" 1>&2
 		return 1
 	fi
 

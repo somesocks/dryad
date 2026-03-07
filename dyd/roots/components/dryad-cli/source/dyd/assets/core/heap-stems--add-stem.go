@@ -43,7 +43,11 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 		return err, nil
 	}
 
-	finalStemPath := filepath.Join(heapStemsPath, stemFingerprint)
+	finalStemPath, err := heapStemsFingerprintPath(heapStemsPath, stemFingerprint)
+	if err != nil {
+		return err, nil
+	}
+	heapStemsVersionPath := filepath.Dir(finalStemPath)
 
 	// check to see if the stem already exists in the garden
 	stemExists, err := fileExists(finalStemPath)
@@ -54,15 +58,16 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 	// if stem exists, do nothing
 	if stemExists {
 		stemRef := SafeHeapStemReference{
-			BasePath: finalStemPath,
-			Stems:    req.HeapStems,
+			BasePath:    finalStemPath,
+			Fingerprint: stemFingerprint,
+			Stems:       req.HeapStems,
 		}
 
 		return nil, &stemRef
 	}
 
 	tempStemPath, err := os.MkdirTemp(
-		heapStemsPath,
+		heapStemsVersionPath,
 		".tmp-"+stemFingerprint+"-*",
 	)
 	if err != nil {
@@ -168,11 +173,26 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 						return err, nil
 					}
 
-					fileHeapPath := filepath.Join(heapPath, fileFingerprint)
+					if isSecret {
+						fileHeapPath, err := heapSecretsFingerprintPath(heapPath, fileFingerprint)
+						if err != nil {
+							return err, nil
+						}
 
-					err = heapMaterializeFile(fileHeapPath, destPath)
-					if err != nil {
-						return err, nil
+						err = heapMaterializeFile(fileHeapPath, destPath)
+						if err != nil {
+							return err, nil
+						}
+					} else {
+						fileHeapPath, err := heapFilesFingerprintPath(heapPath, fileFingerprint)
+						if err != nil {
+							return err, nil
+						}
+
+						err = heapMaterializeFile(fileHeapPath, destPath)
+						if err != nil {
+							return err, nil
+						}
 					}
 				}
 
@@ -207,7 +227,10 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 		targetFingerprint := string(targetFingerprintBytes)
 
 		dependencyPath := filepath.Join(dependenciesPath, filepath.Base(dependencySourcePath))
-		dependencyGardenPath := filepath.Join(heapStemsPath, targetFingerprint)
+		dependencyGardenPath, err := heapStemsFingerprintPath(heapStemsPath, targetFingerprint)
+		if err != nil {
+			return err, nil
+		}
 		relPath, err := filepath.Rel(dependenciesPath, dependencyGardenPath)
 		if err != nil {
 			return err, nil
@@ -275,8 +298,9 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 		// If another process published this fingerprint first, treat as success.
 		if _, statErr := os.Stat(finalStemPath); statErr == nil {
 			stemRef := SafeHeapStemReference{
-				BasePath: finalStemPath,
-				Stems:    req.HeapStems,
+				BasePath:    finalStemPath,
+				Fingerprint: stemFingerprint,
+				Stems:       req.HeapStems,
 			}
 
 			return nil, &stemRef
@@ -304,8 +328,9 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 	}
 
 	stemRef := SafeHeapStemReference{
-		BasePath: finalStemPath,
-		Stems:    req.HeapStems,
+		BasePath:    finalStemPath,
+		Fingerprint: stemFingerprint,
+		Stems:       req.HeapStems,
 	}
 
 	return nil, &stemRef

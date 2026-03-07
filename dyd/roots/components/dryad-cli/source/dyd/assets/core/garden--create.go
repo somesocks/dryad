@@ -46,7 +46,7 @@ func gardenCreateHeapFiles(
 	ctx *task.ExecutionContext,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
-	path := filepath.Join(req.BasePath, "dyd", "heap", "files")
+	path := filepath.Join(req.BasePath, "dyd", "heap", "files", fingerprintVersionV2)
 	err := os.MkdirAll(path, os.ModePerm)
 	return err, req
 }
@@ -55,7 +55,7 @@ func gardenCreateHeapStems(
 	ctx *task.ExecutionContext,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
-	path := filepath.Join(req.BasePath, "dyd", "heap", "stems")
+	path := filepath.Join(req.BasePath, "dyd", "heap", "stems", fingerprintVersionV2)
 	err := os.MkdirAll(path, os.ModePerm)
 	return err, req
 }
@@ -64,7 +64,7 @@ func gardenCreateHeapSprouts(
 	ctx *task.ExecutionContext,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
-	path := filepath.Join(req.BasePath, "dyd", "heap", "sprouts")
+	path := filepath.Join(req.BasePath, "dyd", "heap", "sprouts", fingerprintVersionV2)
 	err := os.MkdirAll(path, os.ModePerm)
 	return err, req
 }
@@ -73,7 +73,7 @@ func gardenCreateHeapDerivations(
 	ctx *task.ExecutionContext,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
-	path := filepath.Join(req.BasePath, "dyd", "heap", "derivations", "roots")
+	path := filepath.Join(req.BasePath, "dyd", "heap", "derivations", "roots", fingerprintVersionV2)
 	err := os.MkdirAll(path, os.ModePerm)
 	return err, req
 }
@@ -91,7 +91,7 @@ func gardenCreateHeapSecrets(
 	ctx *task.ExecutionContext,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
-	path := filepath.Join(req.BasePath, "dyd", "heap", "secrets")
+	path := filepath.Join(req.BasePath, "dyd", "heap", "secrets", fingerprintVersionV2)
 	err := os.MkdirAll(path, os.ModePerm)
 	return err, req
 }

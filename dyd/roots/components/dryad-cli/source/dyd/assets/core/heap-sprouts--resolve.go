@@ -31,6 +31,18 @@ func (heapSprouts *UnsafeHeapSproutsReference) Resolve(ctx *task.ExecutionContex
 		}
 	}
 
+	err, _ = fs2.Mkdir2(
+		ctx,
+		fs2.MkdirRequest{
+			Path:      heapSproutsVersionDir(heapSprouts.BasePath),
+			Mode:      os.ModePerm,
+			Recursive: true,
+		},
+	)
+	if err != nil {
+		return err, nil
+	}
+
 	safeRef = SafeHeapSproutsReference{
 		BasePath: heapSprouts.BasePath,
 		Heap:     heapSprouts.Heap,

@@ -34,7 +34,11 @@ func heapAddSecretFile(ctx *task.ExecutionContext, req heapAddSecretFileRequest)
 
 	fingerprint := sourceHashAlgorithm + "-" + sourceHash
 
-	destPath := filepath.Join(heapSecretsPath, fingerprint)
+	destPath, err := heapSecretsFingerprintPath(heapSecretsPath, fingerprint)
+	if err != nil {
+		return err, ""
+	}
+	heapSecretsVersionPath := filepath.Dir(destPath)
 	now := time.Now()
 
 	// Fast path: if the CAS entry already exists, avoid unnecessary temp writes.
@@ -58,7 +62,7 @@ func heapAddSecretFile(ctx *task.ExecutionContext, req heapAddSecretFileRequest)
 	defer srcFile.Close()
 
 	tempFile, err := os.CreateTemp(
-		heapSecretsPath,
+		heapSecretsVersionPath,
 		".tmp-"+fingerprint+"-*",
 	)
 	if err != nil {

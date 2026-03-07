@@ -34,7 +34,7 @@ _test() {
     return 1
   fi
 
-  heap_files_path="$TEMP_DIR/dyd/heap/files"
+  heap_files_path="$TEMP_DIR/dyd/heap/files/v2"
   if [ ! -d "$heap_files_path" ]; then
     echo "[ERROR] Fail: expected post-error failed build to create heap/files side effects" 1>&2
     return 1

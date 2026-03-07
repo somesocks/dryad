@@ -272,7 +272,7 @@ func rootDevelop_snapshotStemPath(
 		return "", err
 	}
 	fingerprint := strings.TrimSpace(string(bytes))
-	return filepath.Join(garden.BasePath, "dyd", "heap", "stems", fingerprint), nil
+	return heapStemsFingerprintPath(filepath.Join(garden.BasePath, "dyd", "heap", "stems"), fingerprint)
 }
 
 func rootDevelop_createSnapshotStem(
@@ -528,13 +528,13 @@ func rootDevelop_stage1(
 			return err, nil
 		}
 
-		dependencyHeapPath := filepath.Join(
-			roots.Garden.BasePath,
-			"dyd",
-			"heap",
-			"stems",
+		dependencyHeapPath, err := heapStemsFingerprintPath(
+			filepath.Join(roots.Garden.BasePath, "dyd", "heap", "stems"),
 			dependencyFingerprint,
 		)
+		if err != nil {
+			return err, nil
+		}
 
 		targetDepPath := filepath.Join(workspacePath, "dyd", "dependencies", req.DependencyName)
 
@@ -854,7 +854,10 @@ func rootDevelop(
 		return "", err
 	}
 
-	snapshotStemPath := filepath.Join(req.Root.Roots.Garden.BasePath, "dyd", "heap", "stems", initialSnapshotFingerprint)
+	snapshotStemPath, err := heapStemsFingerprintPath(filepath.Join(req.Root.Roots.Garden.BasePath, "dyd", "heap", "stems"), initialSnapshotFingerprint)
+	if err != nil {
+		return "", err
+	}
 
 	err = rootDevelop_stage0(ctx, snapshotStemPath, workspacePath)
 	if err != nil {

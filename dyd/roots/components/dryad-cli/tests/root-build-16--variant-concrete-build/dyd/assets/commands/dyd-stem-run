@@ -28,7 +28,7 @@ _verify() {
 		fi
 
 		candidate_fingerprint=$(cat "$req_fp_file")
-		candidate_stem="$TEMP_DIR/dyd/heap/stems/$candidate_fingerprint"
+		candidate_stem="$TEMP_DIR/dyd/heap/stems/v2/${candidate_fingerprint#v2-}"
 		if [ ! -d "$candidate_stem" ]; then
 			continue
 		fi

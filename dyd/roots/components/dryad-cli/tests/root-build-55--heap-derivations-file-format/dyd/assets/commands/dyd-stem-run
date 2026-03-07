@@ -20,9 +20,9 @@ _prepare() {
 _test() {
   dryad root build "dyd/roots/root-a" --log-level="$DYD_LOG_LEVEL" > /dev/null
 
-  derivation_path=$(find "$TEMP_DIR/dyd/heap/derivations/roots" -maxdepth 1 -mindepth 1 -type f 2>/dev/null | head -n 1 || true)
+  derivation_path=$(find "$TEMP_DIR/dyd/heap/derivations/roots/v2" -maxdepth 1 -mindepth 1 -type f 2>/dev/null | head -n 1 || true)
   if [ -z "$derivation_path" ]; then
-    echo "[ERROR] Fail: expected derivation file under heap/derivations/roots" 1>&2
+    echo "[ERROR] Fail: expected derivation file under heap/derivations/roots/v2" 1>&2
     return 1
   fi
   DERIVATION_PATH="$derivation_path"
@@ -39,7 +39,7 @@ _verify() {
     return 1
   fi
 
-  source_fp=$(basename "$DERIVATION_PATH")
+  source_fp="v2-$(basename "$DERIVATION_PATH")"
   if [ -z "$source_fp" ]; then
     echo "[ERROR] Fail: expected non-empty derivation source fingerprint filename" 1>&2
     return 1
@@ -51,17 +51,17 @@ _verify() {
     return 1
   fi
 
-  assert_directory_exists "$TEMP_DIR/dyd/heap/stems/$result_fp"
+  assert_directory_exists "$TEMP_DIR/dyd/heap/stems/v2/${result_fp#v2-}"
 
-  if find "$TEMP_DIR/dyd/heap/derivations/roots" -maxdepth 1 -type f -name '.tmp-*' | grep -q .; then
-    echo "[ERROR] Fail: expected no temp files left in heap/derivations/roots" 1>&2
-    find "$TEMP_DIR/dyd/heap/derivations/roots" -maxdepth 1 -type f -name '.tmp-*' 1>&2
+  if find "$TEMP_DIR/dyd/heap/derivations/roots/v2" -maxdepth 1 -type f -name '.tmp-*' | grep -q .; then
+    echo "[ERROR] Fail: expected no temp files left in heap/derivations/roots/v2" 1>&2
+    find "$TEMP_DIR/dyd/heap/derivations/roots/v2" -maxdepth 1 -type f -name '.tmp-*' 1>&2
     return 1
   fi
 
-  if find "$TEMP_DIR/dyd/heap/derivations/roots" -maxdepth 1 -mindepth 1 -type l | grep -q .; then
-    echo "[ERROR] Fail: expected no symlink entries in heap/derivations/roots" 1>&2
-    find "$TEMP_DIR/dyd/heap/derivations/roots" -maxdepth 1 -mindepth 1 -type l 1>&2
+  if find "$TEMP_DIR/dyd/heap/derivations/roots/v2" -maxdepth 1 -mindepth 1 -type l | grep -q .; then
+    echo "[ERROR] Fail: expected no symlink entries in heap/derivations/roots/v2" 1>&2
+    find "$TEMP_DIR/dyd/heap/derivations/roots/v2" -maxdepth 1 -mindepth 1 -type l 1>&2
     return 1
   fi
 }

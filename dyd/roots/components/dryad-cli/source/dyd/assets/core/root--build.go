@@ -97,7 +97,10 @@ func rootMaterializeSprout(ctx *task.ExecutionContext, req rootMaterializeSprout
 			dependencyName = dependencyName + RootRequirementSelectorSeparator + descriptor
 		}
 
-		builtStemPath := filepath.Join(gardenPath, "dyd", "heap", "stems", stemFingerprint)
+		builtStemPath, err := heapStemsFingerprintPath(filepath.Join(gardenPath, "dyd", "heap", "stems"), stemFingerprint)
+		if err != nil {
+			return err, ""
+		}
 		err = os.Symlink(
 			builtStemPath,
 			filepath.Join(sproutDependenciesPath, dependencyName),
@@ -328,8 +331,7 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 
 		err, safeDerivationRef := unsafeDerivationRef.Resolve(ctx)
 		if err == nil {
-			derivationsFingerprint := filepath.Base(safeDerivationRef.Result.BasePath)
-			return nil, derivationsFingerprint
+			return nil, safeDerivationRef.ResultFingerprint
 		}
 		if !errors.Is(err, ErrUnresolvableHeapDerivation) {
 			return err, ""

@@ -97,7 +97,7 @@ _test() {
   old_stem_path="$(_realpath_dir "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem")"
   old_stem_fingerprint=$(cat "$old_stem_path/dyd/fingerprint")
   old_inode="$(_inode_of "$secret_path")"
-  canonical_path=$(find "$TEMP_DIR/dyd/heap/secrets" -maxdepth 1 -type f -samefile "$secret_path" | head -n 1 || true)
+  canonical_path=$(find "$TEMP_DIR/dyd/heap/secrets/v2" -type f -samefile "$secret_path" | head -n 1 || true)
 
   if [ -z "$canonical_path" ]; then
     echo "[ERROR] Fail: expected to locate canonical heap secret for the shared secret" 1>&2
@@ -230,7 +230,7 @@ _verify() {
     return 1
   fi
 
-  if [ -e "$TEMP_DIR/dyd/heap/stems/$old_stem_fingerprint" ]; then
+  if [ -e "$TEMP_DIR/dyd/heap/stems/v2/${old_stem_fingerprint#v2-}" ]; then
     echo "[ERROR] Fail: expected prune to remove the original heap stem directory for secrets" 1>&2
     echo "old_stem_fingerprint=$old_stem_fingerprint" 1>&2
     return 1
@@ -242,7 +242,7 @@ _verify() {
     return 1
   fi
 
-  if [ -e "$TEMP_DIR/dyd/heap/stems/$middle_stem_fingerprint" ]; then
+  if [ -e "$TEMP_DIR/dyd/heap/stems/v2/${middle_stem_fingerprint#v2-}" ]; then
     echo "[ERROR] Fail: expected prune to remove the middle heap stem directory for secrets" 1>&2
     echo "middle_stem_fingerprint=$middle_stem_fingerprint" 1>&2
     return 1
@@ -254,7 +254,7 @@ _verify() {
     return 1
   fi
 
-  if [ -e "$TEMP_DIR/dyd/heap/stems/$third_stem_fingerprint" ]; then
+  if [ -e "$TEMP_DIR/dyd/heap/stems/v2/${third_stem_fingerprint#v2-}" ]; then
     echo "[ERROR] Fail: expected prune to remove the pre-wipe root-03 secret heap stem directory" 1>&2
     echo "third_stem_fingerprint=$third_stem_fingerprint" 1>&2
     return 1
@@ -284,9 +284,9 @@ _verify() {
     return 1
   fi
 
-  if find "$TEMP_DIR/dyd/heap/secrets" -maxdepth 1 -type f -name '.tmp-*' | grep -q .; then
+  if find "$TEMP_DIR/dyd/heap/secrets/v2" -type f -name '.tmp-*' | grep -q .; then
     echo "[ERROR] Fail: expected no temp files left in heap/secrets after repeated refreshes" 1>&2
-    find "$TEMP_DIR/dyd/heap/secrets" -maxdepth 1 -type f -name '.tmp-*' 1>&2
+    find "$TEMP_DIR/dyd/heap/secrets/v2" -type f -name '.tmp-*' 1>&2
     return 1
   fi
 }

@@ -209,7 +209,10 @@ func init() {
 			return err, ""
 		}
 
-		dependencyHeapPath := filepath.Join(req.BaseRequest.Roots.Garden.BasePath, "dyd", "heap", "stems", dependencyFingerprint)
+		dependencyHeapPath, err := heapStemsFingerprintPath(filepath.Join(req.BaseRequest.Roots.Garden.BasePath, "dyd", "heap", "stems"), dependencyFingerprint)
+		if err != nil {
+			return err, ""
+		}
 
 		dependencyName := req.DependencyName
 

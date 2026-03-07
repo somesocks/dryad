@@ -100,8 +100,13 @@ _verify() {
 	assert_file_content_equals "$dependency_target/dyd/type" "stem"
 	assert_file_content_equals "$dependency_target/dyd/traits/channel" "unstable"
 
-	if [ "$(basename "$dependency_target")" != "$DEPENDENCY_FINGERPRINT_AFTER" ]; then
-		echo "[ERROR] Fail: dependency stem path basename should match dyd/fingerprint" 1>&2
+	if [ "$(basename "$(dirname "$dependency_target")")" != "v2" ]; then
+		echo "[ERROR] Fail: dependency stem path should live under the v2 heap directory" 1>&2
+		return 1
+	fi
+
+	if [ "$(basename "$dependency_target")" != "${DEPENDENCY_FINGERPRINT_AFTER#v2-}" ]; then
+		echo "[ERROR] Fail: dependency stem path basename should match the encoded dyd/fingerprint payload" 1>&2
 		return 1
 	fi
 }
