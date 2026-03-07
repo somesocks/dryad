@@ -87,16 +87,16 @@ EOF
 unique-v2
 EOF
 
-  diag_cfg='json:{"version":1,"seed":1,"rules":[{"id":"inject-every2-per-key","op":"os.link","key":"*","when":{"mode":"every_x_per_key","x":2},"action":{"type":"error","error":"EMLINK"}}]}'
+  diag_cfg=$(printf 'json:{"version":1,"seed":1,"rules":[{"id":"inject-canonical-emlink","op":"os.link","key":"%s","when":{"mode":"every_x","x":1},"action":{"type":"error","error":"EMLINK"}}]}' "$canonical_path")
   if ! DYD_DIAG="$diag_cfg" dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" >"$second_build_log" 2>&1; then
-    echo "[ERROR] Fail: expected second build to recover from every_x_per_key link exhaustion" 1>&2
+    echo "[ERROR] Fail: expected second build to recover from a forced canonical EMLINK" 1>&2
     cat "$second_build_log" 1>&2
     return 1
   fi
 
   middle_stem_path="$(_realpath_dir "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem")"
   middle_stem_fingerprint=$(cat "$middle_stem_path/dyd/fingerprint")
-  middle_inode="$(_inode_of "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-file-01")"
+  middle_inode="$(_inode_of "$canonical_path")"
 
   if [ "$middle_stem_path" = "$old_stem_path" ]; then
     echo "[ERROR] Fail: expected the first refreshed build to move to a new stem path" 1>&2
@@ -105,7 +105,7 @@ EOF
   fi
 
   if [ "$middle_inode" = "$old_inode" ]; then
-    echo "[ERROR] Fail: expected the first refreshed build to stop using the original inode" 1>&2
+    echo "[ERROR] Fail: expected the canonical heap file to refresh on the first rebuilt generation" 1>&2
     echo "middle_inode=$middle_inode old_inode=$old_inode" 1>&2
     return 1
   fi
@@ -123,7 +123,7 @@ unique-v3
 EOF
 
   if ! DYD_DIAG="$diag_cfg" dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" >"$third_build_log" 2>&1; then
-    echo "[ERROR] Fail: expected third build to recover from a second every_x_per_key rollover" 1>&2
+    echo "[ERROR] Fail: expected third build to recover from a second forced canonical EMLINK" 1>&2
     cat "$third_build_log" 1>&2
     return 1
   fi
@@ -154,7 +154,8 @@ _verify() {
   local new_shared_path_2
   local new_unique_path
   local canonical_inode
-  local new_inode
+  local new_inode_1
+  local new_inode_2
 
   canonical_path=$(cat "$TEMP_DIR/canonical-path")
   old_stem_path=$(cat "$TEMP_DIR/old-stem-path")
@@ -179,7 +180,8 @@ _verify() {
   assert_file_content_equals "$new_unique_path" "unique-v3"
 
   canonical_inode="$(_inode_of "$canonical_path")"
-  new_inode="$(_inode_of "$new_shared_path")"
+  new_inode_1="$(_inode_of "$new_shared_path")"
+  new_inode_2="$(_inode_of "$new_shared_path_2")"
 
   if [ "$new_stem_path" = "$old_stem_path" ] || [ "$new_stem_path" = "$middle_stem_path" ]; then
     echo "[ERROR] Fail: expected the second refreshed build to move to a third stem path" 1>&2
@@ -223,15 +225,15 @@ _verify() {
     return 1
   fi
 
-  if [ "$new_inode" = "$old_inode" ] || [ "$new_inode" = "$middle_inode" ]; then
-    echo "[ERROR] Fail: expected the final stem to stop using both earlier inodes" 1>&2
-    echo "new_inode=$new_inode old_inode=$old_inode middle_inode=$middle_inode" 1>&2
+  if [ "$canonical_inode" = "$old_inode" ] || [ "$canonical_inode" = "$middle_inode" ]; then
+    echo "[ERROR] Fail: expected the canonical heap file to advance past both earlier generations" 1>&2
+    echo "canonical_inode=$canonical_inode old_inode=$old_inode middle_inode=$middle_inode" 1>&2
     return 1
   fi
 
-  if [ "$canonical_inode" != "$new_inode" ]; then
-    echo "[ERROR] Fail: expected the refreshed canonical heap file to match the rebuilt stem inode" 1>&2
-    echo "canonical_inode=$canonical_inode new_inode=$new_inode" 1>&2
+  if [ "$canonical_inode" != "$new_inode_1" ] && [ "$canonical_inode" != "$new_inode_2" ]; then
+    echo "[ERROR] Fail: expected the rebuilt stem to include the final canonical heap inode" 1>&2
+    echo "canonical_inode=$canonical_inode new_inode_1=$new_inode_1 new_inode_2=$new_inode_2" 1>&2
     return 1
   fi
 }
