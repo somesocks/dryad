@@ -2,14 +2,17 @@ package core
 
 import (
 	"path/filepath"
-	// "dryad/task"
-	// zlog "github.com/rs/zerolog/log"
+	"strings"
 )
 
 func (sprouts *SafeHeapSproutsReference) Sprout(fingerprint string) *UnsafeHeapSproutReference {
+	fingerprint = strings.TrimSpace(fingerprint)
+	encoded := strings.TrimPrefix(fingerprint, fingerprintVersionV2+"-")
+	basePath := filepath.Join(sprouts.BasePath, fingerprintVersionV2, encoded)
 	var heapSproutRef = UnsafeHeapSproutReference{
-		BasePath: filepath.Join(sprouts.BasePath, fingerprint),
-		Sprouts:  sprouts,
+		BasePath:    basePath,
+		Fingerprint: fingerprint,
+		Sprouts:     sprouts,
 	}
 	return &heapSproutRef
 }

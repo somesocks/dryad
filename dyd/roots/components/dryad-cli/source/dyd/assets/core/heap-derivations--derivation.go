@@ -2,14 +2,17 @@ package core
 
 import (
 	"path/filepath"
-	// "dryad/task"
-	// zlog "github.com/rs/zerolog/log"
+	"strings"
 )
 
 func (stems *SafeHeapDerivationsReference) Derivation(fingerprint string) *UnsafeHeapDerivationReference {
+	fingerprint = strings.TrimSpace(fingerprint)
+	encoded := strings.TrimPrefix(fingerprint, fingerprintVersionV2+"-")
+	basePath := filepath.Join(stems.BasePath, "roots", fingerprintVersionV2, encoded)
 	var heapDerivationRef = UnsafeHeapDerivationReference{
-		BasePath:    filepath.Join(stems.BasePath, "roots", fingerprint),
-		Derivations: stems,
+		BasePath:          basePath,
+		SourceFingerprint: fingerprint,
+		Derivations:       stems,
 	}
 	return &heapDerivationRef
 }

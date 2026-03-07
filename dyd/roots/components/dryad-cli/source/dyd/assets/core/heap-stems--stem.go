@@ -2,16 +2,17 @@ package core
 
 import (
 	"path/filepath"
-	// "dryad/task"
-
-	// zlog "github.com/rs/zerolog/log"
+	"strings"
 )
 
-
-func (stems *SafeHeapStemsReference) Stem(fingerprint string) (*UnsafeHeapStemReference) {
+func (stems *SafeHeapStemsReference) Stem(fingerprint string) *UnsafeHeapStemReference {
+	fingerprint = strings.TrimSpace(fingerprint)
+	encoded := strings.TrimPrefix(fingerprint, fingerprintVersionV2+"-")
+	basePath := filepath.Join(stems.BasePath, fingerprintVersionV2, encoded)
 	var heapStemRef = UnsafeHeapStemReference{
-		BasePath: filepath.Join(stems.BasePath, fingerprint),
-		Stems: stems,
+		BasePath:    basePath,
+		Fingerprint: fingerprint,
+		Stems:       stems,
 	}
 	return &heapStemRef
 }
