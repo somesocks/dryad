@@ -16,6 +16,15 @@ _prepare() {
   cd "$TEMP_DIR"
 }
 
+_inode_of() {
+  local path="$1"
+  if stat -c %i "$path" >/dev/null 2>&1; then
+    stat -c %i "$path"
+  else
+    stat -f %i "$path"
+  fi
+}
+
 _wipe() {
   dryad garden wipe --log-level="$DYD_LOG_LEVEL"
 }
@@ -25,7 +34,7 @@ _test() {
   fail_before_log="$TEMP_DIR/build-before-x.log"
   fail_after_log="$TEMP_DIR/build-after-x.log"
   fail_before_per_key_log="$TEMP_DIR/build-before-x-per-key.log"
-  fail_after_per_key_log="$TEMP_DIR/build-after-x-per-key.log"
+  success_after_per_key_log="$TEMP_DIR/build-after-x-per-key.log"
   success_log="$TEMP_DIR/build-without-diagnostics.log"
 
   metrics_cfg='json:{"version":1,"seed":1,"rules":[{"id":"m-os-link","op":"os.link","key":"*","when":{"mode":"every_x","x":1},"action":{"type":"metrics","output":"stderr","capture":{"calls":true,"errors":true,"timing":false}}}]}'
@@ -81,9 +90,21 @@ same-content
 EOF
   after_per_key_cfg='json:{"version":1,"seed":1,"rules":[{"id":"inject-after-per-key","op":"os.link","key":"*","when":{"mode":"after_x_per_key","x":1},"action":{"type":"error","error":"EMLINK"}}]}'
   _wipe
-  if DYD_DIAG="$after_per_key_cfg" dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" > /dev/null 2>"$fail_after_per_key_log"; then
-    echo "[ERROR] Fail: expected build to fail with after_x_per_key when duplicate content exists" 1>&2
-    cat "$fail_after_per_key_log" 1>&2
+  if ! DYD_DIAG="$after_per_key_cfg" dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" >"$success_after_per_key_log" 2>&1; then
+    echo "[ERROR] Fail: expected build to recover with after_x_per_key when duplicate content exists" 1>&2
+    cat "$success_after_per_key_log" 1>&2
+    return 1
+  fi
+
+  asset_1="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-file-01"
+  asset_2="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-dir-01/test-file-02"
+  assert_file_content_equals "$asset_1" "same-content"
+  assert_file_content_equals "$asset_2" "same-content"
+
+  inode_1="$(_inode_of "$asset_1")"
+  inode_2="$(_inode_of "$asset_2")"
+  if [ "$inode_1" = "$inode_2" ]; then
+    echo "[ERROR] Fail: expected after_x_per_key recovery to roll repeated content onto a different heap replica" 1>&2
     return 1
   fi
 

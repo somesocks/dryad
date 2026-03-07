@@ -170,7 +170,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 
 					fileHeapPath := filepath.Join(heapPath, fileFingerprint)
 
-					err = os.Link(fileHeapPath, destPath)
+					err = heapMaterializeFile(fileHeapPath, destPath)
 					if err != nil {
 						return err, nil
 					}

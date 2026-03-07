@@ -1,0 +1,305 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+  TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+  TEMP_DIR="$(_realpath_dir "$TEMP_DIR")"
+}
+
+_prepare() {
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+  chmod -R 755 "$TEMP_DIR"
+  cd "$TEMP_DIR"
+}
+
+_realpath_dir() {
+  (
+    cd "$1"
+    pwd -P
+  )
+}
+
+_inode_of() {
+  local path="$1"
+  if stat -c %i "$path" >/dev/null 2>&1; then
+    stat -c %i "$path"
+  else
+    stat -f %i "$path"
+  fi
+}
+
+_make_root() {
+  local root_name="$1"
+  local unique_content="$2"
+  local root_path="$TEMP_DIR/dyd/roots/$root_name"
+
+  mkdir -p "$root_path/dyd/commands"
+  printf 'root' > "$root_path/dyd/type"
+  cat > "$root_path/dyd/commands/dyd-root-build" <<EOF
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+DEST_DIR=\$DYD_BUILD
+
+mkdir -p "\$DEST_DIR/dyd/assets"
+cat > "\$DEST_DIR/dyd/assets/shared.txt" <<'INNER_EOF'
+shared-content
+INNER_EOF
+cat > "\$DEST_DIR/dyd/assets/unique.txt" <<'INNER_EOF'
+$unique_content
+INNER_EOF
+EOF
+  chmod 755 "$root_path/dyd/commands/dyd-root-build"
+}
+
+_age_path() {
+  local path="$1"
+
+  find "$path" \
+    \( -type l -o -type d \) \
+    -exec touch -h -d "2000-01-01 00:00:00" {} +
+}
+
+_test() {
+  local first_build_log="$TEMP_DIR/build-root-01.log"
+  local second_build_log="$TEMP_DIR/build-root-02.log"
+  local third_build_log="$TEMP_DIR/build-root-03.log"
+  local fourth_build_log="$TEMP_DIR/build-root-03-after-wipe.log"
+  local fifth_build_log="$TEMP_DIR/build-root-03-after-prune.log"
+  local shared_path
+  local old_stem_path
+  local old_stem_fingerprint
+  local old_inode
+  local middle_stem_path
+  local middle_stem_fingerprint
+  local middle_inode
+  local third_stem_path
+  local third_stem_fingerprint
+  local canonical_path
+  local diag_cfg
+
+  _make_root "root-01" "unique-root-01"
+  _make_root "root-02" "unique-root-02"
+  _make_root "root-03" "unique-root-03"
+
+  if ! dryad root build "dyd/roots/root-01" --scope=none --log-level="$DYD_LOG_LEVEL" >"$first_build_log" 2>&1; then
+    echo "[ERROR] Fail: expected initial build to succeed" 1>&2
+    cat "$first_build_log" 1>&2
+    return 1
+  fi
+
+  shared_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/shared.txt"
+  old_stem_path="$(_realpath_dir "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem")"
+  old_stem_fingerprint=$(cat "$old_stem_path/dyd/fingerprint")
+  old_inode="$(_inode_of "$shared_path")"
+  canonical_path=$(find "$TEMP_DIR/dyd/heap/files" -maxdepth 1 -type f -samefile "$shared_path" | head -n 1 || true)
+
+  if [ -z "$canonical_path" ]; then
+    echo "[ERROR] Fail: expected to locate canonical heap file for the shared asset" 1>&2
+    return 1
+  fi
+
+  printf '%s' "$old_stem_path" > "$TEMP_DIR/old-stem-path"
+  printf '%s' "$old_stem_fingerprint" > "$TEMP_DIR/old-stem-fingerprint"
+  printf '%s' "$old_inode" > "$TEMP_DIR/old-inode"
+  printf '%s' "$canonical_path" > "$TEMP_DIR/canonical-path"
+
+  diag_cfg=$(printf 'json:{"version":1,"seed":1,"rules":[{"id":"inject-canonical-emlink","op":"os.link","key":"%s","when":{"mode":"every_x","x":1},"action":{"type":"error","error":"EMLINK"}}]}' "$canonical_path")
+  if ! DYD_DIAG="$diag_cfg" dryad root build "dyd/roots/root-02" --scope=none --log-level="$DYD_LOG_LEVEL" >"$second_build_log" 2>&1; then
+    echo "[ERROR] Fail: expected second build to recover from a forced canonical EMLINK" 1>&2
+    cat "$second_build_log" 1>&2
+    return 1
+  fi
+
+  middle_stem_path="$(_realpath_dir "$TEMP_DIR/dyd/sprouts/root-02/dyd/dependencies/stem")"
+  middle_stem_fingerprint=$(cat "$middle_stem_path/dyd/fingerprint")
+  middle_inode="$(_inode_of "$canonical_path")"
+
+  if [ "$middle_stem_path" = "$old_stem_path" ]; then
+    echo "[ERROR] Fail: expected the first refreshed build to move to a new stem path" 1>&2
+    echo "old_stem_path=$old_stem_path middle_stem_path=$middle_stem_path" 1>&2
+    return 1
+  fi
+
+  if [ "$middle_inode" = "$old_inode" ]; then
+    echo "[ERROR] Fail: expected the canonical heap file to refresh on the first rebuilt generation" 1>&2
+    echo "middle_inode=$middle_inode old_inode=$old_inode" 1>&2
+    return 1
+  fi
+
+  printf '%s' "$middle_stem_path" > "$TEMP_DIR/middle-stem-path"
+  printf '%s' "$middle_stem_fingerprint" > "$TEMP_DIR/middle-stem-fingerprint"
+  printf '%s' "$middle_inode" > "$TEMP_DIR/middle-inode"
+
+  if ! DYD_DIAG="$diag_cfg" dryad root build "dyd/roots/root-03" --scope=none --log-level="$DYD_LOG_LEVEL" >"$third_build_log" 2>&1; then
+    echo "[ERROR] Fail: expected third build to recover from a second forced canonical EMLINK" 1>&2
+    cat "$third_build_log" 1>&2
+    return 1
+  fi
+
+  third_stem_path="$(_realpath_dir "$TEMP_DIR/dyd/sprouts/root-03/dyd/dependencies/stem")"
+  third_stem_fingerprint=$(cat "$third_stem_path/dyd/fingerprint")
+  printf '%s' "$third_stem_path" > "$TEMP_DIR/third-stem-path"
+  printf '%s' "$third_stem_fingerprint" > "$TEMP_DIR/third-stem-fingerprint"
+
+  if ! dryad sprouts wipe --scope=none --log-level="$DYD_LOG_LEVEL" >"$TEMP_DIR/sprouts-wipe.log" 2>&1; then
+    echo "[ERROR] Fail: expected sprouts wipe to succeed before prune" 1>&2
+    cat "$TEMP_DIR/sprouts-wipe.log" 1>&2
+    return 1
+  fi
+
+  _make_root "root-03" "unique-root-03b"
+
+  if ! dryad root build "dyd/roots/root-03" --scope=none --log-level="$DYD_LOG_LEVEL" >"$fourth_build_log" 2>&1; then
+    echo "[ERROR] Fail: expected rebuild after sprouts wipe to succeed" 1>&2
+    cat "$fourth_build_log" 1>&2
+    return 1
+  fi
+
+  _age_path "$old_stem_path"
+  _age_path "$middle_stem_path"
+  _age_path "$third_stem_path"
+
+  if ! dryad garden prune --log-level="$DYD_LOG_LEVEL" >"$TEMP_DIR/prune.log" 2>&1; then
+    echo "[ERROR] Fail: expected garden prune to succeed after repeated canonical refreshes" 1>&2
+    cat "$TEMP_DIR/prune.log" 1>&2
+    return 1
+  fi
+
+  if ! dryad root build "dyd/roots/root-03" --scope=none --log-level="$DYD_LOG_LEVEL" >"$fifth_build_log" 2>&1; then
+    echo "[ERROR] Fail: expected build after prune to succeed" 1>&2
+    cat "$fifth_build_log" 1>&2
+    return 1
+  fi
+}
+
+_verify() {
+  local canonical_path
+  local old_stem_path
+  local old_stem_fingerprint
+  local old_inode
+  local middle_stem_path
+  local middle_stem_fingerprint
+  local middle_inode
+  local third_stem_path
+  local third_stem_fingerprint
+  local new_stem_path
+  local new_shared_path
+  local new_unique_path
+  local canonical_inode
+  local new_inode
+
+  canonical_path=$(cat "$TEMP_DIR/canonical-path")
+  old_stem_path=$(cat "$TEMP_DIR/old-stem-path")
+  old_stem_fingerprint=$(cat "$TEMP_DIR/old-stem-fingerprint")
+  old_inode=$(cat "$TEMP_DIR/old-inode")
+  middle_stem_path=$(cat "$TEMP_DIR/middle-stem-path")
+  middle_stem_fingerprint=$(cat "$TEMP_DIR/middle-stem-fingerprint")
+  middle_inode=$(cat "$TEMP_DIR/middle-inode")
+  third_stem_path=$(cat "$TEMP_DIR/third-stem-path")
+  third_stem_fingerprint=$(cat "$TEMP_DIR/third-stem-fingerprint")
+  new_stem_path="$(_realpath_dir "$TEMP_DIR/dyd/sprouts/root-03/dyd/dependencies/stem")"
+  new_shared_path="$TEMP_DIR/dyd/sprouts/root-03/dyd/dependencies/stem/dyd/assets/shared.txt"
+  new_unique_path="$TEMP_DIR/dyd/sprouts/root-03/dyd/dependencies/stem/dyd/assets/unique.txt"
+
+  assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-03"
+  assert_file_exists "$TEMP_DIR/dyd/sprouts/root-03/dyd/fingerprint"
+  assert_file_exists "$canonical_path"
+  assert_file_exists "$new_shared_path"
+  assert_file_exists "$new_unique_path"
+  assert_file_content_equals "$new_shared_path" "shared-content"
+  assert_file_content_equals "$new_unique_path" "unique-root-03b"
+
+  canonical_inode="$(_inode_of "$canonical_path")"
+  new_inode="$(_inode_of "$new_shared_path")"
+
+  if [ "$new_stem_path" = "$old_stem_path" ] || [ "$new_stem_path" = "$middle_stem_path" ] || [ "$new_stem_path" = "$third_stem_path" ]; then
+    echo "[ERROR] Fail: expected the post-wipe rebuild to move to a new live stem path" 1>&2
+    echo "old_stem_path=$old_stem_path middle_stem_path=$middle_stem_path third_stem_path=$third_stem_path new_stem_path=$new_stem_path" 1>&2
+    return 1
+  fi
+
+  if [ -e "$old_stem_path" ]; then
+    echo "[ERROR] Fail: expected prune to remove the unreachable old stem" 1>&2
+    echo "old_stem_path=$old_stem_path" 1>&2
+    return 1
+  fi
+
+  if [ -e "$TEMP_DIR/dyd/heap/stems/$old_stem_fingerprint" ]; then
+    echo "[ERROR] Fail: expected prune to remove the old heap stem directory" 1>&2
+    echo "old_stem_fingerprint=$old_stem_fingerprint" 1>&2
+    return 1
+  fi
+
+  if [ -e "$middle_stem_path" ]; then
+    echo "[ERROR] Fail: expected prune to remove the first refreshed stem once a newer generation existed" 1>&2
+    echo "middle_stem_path=$middle_stem_path" 1>&2
+    return 1
+  fi
+
+  if [ -e "$TEMP_DIR/dyd/heap/stems/$middle_stem_fingerprint" ]; then
+    echo "[ERROR] Fail: expected prune to remove the middle heap stem directory" 1>&2
+    echo "middle_stem_fingerprint=$middle_stem_fingerprint" 1>&2
+    return 1
+  fi
+
+  if [ -e "$third_stem_path" ]; then
+    echo "[ERROR] Fail: expected prune to remove the pre-wipe root-03 stem once a newer generation existed" 1>&2
+    echo "third_stem_path=$third_stem_path" 1>&2
+    return 1
+  fi
+
+  if [ -e "$TEMP_DIR/dyd/heap/stems/$third_stem_fingerprint" ]; then
+    echo "[ERROR] Fail: expected prune to remove the pre-wipe root-03 heap stem directory" 1>&2
+    echo "third_stem_fingerprint=$third_stem_fingerprint" 1>&2
+    return 1
+  fi
+
+  if [ "$canonical_inode" = "$old_inode" ]; then
+    echo "[ERROR] Fail: expected the canonical heap path to stay refreshed after prune" 1>&2
+    echo "canonical_inode=$canonical_inode old_inode=$old_inode" 1>&2
+    return 1
+  fi
+
+  if [ "$canonical_inode" = "$middle_inode" ]; then
+    echo "[ERROR] Fail: expected the canonical heap path to refresh again for the second generation" 1>&2
+    echo "canonical_inode=$canonical_inode middle_inode=$middle_inode" 1>&2
+    return 1
+  fi
+
+  if [ "$canonical_inode" = "$old_inode" ] || [ "$canonical_inode" = "$middle_inode" ]; then
+    echo "[ERROR] Fail: expected the canonical heap file to advance past both earlier generations" 1>&2
+    echo "canonical_inode=$canonical_inode old_inode=$old_inode middle_inode=$middle_inode" 1>&2
+    return 1
+  fi
+
+  if [ "$canonical_inode" != "$new_inode" ]; then
+    echo "[ERROR] Fail: expected the rebuilt stem to include the final canonical heap inode" 1>&2
+    echo "canonical_inode=$canonical_inode new_inode=$new_inode" 1>&2
+    return 1
+  fi
+
+  if find "$TEMP_DIR/dyd/heap/files" -maxdepth 1 -type f -name '.tmp-*' | grep -q .; then
+    echo "[ERROR] Fail: expected no temp files left in heap/files after repeated canonical refreshes" 1>&2
+    find "$TEMP_DIR/dyd/heap/files" -maxdepth 1 -type f -name '.tmp-*' 1>&2
+    return 1
+  fi
+}
+
+_teardown() {
+  if [ -d "$TEMP_DIR" ]; then
+    chmod -R 755 "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+  fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
