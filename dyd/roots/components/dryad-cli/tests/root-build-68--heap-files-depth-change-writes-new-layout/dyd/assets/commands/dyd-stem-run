@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+ROOT_A_HEAP_ASSET_PATH=''
+ROOT_B_HEAP_ASSET_PATH=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+  TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+  chmod -R 755 "$TEMP_DIR"
+  cd "$TEMP_DIR"
+}
+
+_inode_of() {
+  local path="$1"
+  if stat -c %i "$path" >/dev/null 2>&1; then
+    stat -c %i "$path"
+  else
+    stat -f %i "$path"
+  fi
+}
+
+_test() {
+  dryad root build "dyd/roots/root-a" --log-level="$DYD_LOG_LEVEL" > /dev/null
+
+  asset_a_path="$TEMP_DIR/dyd/sprouts/root-a/dyd/dependencies/stem/dyd/assets/unique.txt"
+  assert_file_exists "$asset_a_path"
+  asset_a_inode="$(_inode_of "$asset_a_path")"
+  heap_asset_a_path=$(find "$TEMP_DIR/dyd/heap/files/v2" -type f -inum "$asset_a_inode" -print -quit)
+  if [ -z "$heap_asset_a_path" ]; then
+    echo "[ERROR] Fail: expected heap file for root-a unique asset" 1>&2
+    return 1
+  fi
+  ROOT_A_HEAP_ASSET_PATH="$heap_asset_a_path"
+
+  mkdir -p "$TEMP_DIR/dyd/shed/heap/files"
+  printf '2' > "$TEMP_DIR/dyd/shed/heap/files/depth"
+
+  dryad root build "dyd/roots/root-b" --log-level="$DYD_LOG_LEVEL" > /dev/null
+
+  asset_b_path="$TEMP_DIR/dyd/sprouts/root-b/dyd/dependencies/stem/dyd/assets/unique.txt"
+  assert_file_exists "$asset_b_path"
+  asset_b_inode="$(_inode_of "$asset_b_path")"
+  heap_asset_b_path=$(find "$TEMP_DIR/dyd/heap/files/v2" -type f -inum "$asset_b_inode" -print -quit)
+  if [ -z "$heap_asset_b_path" ]; then
+    echo "[ERROR] Fail: expected heap file for root-b unique asset" 1>&2
+    return 1
+  fi
+  ROOT_B_HEAP_ASSET_PATH="$heap_asset_b_path"
+}
+
+_verify() {
+  relative_a_path=${ROOT_A_HEAP_ASSET_PATH#"$TEMP_DIR/dyd/heap/files/v2/"}
+  relative_b_path=${ROOT_B_HEAP_ASSET_PATH#"$TEMP_DIR/dyd/heap/files/v2/"}
+
+  if ! printf '%s\n' "$relative_a_path" | grep -Eq '^[a-z2-7]{2}/[a-z2-7]{24}$'; then
+    echo "[ERROR] Fail: expected default heap/files depth=1 path for root-a asset" 1>&2
+    echo "path=$ROOT_A_HEAP_ASSET_PATH" 1>&2
+    echo "relative_path=$relative_a_path" 1>&2
+    return 1
+  fi
+
+  if ! printf '%s\n' "$relative_b_path" | grep -Eq '^[a-z2-7]{2}/[a-z2-7]{2}/[a-z2-7]{22}$'; then
+    echo "[ERROR] Fail: expected heap/files depth=2 path for root-b asset after config change" 1>&2
+    echo "path=$ROOT_B_HEAP_ASSET_PATH" 1>&2
+    echo "relative_path=$relative_b_path" 1>&2
+    return 1
+  fi
+
+  if find "$TEMP_DIR/dyd/heap/files/v2" -type f -name '.tmp-*' | grep -q .; then
+    echo "[ERROR] Fail: expected no temp files left in heap/files/v2" 1>&2
+    find "$TEMP_DIR/dyd/heap/files/v2" -type f -name '.tmp-*' 1>&2
+    return 1
+  fi
+}
+
+_teardown() {
+  if [ -d "$TEMP_DIR" ]; then
+    chmod -R 755 "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+  fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

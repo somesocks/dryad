@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+  TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+  chmod -R 755 "$TEMP_DIR"
+  cd "$TEMP_DIR"
+}
+
+_inode_of() {
+  local path="$1"
+  if stat -c %i "$path" >/dev/null 2>&1; then
+    stat -c %i "$path"
+  else
+    stat -f %i "$path"
+  fi
+}
+
+_test() {
+  mkdir -p "$TEMP_DIR/dyd/shed/heap/files"
+  printf '0' > "$TEMP_DIR/dyd/shed/heap/files/depth"
+
+  dryad root build "dyd/roots/root-a" --log-level="$DYD_LOG_LEVEL" > /dev/null
+
+  asset_path="$TEMP_DIR/dyd/sprouts/root-a/dyd/dependencies/stem/dyd/assets/shared.txt"
+  assert_file_exists "$asset_path"
+
+  asset_inode="$(_inode_of "$asset_path")"
+  heap_asset_path=$(find "$TEMP_DIR/dyd/heap/files/v2" -type f -inum "$asset_inode" -print -quit)
+  if [ -z "$heap_asset_path" ]; then
+    echo "[ERROR] Fail: expected hardlinked heap file for shared asset" 1>&2
+    return 1
+  fi
+
+  HEAP_ASSET_PATH="$heap_asset_path"
+}
+
+_verify() {
+  relative_path=${HEAP_ASSET_PATH#"$TEMP_DIR/dyd/heap/files/v2/"}
+
+  if ! printf '%s\n' "$relative_path" | grep -Eq '^[a-z2-7]{26}$'; then
+    echo "[ERROR] Fail: expected flat heap/files path at depth=0" 1>&2
+    echo "path=$HEAP_ASSET_PATH" 1>&2
+    echo "relative_path=$relative_path" 1>&2
+    return 1
+  fi
+
+  if find "$TEMP_DIR/dyd/heap/files/v2" -type f -name '.tmp-*' | grep -q .; then
+    echo "[ERROR] Fail: expected no temp files left in heap/files/v2" 1>&2
+    find "$TEMP_DIR/dyd/heap/files/v2" -type f -name '.tmp-*' 1>&2
+    return 1
+  fi
+}
+
+_teardown() {
+  if [ -d "$TEMP_DIR" ]; then
+    chmod -R 755 "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+  fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
