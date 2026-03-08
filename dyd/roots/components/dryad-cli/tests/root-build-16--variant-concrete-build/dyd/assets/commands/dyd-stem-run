@@ -16,6 +16,26 @@ _prepare() {
 	cd "$TEMP_DIR"
 }
 
+_find_heap_object_dir() {
+	local version_path="$1"
+	local fingerprint="$2"
+	local fingerprint_path
+	local relative_fingerprint_path
+
+	while IFS= read -r fingerprint_path; do
+		relative_fingerprint_path=${fingerprint_path#"$version_path"/}
+		if ! printf '%s\n' "$relative_fingerprint_path" | grep -Eq '^([a-z2-7]{2}/){0,12}[a-z2-7]{2,26}/dyd/fingerprint$'; then
+			continue
+		fi
+		if [ "$(cat "$fingerprint_path")" = "$fingerprint" ]; then
+			dirname "$(dirname "$fingerprint_path")"
+			return 0
+		fi
+	done < <(find "$version_path" -type f -path '*/dyd/fingerprint')
+
+	return 1
+}
+
 _test() {
 	dryad root build "dyd/roots/root-parent" --log-level="$DYD_LOG_LEVEL" > /dev/null
 }
@@ -28,8 +48,8 @@ _verify() {
 		fi
 
 		candidate_fingerprint=$(cat "$req_fp_file")
-		candidate_stem="$TEMP_DIR/dyd/heap/stems/v2/${candidate_fingerprint#v2-}"
-		if [ ! -d "$candidate_stem" ]; then
+		candidate_stem=$(_find_heap_object_dir "$TEMP_DIR/dyd/heap/stems/v2" "$candidate_fingerprint" || true)
+		if [ -z "$candidate_stem" ] || [ ! -d "$candidate_stem" ]; then
 			continue
 		fi
 		if [ ! -f "$candidate_stem/dyd/assets/variant.txt" ]; then

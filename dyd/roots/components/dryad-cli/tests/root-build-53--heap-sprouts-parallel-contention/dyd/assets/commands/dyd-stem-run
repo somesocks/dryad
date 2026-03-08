@@ -16,6 +16,26 @@ _prepare() {
   cd "$TEMP_DIR"
 }
 
+_find_heap_object_dir() {
+  local version_path="$1"
+  local fingerprint="$2"
+  local fingerprint_path
+  local relative_fingerprint_path
+
+  while IFS= read -r fingerprint_path; do
+    relative_fingerprint_path=${fingerprint_path#"$version_path"/}
+    if ! printf '%s\n' "$relative_fingerprint_path" | grep -Eq '^([a-z2-7]{2}/){0,12}[a-z2-7]{2,26}/dyd/fingerprint$'; then
+      continue
+    fi
+    if [ "$(cat "$fingerprint_path")" = "$fingerprint" ]; then
+      dirname "$(dirname "$fingerprint_path")"
+      return 0
+    fi
+  done < <(find "$version_path" -type f -path '*/dyd/fingerprint')
+
+  return 1
+}
+
 _test() {
   pids=""
   for _ in 1 2 3 4 5 6 7 8; do
@@ -33,12 +53,12 @@ _verify() {
   assert_file_exists "$fp_path"
   fp=$(cat "$fp_path")
 
-  heap_sprout_path="$TEMP_DIR/dyd/heap/sprouts/v2/${fp#v2-}"
+  heap_sprout_path=$(_find_heap_object_dir "$TEMP_DIR/dyd/heap/sprouts/v2" "$fp" || true)
   assert_directory_exists "$heap_sprout_path"
 
-  if find "$TEMP_DIR/dyd/heap/sprouts/v2" -maxdepth 1 -mindepth 1 -type d -name '.tmp-*' | grep -q .; then
+  if find "$TEMP_DIR/dyd/heap/sprouts/v2" -mindepth 1 -type d -name '.tmp-*' | grep -q .; then
     echo "[ERROR] Fail: expected no temp sprout directories left in heap/sprouts/v2" 1>&2
-    find "$TEMP_DIR/dyd/heap/sprouts/v2" -maxdepth 1 -mindepth 1 -type d -name '.tmp-*' 1>&2
+    find "$TEMP_DIR/dyd/heap/sprouts/v2" -mindepth 1 -type d -name '.tmp-*' 1>&2
     return 1
   fi
 }

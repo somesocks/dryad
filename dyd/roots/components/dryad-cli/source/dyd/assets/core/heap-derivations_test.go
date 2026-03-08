@@ -49,7 +49,7 @@ func TestHeapDerivationsAdd_WritesRegularFileInRootsNamespace(t *testing.T) {
 	err, _ := derivations.Add(task.SERIAL_CONTEXT, sourceFingerprint, resultFingerprint)
 	assert.Nil(err)
 
-	derivationPath, err := heapDerivationsRootsFingerprintPath(derivations.BasePath, sourceFingerprint)
+	err, derivationPath := heapDerivationsRootsFingerprintPath(task.SERIAL_CONTEXT, derivations.BasePath, sourceFingerprint)
 	info, err := os.Lstat(derivationPath)
 	assert.Nil(err)
 	assert.True(info.Mode().IsRegular())
@@ -64,13 +64,16 @@ func TestHeapDerivationExists_IgnoresLegacySymlinkEntries(t *testing.T) {
 	_, heap, derivations := setupDerivationsForTest(t)
 
 	resultFingerprint := testFingerprint("result-fp")
-	targetStemPath, err := heapStemsFingerprintPath(filepath.Join(heap.BasePath, "stems"), resultFingerprint)
+	err, targetStemPath := heapStemsFingerprintPath(task.SERIAL_CONTEXT, filepath.Join(heap.BasePath, "stems"), resultFingerprint)
 	assert.Nil(err)
 	err = os.MkdirAll(filepath.Dir(targetStemPath), os.ModePerm)
 	assert.Nil(err)
 
 	sourceFingerprint := testFingerprint("source-fp")
-	legacyPath, err := heapDerivationsRootsFingerprintPath(derivations.BasePath, sourceFingerprint)
+	err, legacyPath := heapDerivationsRootsFingerprintPath(task.SERIAL_CONTEXT, derivations.BasePath, sourceFingerprint)
+	assert.Nil(err)
+	err = os.MkdirAll(filepath.Dir(legacyPath), os.ModePerm)
+	assert.Nil(err)
 	err = os.Symlink(targetStemPath, legacyPath)
 	assert.Nil(err)
 
@@ -85,7 +88,7 @@ func TestHeapDerivationResolve_FailsWhenResultStemMissing(t *testing.T) {
 	_, _, derivations := setupDerivationsForTest(t)
 
 	sourceFingerprint := testFingerprint("source-fp")
-	derivationPath, err := heapDerivationsRootsFingerprintPath(derivations.BasePath, sourceFingerprint)
+	err, derivationPath := heapDerivationsRootsFingerprintPath(task.SERIAL_CONTEXT, derivations.BasePath, sourceFingerprint)
 	assert.Nil(err)
 	writeFileForTest(t, derivationPath, testFingerprint("missing-result-fp"))
 
@@ -100,13 +103,13 @@ func TestHeapDerivationResolve_ResolvesWhenResultStemExists(t *testing.T) {
 	_, heap, derivations := setupDerivationsForTest(t)
 
 	resultFingerprint := testFingerprint("result-fp")
-	resultStemPath, err := heapStemsFingerprintPath(filepath.Join(heap.BasePath, "stems"), resultFingerprint)
+	err, resultStemPath := heapStemsFingerprintPath(task.SERIAL_CONTEXT, filepath.Join(heap.BasePath, "stems"), resultFingerprint)
 	assert.Nil(err)
 	err = os.MkdirAll(resultStemPath, os.ModePerm)
 	assert.Nil(err)
 
 	sourceFingerprint := testFingerprint("source-fp")
-	derivationPath, err := heapDerivationsRootsFingerprintPath(derivations.BasePath, sourceFingerprint)
+	err, derivationPath := heapDerivationsRootsFingerprintPath(task.SERIAL_CONTEXT, derivations.BasePath, sourceFingerprint)
 	assert.Nil(err)
 	writeFileForTest(t, derivationPath, resultFingerprint)
 
@@ -121,20 +124,22 @@ func TestGardenPruneSweepDerivations_RemovesStaleEntriesAndKeepsValidOnes(t *tes
 	garden, heap, derivations := setupDerivationsForTest(t)
 
 	validStem := testFingerprint("valid-stem-fp")
-	validDerivation, err := heapDerivationsRootsFingerprintPath(derivations.BasePath, testFingerprint("source-valid"))
+	err, validDerivation := heapDerivationsRootsFingerprintPath(task.SERIAL_CONTEXT, derivations.BasePath, testFingerprint("source-valid"))
 	assert.Nil(err)
-	staleDerivation, err := heapDerivationsRootsFingerprintPath(derivations.BasePath, testFingerprint("source-stale"))
+	err, staleDerivation := heapDerivationsRootsFingerprintPath(task.SERIAL_CONTEXT, derivations.BasePath, testFingerprint("source-stale"))
 	assert.Nil(err)
-	legacyDerivation, err := heapDerivationsRootsFingerprintPath(derivations.BasePath, testFingerprint("source-legacy"))
+	err, legacyDerivation := heapDerivationsRootsFingerprintPath(task.SERIAL_CONTEXT, derivations.BasePath, testFingerprint("source-legacy"))
 	assert.Nil(err)
 
-	validStemPath, err := heapStemsFingerprintPath(filepath.Join(heap.BasePath, "stems"), validStem)
+	err, validStemPath := heapStemsFingerprintPath(task.SERIAL_CONTEXT, filepath.Join(heap.BasePath, "stems"), validStem)
 	assert.Nil(err)
 	err = os.MkdirAll(validStemPath, os.ModePerm)
 	assert.Nil(err)
 	writeFileForTest(t, validDerivation, validStem)
 	writeFileForTest(t, staleDerivation, testFingerprint("missing-stem-fp"))
 
+	err = os.MkdirAll(filepath.Dir(legacyDerivation), os.ModePerm)
+	assert.Nil(err)
 	err = os.Symlink(validStemPath, legacyDerivation)
 	assert.Nil(err)
 
@@ -162,7 +167,7 @@ func TestGardenPruneSweepDerivations_SkipsFreshEntriesAfterSnapshot(t *testing.T
 	assert := assert.New(t)
 	garden, _, derivations := setupDerivationsForTest(t)
 
-	freshDerivation, err := heapDerivationsRootsFingerprintPath(derivations.BasePath, testFingerprint("source-fresh"))
+	err, freshDerivation := heapDerivationsRootsFingerprintPath(task.SERIAL_CONTEXT, derivations.BasePath, testFingerprint("source-fresh"))
 	assert.Nil(err)
 	writeFileForTest(t, freshDerivation, testFingerprint("missing-stem-fp"))
 

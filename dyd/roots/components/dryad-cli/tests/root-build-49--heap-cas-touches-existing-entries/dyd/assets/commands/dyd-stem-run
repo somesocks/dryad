@@ -84,15 +84,15 @@ _verify() {
     return 1
   fi
 
-  if find "$TEMP_DIR/dyd/heap/files/v2" -maxdepth 1 -type f -name '.tmp-*' | grep -q .; then
+  if find "$TEMP_DIR/dyd/heap/files/v2" -type f -name '.tmp-*' | grep -q .; then
     echo "[ERROR] Fail: expected no temp files left in heap/files after successful build" 1>&2
-    find "$TEMP_DIR/dyd/heap/files/v2" -maxdepth 1 -type f -name '.tmp-*' 1>&2
+    find "$TEMP_DIR/dyd/heap/files/v2" -type f -name '.tmp-*' 1>&2
     return 1
   fi
 
-  if find "$TEMP_DIR/dyd/heap/secrets/v2" -maxdepth 1 -type f -name '.tmp-*' | grep -q .; then
+  if find "$TEMP_DIR/dyd/heap/secrets/v2" -type f -name '.tmp-*' | grep -q .; then
     echo "[ERROR] Fail: expected no temp files left in heap/secrets after successful build" 1>&2
-    find "$TEMP_DIR/dyd/heap/secrets/v2" -maxdepth 1 -type f -name '.tmp-*' 1>&2
+    find "$TEMP_DIR/dyd/heap/secrets/v2" -type f -name '.tmp-*' 1>&2
     return 1
   fi
 }

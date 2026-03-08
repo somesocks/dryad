@@ -1,6 +1,10 @@
 package core
 
-import "path/filepath"
+import (
+	"path/filepath"
+
+	"dryad/task"
+)
 
 func heapVersionDir(basePath string, version string) string {
 	return filepath.Join(basePath, version)
@@ -26,42 +30,42 @@ func heapDerivationsRootsVersionDir(basePath string) string {
 	return filepath.Join(basePath, "roots", fingerprintVersionV2)
 }
 
-func heapFilesFingerprintPath(basePath string, fingerprint string) (string, error) {
-	err, version, encoded := fingerprintParse(fingerprint)
+func heapFilesFingerprintPath(ctx *task.ExecutionContext, basePath string, fingerprint string) (error, string) {
+	err, depth := shedHeapFilesDepth(ctx, basePath)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
-	return filepath.Join(heapVersionDir(basePath, version), encoded), nil
+	return heapFingerprintPath(basePath, fingerprint, depth)
 }
 
-func heapSecretsFingerprintPath(basePath string, fingerprint string) (string, error) {
-	err, version, encoded := fingerprintParse(fingerprint)
+func heapSecretsFingerprintPath(ctx *task.ExecutionContext, basePath string, fingerprint string) (error, string) {
+	err, depth := shedHeapSecretsDepth(ctx, basePath)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
-	return filepath.Join(heapVersionDir(basePath, version), encoded), nil
+	return heapFingerprintPath(basePath, fingerprint, depth)
 }
 
-func heapStemsFingerprintPath(basePath string, fingerprint string) (string, error) {
-	err, version, encoded := fingerprintParse(fingerprint)
+func heapStemsFingerprintPath(ctx *task.ExecutionContext, basePath string, fingerprint string) (error, string) {
+	err, depth := shedHeapStemsDepth(ctx, basePath)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
-	return filepath.Join(heapVersionDir(basePath, version), encoded), nil
+	return heapFingerprintPath(basePath, fingerprint, depth)
 }
 
-func heapSproutsFingerprintPath(basePath string, fingerprint string) (string, error) {
-	err, version, encoded := fingerprintParse(fingerprint)
+func heapSproutsFingerprintPath(ctx *task.ExecutionContext, basePath string, fingerprint string) (error, string) {
+	err, depth := shedHeapSproutsDepth(ctx, basePath)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
-	return filepath.Join(heapVersionDir(basePath, version), encoded), nil
+	return heapFingerprintPath(basePath, fingerprint, depth)
 }
 
-func heapDerivationsRootsFingerprintPath(basePath string, fingerprint string) (string, error) {
-	err, version, encoded := fingerprintParse(fingerprint)
+func heapDerivationsRootsFingerprintPath(ctx *task.ExecutionContext, basePath string, fingerprint string) (error, string) {
+	err, depth := shedHeapDerivationsRootsDepth(ctx, basePath)
 	if err != nil {
-		return "", err
+		return err, ""
 	}
-	return filepath.Join(basePath, "roots", version, encoded), nil
+	return heapFingerprintPath(filepath.Join(basePath, "roots"), fingerprint, depth)
 }

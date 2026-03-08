@@ -4,6 +4,7 @@ import (
 	"dryad/internal/os"
 	"fmt"
 	"path/filepath"
+	"strconv"
 
 	task "dryad/task"
 )
@@ -114,6 +115,54 @@ func gardenCreateShedScopes(
 	return err, req
 }
 
+func gardenCreateShedHeapDepthFile(path string) error {
+	err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, []byte(strconv.Itoa(shedHeapDepthDefault)), 0o644)
+}
+
+func gardenCreateShedHeapFilesDepth(
+	ctx *task.ExecutionContext,
+	req gardenCreateRequest,
+) (error, gardenCreateRequest) {
+	err := gardenCreateShedHeapDepthFile(shedHeapFilesDepthPath(filepath.Join(req.BasePath, "dyd", "heap", "files")))
+	return err, req
+}
+
+func gardenCreateShedHeapSecretsDepth(
+	ctx *task.ExecutionContext,
+	req gardenCreateRequest,
+) (error, gardenCreateRequest) {
+	err := gardenCreateShedHeapDepthFile(shedHeapSecretsDepthPath(filepath.Join(req.BasePath, "dyd", "heap", "secrets")))
+	return err, req
+}
+
+func gardenCreateShedHeapStemsDepth(
+	ctx *task.ExecutionContext,
+	req gardenCreateRequest,
+) (error, gardenCreateRequest) {
+	err := gardenCreateShedHeapDepthFile(shedHeapStemsDepthPath(filepath.Join(req.BasePath, "dyd", "heap", "stems")))
+	return err, req
+}
+
+func gardenCreateShedHeapSproutsDepth(
+	ctx *task.ExecutionContext,
+	req gardenCreateRequest,
+) (error, gardenCreateRequest) {
+	err := gardenCreateShedHeapDepthFile(shedHeapSproutsDepthPath(filepath.Join(req.BasePath, "dyd", "heap", "sprouts")))
+	return err, req
+}
+
+func gardenCreateShedHeapDerivationsRootsDepth(
+	ctx *task.ExecutionContext,
+	req gardenCreateRequest,
+) (error, gardenCreateRequest) {
+	err := gardenCreateShedHeapDepthFile(shedHeapDerivationsRootsDepthPath(filepath.Join(req.BasePath, "dyd", "heap", "derivations")))
+	return err, req
+}
+
 func gardenCreateRoots(
 	ctx *task.ExecutionContext,
 	req gardenCreateRequest,
@@ -174,9 +223,22 @@ var gardenCreate = task.Series4(
 				return nil, res.A
 			},
 		),
-		task.Series2(
+		task.Series3(
 			gardenCreateShed,
-			gardenCreateShedScopes,
+			task.Parallel6(
+				gardenCreateShedScopes,
+				gardenCreateShedHeapFilesDepth,
+				gardenCreateShedHeapSecretsDepth,
+				gardenCreateShedHeapStemsDepth,
+				gardenCreateShedHeapSproutsDepth,
+				gardenCreateShedHeapDerivationsRootsDepth,
+			),
+			func(
+				ctx *task.ExecutionContext,
+				res task.Tuple6[gardenCreateRequest, gardenCreateRequest, gardenCreateRequest, gardenCreateRequest, gardenCreateRequest, gardenCreateRequest],
+			) (error, gardenCreateRequest) {
+				return nil, res.A
+			},
 		),
 		gardenCreateRoots,
 		gardenCreateSprouts,

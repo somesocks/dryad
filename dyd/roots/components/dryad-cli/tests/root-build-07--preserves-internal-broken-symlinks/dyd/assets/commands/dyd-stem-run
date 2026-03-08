@@ -113,10 +113,15 @@ _verify() {
 		return 1
 	fi
 
-	if [ "$(basename "$(dirname "$heap_secret_file")")" != "v2" ]; then
-		echo "[ERROR] Fail: expected heap secret file under heap/secrets/v2" 1>&2
-		return 1
-	fi
+	case "$heap_secret_file" in
+		"$TEMP_DIR"/dyd/heap/secrets/v2/*)
+			:
+			;;
+		*)
+			echo "[ERROR] Fail: expected heap secret file under heap/secrets/v2" 1>&2
+			return 1
+			;;
+	esac
 
 	case "$(basename "$heap_secret_file")" in
 		*[!a-z2-7]*|'')

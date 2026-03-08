@@ -34,7 +34,7 @@ func heapAddSecretFile(ctx *task.ExecutionContext, req heapAddSecretFileRequest)
 
 	fingerprint := sourceHashAlgorithm + "-" + sourceHash
 
-	destPath, err := heapSecretsFingerprintPath(heapSecretsPath, fingerprint)
+	err, destPath := heapSecretsFingerprintPath(ctx, heapSecretsPath, fingerprint)
 	if err != nil {
 		return err, ""
 	}
@@ -65,6 +65,16 @@ func heapAddSecretFile(ctx *task.ExecutionContext, req heapAddSecretFileRequest)
 		heapSecretsVersionPath,
 		".tmp-"+fingerprint+"-*",
 	)
+	if errors.Is(err, os.ErrNotExist) {
+		err = os.MkdirAll(heapSecretsVersionPath, os.ModePerm)
+		if err != nil {
+			return err, ""
+		}
+		tempFile, err = os.CreateTemp(
+			heapSecretsVersionPath,
+			".tmp-"+fingerprint+"-*",
+		)
+	}
 	if err != nil {
 		return err, ""
 	}

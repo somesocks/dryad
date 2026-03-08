@@ -15,7 +15,7 @@ func (derivations *SafeHeapDerivationsReference) Add(
 	resultFingerprint string,
 ) (error, *SafeHeapDerivationReference) {
 
-	derivationPath, err := heapDerivationsRootsFingerprintPath(derivations.BasePath, sourceFingerprint)
+	err, derivationPath := heapDerivationsRootsFingerprintPath(ctx, derivations.BasePath, sourceFingerprint)
 	if err != nil {
 		return err, nil
 	}
@@ -25,6 +25,16 @@ func (derivations *SafeHeapDerivationsReference) Add(
 		derivationsRootsPath,
 		".tmp-"+sourceFingerprint+"-*",
 	)
+	if errors.Is(err, os.ErrNotExist) {
+		err = os.MkdirAll(derivationsRootsPath, os.ModePerm)
+		if err != nil {
+			return err, nil
+		}
+		tempFile, err = os.CreateTemp(
+			derivationsRootsPath,
+			".tmp-"+sourceFingerprint+"-*",
+		)
+	}
 	if err != nil {
 		return err, nil
 	}
@@ -55,8 +65,19 @@ func (derivations *SafeHeapDerivationsReference) Add(
 		return err, nil
 	}
 
+	err, sourceStemPath := heapStemsFingerprintPath(ctx, heapStems.BasePath, sourceFingerprint)
+	if err != nil {
+		return err, nil
+	}
+	err, resultStemPath := heapStemsFingerprintPath(ctx, heapStems.BasePath, resultFingerprint)
+	if err != nil {
+		return err, nil
+	}
+
 	sourceStem := heapStems.Stem(sourceFingerprint)
+	sourceStem.BasePath = sourceStemPath
 	resultStem := heapStems.Stem(resultFingerprint)
+	resultStem.BasePath = resultStemPath
 
 	safeRef := SafeHeapDerivationReference{
 		BasePath:          derivationPath,

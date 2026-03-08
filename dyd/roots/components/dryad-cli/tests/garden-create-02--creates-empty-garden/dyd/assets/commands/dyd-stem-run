@@ -40,6 +40,11 @@ _test() {
 _verify() {
 	assert_directory_exists "$TEMP_DIR/dyd"
 	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
+	assert_file_content_equals "$TEMP_DIR/dyd/shed/heap/files/depth" "1"
+	assert_file_content_equals "$TEMP_DIR/dyd/shed/heap/secrets/depth" "1"
+	assert_file_content_equals "$TEMP_DIR/dyd/shed/heap/stems/depth" "1"
+	assert_file_content_equals "$TEMP_DIR/dyd/shed/heap/sprouts/depth" "1"
+	assert_file_content_equals "$TEMP_DIR/dyd/shed/heap/derivations/roots/depth" "1"
 	:;
 }
 

@@ -15,20 +15,9 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-var REGEX_GARDEN_PRUNE_STEMS_CRAWL = regexp.MustCompile(`^((\.)|(stems)|(stems/v2))$`)
-var REGEX_GARDEN_PRUNE_STEMS_MATCH = regexp.MustCompile(`^(stems/v2/.*)$`)
-
-var REGEX_GARDEN_PRUNE_SPROUTS_CRAWL = regexp.MustCompile(`^((\.)|(sprouts)|(sprouts/v2))$`)
-var REGEX_GARDEN_PRUNE_SPROUTS_MATCH = regexp.MustCompile(`^(sprouts/v2/.*)$`)
-
-var REGEX_GARDEN_PRUNE_FILES_CRAWL = regexp.MustCompile(`^((\.)|(files)|(files/v2))$`)
-var REGEX_GARDEN_PRUNE_FIlES_MATCH = regexp.MustCompile(`^(files/v2/.*)$`)
-
-var REGEX_GARDEN_PRUNE_SECRETS_CRAWL = regexp.MustCompile(`^((\.)|(secrets)|(secrets/v2))$`)
-var REGEX_GARDEN_PRUNE_SECRETS_MATCH = regexp.MustCompile(`^(secrets/v2/.*)$`)
-
-var REGEX_GARDEN_PRUNE_DERIVATIONS_CRAWL = regexp.MustCompile(`^((\.)|(derivations)|(derivations/roots)|(derivations/roots/v2))$`)
-var REGEX_GARDEN_PRUNE_DERIVATIONS_MATCH = regexp.MustCompile(`^(derivations/roots/v2/.*)$`)
+var gardenPruneStemLikeLeafPattern = regexp.MustCompile(
+	"^[a-z2-7]{2}(?:" + regexp.QuoteMeta(string(filepath.Separator)) + "?[a-z2-7]{2}){12}$",
+)
 
 type gardenPruneRequest struct {
 	Garden   *SafeGardenReference
@@ -143,77 +132,150 @@ var gardenPrune_mark = func(ctx *task.ExecutionContext, req gardenPruneRequest) 
 	return nil, req
 }
 
-var gardenPrune_sweepStems = func(ctx *task.ExecutionContext, req gardenPruneRequest) (error, gardenPruneRequest) {
-	heapPath := filepath.Join(req.Garden.BasePath, "dyd", "heap")
-
-	sweepStemShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
-		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
-		if relErr != nil {
-			return relErr, false
+func gardenPruneDirectoryEmpty(path string) (error, bool) {
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, true
 		}
-		matchesPath := REGEX_GARDEN_PRUNE_STEMS_CRAWL.Match([]byte(relPath))
-		isSymlink := node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
-		shouldCrawl := matchesPath && !isSymlink
+		return err, false
+	}
+	return nil, len(entries) == 0
+}
 
-		zlog.Trace().
-			Str("path", node.Path).
-			Str("vpath", node.VPath).
-			Bool("shouldCrawl", shouldCrawl).
-			Str("action", "garden-prune/sweep-stems/should-walk").
-			Msg("")
-
-		return nil, shouldCrawl
+func gardenPruneRemoveEmptyDir(path string, rootPath string) (error, bool) {
+	if filepath.Clean(path) == filepath.Clean(rootPath) {
+		return nil, false
 	}
 
-	sweepStemShouldMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
-		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
-		if relErr != nil {
-			return relErr, false
-		}
-		shouldMatch := REGEX_GARDEN_PRUNE_STEMS_MATCH.Match([]byte(relPath))
+	err, empty := gardenPruneDirectoryEmpty(path)
+	if err != nil || !empty {
+		return err, false
+	}
 
+	err = os.Remove(path)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err, false
+	}
+
+	return nil, true
+}
+
+func gardenPruneEnsureParentWritable(path string) error {
+	parentPath := filepath.Dir(path)
+	parentInfo, err := os.Lstat(parentPath)
+	if err != nil {
+		return err
+	}
+
+	if parentInfo.Mode()&0o200 != 0o200 {
+		err = os.Chmod(parentPath, parentInfo.Mode()|0o200)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func gardenPruneVersionPath(path string) (error, string) {
+	exists, err := fileExists(path)
+	if err != nil {
+		return err, ""
+	}
+	if !exists {
+		return nil, ""
+	}
+	return nil, path
+}
+
+func gardenPruneStemLikeLeaf(path string, versionPath string) (error, bool) {
+	relPath, err := filepath.Rel(versionPath, path)
+	if err != nil {
+		return err, false
+	}
+	if relPath == "." {
+		return nil, false
+	}
+	return nil, gardenPruneStemLikeLeafPattern.MatchString(relPath)
+}
+
+var gardenPrune_sweepStems = func(ctx *task.ExecutionContext, req gardenPruneRequest) (error, gardenPruneRequest) {
+	err, stemsVersionPath := gardenPruneVersionPath(heapStemsVersionDir(filepath.Join(req.Garden.BasePath, "dyd", "heap", "stems")))
+	if err != nil || stemsVersionPath == "" {
+		return err, req
+	}
+
+	sweepStemShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+		if !node.Info.IsDir() {
+			return nil, false
+		}
+		err, isLeaf := gardenPruneStemLikeLeaf(node.Path, stemsVersionPath)
+		if err != nil {
+			return err, false
+		}
 		zlog.Trace().
 			Str("path", node.Path).
-			Str("vpath", node.VPath).
-			Bool("shouldMatch", shouldMatch).
-			Str("action", "garden-prune/sweep-stems/should-match").
+			Bool("is_leaf", isLeaf).
+			Bool("should_walk", !isLeaf).
+			Str("action", "garden-prune/stems/classify").
 			Msg("")
-
-		return nil, shouldMatch
+		return nil, !isLeaf
 	}
 
 	sweepStemStatsCheck := 0
 	sweepStemStatsCount := 0
 
-	sweepStem := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
-		sweepStemStatsCheck += 1
-
-		if node.Info.ModTime().Before(req.Snapshot) {
-			var err, _ = dydfs.RemoveAll(ctx, node.Path)
-			if err != nil {
-				return err, nil
-			}
-
-			sweepStemStatsCount += 1
+	sweepStemPost := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+		if !node.Info.IsDir() {
+			return nil, nil
+		}
+		err, isLeaf := gardenPruneStemLikeLeaf(node.Path, stemsVersionPath)
+		if err != nil {
+			return err, nil
 		}
 
-		return nil, nil
+		if isLeaf {
+			isStale := node.Info.ModTime().Before(req.Snapshot)
+			zlog.Trace().
+				Str("path", node.Path).
+				Bool("is_leaf", true).
+				Bool("is_stale", isStale).
+				Str("action", "garden-prune/stems/delete-start").
+				Msg("")
+
+			sweepStemStatsCheck += 1
+			if isStale {
+				err, _ := dydfs.RemoveAll(ctx, node.Path)
+				zlog.Trace().
+					Str("path", node.Path).
+					Err(err).
+					Str("action", "garden-prune/stems/delete-done").
+					Msg("")
+				if err != nil && !errors.Is(err, fs.ErrNotExist) {
+					return err, nil
+				}
+				sweepStemStatsCount += 1
+			}
+			return nil, nil
+		}
+
+		err, _ = gardenPruneRemoveEmptyDir(node.Path, stemsVersionPath)
+		return err, nil
 	}
 
-	sweepStem = dydfs.ConditionalWalkAction(sweepStem, sweepStemShouldMatch)
-
-	var err, _ = dydfs.Walk6(
+	var errWalk, _ = dydfs.Walk6(
 		ctx,
 		dydfs.Walk6Request{
-			BasePath:   heapPath,
-			Path:       heapPath,
-			VPath:      heapPath,
-			ShouldWalk: sweepStemShouldWalk,
-			OnPreMatch: sweepStem,
+			BasePath:    stemsVersionPath,
+			Path:        stemsVersionPath,
+			VPath:       stemsVersionPath,
+			ShouldWalk:  sweepStemShouldWalk,
+			OnPostMatch: sweepStemPost,
 		},
 	)
-	if err != nil {
-		return err, req
+	if errWalk != nil {
+		return errWalk, req
 	}
 
 	zlog.Info().
@@ -225,76 +287,81 @@ var gardenPrune_sweepStems = func(ctx *task.ExecutionContext, req gardenPruneReq
 }
 
 var gardenPrune_sweepSprouts = func(ctx *task.ExecutionContext, req gardenPruneRequest) (error, gardenPruneRequest) {
-	heapPath := filepath.Join(req.Garden.BasePath, "dyd", "heap")
-
-	sweepSproutShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
-		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
-		if relErr != nil {
-			return relErr, false
-		}
-		matchesPath := REGEX_GARDEN_PRUNE_SPROUTS_CRAWL.Match([]byte(relPath))
-		isSymlink := node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
-		shouldCrawl := matchesPath && !isSymlink
-
-		zlog.Trace().
-			Str("path", node.Path).
-			Str("vpath", node.VPath).
-			Bool("shouldCrawl", shouldCrawl).
-			Str("action", "garden-prune/sweep-sprouts/should-walk").
-			Msg("")
-
-		return nil, shouldCrawl
+	err, sproutsVersionPath := gardenPruneVersionPath(heapSproutsVersionDir(filepath.Join(req.Garden.BasePath, "dyd", "heap", "sprouts")))
+	if err != nil || sproutsVersionPath == "" {
+		return err, req
 	}
 
-	sweepSproutShouldMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
-		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
-		if relErr != nil {
-			return relErr, false
+	sweepSproutShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+		if !node.Info.IsDir() {
+			return nil, false
 		}
-		shouldMatch := REGEX_GARDEN_PRUNE_SPROUTS_MATCH.Match([]byte(relPath))
-
+		err, isLeaf := gardenPruneStemLikeLeaf(node.Path, sproutsVersionPath)
+		if err != nil {
+			return err, false
+		}
 		zlog.Trace().
 			Str("path", node.Path).
-			Str("vpath", node.VPath).
-			Bool("shouldMatch", shouldMatch).
-			Str("action", "garden-prune/sweep-sprouts/should-match").
+			Bool("is_leaf", isLeaf).
+			Bool("should_walk", !isLeaf).
+			Str("action", "garden-prune/sprouts/classify").
 			Msg("")
-
-		return nil, shouldMatch
+		return nil, !isLeaf
 	}
 
 	sweepSproutStatsCheck := 0
 	sweepSproutStatsCount := 0
 
-	sweepSprout := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
-		sweepSproutStatsCheck += 1
-
-		if node.Info.ModTime().Before(req.Snapshot) {
-			var err, _ = dydfs.RemoveAll(ctx, node.Path)
-			if err != nil {
-				return err, nil
-			}
-
-			sweepSproutStatsCount += 1
+	sweepSproutPost := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+		if !node.Info.IsDir() {
+			return nil, nil
+		}
+		err, isLeaf := gardenPruneStemLikeLeaf(node.Path, sproutsVersionPath)
+		if err != nil {
+			return err, nil
 		}
 
-		return nil, nil
+		if isLeaf {
+			isStale := node.Info.ModTime().Before(req.Snapshot)
+			zlog.Trace().
+				Str("path", node.Path).
+				Bool("is_leaf", true).
+				Bool("is_stale", isStale).
+				Str("action", "garden-prune/sprouts/delete-start").
+				Msg("")
+
+			sweepSproutStatsCheck += 1
+			if isStale {
+				err, _ := dydfs.RemoveAll(ctx, node.Path)
+				zlog.Trace().
+					Str("path", node.Path).
+					Err(err).
+					Str("action", "garden-prune/sprouts/delete-done").
+					Msg("")
+				if err != nil && !errors.Is(err, fs.ErrNotExist) {
+					return err, nil
+				}
+				sweepSproutStatsCount += 1
+			}
+			return nil, nil
+		}
+
+		err, _ = gardenPruneRemoveEmptyDir(node.Path, sproutsVersionPath)
+		return err, nil
 	}
 
-	sweepSprout = dydfs.ConditionalWalkAction(sweepSprout, sweepSproutShouldMatch)
-
-	var err, _ = dydfs.Walk6(
+	var errWalk, _ = dydfs.Walk6(
 		ctx,
 		dydfs.Walk6Request{
-			BasePath:   heapPath,
-			Path:       heapPath,
-			VPath:      heapPath,
-			ShouldWalk: sweepSproutShouldWalk,
-			OnPreMatch: sweepSprout,
+			BasePath:    sproutsVersionPath,
+			Path:        sproutsVersionPath,
+			VPath:       sproutsVersionPath,
+			ShouldWalk:  sweepSproutShouldWalk,
+			OnPostMatch: sweepSproutPost,
 		},
 	)
-	if err != nil {
-		return err, req
+	if errWalk != nil {
+		return errWalk, req
 	}
 
 	zlog.Info().
@@ -307,87 +374,74 @@ var gardenPrune_sweepSprouts = func(ctx *task.ExecutionContext, req gardenPruneR
 
 var gardenPrune_sweepDerivations = func(ctx *task.ExecutionContext, req gardenPruneRequest) (error, gardenPruneRequest) {
 	heapPath := filepath.Join(req.Garden.BasePath, "dyd", "heap")
+	err, derivationsVersionPath := gardenPruneVersionPath(heapDerivationsRootsVersionDir(filepath.Join(heapPath, "derivations")))
+	if err != nil || derivationsVersionPath == "" {
+		return err, req
+	}
 
 	sweepDerivationStatsCheck := 0
 	sweepDerivationStatsCount := 0
 
 	sweepDerivationsShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
-		relPath, relErr := filepath.Rel(node.BasePath, node.Path)
-		if relErr != nil {
-			return relErr, false
-		}
-		matchesPath := REGEX_GARDEN_PRUNE_DERIVATIONS_CRAWL.Match([]byte(relPath))
-		shouldCrawl := matchesPath
-		return nil, shouldCrawl
+		return nil, node.Info.IsDir()
 	}
 
-	sweepDerivationsShouldMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	sweepDerivationPost := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+		if node.Info.IsDir() {
+			err, _ := gardenPruneRemoveEmptyDir(node.Path, derivationsVersionPath)
+			return err, nil
+		}
+
 		sweepDerivationStatsCheck += 1
-
-		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
-		if relErr != nil {
-			return relErr, false
-		}
-		matchesPath := REGEX_GARDEN_PRUNE_DERIVATIONS_MATCH.Match([]byte(relPath))
-		if !matchesPath {
-			return nil, false
-		}
-
-		// Avoid racing with freshly-written entries from concurrent builds.
 		if !node.Info.ModTime().Before(req.Snapshot) {
-			return nil, false
+			return nil, nil
 		}
-
-		// Prune non-file entries from the roots derivations namespace.
-		if node.Info.IsDir() || !node.Info.Mode().IsRegular() {
-			return nil, true
+		if !node.Info.Mode().IsRegular() {
+			sweepDerivationStatsCount += 1
+			return os.RemoveAll(node.Path), nil
 		}
 
 		resultFingerprintBytes, err := os.ReadFile(node.Path)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
-				return nil, false
+				return nil, nil
 			}
-			return nil, true
+			sweepDerivationStatsCount += 1
+			return os.RemoveAll(node.Path), nil
 		}
 		resultFingerprint := strings.TrimSpace(string(resultFingerprintBytes))
 		if resultFingerprint == "" {
-			return nil, true
+			sweepDerivationStatsCount += 1
+			return os.Remove(node.Path), nil
 		}
 
-		resultStemPath, err := heapStemsFingerprintPath(filepath.Join(heapPath, "stems"), resultFingerprint)
+		err, resultStemPath := heapStemsFingerprintPath(ctx, filepath.Join(heapPath, "stems"), resultFingerprint)
 		if err != nil {
-			return err, false
+			return err, nil
 		}
 		_, err = os.Stat(resultStemPath)
 		if err == nil {
-			return nil, false
+			return nil, nil
 		}
 		if errors.Is(err, os.ErrNotExist) {
-			return nil, true
+			sweepDerivationStatsCount += 1
+			return os.Remove(node.Path), nil
 		}
-		return err, false
+		return err, nil
 	}
 
-	sweepDerivation := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
-		sweepDerivationStatsCount += 1
-		return os.RemoveAll(node.Path), nil
-	}
-
-	sweepDerivation = dydfs.ConditionalWalkAction(sweepDerivation, sweepDerivationsShouldMatch)
-
-	var err, _ = dydfs.Walk6(
+	var errWalk, _ = dydfs.Walk6(
 		ctx,
 		dydfs.Walk6Request{
-			BasePath:    heapPath,
-			Path:        heapPath,
-			VPath:       heapPath,
+			BasePath:    derivationsVersionPath,
+			Path:        derivationsVersionPath,
+			VPath:       derivationsVersionPath,
 			ShouldWalk:  sweepDerivationsShouldWalk,
-			OnPostMatch: sweepDerivation,
+			OnPostMatch: sweepDerivationPost,
 		},
 	)
-	if err != nil {
-		return err, req
+	if errWalk != nil {
+		return errWalk, req
 	}
 
 	zlog.Info().
@@ -399,72 +453,51 @@ var gardenPrune_sweepDerivations = func(ctx *task.ExecutionContext, req gardenPr
 }
 
 var gardenPrune_sweepFiles = func(ctx *task.ExecutionContext, req gardenPruneRequest) (error, gardenPruneRequest) {
-	heapPath := filepath.Join(req.Garden.BasePath, "dyd", "heap")
+	err, filesVersionPath := gardenPruneVersionPath(heapFilesVersionDir(filepath.Join(req.Garden.BasePath, "dyd", "heap", "files")))
+	if err != nil || filesVersionPath == "" {
+		return err, req
+	}
 	sweepFileStatsCheck := 0
 	sweepFileStatsCount := 0
 
 	sweepFileShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
-		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
-		if relErr != nil {
-			return relErr, false
-		}
-		matchesPath := REGEX_GARDEN_PRUNE_FILES_CRAWL.Match([]byte(relPath))
-		isSymlink := node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
-		shouldCrawl := matchesPath && !isSymlink
-		return nil, shouldCrawl
+		return nil, node.Info.IsDir()
 	}
 
-	sweepFilesShouldMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	sweepFilePost := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+		if node.Info.IsDir() {
+			err, _ := gardenPruneRemoveEmptyDir(node.Path, filesVersionPath)
+			return err, nil
+		}
+
 		sweepFileStatsCheck += 1
-
-		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
-		if relErr != nil {
-			return relErr, false
-		}
-		shouldMatch := REGEX_GARDEN_PRUNE_FIlES_MATCH.Match([]byte(relPath))
-		return nil, shouldMatch
-	}
-
-	sweepFile := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
-		if node.Info.ModTime().Before(req.Snapshot) {
-			parentPath := filepath.Dir(node.Path)
-			parentInfo, err := os.Lstat(parentPath)
+		if node.Info.Mode().IsRegular() && node.Info.ModTime().Before(req.Snapshot) {
+			err := gardenPruneEnsureParentWritable(node.Path)
 			if err != nil {
 				return err, nil
 			}
-
-			if parentInfo.Mode()&0o200 != 0o200 {
-				err := os.Chmod(parentPath, parentInfo.Mode()|0o200)
-				if err != nil {
-					return err, nil
-				}
-			}
-
 			err = os.Remove(node.Path)
 			if err != nil {
 				return err, nil
 			}
-
 			sweepFileStatsCount += 1
 		}
 
 		return nil, nil
 	}
 
-	sweepFile = dydfs.ConditionalWalkAction(sweepFile, sweepFilesShouldMatch)
-
-	var err, _ = dydfs.Walk6(
+	var errWalk, _ = dydfs.Walk6(
 		ctx,
 		dydfs.Walk6Request{
-			BasePath:    heapPath,
-			Path:        heapPath,
-			VPath:       heapPath,
+			BasePath:    filesVersionPath,
+			Path:        filesVersionPath,
+			VPath:       filesVersionPath,
 			ShouldWalk:  sweepFileShouldWalk,
-			OnPostMatch: sweepFile,
+			OnPostMatch: sweepFilePost,
 		},
 	)
-	if err != nil {
-		return err, req
+	if errWalk != nil {
+		return errWalk, req
 	}
 
 	zlog.Info().
@@ -477,72 +510,51 @@ var gardenPrune_sweepFiles = func(ctx *task.ExecutionContext, req gardenPruneReq
 }
 
 var gardenPrune_sweepSecrets = func(ctx *task.ExecutionContext, req gardenPruneRequest) (error, gardenPruneRequest) {
-	heapPath := filepath.Join(req.Garden.BasePath, "dyd", "heap")
+	err, secretsVersionPath := gardenPruneVersionPath(heapSecretsVersionDir(filepath.Join(req.Garden.BasePath, "dyd", "heap", "secrets")))
+	if err != nil || secretsVersionPath == "" {
+		return err, req
+	}
 	sweepSecretStatsCheck := 0
 	sweepSecretStatsCount := 0
 
 	sweepSecretShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
-		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
-		if relErr != nil {
-			return relErr, false
-		}
-		matchesPath := REGEX_GARDEN_PRUNE_SECRETS_CRAWL.Match([]byte(relPath))
-		isSymlink := node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
-		shouldCrawl := matchesPath && !isSymlink
-		return nil, shouldCrawl
+		return nil, node.Info.IsDir()
 	}
 
-	sweepSecretsShouldMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	sweepSecretPost := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+		if node.Info.IsDir() {
+			err, _ := gardenPruneRemoveEmptyDir(node.Path, secretsVersionPath)
+			return err, nil
+		}
+
 		sweepSecretStatsCheck += 1
-
-		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
-		if relErr != nil {
-			return relErr, false
-		}
-		shouldMatch := REGEX_GARDEN_PRUNE_SECRETS_MATCH.Match([]byte(relPath))
-		return nil, shouldMatch
-	}
-
-	sweepSecret := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
-		if node.Info.ModTime().Before(req.Snapshot) {
-			parentPath := filepath.Dir(node.Path)
-			parentInfo, err := os.Lstat(parentPath)
+		if node.Info.Mode().IsRegular() && node.Info.ModTime().Before(req.Snapshot) {
+			err := gardenPruneEnsureParentWritable(node.Path)
 			if err != nil {
 				return err, nil
 			}
-
-			if parentInfo.Mode()&0o200 != 0o200 {
-				err := os.Chmod(parentPath, parentInfo.Mode()|0o200)
-				if err != nil {
-					return err, nil
-				}
-			}
-
 			err = os.Remove(node.Path)
 			if err != nil {
 				return err, nil
 			}
-
 			sweepSecretStatsCount += 1
 		}
 
 		return nil, nil
 	}
 
-	sweepSecret = dydfs.ConditionalWalkAction(sweepSecret, sweepSecretsShouldMatch)
-
-	var err, _ = dydfs.Walk6(
+	var errWalk, _ = dydfs.Walk6(
 		ctx,
 		dydfs.Walk6Request{
-			BasePath:    heapPath,
-			Path:        heapPath,
-			VPath:       heapPath,
+			BasePath:    secretsVersionPath,
+			Path:        secretsVersionPath,
+			VPath:       secretsVersionPath,
 			ShouldWalk:  sweepSecretShouldWalk,
-			OnPostMatch: sweepSecret,
+			OnPostMatch: sweepSecretPost,
 		},
 	)
-	if err != nil {
-		return err, req
+	if errWalk != nil {
+		return errWalk, req
 	}
 
 	zlog.Info().

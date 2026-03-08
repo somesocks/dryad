@@ -209,7 +209,7 @@ func init() {
 			return err, ""
 		}
 
-		dependencyHeapPath, err := heapStemsFingerprintPath(filepath.Join(req.BaseRequest.Roots.Garden.BasePath, "dyd", "heap", "stems"), dependencyFingerprint)
+		err, dependencyHeapPath := heapStemsFingerprintPath(ctx, filepath.Join(req.BaseRequest.Roots.Garden.BasePath, "dyd", "heap", "stems"), dependencyFingerprint)
 		if err != nil {
 			return err, ""
 		}
