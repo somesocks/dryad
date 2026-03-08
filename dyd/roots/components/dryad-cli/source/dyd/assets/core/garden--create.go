@@ -123,11 +123,16 @@ func gardenCreateShedHeapDepthFile(path string) error {
 	return os.WriteFile(path, []byte(strconv.Itoa(shedHeapDepthDefault)), 0o644)
 }
 
+func gardenCreateShedHeapDepthPath(basePath string, segments ...string) string {
+	parts := append([]string{basePath, "dyd", "shed", "heap"}, segments...)
+	return filepath.Join(parts...)
+}
+
 func gardenCreateShedHeapFilesDepth(
 	ctx *task.ExecutionContext,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
-	err := gardenCreateShedHeapDepthFile(shedHeapFilesDepthPath(safeShedReference(&SafeGardenReference{BasePath: req.BasePath})))
+	err := gardenCreateShedHeapDepthFile(gardenCreateShedHeapDepthPath(req.BasePath, "files", "depth"))
 	return err, req
 }
 
@@ -135,7 +140,7 @@ func gardenCreateShedHeapSecretsDepth(
 	ctx *task.ExecutionContext,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
-	err := gardenCreateShedHeapDepthFile(shedHeapSecretsDepthPath(safeShedReference(&SafeGardenReference{BasePath: req.BasePath})))
+	err := gardenCreateShedHeapDepthFile(gardenCreateShedHeapDepthPath(req.BasePath, "secrets", "depth"))
 	return err, req
 }
 
@@ -143,7 +148,7 @@ func gardenCreateShedHeapStemsDepth(
 	ctx *task.ExecutionContext,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
-	err := gardenCreateShedHeapDepthFile(shedHeapStemsDepthPath(safeShedReference(&SafeGardenReference{BasePath: req.BasePath})))
+	err := gardenCreateShedHeapDepthFile(gardenCreateShedHeapDepthPath(req.BasePath, "stems", "depth"))
 	return err, req
 }
 
@@ -151,7 +156,7 @@ func gardenCreateShedHeapSproutsDepth(
 	ctx *task.ExecutionContext,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
-	err := gardenCreateShedHeapDepthFile(shedHeapSproutsDepthPath(safeShedReference(&SafeGardenReference{BasePath: req.BasePath})))
+	err := gardenCreateShedHeapDepthFile(gardenCreateShedHeapDepthPath(req.BasePath, "sprouts", "depth"))
 	return err, req
 }
 
@@ -159,7 +164,7 @@ func gardenCreateShedHeapDerivationsRootsDepth(
 	ctx *task.ExecutionContext,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
-	err := gardenCreateShedHeapDepthFile(shedHeapDerivationsRootsDepthPath(safeShedReference(&SafeGardenReference{BasePath: req.BasePath})))
+	err := gardenCreateShedHeapDepthFile(gardenCreateShedHeapDepthPath(req.BasePath, "derivations", "roots", "depth"))
 	return err, req
 }
 
