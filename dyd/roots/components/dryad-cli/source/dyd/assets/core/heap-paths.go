@@ -30,40 +30,40 @@ func heapDerivationsRootsVersionDir(basePath string) string {
 	return filepath.Join(basePath, "roots", fingerprintVersionV2)
 }
 
-func heapFilesFingerprintPath(ctx *task.ExecutionContext, basePath string, fingerprint string) (error, string) {
-	err, depth := shedHeapFilesDepth(ctx, basePath)
+func heapFilesFingerprintPath(ctx *task.ExecutionContext, garden *SafeGardenReference, basePath string, fingerprint string) (error, string) {
+	err, depth := shedHeapFilesDepth(ctx, safeShedReference(garden))
 	if err != nil {
 		return err, ""
 	}
 	return heapFingerprintPath(basePath, fingerprint, depth)
 }
 
-func heapSecretsFingerprintPath(ctx *task.ExecutionContext, basePath string, fingerprint string) (error, string) {
-	err, depth := shedHeapSecretsDepth(ctx, basePath)
+func heapSecretsFingerprintPath(ctx *task.ExecutionContext, garden *SafeGardenReference, basePath string, fingerprint string) (error, string) {
+	err, depth := shedHeapSecretsDepth(ctx, safeShedReference(garden))
 	if err != nil {
 		return err, ""
 	}
 	return heapFingerprintPath(basePath, fingerprint, depth)
 }
 
-func heapStemsFingerprintPath(ctx *task.ExecutionContext, basePath string, fingerprint string) (error, string) {
-	err, depth := shedHeapStemsDepth(ctx, basePath)
+func heapStemsFingerprintPath(ctx *task.ExecutionContext, garden *SafeGardenReference, basePath string, fingerprint string) (error, string) {
+	err, depth := shedHeapStemsDepth(ctx, safeShedReference(garden))
 	if err != nil {
 		return err, ""
 	}
 	return heapFingerprintPath(basePath, fingerprint, depth)
 }
 
-func heapSproutsFingerprintPath(ctx *task.ExecutionContext, basePath string, fingerprint string) (error, string) {
-	err, depth := shedHeapSproutsDepth(ctx, basePath)
+func heapSproutsFingerprintPath(ctx *task.ExecutionContext, garden *SafeGardenReference, basePath string, fingerprint string) (error, string) {
+	err, depth := shedHeapSproutsDepth(ctx, safeShedReference(garden))
 	if err != nil {
 		return err, ""
 	}
 	return heapFingerprintPath(basePath, fingerprint, depth)
 }
 
-func heapDerivationsRootsFingerprintPath(ctx *task.ExecutionContext, basePath string, fingerprint string) (error, string) {
-	err, depth := shedHeapDerivationsRootsDepth(ctx, basePath)
+func heapDerivationsRootsFingerprintPath(ctx *task.ExecutionContext, garden *SafeGardenReference, basePath string, fingerprint string) (error, string) {
+	err, depth := shedHeapDerivationsRootsDepth(ctx, safeShedReference(garden))
 	if err != nil {
 		return err, ""
 	}

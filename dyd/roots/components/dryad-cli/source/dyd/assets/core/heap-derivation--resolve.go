@@ -21,6 +21,7 @@ func (heapDerivation *UnsafeHeapDerivationReference) Resolve(ctx *task.Execution
 
 	err, derivationPath = heapDerivationsRootsFingerprintPath(
 		ctx,
+		heapDerivation.Derivations.Heap.Garden,
 		heapDerivation.Derivations.BasePath,
 		heapDerivation.SourceFingerprint,
 	)
@@ -47,7 +48,7 @@ func (heapDerivation *UnsafeHeapDerivationReference) Resolve(ctx *task.Execution
 		Heap:     heapDerivation.Derivations.Heap,
 	}
 
-	err, sourceStemPath := heapStemsFingerprintPath(ctx, heapStems.BasePath, heapDerivation.SourceFingerprint)
+	err, sourceStemPath := heapStemsFingerprintPath(ctx, heapStems.Heap.Garden, heapStems.BasePath, heapDerivation.SourceFingerprint)
 	if err != nil {
 		return err, nil
 	}
@@ -63,7 +64,7 @@ func (heapDerivation *UnsafeHeapDerivationReference) Resolve(ctx *task.Execution
 		return ErrUnresolvableHeapDerivation, nil
 	}
 
-	err, resultStemPath := heapStemsFingerprintPath(ctx, heapStems.BasePath, resultFingerprint)
+	err, resultStemPath := heapStemsFingerprintPath(ctx, heapStems.Heap.Garden, heapStems.BasePath, resultFingerprint)
 	if err != nil {
 		return err, nil
 	}

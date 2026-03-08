@@ -97,7 +97,7 @@ func rootMaterializeSprout(ctx *task.ExecutionContext, req rootMaterializeSprout
 			dependencyName = dependencyName + RootRequirementSelectorSeparator + descriptor
 		}
 
-		err, builtStemPath := heapStemsFingerprintPath(ctx, filepath.Join(gardenPath, "dyd", "heap", "stems"), stemFingerprint)
+		err, builtStemPath := heapStemsFingerprintPath(ctx, req.Root.Roots.Garden, filepath.Join(gardenPath, "dyd", "heap", "stems"), stemFingerprint)
 		if err != nil {
 			return err, ""
 		}

@@ -32,7 +32,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 		return err, nil
 	}
 
-	err, finalSproutPath := heapSproutsFingerprintPath(ctx, heapSproutsPath, sproutFingerprint)
+	err, finalSproutPath := heapSproutsFingerprintPath(ctx, req.HeapSprouts.Heap.Garden, heapSproutsPath, sproutFingerprint)
 	if err != nil {
 		return err, nil
 	}
@@ -142,7 +142,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 						return err, nil
 					}
 
-					err, fileHeapPath := heapFilesFingerprintPath(ctx, heapFilesPath, fileFingerprint)
+					err, fileHeapPath := heapFilesFingerprintPath(ctx, req.HeapFiles.Heap.Garden, heapFilesPath, fileFingerprint)
 					if err != nil {
 						return err, nil
 					}
@@ -183,7 +183,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 		targetFingerprint := string(targetFingerprintBytes)
 
 		dependencyPath := filepath.Join(dependenciesPath, filepath.Base(dependencySourcePath))
-		err, dependencyGardenPath := heapStemsFingerprintPath(ctx, heapStemsPath, targetFingerprint)
+		err, dependencyGardenPath := heapStemsFingerprintPath(ctx, req.HeapSprouts.Heap.Garden, heapStemsPath, targetFingerprint)
 		if err != nil {
 			return err, nil
 		}

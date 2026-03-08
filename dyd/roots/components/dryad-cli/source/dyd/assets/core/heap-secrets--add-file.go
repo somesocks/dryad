@@ -34,7 +34,7 @@ func heapAddSecretFile(ctx *task.ExecutionContext, req heapAddSecretFileRequest)
 
 	fingerprint := sourceHashAlgorithm + "-" + sourceHash
 
-	err, destPath := heapSecretsFingerprintPath(ctx, heapSecretsPath, fingerprint)
+	err, destPath := heapSecretsFingerprintPath(ctx, req.HeapSecrets.Heap.Garden, heapSecretsPath, fingerprint)
 	if err != nil {
 		return err, ""
 	}

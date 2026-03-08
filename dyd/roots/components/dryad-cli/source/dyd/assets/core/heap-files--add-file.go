@@ -34,7 +34,7 @@ func heapAddFile(ctx *task.ExecutionContext, req heapAddFileRequest) (error, str
 
 	fingerprint := sourceHashAlgorithm + "-" + sourceHash
 
-	err, destPath := heapFilesFingerprintPath(ctx, heapFilesPath, fingerprint)
+	err, destPath := heapFilesFingerprintPath(ctx, req.HeapFiles.Heap.Garden, heapFilesPath, fingerprint)
 	if err != nil {
 		return err, ""
 	}

@@ -127,7 +127,7 @@ func gardenCreateShedHeapFilesDepth(
 	ctx *task.ExecutionContext,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
-	err := gardenCreateShedHeapDepthFile(shedHeapFilesDepthPath(filepath.Join(req.BasePath, "dyd", "heap", "files")))
+	err := gardenCreateShedHeapDepthFile(shedHeapFilesDepthPath(safeShedReference(&SafeGardenReference{BasePath: req.BasePath})))
 	return err, req
 }
 
@@ -135,7 +135,7 @@ func gardenCreateShedHeapSecretsDepth(
 	ctx *task.ExecutionContext,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
-	err := gardenCreateShedHeapDepthFile(shedHeapSecretsDepthPath(filepath.Join(req.BasePath, "dyd", "heap", "secrets")))
+	err := gardenCreateShedHeapDepthFile(shedHeapSecretsDepthPath(safeShedReference(&SafeGardenReference{BasePath: req.BasePath})))
 	return err, req
 }
 
@@ -143,7 +143,7 @@ func gardenCreateShedHeapStemsDepth(
 	ctx *task.ExecutionContext,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
-	err := gardenCreateShedHeapDepthFile(shedHeapStemsDepthPath(filepath.Join(req.BasePath, "dyd", "heap", "stems")))
+	err := gardenCreateShedHeapDepthFile(shedHeapStemsDepthPath(safeShedReference(&SafeGardenReference{BasePath: req.BasePath})))
 	return err, req
 }
 
@@ -151,7 +151,7 @@ func gardenCreateShedHeapSproutsDepth(
 	ctx *task.ExecutionContext,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
-	err := gardenCreateShedHeapDepthFile(shedHeapSproutsDepthPath(filepath.Join(req.BasePath, "dyd", "heap", "sprouts")))
+	err := gardenCreateShedHeapDepthFile(shedHeapSproutsDepthPath(safeShedReference(&SafeGardenReference{BasePath: req.BasePath})))
 	return err, req
 }
 
@@ -159,7 +159,7 @@ func gardenCreateShedHeapDerivationsRootsDepth(
 	ctx *task.ExecutionContext,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
-	err := gardenCreateShedHeapDepthFile(shedHeapDerivationsRootsDepthPath(filepath.Join(req.BasePath, "dyd", "heap", "derivations")))
+	err := gardenCreateShedHeapDepthFile(shedHeapDerivationsRootsDepthPath(safeShedReference(&SafeGardenReference{BasePath: req.BasePath})))
 	return err, req
 }
 

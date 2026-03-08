@@ -273,7 +273,7 @@ func rootDevelop_snapshotStemPath(
 		return "", err
 	}
 	fingerprint := strings.TrimSpace(string(bytes))
-	err, stemPath := heapStemsFingerprintPath(ctx, filepath.Join(garden.BasePath, "dyd", "heap", "stems"), fingerprint)
+	err, stemPath := heapStemsFingerprintPath(ctx, garden, filepath.Join(garden.BasePath, "dyd", "heap", "stems"), fingerprint)
 	return stemPath, err
 }
 
@@ -530,11 +530,12 @@ func rootDevelop_stage1(
 			return err, nil
 		}
 
-			err, dependencyHeapPath := heapStemsFingerprintPath(
-				ctx,
-				filepath.Join(roots.Garden.BasePath, "dyd", "heap", "stems"),
-				dependencyFingerprint,
-			)
+		err, dependencyHeapPath := heapStemsFingerprintPath(
+			ctx,
+			roots.Garden,
+			filepath.Join(roots.Garden.BasePath, "dyd", "heap", "stems"),
+			dependencyFingerprint,
+		)
 		if err != nil {
 			return err, nil
 		}
@@ -857,7 +858,7 @@ func rootDevelop(
 		return "", err
 	}
 
-	err, snapshotStemPath := heapStemsFingerprintPath(ctx, filepath.Join(req.Root.Roots.Garden.BasePath, "dyd", "heap", "stems"), initialSnapshotFingerprint)
+	err, snapshotStemPath := heapStemsFingerprintPath(ctx, req.Root.Roots.Garden, filepath.Join(req.Root.Roots.Garden.BasePath, "dyd", "heap", "stems"), initialSnapshotFingerprint)
 	if err != nil {
 		return "", err
 	}
@@ -902,7 +903,7 @@ func rootDevelop(
 	devSocketPath := filepath.Join(devDir, "host.sock")
 	devServer, err := rootDevelopIPC_start(devSocketPath, rootDevelopIPCHandlers{
 		OnSave: func() error {
-				currentSnapshotPath, err := rootDevelop_snapshotStemPath(ctx, req.Root.Roots.Garden, workspacePath)
+			currentSnapshotPath, err := rootDevelop_snapshotStemPath(ctx, req.Root.Roots.Garden, workspacePath)
 			if err != nil {
 				return err
 			}
@@ -916,7 +917,7 @@ func rootDevelop(
 			return nil
 		},
 		OnStatus: func() ([]rootDevelopStatusEntry, error) {
-				currentSnapshotPath, err := rootDevelop_snapshotStemPath(ctx, req.Root.Roots.Garden, workspacePath)
+			currentSnapshotPath, err := rootDevelop_snapshotStemPath(ctx, req.Root.Roots.Garden, workspacePath)
 			if err != nil {
 				return nil, err
 			}
@@ -933,7 +934,7 @@ func rootDevelop(
 			return fingerprint, nil
 		},
 		OnReset: func() error {
-				currentSnapshotPath, err := rootDevelop_snapshotStemPath(ctx, req.Root.Roots.Garden, workspacePath)
+			currentSnapshotPath, err := rootDevelop_snapshotStemPath(ctx, req.Root.Roots.Garden, workspacePath)
 			if err != nil {
 				return err
 			}

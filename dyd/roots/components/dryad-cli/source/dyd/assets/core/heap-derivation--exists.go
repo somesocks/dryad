@@ -13,6 +13,7 @@ import (
 func (heapDerivation *UnsafeHeapDerivationReference) Exists(ctx *task.ExecutionContext) (error, bool) {
 	err, derivationPath := heapDerivationsRootsFingerprintPath(
 		ctx,
+		heapDerivation.Derivations.Heap.Garden,
 		heapDerivation.Derivations.BasePath,
 		heapDerivation.SourceFingerprint,
 	)

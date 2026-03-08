@@ -43,7 +43,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 		return err, nil
 	}
 
-	err, finalStemPath := heapStemsFingerprintPath(ctx, heapStemsPath, stemFingerprint)
+	err, finalStemPath := heapStemsFingerprintPath(ctx, req.HeapStems.Heap.Garden, heapStemsPath, stemFingerprint)
 	if err != nil {
 		return err, nil
 	}
@@ -184,7 +184,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 					}
 
 					if isSecret {
-						err, fileHeapPath := heapSecretsFingerprintPath(ctx, heapPath, fileFingerprint)
+						err, fileHeapPath := heapSecretsFingerprintPath(ctx, req.HeapSecrets.Heap.Garden, heapPath, fileFingerprint)
 						if err != nil {
 							return err, nil
 						}
@@ -194,7 +194,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 							return err, nil
 						}
 					} else {
-						err, fileHeapPath := heapFilesFingerprintPath(ctx, heapPath, fileFingerprint)
+						err, fileHeapPath := heapFilesFingerprintPath(ctx, req.HeapFiles.Heap.Garden, heapPath, fileFingerprint)
 						if err != nil {
 							return err, nil
 						}
@@ -237,7 +237,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 		targetFingerprint := string(targetFingerprintBytes)
 
 		dependencyPath := filepath.Join(dependenciesPath, filepath.Base(dependencySourcePath))
-		err, dependencyGardenPath := heapStemsFingerprintPath(ctx, heapStemsPath, targetFingerprint)
+		err, dependencyGardenPath := heapStemsFingerprintPath(ctx, req.HeapStems.Heap.Garden, heapStemsPath, targetFingerprint)
 		if err != nil {
 			return err, nil
 		}

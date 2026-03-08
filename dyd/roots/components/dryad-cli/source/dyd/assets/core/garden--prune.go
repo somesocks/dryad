@@ -415,7 +415,7 @@ var gardenPrune_sweepDerivations = func(ctx *task.ExecutionContext, req gardenPr
 			return os.Remove(node.Path), nil
 		}
 
-		err, resultStemPath := heapStemsFingerprintPath(ctx, filepath.Join(heapPath, "stems"), resultFingerprint)
+		err, resultStemPath := heapStemsFingerprintPath(ctx, req.Garden, filepath.Join(heapPath, "stems"), resultFingerprint)
 		if err != nil {
 			return err, nil
 		}

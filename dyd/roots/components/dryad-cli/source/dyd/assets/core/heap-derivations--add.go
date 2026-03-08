@@ -15,7 +15,7 @@ func (derivations *SafeHeapDerivationsReference) Add(
 	resultFingerprint string,
 ) (error, *SafeHeapDerivationReference) {
 
-	err, derivationPath := heapDerivationsRootsFingerprintPath(ctx, derivations.BasePath, sourceFingerprint)
+	err, derivationPath := heapDerivationsRootsFingerprintPath(ctx, derivations.Heap.Garden, derivations.BasePath, sourceFingerprint)
 	if err != nil {
 		return err, nil
 	}
@@ -65,11 +65,11 @@ func (derivations *SafeHeapDerivationsReference) Add(
 		return err, nil
 	}
 
-	err, sourceStemPath := heapStemsFingerprintPath(ctx, heapStems.BasePath, sourceFingerprint)
+	err, sourceStemPath := heapStemsFingerprintPath(ctx, heapStems.Heap.Garden, heapStems.BasePath, sourceFingerprint)
 	if err != nil {
 		return err, nil
 	}
-	err, resultStemPath := heapStemsFingerprintPath(ctx, heapStems.BasePath, resultFingerprint)
+	err, resultStemPath := heapStemsFingerprintPath(ctx, heapStems.Heap.Garden, heapStems.BasePath, resultFingerprint)
 	if err != nil {
 		return err, nil
 	}

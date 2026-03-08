@@ -25,30 +25,29 @@ type shedHeapDepthKey struct {
 	Key      string
 }
 
-func shedHeapPath(basePath string, segments ...string) string {
-	dydPath := filepath.Dir(filepath.Dir(basePath))
-	parts := append([]string{dydPath, "shed", "heap"}, segments...)
+func shedHeapPath(shed *SafeShedReference, segments ...string) string {
+	parts := append([]string{shed.BasePath, "heap"}, segments...)
 	return filepath.Join(parts...)
 }
 
-func shedHeapFilesDepthPath(basePath string) string {
-	return shedHeapPath(basePath, "files", "depth")
+func shedHeapFilesDepthPath(shed *SafeShedReference) string {
+	return shedHeapPath(shed, "files", "depth")
 }
 
-func shedHeapSecretsDepthPath(basePath string) string {
-	return shedHeapPath(basePath, "secrets", "depth")
+func shedHeapSecretsDepthPath(shed *SafeShedReference) string {
+	return shedHeapPath(shed, "secrets", "depth")
 }
 
-func shedHeapStemsDepthPath(basePath string) string {
-	return shedHeapPath(basePath, "stems", "depth")
+func shedHeapStemsDepthPath(shed *SafeShedReference) string {
+	return shedHeapPath(shed, "stems", "depth")
 }
 
-func shedHeapSproutsDepthPath(basePath string) string {
-	return shedHeapPath(basePath, "sprouts", "depth")
+func shedHeapSproutsDepthPath(shed *SafeShedReference) string {
+	return shedHeapPath(shed, "sprouts", "depth")
 }
 
-func shedHeapDerivationsRootsDepthPath(basePath string) string {
-	return shedHeapPath(basePath, "derivations", "roots", "depth")
+func shedHeapDerivationsRootsDepthPath(shed *SafeShedReference) string {
+	return shedHeapPath(shed, "derivations", "roots", "depth")
 }
 
 func shedHeapDepthRead(ctx *task.ExecutionContext, req shedHeapDepthRequest) (error, int) {
@@ -87,51 +86,51 @@ var memoShedHeapDepthRead = task.Memoize(
 	},
 )
 
-func shedHeapFilesDepth(ctx *task.ExecutionContext, basePath string) (error, int) {
+func shedHeapFilesDepth(ctx *task.ExecutionContext, shed *SafeShedReference) (error, int) {
 	return memoShedHeapDepthRead(
 		ctx,
 		shedHeapDepthRequest{
-			BasePath: shedHeapFilesDepthPath(basePath),
+			BasePath: shedHeapFilesDepthPath(shed),
 			Key:      "files",
 		},
 	)
 }
 
-func shedHeapSecretsDepth(ctx *task.ExecutionContext, basePath string) (error, int) {
+func shedHeapSecretsDepth(ctx *task.ExecutionContext, shed *SafeShedReference) (error, int) {
 	return memoShedHeapDepthRead(
 		ctx,
 		shedHeapDepthRequest{
-			BasePath: shedHeapSecretsDepthPath(basePath),
+			BasePath: shedHeapSecretsDepthPath(shed),
 			Key:      "secrets",
 		},
 	)
 }
 
-func shedHeapStemsDepth(ctx *task.ExecutionContext, basePath string) (error, int) {
+func shedHeapStemsDepth(ctx *task.ExecutionContext, shed *SafeShedReference) (error, int) {
 	return memoShedHeapDepthRead(
 		ctx,
 		shedHeapDepthRequest{
-			BasePath: shedHeapStemsDepthPath(basePath),
+			BasePath: shedHeapStemsDepthPath(shed),
 			Key:      "stems",
 		},
 	)
 }
 
-func shedHeapSproutsDepth(ctx *task.ExecutionContext, basePath string) (error, int) {
+func shedHeapSproutsDepth(ctx *task.ExecutionContext, shed *SafeShedReference) (error, int) {
 	return memoShedHeapDepthRead(
 		ctx,
 		shedHeapDepthRequest{
-			BasePath: shedHeapSproutsDepthPath(basePath),
+			BasePath: shedHeapSproutsDepthPath(shed),
 			Key:      "sprouts",
 		},
 	)
 }
 
-func shedHeapDerivationsRootsDepth(ctx *task.ExecutionContext, basePath string) (error, int) {
+func shedHeapDerivationsRootsDepth(ctx *task.ExecutionContext, shed *SafeShedReference) (error, int) {
 	return memoShedHeapDepthRead(
 		ctx,
 		shedHeapDepthRequest{
-			BasePath: shedHeapDerivationsRootsDepthPath(basePath),
+			BasePath: shedHeapDerivationsRootsDepthPath(shed),
 			Key:      "derivations/roots",
 		},
 	)

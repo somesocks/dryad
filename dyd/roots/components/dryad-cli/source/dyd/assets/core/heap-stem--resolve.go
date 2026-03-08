@@ -14,7 +14,7 @@ func (heapStem *UnsafeHeapStemReference) Resolve(ctx *task.ExecutionContext) (er
 	var safeRef SafeHeapStemReference
 	var resolvedPath string
 
-	err, resolvedPath = heapStemsFingerprintPath(ctx, heapStem.Stems.BasePath, heapStem.Fingerprint)
+	err, resolvedPath = heapStemsFingerprintPath(ctx, heapStem.Stems.Heap.Garden, heapStem.Stems.BasePath, heapStem.Fingerprint)
 	if err != nil {
 		return err, nil
 	}

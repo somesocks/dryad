@@ -14,7 +14,7 @@ func (heapSprout *UnsafeHeapSproutReference) Resolve(ctx *task.ExecutionContext)
 	var safeRef SafeHeapSproutReference
 	var resolvedPath string
 
-	err, resolvedPath = heapSproutsFingerprintPath(ctx, heapSprout.Sprouts.BasePath, heapSprout.Fingerprint)
+	err, resolvedPath = heapSproutsFingerprintPath(ctx, heapSprout.Sprouts.Heap.Garden, heapSprout.Sprouts.BasePath, heapSprout.Fingerprint)
 	if err != nil {
 		return err, nil
 	}
