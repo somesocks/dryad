@@ -17,9 +17,17 @@ assert_symlink_exists() {
 	fi
 }
 
+_realpath_dir() {
+	(
+		cd "$1"
+		pwd -P
+	)
+}
+
 _setup() {
 	TEMP_DIR=''
 	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+	TEMP_DIR="$(_realpath_dir "$TEMP_DIR")"
 	BUILD_LOG_FILE="$TEMP_DIR/build.log"
 }
 
