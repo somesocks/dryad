@@ -12,17 +12,17 @@ func (heapStem *UnsafeHeapStemReference) Resolve(ctx *task.ExecutionContext) (er
 	var heapStemExists bool
 	var err error
 	var safeRef SafeHeapStemReference
-	var expectedPath string
+	var resolvedPath string
 
-	expectedPath, err = heapStemsFingerprintPath(heapStem.Stems.BasePath, heapStem.Fingerprint)
+	err, resolvedPath = heapStemsFingerprintPath(ctx, heapStem.Stems.Heap.Garden, heapStem.Stems.BasePath, heapStem.Fingerprint)
 	if err != nil {
 		return err, nil
 	}
-	if filepath.Clean(heapStem.BasePath) != filepath.Clean(expectedPath) {
+	if heapStem.BasePath != "" && filepath.Clean(heapStem.BasePath) != filepath.Clean(resolvedPath) {
 		return errors.New("unable to resolve stem"), nil
 	}
 
-	heapStemExists, err = fileExists(heapStem.BasePath)
+	heapStemExists, err = fileExists(resolvedPath)
 	if err != nil {
 		return err, nil
 	}
@@ -32,7 +32,7 @@ func (heapStem *UnsafeHeapStemReference) Resolve(ctx *task.ExecutionContext) (er
 	}
 
 	safeRef = SafeHeapStemReference{
-		BasePath:    heapStem.BasePath,
+		BasePath:    resolvedPath,
 		Fingerprint: heapStem.Fingerprint,
 		Stems:       heapStem.Stems,
 	}

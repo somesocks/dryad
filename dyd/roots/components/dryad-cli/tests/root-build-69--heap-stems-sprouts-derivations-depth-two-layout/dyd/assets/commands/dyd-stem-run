@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+  TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+  chmod -R 755 "$TEMP_DIR"
+  cd "$TEMP_DIR"
+}
+
+_find_heap_object_dir() {
+  local version_path="$1"
+  local fingerprint="$2"
+  local fingerprint_path
+  local relative_fingerprint_path
+
+  while IFS= read -r fingerprint_path; do
+    relative_fingerprint_path=${fingerprint_path#"$version_path"/}
+    if ! printf '%s\n' "$relative_fingerprint_path" | grep -Eq '^([a-z2-7]{2}/){0,12}[a-z2-7]{2,26}/dyd/fingerprint$'; then
+      continue
+    fi
+    if [ "$(cat "$fingerprint_path")" = "$fingerprint" ]; then
+      dirname "$(dirname "$fingerprint_path")"
+      return 0
+    fi
+  done < <(find "$version_path" -type f -path '*/dyd/fingerprint')
+
+  return 1
+}
+
+_test() {
+  mkdir -p \
+    "$TEMP_DIR/dyd/shed/heap/stems" \
+    "$TEMP_DIR/dyd/shed/heap/sprouts" \
+    "$TEMP_DIR/dyd/shed/heap/derivations/roots"
+  printf '2' > "$TEMP_DIR/dyd/shed/heap/stems/depth"
+  printf '2' > "$TEMP_DIR/dyd/shed/heap/sprouts/depth"
+  printf '2' > "$TEMP_DIR/dyd/shed/heap/derivations/roots/depth"
+
+  dryad root build "dyd/roots/root-a" --log-level="$DYD_LOG_LEVEL" > /dev/null
+  dryad root build "dyd/roots/root-a" --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+_verify() {
+  stem_fp_path="$TEMP_DIR/dyd/sprouts/root-a/dyd/dependencies/stem/dyd/fingerprint"
+  sprout_fp_path="$TEMP_DIR/dyd/sprouts/root-a/dyd/fingerprint"
+
+  assert_file_exists "$stem_fp_path"
+  assert_file_exists "$sprout_fp_path"
+
+  stem_fp=$(cat "$stem_fp_path")
+  sprout_fp=$(cat "$sprout_fp_path")
+
+  heap_stem_path=$(_find_heap_object_dir "$TEMP_DIR/dyd/heap/stems/v2" "$stem_fp" || true)
+  heap_sprout_path=$(_find_heap_object_dir "$TEMP_DIR/dyd/heap/sprouts/v2" "$sprout_fp" || true)
+  derivation_path=$(find "$TEMP_DIR/dyd/heap/derivations/roots/v2" -mindepth 1 -type f 2>/dev/null | head -n 1 || true)
+
+  assert_directory_exists "$heap_stem_path"
+  assert_directory_exists "$heap_sprout_path"
+  assert_file_exists "$derivation_path"
+
+  stem_relative_path=${heap_stem_path#"$TEMP_DIR/dyd/heap/stems/v2/"}
+  sprout_relative_path=${heap_sprout_path#"$TEMP_DIR/dyd/heap/sprouts/v2/"}
+  derivation_relative_path=${derivation_path#"$TEMP_DIR/dyd/heap/derivations/roots/v2/"}
+
+  if ! printf '%s\n' "$stem_relative_path" | grep -Eq '^[a-z2-7]{2}/[a-z2-7]{2}/[a-z2-7]{22}$'; then
+    echo "[ERROR] Fail: expected heap/stems entry to use depth=2 fanout" 1>&2
+    echo "path=$heap_stem_path" 1>&2
+    return 1
+  fi
+
+  if ! printf '%s\n' "$sprout_relative_path" | grep -Eq '^[a-z2-7]{2}/[a-z2-7]{2}/[a-z2-7]{22}$'; then
+    echo "[ERROR] Fail: expected heap/sprouts entry to use depth=2 fanout" 1>&2
+    echo "path=$heap_sprout_path" 1>&2
+    return 1
+  fi
+
+  if ! printf '%s\n' "$derivation_relative_path" | grep -Eq '^[a-z2-7]{2}/[a-z2-7]{2}/[a-z2-7]{22}$'; then
+    echo "[ERROR] Fail: expected heap/derivations/roots entry to use depth=2 fanout" 1>&2
+    echo "path=$derivation_path" 1>&2
+    return 1
+  fi
+
+  result_fp=$(cat "$derivation_path")
+  if [ -z "$result_fp" ]; then
+    echo "[ERROR] Fail: expected non-empty derivation result fingerprint" 1>&2
+    return 1
+  fi
+
+  result_stem_path=$(_find_heap_object_dir "$TEMP_DIR/dyd/heap/stems/v2" "$result_fp" || true)
+  assert_directory_exists "$result_stem_path"
+
+  if find "$TEMP_DIR/dyd/heap/stems/v2" -mindepth 1 -type d -name '.tmp-*' | grep -q .; then
+    echo "[ERROR] Fail: expected no temp stem directories left in heap/stems/v2" 1>&2
+    find "$TEMP_DIR/dyd/heap/stems/v2" -mindepth 1 -type d -name '.tmp-*' 1>&2
+    return 1
+  fi
+
+  if find "$TEMP_DIR/dyd/heap/sprouts/v2" -mindepth 1 -type d -name '.tmp-*' | grep -q .; then
+    echo "[ERROR] Fail: expected no temp sprout directories left in heap/sprouts/v2" 1>&2
+    find "$TEMP_DIR/dyd/heap/sprouts/v2" -mindepth 1 -type d -name '.tmp-*' 1>&2
+    return 1
+  fi
+
+  if find "$TEMP_DIR/dyd/heap/derivations/roots/v2" -type f -name '.tmp-*' | grep -q .; then
+    echo "[ERROR] Fail: expected no temp files left in heap/derivations/roots/v2" 1>&2
+    find "$TEMP_DIR/dyd/heap/derivations/roots/v2" -type f -name '.tmp-*' 1>&2
+    return 1
+  fi
+}
+
+_teardown() {
+  if [ -d "$TEMP_DIR" ]; then
+    chmod -R 755 "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+  fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

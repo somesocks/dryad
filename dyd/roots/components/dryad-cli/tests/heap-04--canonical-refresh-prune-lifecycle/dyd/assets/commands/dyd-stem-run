@@ -33,6 +33,26 @@ _inode_of() {
   fi
 }
 
+_find_heap_object_dir() {
+  local version_path="$1"
+  local fingerprint="$2"
+  local fingerprint_path
+  local relative_fingerprint_path
+
+  while IFS= read -r fingerprint_path; do
+    relative_fingerprint_path=${fingerprint_path#"$version_path"/}
+    if ! printf '%s\n' "$relative_fingerprint_path" | grep -Eq '^([a-z2-7]{2}/){0,12}[a-z2-7]{2,26}/dyd/fingerprint$'; then
+      continue
+    fi
+    if [ "$(cat "$fingerprint_path")" = "$fingerprint" ]; then
+      dirname "$(dirname "$fingerprint_path")"
+      return 0
+    fi
+  done < <(find "$version_path" -type f -path '*/dyd/fingerprint')
+
+  return 1
+}
+
 _make_root() {
   local root_name="$1"
   local unique_content="$2"
@@ -230,7 +250,7 @@ _verify() {
     return 1
   fi
 
-  if [ -e "$TEMP_DIR/dyd/heap/stems/v2/${old_stem_fingerprint#v2-}" ]; then
+  if [ -n "$(_find_heap_object_dir "$TEMP_DIR/dyd/heap/stems/v2" "$old_stem_fingerprint" || true)" ]; then
     echo "[ERROR] Fail: expected prune to remove the old heap stem directory" 1>&2
     echo "old_stem_fingerprint=$old_stem_fingerprint" 1>&2
     return 1
@@ -242,7 +262,7 @@ _verify() {
     return 1
   fi
 
-  if [ -e "$TEMP_DIR/dyd/heap/stems/v2/${middle_stem_fingerprint#v2-}" ]; then
+  if [ -n "$(_find_heap_object_dir "$TEMP_DIR/dyd/heap/stems/v2" "$middle_stem_fingerprint" || true)" ]; then
     echo "[ERROR] Fail: expected prune to remove the middle heap stem directory" 1>&2
     echo "middle_stem_fingerprint=$middle_stem_fingerprint" 1>&2
     return 1
@@ -254,7 +274,7 @@ _verify() {
     return 1
   fi
 
-  if [ -e "$TEMP_DIR/dyd/heap/stems/v2/${third_stem_fingerprint#v2-}" ]; then
+  if [ -n "$(_find_heap_object_dir "$TEMP_DIR/dyd/heap/stems/v2" "$third_stem_fingerprint" || true)" ]; then
     echo "[ERROR] Fail: expected prune to remove the pre-wipe root-03 heap stem directory" 1>&2
     echo "third_stem_fingerprint=$third_stem_fingerprint" 1>&2
     return 1

@@ -20,7 +20,7 @@ _prepare() {
 _test() {
   dryad root build "dyd/roots/root-a" --log-level="$DYD_LOG_LEVEL"
 
-  derivation_path=$(find "$TEMP_DIR/dyd/heap/derivations/roots/v2" -maxdepth 1 -mindepth 1 -type f 2>/dev/null | head -n 1 || true)
+  derivation_path=$(find "$TEMP_DIR/dyd/heap/derivations/roots/v2" -mindepth 1 -type f 2>/dev/null | head -n 1 || true)
   if [ -z "$derivation_path" ]; then
     echo "[ERROR] Fail: expected derivation file under heap/derivations/roots/v2" 1>&2
     return 1

@@ -17,9 +17,17 @@ assert_symlink_exists() {
 	fi
 }
 
+_realpath_dir() {
+	(
+		cd "$1"
+		pwd -P
+	)
+}
+
 _setup() {
 	TEMP_DIR=''
 	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+	TEMP_DIR="$(_realpath_dir "$TEMP_DIR")"
 	BUILD_LOG_FILE="$TEMP_DIR/build.log"
 }
 
@@ -57,15 +65,15 @@ _verify() {
 	dependency_fingerprint=$(cat "$dependency_target/dyd/fingerprint")
 	assert_file_content_equals "$requirements_path/dyd/fingerprint" "$dependency_fingerprint"
 
-	if [ "$(basename "$(dirname "$dependency_target")")" != "v2" ]; then
-		echo "[ERROR] Fail: dependency stem should be stored under the v2 heap directory" 1>&2
-		return 1
-	fi
-
-	if [ "$(basename "$dependency_target")" != "${dependency_fingerprint#v2-}" ]; then
-		echo "[ERROR] Fail: dependency stem path basename should match dyd/fingerprint payload" 1>&2
-		return 1
-	fi
+	case "$dependency_target" in
+		"$TEMP_DIR"/dyd/heap/stems/v2/*)
+			:
+			;;
+		*)
+			echo "[ERROR] Fail: dependency stem should be stored under the v2 heap directory" 1>&2
+			return 1
+			;;
+	esac
 
 	requirement_hex=$(od -An -t x1 "$requirement_source_path" | tr -d ' \n')
 	if [ "$requirement_hex" != "$EXPECTED_REQUIREMENT_HEX" ]; then

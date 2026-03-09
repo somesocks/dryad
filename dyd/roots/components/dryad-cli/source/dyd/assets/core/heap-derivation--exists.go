@@ -5,14 +5,26 @@ import (
 	"dryad/task"
 	"errors"
 	"io/fs"
-	// "errors"
-	// "path/filepath"
+	"path/filepath"
 	// "os"
 	// zlog "github.com/rs/zerolog/log"
 )
 
 func (heapDerivation *UnsafeHeapDerivationReference) Exists(ctx *task.ExecutionContext) (error, bool) {
-	info, err := os.Lstat(heapDerivation.BasePath)
+	err, derivationPath := heapDerivationsRootsFingerprintPath(
+		ctx,
+		heapDerivation.Derivations.Heap.Garden,
+		heapDerivation.Derivations.BasePath,
+		heapDerivation.SourceFingerprint,
+	)
+	if err != nil {
+		return err, false
+	}
+	if heapDerivation.BasePath != "" && filepath.Clean(heapDerivation.BasePath) != filepath.Clean(derivationPath) {
+		return nil, false
+	}
+
+	info, err := os.Lstat(derivationPath)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil, false

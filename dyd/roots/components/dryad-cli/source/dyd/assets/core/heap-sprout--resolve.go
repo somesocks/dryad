@@ -12,17 +12,17 @@ func (heapSprout *UnsafeHeapSproutReference) Resolve(ctx *task.ExecutionContext)
 	var heapSproutExists bool
 	var err error
 	var safeRef SafeHeapSproutReference
-	var expectedPath string
+	var resolvedPath string
 
-	expectedPath, err = heapSproutsFingerprintPath(heapSprout.Sprouts.BasePath, heapSprout.Fingerprint)
+	err, resolvedPath = heapSproutsFingerprintPath(ctx, heapSprout.Sprouts.Heap.Garden, heapSprout.Sprouts.BasePath, heapSprout.Fingerprint)
 	if err != nil {
 		return err, nil
 	}
-	if filepath.Clean(heapSprout.BasePath) != filepath.Clean(expectedPath) {
+	if heapSprout.BasePath != "" && filepath.Clean(heapSprout.BasePath) != filepath.Clean(resolvedPath) {
 		return errors.New("unable to resolve sprout"), nil
 	}
 
-	heapSproutExists, err = fileExists(heapSprout.BasePath)
+	heapSproutExists, err = fileExists(resolvedPath)
 	if err != nil {
 		return err, nil
 	}
@@ -32,7 +32,7 @@ func (heapSprout *UnsafeHeapSproutReference) Resolve(ctx *task.ExecutionContext)
 	}
 
 	safeRef = SafeHeapSproutReference{
-		BasePath:    heapSprout.BasePath,
+		BasePath:    resolvedPath,
 		Fingerprint: heapSprout.Fingerprint,
 		Sprouts:     heapSprout.Sprouts,
 	}

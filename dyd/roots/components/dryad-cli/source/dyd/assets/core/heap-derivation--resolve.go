@@ -17,20 +17,22 @@ var ErrUnresolvableHeapDerivation = errors.New("unable to resolve derivation")
 func (heapDerivation *UnsafeHeapDerivationReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapDerivationReference) {
 	var err error
 	var safeRef SafeHeapDerivationReference
-	var expectedPath string
+	var derivationPath string
 
-	expectedPath, err = heapDerivationsRootsFingerprintPath(
+	err, derivationPath = heapDerivationsRootsFingerprintPath(
+		ctx,
+		heapDerivation.Derivations.Heap.Garden,
 		heapDerivation.Derivations.BasePath,
 		heapDerivation.SourceFingerprint,
 	)
 	if err != nil {
 		return err, nil
 	}
-	if filepath.Clean(heapDerivation.BasePath) != filepath.Clean(expectedPath) {
+	if heapDerivation.BasePath != "" && filepath.Clean(heapDerivation.BasePath) != filepath.Clean(derivationPath) {
 		return ErrUnresolvableHeapDerivation, nil
 	}
 
-	info, err := os.Lstat(heapDerivation.BasePath)
+	info, err := os.Lstat(derivationPath)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return ErrUnresolvableHeapDerivation, nil
@@ -46,9 +48,14 @@ func (heapDerivation *UnsafeHeapDerivationReference) Resolve(ctx *task.Execution
 		Heap:     heapDerivation.Derivations.Heap,
 	}
 
+	err, sourceStemPath := heapStemsFingerprintPath(ctx, heapStems.Heap.Garden, heapStems.BasePath, heapDerivation.SourceFingerprint)
+	if err != nil {
+		return err, nil
+	}
 	sourceStem := heapStems.Stem(heapDerivation.SourceFingerprint)
+	sourceStem.BasePath = sourceStemPath
 
-	resultFingerprintBytes, err := os.ReadFile(heapDerivation.BasePath)
+	resultFingerprintBytes, err := os.ReadFile(derivationPath)
 	if err != nil {
 		return err, nil
 	}
@@ -57,7 +64,7 @@ func (heapDerivation *UnsafeHeapDerivationReference) Resolve(ctx *task.Execution
 		return ErrUnresolvableHeapDerivation, nil
 	}
 
-	resultStemPath, err := heapStemsFingerprintPath(heapStems.BasePath, resultFingerprint)
+	err, resultStemPath := heapStemsFingerprintPath(ctx, heapStems.Heap.Garden, heapStems.BasePath, resultFingerprint)
 	if err != nil {
 		return err, nil
 	}
@@ -70,9 +77,10 @@ func (heapDerivation *UnsafeHeapDerivationReference) Resolve(ctx *task.Execution
 	}
 
 	resultStem := heapStems.Stem(resultFingerprint)
+	resultStem.BasePath = resultStemPath
 
 	safeRef = SafeHeapDerivationReference{
-		BasePath:          heapDerivation.BasePath,
+		BasePath:          derivationPath,
 		SourceFingerprint: heapDerivation.SourceFingerprint,
 		ResultFingerprint: resultFingerprint,
 		Source:            sourceStem,

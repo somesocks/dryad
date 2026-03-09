@@ -35,9 +35,9 @@ _verify() {
     fi
   done
 
-  if find "$TEMP_DIR/dyd/heap/stems/v2" -maxdepth 1 -mindepth 1 -type d -name '.tmp-*' | grep -q .; then
+  if find "$TEMP_DIR/dyd/heap/stems/v2" -mindepth 1 -type d -name '.tmp-*' | grep -q .; then
     echo "[ERROR] Fail: expected no temp stem directories left in heap/stems/v2" 1>&2
-    find "$TEMP_DIR/dyd/heap/stems/v2" -maxdepth 1 -mindepth 1 -type d -name '.tmp-*' 1>&2
+    find "$TEMP_DIR/dyd/heap/stems/v2" -mindepth 1 -type d -name '.tmp-*' 1>&2
     return 1
   fi
 }

@@ -40,10 +40,10 @@ _test() {
     return 1
   fi
 
-  cas_file_count=$(find "$heap_files_path" -maxdepth 1 -type f ! -name '.tmp-*' | wc -l | tr -d '[:space:]')
+  cas_file_count=$(find "$heap_files_path" -type f ! -name '.tmp-*' | wc -l | tr -d '[:space:]')
   if [ "$cas_file_count" -le 0 ]; then
     echo "[ERROR] Fail: expected at least one persisted CAS file after post-error failure" 1>&2
-    find "$heap_files_path" -maxdepth 1 -type f 1>&2 || true
+    find "$heap_files_path" -type f 1>&2 || true
     return 1
   fi
 
