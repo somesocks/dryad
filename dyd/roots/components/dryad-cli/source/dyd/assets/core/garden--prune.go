@@ -56,10 +56,12 @@ var gardenPrune_mark = func(ctx *task.ExecutionContext, req gardenPruneRequest) 
 	markStatsMarked := 0
 
 	markShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+		isSproutsTraversal := strings.HasPrefix(node.VPath, sproutsPath)
+
 		// crawl if we haven't marked already or the timestamp is newer
 		// always crawl the sprouts directory regardless of the timestamp
 		var shouldCrawl bool = node.Info.ModTime().Before(req.Snapshot) ||
-			strings.HasPrefix(node.Path, sproutsPath)
+			isSproutsTraversal
 
 		var isSymlink bool = node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
 		if isSymlink {
@@ -79,6 +81,7 @@ var gardenPrune_mark = func(ctx *task.ExecutionContext, req gardenPruneRequest) 
 		zlog.Trace().
 			Str("path", node.Path).
 			Str("vpath", node.VPath).
+			Bool("isSproutsTraversal", isSproutsTraversal).
 			Bool("shouldCrawl", shouldCrawl).
 			Time("snapshotTime", req.Snapshot).
 			Time("fileTime", node.Info.ModTime()).
@@ -89,16 +92,19 @@ var gardenPrune_mark = func(ctx *task.ExecutionContext, req gardenPruneRequest) 
 	}
 
 	markShouldMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+		isSproutsTraversal := strings.HasPrefix(node.VPath, sproutsPath)
+
 		// match if we haven't marked already or the timestamp is newer
 		// always match the sprouts directory regardless of the timestamp
 		var shouldMatch bool = node.Info.ModTime().Before(req.Snapshot) ||
-			strings.HasPrefix(node.Path, sproutsPath)
+			isSproutsTraversal
 
 		markStatsChecked += 1
 
 		zlog.Trace().
-			Str("path", node.VPath).
+			Str("path", node.Path).
 			Str("vpath", node.VPath).
+			Bool("isSproutsTraversal", isSproutsTraversal).
 			Bool("shouldMatch", shouldMatch).
 			Time("snapshotTime", req.Snapshot).
 			Time("fileTime", node.Info.ModTime()).
