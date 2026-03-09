@@ -5,7 +5,7 @@ import (
 	"dryad/internal/os"
 	"io"
 
-	"path/filepath"
+	"dryad/internal/filepath"
 	"regexp"
 	"sort"
 	"strings"

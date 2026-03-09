@@ -1,8 +1,8 @@
 package core
 
 import (
+	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"path/filepath"
 )
 
 func StemInit(path string) error {

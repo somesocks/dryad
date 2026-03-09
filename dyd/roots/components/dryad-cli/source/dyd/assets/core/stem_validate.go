@@ -1,9 +1,9 @@
 package core
 
 import (
+	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"errors"
-	"path/filepath"
 
 	"dryad/task"
 )

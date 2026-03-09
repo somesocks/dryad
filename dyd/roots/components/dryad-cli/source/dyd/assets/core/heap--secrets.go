@@ -1,17 +1,15 @@
 package core
 
 import (
-	"path/filepath"
+	"dryad/internal/filepath"
 	// "dryad/task"
-
 	// zlog "github.com/rs/zerolog/log"
 )
 
-
-func (heap *SafeHeapReference) Secrets() (*UnsafeHeapSecretsReference) {
+func (heap *SafeHeapReference) Secrets() *UnsafeHeapSecretsReference {
 	var heapSecretsRef = UnsafeHeapSecretsReference{
 		BasePath: filepath.Join(heap.BasePath, "secrets"),
-		Heap: heap,
+		Heap:     heap,
 	}
 	return &heapSecretsRef
 }

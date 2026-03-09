@@ -1,7 +1,7 @@
 package core
 
 import (
-	"path/filepath"
+	"dryad/internal/filepath"
 )
 
 func RootsPath(garden *SafeGardenReference) (string, error) {

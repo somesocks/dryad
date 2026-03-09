@@ -1,11 +1,11 @@
 package core
 
 import (
+	"dryad/internal/filepath"
 	"dryad/task"
+	"errors"
 	"fmt"
 	"reflect"
-	"path/filepath"
-	"errors"
 
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/common/types"
@@ -14,10 +14,9 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-
 type sproutCelWrapper struct {
 	sprout *SafeSproutReference
-	ctx *task.ExecutionContext
+	ctx    *task.ExecutionContext
 }
 
 func (wrapper *sproutCelWrapper) ConvertToNative(typeDesc reflect.Type) (any, error) {
@@ -28,8 +27,8 @@ func (wrapper *sproutCelWrapper) ConvertToType(typeValue ref.Type) ref.Val {
 	switch typeValue {
 	case types.StringType:
 		return types.String(fmt.Sprintf("Sprout{BasePath: %s}", wrapper.sprout.BasePath))
-	// case types.TypeType:
-	// 	return cel.ObjectType("Sprout")
+		// case types.TypeType:
+		// 	return cel.ObjectType("Sprout")
 	}
 	return types.NewErr("unsupported type conversion")
 }
@@ -59,11 +58,10 @@ func (wrapper *sproutCelWrapper) Path() ref.Val {
 		return types.NewErr("could not resolve sprout path")
 	}
 
-	return types.String(relSproutPath)	
+	return types.String(relSproutPath)
 }
 
-
-var sproutFilterCelEnv = func () *cel.Env {
+var sproutFilterCelEnv = func() *cel.Env {
 
 	var sprout_path_fun = cel.Function(
 		"path",
@@ -72,12 +70,12 @@ var sproutFilterCelEnv = func () *cel.Env {
 			[]*cel.Type{cel.ObjectType("Sprout")},
 			cel.StringType,
 			cel.UnaryBinding(
-				func (arg ref.Val) ref.Val {		
+				func(arg ref.Val) ref.Val {
 					wrapper, ok := arg.Value().(sproutCelWrapper)
 
 					if !ok {
 						return types.NewErr("invalid type for path method")
-					}					
+					}
 
 					return wrapper.Path()
 				},
@@ -92,17 +90,17 @@ var sproutFilterCelEnv = func () *cel.Env {
 			[]*cel.Type{cel.ObjectType("Sprout"), cel.StringType},
 			cel.StringType,
 			cel.BinaryBinding(
-				func (wrapperRef ref.Val, traitRef ref.Val) ref.Val {		
+				func(wrapperRef ref.Val, traitRef ref.Val) ref.Val {
 					wrapper, ok := wrapperRef.Value().(sproutCelWrapper)
 
 					if !ok {
 						return types.NewErr("invalid type for sprout")
-					}					
+					}
 
 					path, ok := traitRef.Value().(string)
 					if !ok {
 						return types.NewErr("invalid type for trait path")
-					}					
+					}
 
 					zlog.Trace().
 						Str("sprout", wrapper.sprout.BasePath).
@@ -117,7 +115,7 @@ var sproutFilterCelEnv = func () *cel.Env {
 						zlog.Error().
 							Err(err).
 							Msg("error getting sprout traits")
-						return types.NullValue						
+						return types.NullValue
 					}
 
 					err, trait := traits.Trait(path).Resolve(wrapper.ctx)
@@ -164,16 +162,14 @@ var sproutFilterCelEnv = func () *cel.Env {
 			Msg("error generating CEL environment")
 		panic(err)
 		// return err, false
-	}	
-
+	}
 
 	return env
-}();
-
+}()
 
 type SproutFilterFromCelRequest struct {
 	Include []string
-	Exclude [] string
+	Exclude []string
 }
 
 func SproutFilterFromCel(request SproutFilterFromCelRequest) (error, SproutFilter) {
@@ -198,7 +194,7 @@ func SproutFilterFromCel(request SproutFilterFromCelRequest) (error, SproutFilte
 				Err(err).
 				Msg("error generating CEL program")
 			return err, nil
-		}	
+		}
 
 		includeFilters[k] = prg
 	}
@@ -220,7 +216,7 @@ func SproutFilterFromCel(request SproutFilterFromCelRequest) (error, SproutFilte
 				Err(err).
 				Msg("error generating CEL program")
 			return err, nil
-		}	
+		}
 
 		excludeFilters[k] = prg
 	}
@@ -229,16 +225,18 @@ func SproutFilterFromCel(request SproutFilterFromCelRequest) (error, SproutFilte
 		var matchesInclude = false
 		var matchesExclude = false
 
-		if len(includeFilters) == 0 { matchesInclude = true }
+		if len(includeFilters) == 0 {
+			matchesInclude = true
+		}
 
 		var sproutCelWrapper = sproutCelWrapper{
 			sprout: sprout,
-			ctx: ctx,
+			ctx:    ctx,
 		}
 		var celArgs = map[string]any{
 			"sprout": &sproutCelWrapper,
 		}
-	
+
 		for _, include := range includeFilters {
 			var matchesFilter bool
 			result, _, err := include.Eval(celArgs)
@@ -246,11 +244,11 @@ func SproutFilterFromCel(request SproutFilterFromCelRequest) (error, SproutFilte
 				zlog.Error().
 					Err(err).
 					Msg("error evaluating CEL filter")
-				return err, false 
+				return err, false
 			} else if result.Type() != types.BoolType {
 				return errors.New("expected boolean result from filter"), false
 			}
-			
+
 			matchesFilter = result.Value().(bool)
 
 			matchesInclude = matchesInclude || matchesFilter
@@ -266,11 +264,11 @@ func SproutFilterFromCel(request SproutFilterFromCelRequest) (error, SproutFilte
 				zlog.Error().
 					Err(err).
 					Msg("error evaluating CEL filter")
-				return err, false 
+				return err, false
 			} else if result.Type() != types.BoolType {
 				return errors.New("expected boolean result from filter"), false
 			}
-			
+
 			matchesFilter = result.Value().(bool)
 
 			matchesExclude = matchesExclude || matchesFilter
@@ -281,7 +279,6 @@ func SproutFilterFromCel(request SproutFilterFromCelRequest) (error, SproutFilte
 
 		return nil, matchesInclude && !matchesExclude
 	}
-
 
 	return nil, filter
 }

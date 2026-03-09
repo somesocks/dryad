@@ -4,11 +4,11 @@ import (
 	dydfs "dryad/filesystem"
 	"dryad/task"
 
+	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"fmt"
 	"io"
 	"io/fs"
-	"path/filepath"
 	"strings"
 
 	zlog "github.com/rs/zerolog/log"

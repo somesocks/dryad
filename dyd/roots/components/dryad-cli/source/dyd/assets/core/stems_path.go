@@ -1,9 +1,9 @@
 package core
 
 import (
+	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"errors"
-	"path/filepath"
 )
 
 func StemsPath(path string) (string, error) {

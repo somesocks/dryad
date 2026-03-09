@@ -4,12 +4,12 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	dydfs "dryad/filesystem"
+	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
 	"errors"
 	"io"
 	"io/fs"
-	"path/filepath"
 	"strings"
 	"sync"
 

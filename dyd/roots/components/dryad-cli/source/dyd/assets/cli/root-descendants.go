@@ -4,9 +4,9 @@ import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	dydfs "dryad/filesystem"
+	"dryad/internal/filepath"
 	"dryad/task"
 	"fmt"
-	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"
 )

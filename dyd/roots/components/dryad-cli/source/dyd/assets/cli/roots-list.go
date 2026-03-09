@@ -3,9 +3,9 @@ package cli
 import (
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/internal/filepath"
 	"dryad/task"
 	"fmt"
-	"path/filepath"
 
 	// "bufio"
 	// "os"
@@ -16,12 +16,12 @@ import (
 var rootsListCommand = func() clib.Command {
 
 	type ParsedArgs struct {
-		GardenPath string
-		Relative bool
-		ToSprouts bool
-		Parallel int
-		FromStdinFilter func (*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
-		IncludeExcludeFilter func (*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
+		GardenPath           string
+		Relative             bool
+		ToSprouts            bool
+		Parallel             int
+		FromStdinFilter      func(*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
+		IncludeExcludeFilter func(*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
 	}
 
 	var parseArgs = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
@@ -67,18 +67,18 @@ var rootsListCommand = func() clib.Command {
 		}
 
 		return nil, ParsedArgs{
-			GardenPath: path,
-			Parallel: parallel,
-			Relative: relative,
-			ToSprouts: toSprouts,
-			FromStdinFilter: fromStdinFilter,
+			GardenPath:           path,
+			Parallel:             parallel,
+			Relative:             relative,
+			ToSprouts:            toSprouts,
+			FromStdinFilter:      fromStdinFilter,
 			IncludeExcludeFilter: rootFilter,
 		}
 	}
 
-	var listRoots = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var listRoots = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
 		unsafeGarden := dryad.Garden(args.GardenPath)
-		
+
 		err, garden := unsafeGarden.Resolve(ctx)
 		if err != nil {
 			return err, nil
@@ -101,7 +101,7 @@ var rootsListCommand = func() clib.Command {
 					args.FromStdinFilter,
 					args.IncludeExcludeFilter,
 				),
-				OnMatch: func (ctx *task.ExecutionContext, root *dryad.SafeRootReference) (error, any) {
+				OnMatch: func(ctx *task.ExecutionContext, root *dryad.SafeRootReference) (error, any) {
 					if args.ToSprouts {
 						// calculate the relative path to the root from the base of the roots
 						rootPath, err := filepath.Rel(root.Roots.BasePath, root.BasePath)
@@ -138,18 +138,17 @@ var rootsListCommand = func() clib.Command {
 
 	listRoots = task.WithContext(
 		listRoots,
-		func (ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
+		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
 			return nil, task.NewContext(args.Parallel)
 		},
 	)
-
 
 	var action = task.Return(
 		task.Series2(
 			parseArgs,
 			listRoots,
 		),
-		func (err error, val any) int {
+		func(err error, val any) int {
 			if err != nil {
 				zlog.Error().Err(err).Msg("error while creating garden")
 				return 1
@@ -168,26 +167,26 @@ var rootsListCommand = func() clib.Command {
 		).
 		WithOption(
 			clib.NewOption(
-				"relative", 
+				"relative",
 				"print roots relative to the base garden path. default true",
 			).
-			WithType(clib.OptionTypeBool),
+				WithType(clib.OptionTypeBool),
 		).
 		WithOption(
 			clib.NewOption(
-				"from-stdin", 
+				"from-stdin",
 				"if set, read a list of roots from stdin to use as a base list to print, instead of all roots. include and exclude filters will be applied to this list. default false",
 			).
-			WithType(clib.OptionTypeBool),
+				WithType(clib.OptionTypeBool),
 		).
 		WithOption(clib.NewOption("include", "choose which roots are included in the list. the include filter is a CEL expression with access to a 'root' object that can be used to filter on properties of the root.").WithType(clib.OptionTypeMultiString)).
 		WithOption(clib.NewOption("exclude", "choose which roots are excluded from the list.  the exclude filter is a CEL expression with access to a 'root' object that can be used to filter on properties of the root.").WithType(clib.OptionTypeMultiString)).
 		WithOption(
 			clib.NewOption(
-				"to-sprouts", 
+				"to-sprouts",
 				"if set, print the corresponding sprout path for each root instead of the root path.",
 			).
-			WithType(clib.OptionTypeBool),
+				WithType(clib.OptionTypeBool),
 		).
 		WithAction(action)
 

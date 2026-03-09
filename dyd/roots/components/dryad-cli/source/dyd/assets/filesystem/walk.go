@@ -1,10 +1,10 @@
 package fs2
 
 import (
+	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"io"
 	"io/fs"
-	"path/filepath"
 )
 
 var DEFAULT_CRAWL_INCLUDE = func(path string, info fs.FileInfo) (bool, error) {

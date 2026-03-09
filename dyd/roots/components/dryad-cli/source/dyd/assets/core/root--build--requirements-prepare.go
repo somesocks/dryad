@@ -4,8 +4,8 @@ import (
 	dydfs "dryad/filesystem"
 	"dryad/task"
 
+	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"path/filepath"
 	"regexp"
 
 	zlog "github.com/rs/zerolog/log"

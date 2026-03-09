@@ -1,17 +1,15 @@
 package core
 
 import (
-	"path/filepath"
+	"dryad/internal/filepath"
 	// "dryad/task"
-
 	// zlog "github.com/rs/zerolog/log"
 )
 
-
-func (sg *SafeGardenReference) Sprouts() (*UnsafeSproutsReference) {
+func (sg *SafeGardenReference) Sprouts() *UnsafeSproutsReference {
 	var ref = UnsafeSproutsReference{
 		BasePath: filepath.Join(sg.BasePath, "dyd", "sprouts"),
-		Garden: sg,
+		Garden:   sg,
 	}
 	return &ref
 }

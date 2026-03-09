@@ -1,7 +1,7 @@
 package core
 
 import (
-	"path/filepath"
+	"dryad/internal/filepath"
 )
 
 func ScopeSettingPath(garden *SafeGardenReference, scope string, setting string) (string, error) {

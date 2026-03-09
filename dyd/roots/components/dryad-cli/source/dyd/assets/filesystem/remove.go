@@ -1,9 +1,9 @@
 package fs2
 
 import (
+	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"io/fs"
-	"path/filepath"
 
 	"dryad/task"
 

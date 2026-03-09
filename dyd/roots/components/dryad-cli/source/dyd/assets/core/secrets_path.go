@@ -1,7 +1,7 @@
 package core
 
 import (
-	"path/filepath"
+	"dryad/internal/filepath"
 )
 
 func SecretsPath(path string) (string, error) {

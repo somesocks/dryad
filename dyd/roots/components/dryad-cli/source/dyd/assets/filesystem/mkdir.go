@@ -1,10 +1,10 @@
 package fs2
 
 import (
+	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"errors"
 	"io/fs"
-	"path/filepath"
 )
 
 func MkDir(path string, permissions fs.FileMode) error {

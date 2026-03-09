@@ -1,17 +1,15 @@
 package core
 
 import (
-	"path/filepath"
+	"dryad/internal/filepath"
 	// "dryad/task"
-
 	// zlog "github.com/rs/zerolog/log"
 )
 
-
-func (heap *SafeHeapReference) Stems() (*UnsafeHeapStemsReference) {
+func (heap *SafeHeapReference) Stems() *UnsafeHeapStemsReference {
 	var heapStemsRef = UnsafeHeapStemsReference{
 		BasePath: filepath.Join(heap.BasePath, "stems"),
-		Heap: heap,
+		Heap:     heap,
 	}
 	return &heapStemsRef
 }

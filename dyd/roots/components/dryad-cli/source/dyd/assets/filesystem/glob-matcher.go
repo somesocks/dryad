@@ -3,8 +3,8 @@ package fs2
 import (
 	"errors"
 
+	"dryad/internal/filepath"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"dryad/internal/os"

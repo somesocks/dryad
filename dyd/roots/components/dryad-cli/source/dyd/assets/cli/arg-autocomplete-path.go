@@ -1,10 +1,10 @@
 package cli
 
 import (
+	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"io"
 	"io/fs"
-	"path/filepath"
 	"strings"
 )
 

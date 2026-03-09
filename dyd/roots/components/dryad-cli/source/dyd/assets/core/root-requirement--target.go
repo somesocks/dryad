@@ -1,11 +1,11 @@
 package core
 
 import (
+	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
 	"net/url"
-	"path/filepath"
 	"strings"
 )
 

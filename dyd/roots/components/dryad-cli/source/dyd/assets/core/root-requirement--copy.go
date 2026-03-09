@@ -5,7 +5,7 @@ import (
 	"dryad/task"
 
 	// "os"
-	"path/filepath"
+	"dryad/internal/filepath"
 	// "errors"
 	// zlog "github.com/rs/zerolog/log"
 )

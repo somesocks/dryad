@@ -2,13 +2,12 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
-	dfilepath "dryad/internal/filepath"
+	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
 
 	"errors"
 	"io/ioutil"
-	"path/filepath"
 	"strings"
 
 	zlog "github.com/rs/zerolog/log"
@@ -218,7 +217,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 	// requirements are manifest files and should not be interpreted as stem paths.
 	sourceDependenciesPath := filepath.Join(stemPath, "dyd", "dependencies")
 	dependenciesPath := filepath.Join(tempStemPath, "dyd", "dependencies")
-	dependencies, err := dfilepath.Glob(filepath.Join(sourceDependenciesPath, "*"))
+	dependencies, err := filepath.Glob(filepath.Join(sourceDependenciesPath, "*"))
 	if err != nil {
 		return err, nil
 	}

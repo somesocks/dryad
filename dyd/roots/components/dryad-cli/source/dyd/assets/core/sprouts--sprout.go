@@ -1,14 +1,12 @@
 package core
 
 import (
-	"path/filepath"
+	"dryad/internal/filepath"
 	// "dryad/task"
-
 	// zlog "github.com/rs/zerolog/log"
 )
 
-
-func (sprouts *SafeSproutsReference) Sprout(path string) (*UnsafeSproutReference) {
+func (sprouts *SafeSproutsReference) Sprout(path string) *UnsafeSproutReference {
 
 	// relative paths should be resolved,
 	// relative to the base of the sprouts
@@ -18,10 +16,10 @@ func (sprouts *SafeSproutsReference) Sprout(path string) (*UnsafeSproutReference
 
 	// clean the resulting path
 	path = filepath.Clean(path)
-	
+
 	var sproutRef = UnsafeSproutReference{
 		BasePath: path,
-		Sprouts: sprouts,
+		Sprouts:  sprouts,
 	}
 	return &sproutRef
 }

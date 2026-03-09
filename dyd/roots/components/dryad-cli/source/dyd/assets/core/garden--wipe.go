@@ -4,7 +4,7 @@ import (
 	fs2 "dryad/filesystem"
 	"dryad/task"
 
-	"path/filepath"
+	"dryad/internal/filepath"
 )
 
 func (sg *SafeGardenReference) Wipe(ctx *task.ExecutionContext) error {

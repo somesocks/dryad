@@ -6,7 +6,7 @@ import (
 	"errors"
 	"io/fs"
 
-	"path/filepath"
+	"dryad/internal/filepath"
 	"strings"
 	// "os"
 	// zlog "github.com/rs/zerolog/log"

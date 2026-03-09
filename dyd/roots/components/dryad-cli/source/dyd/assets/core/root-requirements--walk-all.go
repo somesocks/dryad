@@ -1,9 +1,9 @@
 package core
 
 import (
+	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
-	"path/filepath"
 	"strings"
 )
 

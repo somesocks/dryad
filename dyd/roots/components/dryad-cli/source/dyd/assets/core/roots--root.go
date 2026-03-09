@@ -1,17 +1,16 @@
 package core
 
 import (
-	// "path/filepath"
-	// "dryad/task"
+// "dryad/internal/filepath"
+// "dryad/task"
 
-	// zlog "github.com/rs/zerolog/log"
+// zlog "github.com/rs/zerolog/log"
 )
 
-
-func (roots *SafeRootsReference) Root(path string) (*UnsafeRootReference) {
+func (roots *SafeRootsReference) Root(path string) *UnsafeRootReference {
 	var rootRef = UnsafeRootReference{
 		BasePath: path,
-		Roots: roots,
+		Roots:    roots,
 	}
 	return &rootRef
 }

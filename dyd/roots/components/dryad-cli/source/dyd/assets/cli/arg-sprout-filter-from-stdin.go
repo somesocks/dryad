@@ -5,7 +5,7 @@ import (
 	"dryad/core"
 	"dryad/task"
 	// "fmt"
-	"path/filepath"
+	"dryad/internal/filepath"
 
 	"bufio"
 	"dryad/internal/os"

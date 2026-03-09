@@ -2,8 +2,8 @@ package core
 
 import (
 	"bytes"
+	"dryad/internal/filepath"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
