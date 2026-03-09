@@ -1,0 +1,210 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+  TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+  chmod -R 755 "$TEMP_DIR"
+  cd "$TEMP_DIR"
+}
+
+_inode_of() {
+  local path="$1"
+  if stat -c %i "$path" >/dev/null 2>&1; then
+    stat -c %i "$path"
+  else
+    stat -f %i "$path"
+  fi
+}
+
+_realpath_dir() {
+  (
+    cd "$1"
+    pwd -P
+  )
+}
+
+_find_heap_object_dir() {
+  local version_path="$1"
+  local fingerprint="$2"
+  local fingerprint_path
+  local relative_fingerprint_path
+
+  while IFS= read -r fingerprint_path; do
+    relative_fingerprint_path=${fingerprint_path#"$version_path"/}
+    if ! printf '%s\n' "$relative_fingerprint_path" | grep -Eq '^([a-z2-7]{2}/){0,12}[a-z2-7]{2,26}/dyd/fingerprint$'; then
+      continue
+    fi
+    if [ "$(cat "$fingerprint_path")" = "$fingerprint" ]; then
+      dirname "$(dirname "$fingerprint_path")"
+      return 0
+    fi
+  done < <(find "$version_path" -type f -path '*/dyd/fingerprint')
+
+  return 1
+}
+
+_age_path() {
+  local path="$1"
+
+  find "$path" \
+    \( -type l -o -type f -o -type d \) \
+    -exec touch -h -d "2000-01-01 00:00:00" {} +
+}
+
+_set_depth() {
+  local namespace_path="$1"
+  local depth="$2"
+
+  mkdir -p "$TEMP_DIR/dyd/shed/heap/$namespace_path"
+  printf '%s' "$depth" > "$TEMP_DIR/dyd/shed/heap/$namespace_path/depth"
+}
+
+_test() {
+  _set_depth files 0
+  _set_depth secrets 0
+  _set_depth stems 0
+  _set_depth sprouts 0
+  _set_depth derivations/roots 0
+
+  dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" > /dev/null
+
+  old_asset_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-file-01"
+  old_secret_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/secrets/test-secret-01"
+  old_stem_path="$(_realpath_dir "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem")"
+  old_sprout_path="$(_realpath_dir "$TEMP_DIR/dyd/sprouts/root-01")"
+  old_derivation_path=$(find "$TEMP_DIR/dyd/heap/derivations/roots/v2" -mindepth 1 -type f 2>/dev/null | head -n 1 || true)
+
+  assert_file_exists "$old_asset_path"
+  assert_file_exists "$old_secret_path"
+  assert_directory_exists "$old_stem_path"
+  assert_directory_exists "$old_sprout_path"
+  assert_file_exists "$old_derivation_path"
+
+  old_asset_inode="$(_inode_of "$old_asset_path")"
+  old_secret_inode="$(_inode_of "$old_secret_path")"
+  old_heap_asset_path=$(find "$TEMP_DIR/dyd/heap/files/v2" -type f -inum "$old_asset_inode" -print -quit)
+  old_heap_secret_path=$(find "$TEMP_DIR/dyd/heap/secrets/v2" -type f -inum "$old_secret_inode" -print -quit)
+
+  assert_file_exists "$old_heap_asset_path"
+  assert_file_exists "$old_heap_secret_path"
+
+  OLD_HEAP_ASSET_PATH="$old_heap_asset_path"
+  OLD_HEAP_SECRET_PATH="$old_heap_secret_path"
+  OLD_STEM_PATH="$old_stem_path"
+  OLD_SPROUT_PATH="$old_sprout_path"
+  OLD_DERIVATION_PATH="$old_derivation_path"
+
+  old_derivation_relative_path=${old_derivation_path#"$TEMP_DIR/dyd/heap/derivations/roots/v2/"}
+  source_fp="v2-$(printf '%s' "$old_derivation_relative_path" | tr -d '/')"
+  source_encoded=${source_fp#v2-}
+  NEW_DERIVATION_PATH="$TEMP_DIR/dyd/heap/derivations/roots/v2/${source_encoded:0:2}/${source_encoded:2:2}/${source_encoded:4}"
+
+  _age_path "$OLD_HEAP_ASSET_PATH"
+  _age_path "$OLD_HEAP_SECRET_PATH"
+  _age_path "$OLD_STEM_PATH"
+  _age_path "$OLD_SPROUT_PATH"
+  _age_path "$OLD_DERIVATION_PATH"
+
+  _set_depth files 2
+  _set_depth secrets 2
+  _set_depth stems 2
+  _set_depth sprouts 2
+  _set_depth derivations/roots 2
+
+  dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL" > /dev/null
+
+  new_asset_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-file-01"
+  new_secret_path="$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/secrets/test-secret-01"
+  new_stem_path="$(_realpath_dir "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem")"
+  new_sprout_path="$(_realpath_dir "$TEMP_DIR/dyd/sprouts/root-01")"
+  new_asset_inode="$(_inode_of "$new_asset_path")"
+  new_secret_inode="$(_inode_of "$new_secret_path")"
+
+  new_heap_asset_path=$(find "$TEMP_DIR/dyd/heap/files/v2" -type f -inum "$new_asset_inode" -print -quit)
+  new_heap_secret_path=$(find "$TEMP_DIR/dyd/heap/secrets/v2" -type f -inum "$new_secret_inode" -print -quit)
+
+  NEW_HEAP_ASSET_PATH="$new_heap_asset_path"
+  NEW_HEAP_SECRET_PATH="$new_heap_secret_path"
+  NEW_STEM_PATH="$new_stem_path"
+  NEW_SPROUT_PATH="$new_sprout_path"
+
+  dryad garden prune --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+_verify() {
+  assert_file_exists "$NEW_HEAP_ASSET_PATH"
+  assert_file_exists "$NEW_HEAP_SECRET_PATH"
+  assert_directory_exists "$NEW_STEM_PATH"
+  assert_directory_exists "$NEW_SPROUT_PATH"
+  assert_file_exists "$NEW_DERIVATION_PATH"
+
+  if [ -e "$OLD_HEAP_ASSET_PATH" ]; then
+    echo "[ERROR] Fail: expected stale heap/files entry from old depth layout to be pruned" 1>&2
+    echo "path=$OLD_HEAP_ASSET_PATH" 1>&2
+    return 1
+  fi
+
+  if [ -e "$OLD_HEAP_SECRET_PATH" ]; then
+    echo "[ERROR] Fail: expected stale heap/secrets entry from old depth layout to be pruned" 1>&2
+    echo "path=$OLD_HEAP_SECRET_PATH" 1>&2
+    return 1
+  fi
+
+  if [ -e "$OLD_STEM_PATH" ]; then
+    echo "[ERROR] Fail: expected stale heap/stems entry from old depth layout to be pruned" 1>&2
+    echo "path=$OLD_STEM_PATH" 1>&2
+    return 1
+  fi
+
+  if [ -e "$OLD_SPROUT_PATH" ]; then
+    echo "[ERROR] Fail: expected stale heap/sprouts entry from old depth layout to be pruned" 1>&2
+    echo "path=$OLD_SPROUT_PATH" 1>&2
+    return 1
+  fi
+
+  if [ -e "$OLD_DERIVATION_PATH" ]; then
+    echo "[ERROR] Fail: expected stale heap/derivations/roots entry from old depth layout to be pruned" 1>&2
+    echo "path=$OLD_DERIVATION_PATH" 1>&2
+    return 1
+  fi
+
+  if ! printf '%s\n' "${NEW_STEM_PATH#"$TEMP_DIR/dyd/heap/stems/v2/"}" | grep -Eq '^[a-z2-7]{2}/[a-z2-7]{2}/[a-z2-7]{22}$'; then
+    echo "[ERROR] Fail: expected rebuilt heap/stems entry to use depth=2 fanout" 1>&2
+    echo "path=$NEW_STEM_PATH" 1>&2
+    return 1
+  fi
+
+  if ! printf '%s\n' "${NEW_SPROUT_PATH#"$TEMP_DIR/dyd/heap/sprouts/v2/"}" | grep -Eq '^[a-z2-7]{2}/[a-z2-7]{2}/[a-z2-7]{22}$'; then
+    echo "[ERROR] Fail: expected rebuilt heap/sprouts entry to use depth=2 fanout" 1>&2
+    echo "path=$NEW_SPROUT_PATH" 1>&2
+    return 1
+  fi
+
+  if ! printf '%s\n' "${NEW_DERIVATION_PATH#"$TEMP_DIR/dyd/heap/derivations/roots/v2/"}" | grep -Eq '^[a-z2-7]{2}/[a-z2-7]{2}/[a-z2-7]{22}$'; then
+    echo "[ERROR] Fail: expected rebuilt heap/derivations/roots entry to use depth=2 fanout" 1>&2
+    echo "path=$NEW_DERIVATION_PATH" 1>&2
+    return 1
+  fi
+}
+
+_teardown() {
+  if [ -d "$TEMP_DIR" ]; then
+    chmod -R 755 "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+  fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

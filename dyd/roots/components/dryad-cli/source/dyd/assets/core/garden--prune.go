@@ -24,6 +24,21 @@ type gardenPruneRequest struct {
 	Snapshot time.Time
 }
 
+func gardenPruneFingerprintFromVersionPath(versionPath string, objectPath string) (error, string) {
+	relativePath, err := filepath.Rel(versionPath, objectPath)
+	if err != nil {
+		return err, ""
+	}
+
+	encoded := strings.ReplaceAll(relativePath, string(filepath.Separator), "")
+	fingerprint := fingerprintVersionV2 + "-" + encoded
+	err, _, _ = fingerprintParse(fingerprint)
+	if err != nil {
+		return err, ""
+	}
+	return nil, fingerprint
+}
+
 var gardenPrune_prepareRequest = func(ctx *task.ExecutionContext, req gardenPruneRequest) (error, gardenPruneRequest) {
 
 	// truncate the snapshot time to a second,
@@ -411,6 +426,24 @@ var gardenPrune_sweepDerivations = func(ctx *task.ExecutionContext, req gardenPr
 		}
 		resultFingerprint := strings.TrimSpace(string(resultFingerprintBytes))
 		if resultFingerprint == "" {
+			sweepDerivationStatsCount += 1
+			return os.Remove(node.Path), nil
+		}
+
+		err, sourceFingerprint := gardenPruneFingerprintFromVersionPath(derivationsVersionPath, node.Path)
+		if err != nil {
+			return err, nil
+		}
+		err, canonicalDerivationPath := heapDerivationsRootsFingerprintPath(
+			ctx,
+			req.Garden,
+			filepath.Join(heapPath, "derivations"),
+			sourceFingerprint,
+		)
+		if err != nil {
+			return err, nil
+		}
+		if filepath.Clean(node.Path) != filepath.Clean(canonicalDerivationPath) {
 			sweepDerivationStatsCount += 1
 			return os.Remove(node.Path), nil
 		}
