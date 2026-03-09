@@ -2,9 +2,9 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
+	"dryad/internal/filepath"
 	"dryad/task"
 	"fmt"
-	"path/filepath"
 	"regexp"
 )
 

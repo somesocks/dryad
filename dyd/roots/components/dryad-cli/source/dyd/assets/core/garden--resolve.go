@@ -3,9 +3,9 @@ package core
 import (
 	"dryad/task"
 
+	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"errors"
-	"path/filepath"
 	"strings"
 
 	zlog "github.com/rs/zerolog/log"

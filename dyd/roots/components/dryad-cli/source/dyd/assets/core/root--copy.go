@@ -2,11 +2,11 @@ package core
 
 import (
 	dydfs "dryad/filesystem"
+	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
 	"io/fs"
-	"path/filepath"
 	"regexp"
 	"strings"
 )

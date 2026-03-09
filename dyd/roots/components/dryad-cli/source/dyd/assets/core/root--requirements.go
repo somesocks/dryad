@@ -1,16 +1,15 @@
 package core
 
 import (
-	"path/filepath"
+	"dryad/internal/filepath"
 	// "dryad/task"
-
 	// zlog "github.com/rs/zerolog/log"
 )
 
-func (root *SafeRootReference) Requirements() (*UnsafeRootRequirementsReference) {
+func (root *SafeRootReference) Requirements() *UnsafeRootRequirementsReference {
 	var rootRequirementsRef = UnsafeRootRequirementsReference{
 		BasePath: filepath.Join(root.BasePath, "dyd", "requirements"),
-		Root: root,
+		Root:     root,
 	}
 	return &rootRequirementsRef
 }

@@ -1,11 +1,11 @@
 package fs2
 
 import (
+	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
 	"io"
 	"io/fs"
-	"path/filepath"
 )
 
 type Walk6Node struct {
@@ -150,11 +150,11 @@ func _walk6(ctx *task.ExecutionContext, request Walk6Request) error {
 			return err
 		}
 
-			if shouldWalk {
-				dir, err := os.Open(request.Path)
-				if err != nil && err != io.EOF {
-					return err
-				}
+		if shouldWalk {
+			dir, err := os.Open(request.Path)
+			if err != nil && err != io.EOF {
+				return err
+			}
 			defer dir.Close()
 
 			var entries []fs.DirEntry

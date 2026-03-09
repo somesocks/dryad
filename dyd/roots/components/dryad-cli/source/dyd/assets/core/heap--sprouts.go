@@ -1,7 +1,7 @@
 package core
 
 import (
-	"path/filepath"
+	"dryad/internal/filepath"
 	// "dryad/task"
 	// zlog "github.com/rs/zerolog/log"
 )

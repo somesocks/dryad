@@ -3,10 +3,10 @@ package fs2
 import (
 	"dryad/task"
 
+	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"errors"
 	"io/fs"
-	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"
 )

@@ -3,11 +3,11 @@ package core
 import (
 	dydfs "dryad/filesystem"
 	"dryad/task"
-	// "path/filepath"
+	// "dryad/internal/filepath"
 )
 
 type RootRequirementsWalkRequest struct {
-	OnMatch func (ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any)
+	OnMatch func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any)
 }
 
 func (requirements *SafeRootRequirementsReference) Walk(ctx *task.ExecutionContext, req RootRequirementsWalkRequest) error {
@@ -23,7 +23,7 @@ func (requirements *SafeRootRequirementsReference) Walk(ctx *task.ExecutionConte
 
 	var onMatch = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
 		var unsafeRequirementRef = UnsafeRootRequirementReference{
-			BasePath: node.Path,
+			BasePath:     node.Path,
 			Requirements: requirements,
 		}
 		var safeRequirementRef *SafeRootRequirementReference
@@ -47,9 +47,9 @@ func (requirements *SafeRootRequirementsReference) Walk(ctx *task.ExecutionConte
 	err, _ = dydfs.Walk6(
 		ctx,
 		dydfs.Walk6Request{
-			BasePath: requirements.BasePath,
-			Path:     requirements.BasePath,
-			VPath:    requirements.BasePath,
+			BasePath:   requirements.BasePath,
+			Path:       requirements.BasePath,
+			VPath:      requirements.BasePath,
 			ShouldWalk: shouldWalk,
 			OnPreMatch: onMatch,
 		},

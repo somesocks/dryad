@@ -1,8 +1,8 @@
 package core
 
 import (
+	"dryad/internal/filepath"
 	"dryad/task"
-	"path/filepath"
 )
 
 func (root *SafeRootReference) Variants() *UnsafeRootVariantsReference {

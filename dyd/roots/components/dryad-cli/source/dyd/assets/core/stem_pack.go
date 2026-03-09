@@ -5,14 +5,13 @@ import (
 	"compress/gzip"
 	// "errors"
 	fs2 "dryad/filesystem"
-	dfilepath "dryad/internal/filepath"
+	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
 	"io"
 	"io/fs"
 	"path"
-	"path/filepath"
 	"strings"
 
 	zlog "github.com/rs/zerolog/log"
@@ -66,7 +65,7 @@ func stemPack(
 	// walk through the dependencies, and add them to the archive
 	dependenciesPath := filepath.Join(stemPath, "dyd", "dependencies")
 
-	dependencies, err := dfilepath.Glob(filepath.Join(dependenciesPath, "*"))
+	dependencies, err := filepath.Glob(filepath.Join(dependenciesPath, "*"))
 	if err != nil {
 		return "", err
 	}

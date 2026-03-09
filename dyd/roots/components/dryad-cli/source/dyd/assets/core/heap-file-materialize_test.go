@@ -4,9 +4,9 @@ import (
 	"dryad/diagnostics"
 	dydos "dryad/internal/os"
 
+	"dryad/internal/filepath"
 	"errors"
 	stdos "os"
-	"path/filepath"
 	"syscall"
 	"testing"
 

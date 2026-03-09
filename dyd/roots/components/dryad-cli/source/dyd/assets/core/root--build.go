@@ -7,8 +7,8 @@ import (
 
 	"fmt"
 
+	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"path/filepath"
 	"sort"
 	"strings"
 

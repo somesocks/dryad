@@ -1,8 +1,8 @@
 package fs2
 
 import (
+	"dryad/internal/filepath"
 	"io/fs"
-	"path/filepath"
 	"regexp"
 )
 

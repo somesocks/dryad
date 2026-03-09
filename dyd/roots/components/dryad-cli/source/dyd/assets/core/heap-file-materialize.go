@@ -4,11 +4,11 @@ import (
 	"dryad/internal/os"
 	"dryad/internal/unix"
 
+	"dryad/internal/filepath"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
-	"path/filepath"
 	"syscall"
 )
 

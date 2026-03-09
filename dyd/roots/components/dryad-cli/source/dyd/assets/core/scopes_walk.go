@@ -2,8 +2,8 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
+	"dryad/internal/filepath"
 	"io/fs"
-	"path/filepath"
 )
 
 func ScopesWalk(garden *SafeGardenReference, walkFn func(path string, info fs.FileInfo) error) error {

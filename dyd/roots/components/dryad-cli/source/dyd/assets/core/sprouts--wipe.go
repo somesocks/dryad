@@ -2,9 +2,9 @@ package core
 
 import (
 	fs2 "dryad/filesystem"
+	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
-	"path/filepath"
 )
 
 func sproutsWipe_inner(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) (error, any) {

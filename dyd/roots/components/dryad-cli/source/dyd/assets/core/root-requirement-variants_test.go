@@ -1,8 +1,8 @@
 package core
 
 import (
+	"dryad/internal/filepath"
 	"dryad/task"
-	"path/filepath"
 	"runtime"
 	"sort"
 	"testing"

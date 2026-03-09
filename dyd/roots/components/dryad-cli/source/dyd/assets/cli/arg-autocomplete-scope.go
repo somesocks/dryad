@@ -2,9 +2,9 @@ package cli
 
 import (
 	dryad "dryad/core"
+	"dryad/internal/filepath"
 	"dryad/task"
 	"io/fs"
-	"path/filepath"
 	"strings"
 )
 
@@ -12,7 +12,7 @@ func ArgAutoCompleteScope(token string) (error, []string) {
 	var results = []string{}
 
 	unsafeGarden := dryad.Garden("")
-	
+
 	err, garden := unsafeGarden.Resolve(task.SERIAL_CONTEXT)
 	if err != nil {
 		return err, results

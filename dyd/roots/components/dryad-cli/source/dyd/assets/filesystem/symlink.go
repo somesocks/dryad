@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"io/fs"
 	// "errors"
+	"dryad/internal/filepath"
 	"math/rand"
-	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"
 )

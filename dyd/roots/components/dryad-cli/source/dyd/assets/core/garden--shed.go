@@ -1,6 +1,6 @@
 package core
 
-import "path/filepath"
+import "dryad/internal/filepath"
 
 func (sg *SafeGardenReference) Shed() *UnsafeShedReference {
 	var shedRef = UnsafeShedReference{

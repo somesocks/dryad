@@ -1,9 +1,9 @@
 package core
 
 import (
+	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"fmt"
-	"path/filepath"
 )
 
 func ScopeSettingGet(garden *SafeGardenReference, scope string, setting string) (string, error) {

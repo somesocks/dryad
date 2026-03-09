@@ -1,11 +1,11 @@
 package core
 
 import (
+	"dryad/internal/filepath"
 	"dryad/task"
+	"errors"
 	"fmt"
 	"reflect"
-	"path/filepath"
-	"errors"
 
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/common/types"
@@ -14,10 +14,9 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-
 type rootCelWrapper struct {
 	root *SafeRootReference
-	ctx *task.ExecutionContext
+	ctx  *task.ExecutionContext
 }
 
 func (wrapper *rootCelWrapper) ConvertToNative(typeDesc reflect.Type) (any, error) {
@@ -28,8 +27,8 @@ func (wrapper *rootCelWrapper) ConvertToType(typeValue ref.Type) ref.Val {
 	switch typeValue {
 	case types.StringType:
 		return types.String(fmt.Sprintf("Root{BasePath: %s}", wrapper.root.BasePath))
-	// case types.TypeType:
-	// 	return cel.ObjectType("Root")
+		// case types.TypeType:
+		// 	return cel.ObjectType("Root")
 	}
 	return types.NewErr("unsupported type conversion")
 }
@@ -59,11 +58,10 @@ func (wrapper *rootCelWrapper) Path() ref.Val {
 		return types.NewErr("could not resolve root path")
 	}
 
-	return types.String(relRootPath)	
+	return types.String(relRootPath)
 }
 
-
-var rootFilterCelEnv = func () *cel.Env {
+var rootFilterCelEnv = func() *cel.Env {
 
 	var root_path_fun = cel.Function(
 		"path",
@@ -72,12 +70,12 @@ var rootFilterCelEnv = func () *cel.Env {
 			[]*cel.Type{cel.ObjectType("Root")},
 			cel.StringType,
 			cel.UnaryBinding(
-				func (arg ref.Val) ref.Val {		
+				func(arg ref.Val) ref.Val {
 					wrapper, ok := arg.Value().(rootCelWrapper)
 
 					if !ok {
 						return types.NewErr("invalid type for path method")
-					}					
+					}
 
 					return wrapper.Path()
 				},
@@ -92,17 +90,17 @@ var rootFilterCelEnv = func () *cel.Env {
 			[]*cel.Type{cel.ObjectType("Root"), cel.StringType},
 			cel.StringType,
 			cel.BinaryBinding(
-				func (wrapperRef ref.Val, traitRef ref.Val) ref.Val {		
+				func(wrapperRef ref.Val, traitRef ref.Val) ref.Val {
 					wrapper, ok := wrapperRef.Value().(rootCelWrapper)
 
 					if !ok {
 						return types.NewErr("invalid type for root")
-					}					
+					}
 
 					path, ok := traitRef.Value().(string)
 					if !ok {
 						return types.NewErr("invalid type for trait path")
-					}					
+					}
 
 					zlog.Trace().
 						Str("root", wrapper.root.BasePath).
@@ -162,16 +160,14 @@ var rootFilterCelEnv = func () *cel.Env {
 			Msg("error generating CEL environment")
 		panic(err)
 		// return err, false
-	}	
-
+	}
 
 	return env
-}();
-
+}()
 
 type RootCelFilterRequest struct {
 	Include []string
-	Exclude [] string
+	Exclude []string
 }
 
 func RootCelFilter(request RootCelFilterRequest) (error, func(ctx *task.ExecutionContext, ref *SafeRootReference) (error, bool)) {
@@ -196,7 +192,7 @@ func RootCelFilter(request RootCelFilterRequest) (error, func(ctx *task.Executio
 				Err(err).
 				Msg("error generating CEL program")
 			return err, nil
-		}	
+		}
 
 		includeFilters[k] = prg
 	}
@@ -218,7 +214,7 @@ func RootCelFilter(request RootCelFilterRequest) (error, func(ctx *task.Executio
 				Err(err).
 				Msg("error generating CEL program")
 			return err, nil
-		}	
+		}
 
 		excludeFilters[k] = prg
 	}
@@ -227,16 +223,18 @@ func RootCelFilter(request RootCelFilterRequest) (error, func(ctx *task.Executio
 		var matchesInclude = false
 		var matchesExclude = false
 
-		if len(includeFilters) == 0 { matchesInclude = true }
+		if len(includeFilters) == 0 {
+			matchesInclude = true
+		}
 
 		var rootCelWrapper = rootCelWrapper{
 			root: root,
-			ctx: ctx,
+			ctx:  ctx,
 		}
 		var celArgs = map[string]any{
 			"root": &rootCelWrapper,
 		}
-	
+
 		for _, include := range includeFilters {
 			var matchesFilter bool
 			result, _, err := include.Eval(celArgs)
@@ -244,11 +242,11 @@ func RootCelFilter(request RootCelFilterRequest) (error, func(ctx *task.Executio
 				zlog.Error().
 					Err(err).
 					Msg("error evaluating CEL filter")
-				return err, false 
+				return err, false
 			} else if result.Type() != types.BoolType {
 				return errors.New("expected boolean result from filter"), false
 			}
-			
+
 			matchesFilter = result.Value().(bool)
 
 			matchesInclude = matchesInclude || matchesFilter
@@ -264,11 +262,11 @@ func RootCelFilter(request RootCelFilterRequest) (error, func(ctx *task.Executio
 				zlog.Error().
 					Err(err).
 					Msg("error evaluating CEL filter")
-				return err, false 
+				return err, false
 			} else if result.Type() != types.BoolType {
 				return errors.New("expected boolean result from filter"), false
 			}
-			
+
 			matchesFilter = result.Value().(bool)
 
 			matchesExclude = matchesExclude || matchesFilter
@@ -279,7 +277,6 @@ func RootCelFilter(request RootCelFilterRequest) (error, func(ctx *task.Executio
 
 		return nil, matchesInclude && !matchesExclude
 	}
-
 
 	return nil, filter
 }

@@ -6,8 +6,8 @@ import (
 
 	// "io/fs"
 	// "io/ioutil"
+	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"path/filepath"
 
 	zlog "github.com/rs/zerolog/log"
 )
