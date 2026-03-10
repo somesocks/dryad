@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+set -x
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+FIRST_BUILD_LOG=''
+SECOND_BUILD_LOG=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+}
+
+_test() {
+	FIRST_BUILD_LOG="$TEMP_DIR/first-build.log"
+	SECOND_BUILD_LOG="$TEMP_DIR/second-build.log"
+
+	(
+		cd "$TEMP_DIR"
+		dryad root build dyd/roots/root-top --log-level=info >"$FIRST_BUILD_LOG" 2>&1
+	)
+
+	find "$TEMP_DIR" \
+		\( -type l -o -type f -o -type d \) \
+		-exec touch -h -d "2000-01-01 00:00:00" {} +
+
+	(
+		cd "$TEMP_DIR"
+		dryad garden prune --log-level="$DYD_LOG_LEVEL" > /dev/null 2>&1
+		dryad root build dyd/roots/root-top --log-level=info >"$SECOND_BUILD_LOG" 2>&1
+	)
+}
+
+_verify() {
+	assert_file_exists "$FIRST_BUILD_LOG"
+	assert_file_exists "$SECOND_BUILD_LOG"
+
+	printf '=== first build log ===\n'
+	cat "$FIRST_BUILD_LOG"
+	printf '\n=== second build log ===\n'
+	cat "$SECOND_BUILD_LOG"
+	printf '\n'
+
+	if ! grep -F "root build - building root" "$FIRST_BUILD_LOG" | grep -F "root-helper" >/dev/null 2>&1; then
+		echo "[ERROR] Fail: expected first dryad root build to build root-helper" 1>&2
+		sed -n '1,120p' "$FIRST_BUILD_LOG" 1>&2 || true
+		return 1
+	fi
+
+	if grep -F "root build - building root" "$SECOND_BUILD_LOG" | grep -F "root-helper" >/dev/null 2>&1; then
+		echo "[ERROR] Fail: expected second dryad root build after prune to reuse root-helper" 1>&2
+		grep -F "root build - building root" "$SECOND_BUILD_LOG" 1>&2 || true
+		return 1
+	fi
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
