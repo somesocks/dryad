@@ -30,9 +30,16 @@ type rootBuildRequest struct {
 	}
 }
 
+type RootBuildResult struct {
+	SourceFingerprint string
+	ResultFingerprint string
+	Dependencies      []*RootBuildResult
+}
+
 type rootMaterializeSproutRequest struct {
-	Root          *SafeRootReference
-	StemByVariant map[string]string
+	Root                 *SafeRootReference
+	StemByVariant        map[string]string
+	BuildResultByVariant map[string]*RootBuildResult
 }
 
 func rootMaterializeSprout(ctx *task.ExecutionContext, req rootMaterializeSproutRequest) (error, string) {
@@ -221,7 +228,7 @@ func rootMaterializeSprout(ctx *task.ExecutionContext, req rootMaterializeSprout
 	return nil, sproutFingerprint
 }
 
-func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, string) {
+func rootBuildStemResult(ctx *task.ExecutionContext, req rootBuildRequest) (error, *RootBuildResult) {
 	rootPath := req.Root.BasePath
 	gardenPath := req.Root.Roots.Garden.BasePath
 	variantLabel := rootBuildLogVariantLabel(req.VariantDescriptor)
@@ -231,7 +238,7 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 		rootPath,
 	)
 	if err != nil {
-		return err, ""
+		return err, nil
 	}
 	gardenRootPath := filepath.Join("dyd", "roots", relRootPath)
 
@@ -242,7 +249,7 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 
 	workspacePath, err := os.MkdirTemp("", "dryad-*")
 	if err != nil {
-		return err, ""
+		return err, nil
 	}
 	defer dydfs.RemoveAll(ctx, workspacePath)
 
@@ -255,10 +262,10 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("error preparing root for build: %w", err), ""
+		return fmt.Errorf("error preparing root for build: %w", err), nil
 	}
 
-	err, _ = rootBuild_stage1(
+	err, dependencyResults := rootBuild_stage1(
 		ctx,
 		rootBuild_stage1_request{
 			Roots:             req.Root.Roots,
@@ -272,7 +279,7 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("error resolving root dependencies: %w", err), ""
+		return fmt.Errorf("error resolving root dependencies: %w", err), nil
 	}
 
 	err, _ = rootBuild_stage2(
@@ -284,7 +291,7 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("error preparing root execution path: %w", err), ""
+		return fmt.Errorf("error preparing root execution path: %w", err), nil
 	}
 
 	err, rootFingerprint := rootBuild_stage3(
@@ -296,7 +303,7 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("error generating root fingerprint: %w", err), ""
+		return fmt.Errorf("error generating root fingerprint: %w", err), nil
 	}
 
 	err = checkTypeFileWhitespace(
@@ -305,36 +312,40 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 		SentinelRoot.String(),
 	)
 	if err != nil {
-		return err, ""
+		return err, nil
 	}
 
 	isUnstableRoot, err := fileExists(
 		filepath.Join(workspacePath, "dyd", "traits", "unstable"),
 	)
 	if err != nil {
-		return err, ""
+		return err, nil
 	}
 
 	var heapDerivations *SafeHeapDerivationsReference
 	if !isUnstableRoot {
 		err, heap := req.Root.Roots.Garden.Heap().Resolve(ctx)
 		if err != nil {
-			return err, ""
+			return err, nil
 		}
 
 		err, heapDerivations = heap.Derivations().Resolve(ctx)
 		if err != nil {
-			return err, ""
+			return err, nil
 		}
 
 		unsafeDerivationRef := heapDerivations.Derivation(rootFingerprint)
 
 		err, safeDerivationRef := unsafeDerivationRef.Resolve(ctx)
 		if err == nil {
-			return nil, safeDerivationRef.ResultFingerprint
+			return nil, &RootBuildResult{
+				SourceFingerprint: rootFingerprint,
+				ResultFingerprint: safeDerivationRef.ResultFingerprint,
+				Dependencies:      dependencyResults,
+			}
 		}
 		if !errors.Is(err, ErrUnresolvableHeapDerivation) {
-			return err, ""
+			return err, nil
 		}
 
 	}
@@ -353,12 +364,12 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("error packing root into heap: %w", err), ""
+		return fmt.Errorf("error packing root into heap: %w", err), nil
 	}
 
 	stemBuildPath, err := os.MkdirTemp("", "dryad-*")
 	if err != nil {
-		return err, ""
+		return err, nil
 	}
 	defer dydfs.RemoveAll(ctx, stemBuildPath)
 
@@ -377,7 +388,7 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("error executing root to build stem: %w", err), ""
+		return fmt.Errorf("error executing root to build stem: %w", err), nil
 	}
 
 	err, _ = rootBuild_stage6(
@@ -389,7 +400,7 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("error packing stem into heap: %w", err), ""
+		return fmt.Errorf("error packing stem into heap: %w", err), nil
 	}
 
 	if !isUnstableRoot && heapDerivations != nil {
@@ -399,7 +410,7 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 			stemBuildFingerprint,
 		)
 		if err != nil {
-			return err, ""
+			return err, nil
 		}
 	}
 
@@ -408,11 +419,15 @@ func rootBuildStem(ctx *task.ExecutionContext, req rootBuildRequest) (error, str
 		Str("variant", variantLabel).
 		Msg("root build - done building root")
 
-	return nil, stemBuildFingerprint
+	return nil, &RootBuildResult{
+		SourceFingerprint: rootFingerprint,
+		ResultFingerprint: stemBuildFingerprint,
+		Dependencies:      dependencyResults,
+	}
 }
 
 var rootBuildStem2 = task.OnFailure(
-	rootBuildStem,
+	rootBuildStemResult,
 	func(ctx *task.ExecutionContext, args task.Tuple2[rootBuildRequest, error]) (error, any) {
 		req := args.A
 		err := args.B
@@ -446,12 +461,12 @@ var memoRootBuildStem = task.Memoize(
 	},
 )
 
-var rootBuildStemWrapper = func(ctx *task.ExecutionContext, req rootBuildRequest) (error, string) {
+var rootBuildStemResultWrapper = func(ctx *task.ExecutionContext, req rootBuildRequest) (error, *RootBuildResult) {
 	err, res := memoRootBuildStem(ctx, req)
 	return err, res
 }
 
-type RootBuildRequest struct {
+type RootBuildStemRequest struct {
 	VariantDescriptor string
 	JoinStdout        bool
 	JoinStderr        bool
@@ -465,9 +480,19 @@ type RootBuildRequest struct {
 	}
 }
 
-type RootBuildStemRequest = RootBuildRequest
-
-type RootBuildSproutRequest = RootBuildRequest
+type RootBuildSproutRequest struct {
+	VariantDescriptor string
+	JoinStdout        bool
+	JoinStderr        bool
+	LogStdout         struct {
+		Path string
+		Name string
+	}
+	LogStderr struct {
+		Path string
+		Name string
+	}
+}
 
 func rootBuildLogVariantLabel(variantDescriptor string) string {
 	if variantDescriptor == "" {
@@ -491,13 +516,13 @@ func normalizeRootBuildVariantDescriptor(raw string) (error, string) {
 	return nil, variantDescriptor
 }
 
-func (root *SafeRootReference) BuildStem(ctx *task.ExecutionContext, req RootBuildStemRequest) (error, string) {
+func (root *SafeRootReference) BuildStem(ctx *task.ExecutionContext, req RootBuildStemRequest) (error, *RootBuildResult) {
 	err, variantDescriptor := normalizeRootBuildVariantDescriptor(req.VariantDescriptor)
 	if err != nil {
-		return err, ""
+		return err, nil
 	}
 
-	err, res := rootBuildStemWrapper(
+	err, res := rootBuildStemResultWrapper(
 		ctx,
 		rootBuildRequest{
 			Root:              root,
@@ -534,8 +559,8 @@ func (root *SafeRootReference) BuildSprout(ctx *task.ExecutionContext, req RootB
 	}
 
 	type rootBuildVariantResult struct {
-		Descriptor      string
-		StemFingerprint string
+		Descriptor  string
+		BuildResult *RootBuildResult
 	}
 
 	buildVariant := func(ctx *task.ExecutionContext, variant VariantDescriptor) (error, rootBuildVariantResult) {
@@ -544,7 +569,7 @@ func (root *SafeRootReference) BuildSprout(ctx *task.ExecutionContext, req RootB
 			return err, rootBuildVariantResult{}
 		}
 
-		err, stemFingerprint := root.BuildStem(
+		err, buildResult := root.BuildStem(
 			ctx,
 			RootBuildStemRequest{
 				VariantDescriptor: concreteDescriptor,
@@ -559,8 +584,8 @@ func (root *SafeRootReference) BuildSprout(ctx *task.ExecutionContext, req RootB
 		}
 
 		return nil, rootBuildVariantResult{
-			Descriptor:      concreteDescriptor,
-			StemFingerprint: stemFingerprint,
+			Descriptor:  concreteDescriptor,
+			BuildResult: buildResult,
 		}
 	}
 
@@ -570,19 +595,26 @@ func (root *SafeRootReference) BuildSprout(ctx *task.ExecutionContext, req RootB
 	}
 
 	stemByVariant := map[string]string{}
+	buildResultByVariant := map[string]*RootBuildResult{}
 	for _, builtVariant := range builtVariants {
 		if _, exists := stemByVariant[builtVariant.Descriptor]; exists {
 			return fmt.Errorf("duplicate root build variant descriptor: %s", builtVariant.Descriptor), ""
 		}
 
-		stemByVariant[builtVariant.Descriptor] = builtVariant.StemFingerprint
+		if builtVariant.BuildResult == nil {
+			return fmt.Errorf("missing build result for root build variant descriptor: %s", builtVariant.Descriptor), ""
+		}
+
+		stemByVariant[builtVariant.Descriptor] = builtVariant.BuildResult.ResultFingerprint
+		buildResultByVariant[builtVariant.Descriptor] = builtVariant.BuildResult
 	}
 
 	err, sproutFingerprint := rootMaterializeSprout(
 		ctx,
 		rootMaterializeSproutRequest{
-			Root:          root,
-			StemByVariant: stemByVariant,
+			Root:                 root,
+			StemByVariant:        stemByVariant,
+			BuildResultByVariant: buildResultByVariant,
 		},
 	)
 	if err != nil {
@@ -600,8 +632,4 @@ func (root *SafeRootReference) BuildSprout(ctx *task.ExecutionContext, req RootB
 		Msg("root build - done verifying root")
 
 	return nil, sproutFingerprint
-}
-
-func (root *SafeRootReference) Build(ctx *task.ExecutionContext, req RootBuildRequest) (error, string) {
-	return root.BuildStem(ctx, req)
 }
