@@ -29,27 +29,27 @@ _verify() {
 
 	if [ ! -L "$stem_none" ]; then
 		echo "[ERROR] Fail: expected default stem dependency for none variant" 1>&2
-		find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		find "$deps_path" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
 		return 1
 	fi
 
 	if [ ! -L "$stem_linux" ]; then
 		echo "[ERROR] Fail: expected linux stem dependency" 1>&2
-		find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		find "$deps_path" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
 		return 1
 	fi
 
 	dep_none="$stem_none/dyd/dependencies/foo"
 	if [ ! -L "$dep_none" ]; then
 		echo "[ERROR] Fail: expected dependency 'foo' for none variant" 1>&2
-		find "$stem_none/dyd/dependencies" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		find "$stem_none/dyd/dependencies" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
 		return 1
 	fi
 
 	dep_linux="$stem_linux/dyd/dependencies/foo"
 	if [ -e "$dep_linux" ] || [ -L "$dep_linux" ]; then
 		echo "[ERROR] Fail: dependency 'foo' should be omitted for os=linux variant" 1>&2
-		find "$stem_linux/dyd/dependencies" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		find "$stem_linux/dyd/dependencies" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
 		return 1
 	fi
 }

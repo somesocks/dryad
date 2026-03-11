@@ -26,7 +26,7 @@ _verify() {
 
 	if [ ! -L "$deps_path/stem~arch=amd64+os=darwin" ]; then
 		echo "[ERROR] Fail: expected dependency stem~arch=amd64+os=darwin" 1>&2
-		find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		find "$deps_path" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
 		return 1
 	fi
 
@@ -36,7 +36,7 @@ _verify() {
 		"stem~arch=arm64+os=linux"; do
 		if [ -L "$deps_path/$dep_name" ] || [ -e "$deps_path/$dep_name" ]; then
 			echo "[ERROR] Fail: unexpected dependency '$dep_name' found" 1>&2
-			find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+			find "$deps_path" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
 			return 1
 		fi
 	done
@@ -44,7 +44,7 @@ _verify() {
 	dep_count=$(find "$deps_path" -mindepth 1 -maxdepth 1 \( -name 'stem' -o -name 'stem~*' \) | wc -l | tr -d ' ')
 	if [ "$dep_count" != "1" ]; then
 		echo "[ERROR] Fail: expected exactly 1 variant stem dependency, got $dep_count" 1>&2
-		find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		find "$deps_path" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
 		return 1
 	fi
 }

@@ -27,7 +27,7 @@ _expect_value() {
 
 	if [ ! -L "$stem" ]; then
 		echo "[ERROR] Fail: expected stem dependency $root_name:stem~$descriptor" 1>&2
-		find "$TEMP_DIR/dyd/sprouts/$root_name/dyd/dependencies" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		find "$TEMP_DIR/dyd/sprouts/$root_name/dyd/dependencies" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
 		return 1
 	fi
 

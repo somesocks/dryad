@@ -33,27 +33,27 @@ _verify() {
 		dep_path="$deps_path/$dep_name"
 		if [ ! -L "$dep_path" ]; then
 			echo "[ERROR] Fail: expected sprout dependency symlink '$dep_name'" 1>&2
-			find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+			find "$deps_path" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
 			return 1
 		fi
 	done
 
 	if [ -L "$deps_path/stem~arch=amd64+os=darwin" ] || [ -e "$deps_path/stem~arch=amd64+os=darwin" ]; then
 		echo "[ERROR] Fail: excluded dependency stem~arch=amd64+os=darwin should not exist" 1>&2
-		find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		find "$deps_path" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
 		return 1
 	fi
 
 	if [ -L "$deps_path/stem~arch=amd64+os=linux" ] || [ -e "$deps_path/stem~arch=amd64+os=linux" ]; then
 		echo "[ERROR] Fail: excluded dependency stem~arch=amd64+os=linux should not exist" 1>&2
-		find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		find "$deps_path" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
 		return 1
 	fi
 
 	dep_count=$(find "$deps_path" -mindepth 1 -maxdepth 1 \( -name 'stem' -o -name 'stem~*' \) | wc -l | tr -d ' ')
 	if [ "$dep_count" != "2" ]; then
 		echo "[ERROR] Fail: expected exactly 2 variant stem dependencies, got $dep_count" 1>&2
-		find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		find "$deps_path" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
 		return 1
 	fi
 }

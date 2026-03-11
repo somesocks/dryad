@@ -16,6 +16,23 @@ _prepare() {
   cd "$TEMP_DIR"
 }
 
+_basename_or_empty() {
+  local path="$1"
+  if [ -z "$path" ]; then
+    return 0
+  fi
+  basename "$path"
+}
+
+_find_basenames() {
+  local search_path="$1"
+  shift
+
+  find "$search_path" "$@" | while IFS= read -r path; do
+    basename "$path"
+  done
+}
+
 _find_heap_object_dir() {
   local version_path="$1"
   local fingerprint="$2"
@@ -96,7 +113,7 @@ _verify() {
     return 1
   fi
 
-  top_source_fingerprint=$(find "$provenance_path/dyd/assets/results/$provenance_result_fingerprint" -mindepth 1 -maxdepth 1 -type f | head -n 1 | xargs -r basename)
+  top_source_fingerprint=$(_basename_or_empty "$(find "$provenance_path/dyd/assets/results/$provenance_result_fingerprint" -mindepth 1 -maxdepth 1 -type f | head -n 1)")
   if [ -z "$top_source_fingerprint" ]; then
     echo "[ERROR] Fail: expected top-level provenance result mapping in assets" 1>&2
     return 1
@@ -118,7 +135,7 @@ _verify() {
   assert_file_content_equals "$provenance_path/dyd/requirements/$top_source_fingerprint" "$top_source_fingerprint"
   assert_file_exists "$provenance_path/dyd/assets/results/$provenance_result_fingerprint/$top_source_fingerprint"
 
-  shared_result_fingerprint=$(find "$provenance_path/dyd/assets/results" -mindepth 1 -maxdepth 1 -type d ! -name "$provenance_result_fingerprint" | head -n 1 | xargs -r basename)
+  shared_result_fingerprint=$(_basename_or_empty "$(find "$provenance_path/dyd/assets/results" -mindepth 1 -maxdepth 1 -type d ! -name "$provenance_result_fingerprint" | head -n 1)")
   if [ -z "$shared_result_fingerprint" ]; then
     echo "[ERROR] Fail: expected shared helper result mapping in provenance assets" 1>&2
     return 1
@@ -131,7 +148,7 @@ _verify() {
     return 1
   fi
 
-  helper_source_fingerprints=$(find "$provenance_path/dyd/assets/results/$shared_result_fingerprint" -mindepth 1 -maxdepth 1 -type f -printf '%f\n' | sort)
+  helper_source_fingerprints=$(_find_basenames "$provenance_path/dyd/assets/results/$shared_result_fingerprint" -mindepth 1 -maxdepth 1 -type f | sort)
   helper_source_count=$(printf '%s\n' "$helper_source_fingerprints" | sed '/^$/d' | wc -l | tr -d ' ')
   if [ "$helper_source_count" != "2" ]; then
     echo "[ERROR] Fail: expected exactly two helper source fingerprints, found $helper_source_count" 1>&2
