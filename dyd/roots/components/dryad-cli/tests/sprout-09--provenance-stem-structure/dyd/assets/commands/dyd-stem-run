@@ -78,7 +78,7 @@ _verify() {
     return 1
   fi
 
-  assert_file_content_equals "$sprout_path/dyd/requirements/stem.provenance/dyd/fingerprint" "$(cat "$provenance_path/dyd/fingerprint")"
+  assert_file_content_equals "$sprout_path/dyd/requirements/stem.provenance" "$(cat "$provenance_path/dyd/fingerprint")"
 
   dependency_count=$(find "$provenance_path/dyd/dependencies" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')
   if [ "$dependency_count" != "2" ]; then
@@ -113,7 +113,7 @@ _verify() {
     echo "[ERROR] Fail: expected provenance dependency target fingerprint to match dependency name" 1>&2
     return 1
   fi
-  assert_file_content_equals "$provenance_path/dyd/requirements/$top_source_fingerprint/dyd/fingerprint" "$top_source_fingerprint"
+  assert_file_content_equals "$provenance_path/dyd/requirements/$top_source_fingerprint" "$top_source_fingerprint"
   assert_file_exists "$provenance_path/dyd/assets/results/$provenance_result_fingerprint/$top_source_fingerprint"
 
   helper_dependency_path=$(find "$provenance_path/dyd/dependencies" -mindepth 1 -maxdepth 1 ! -name "$top_source_fingerprint" | head -n 1)
@@ -130,7 +130,7 @@ _verify() {
     echo "[ERROR] Fail: expected helper provenance dependency target fingerprint to match dependency name" 1>&2
     return 1
   fi
-  assert_file_content_equals "$provenance_path/dyd/requirements/$helper_source_fingerprint/dyd/fingerprint" "$helper_source_fingerprint"
+  assert_file_content_equals "$provenance_path/dyd/requirements/$helper_source_fingerprint" "$helper_source_fingerprint"
 
   source_fingerprint=$(find "$provenance_path/dyd/assets/results" -mindepth 2 -maxdepth 2 -type f ! -path "*/$provenance_result_fingerprint/$top_source_fingerprint" | head -n 1 | xargs -r basename)
   if [ -z "$source_fingerprint" ]; then

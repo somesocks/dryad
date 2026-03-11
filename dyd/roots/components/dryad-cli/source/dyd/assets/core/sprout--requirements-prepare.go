@@ -68,14 +68,9 @@ func sproutRequirementsPrepare(sproutPath string) error {
 			return err
 		}
 
-		requirementDependencyPath := filepath.Join(requirementsPath, dependencyName, "dyd")
-		if err := os.MkdirAll(requirementDependencyPath, os.ModePerm); err != nil {
-			return err
-		}
-
 		if err := sproutRequirementsCopyFile(
 			filepath.Join(stemDependencyPath, "dyd", "fingerprint"),
-			filepath.Join(requirementDependencyPath, "fingerprint"),
+			filepath.Join(requirementsPath, dependencyName),
 		); err != nil {
 			return err
 		}
