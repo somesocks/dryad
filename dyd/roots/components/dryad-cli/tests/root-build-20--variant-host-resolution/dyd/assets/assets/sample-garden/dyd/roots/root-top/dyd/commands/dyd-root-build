@@ -26,14 +26,14 @@ else
 fi
 
 # Record host-resolved variant traits for verification in the test harness.
-if [ -f "$SRC_DIR/dyd/requirements/foo/dyd/traits/os" ]; then
+if [ -f "$SRC_DIR/dyd/dependencies/foo/dyd/traits/os" ]; then
 	mkdir -p "$DEST_DIR/dyd/assets"
-	cp "$SRC_DIR/dyd/requirements/foo/dyd/traits/os" \
+	cp "$SRC_DIR/dyd/dependencies/foo/dyd/traits/os" \
 		"$DEST_DIR/dyd/assets/host-resolved-os"
 fi
-if [ -f "$SRC_DIR/dyd/requirements/foo/dyd/traits/arch" ]; then
+if [ -f "$SRC_DIR/dyd/dependencies/foo/dyd/traits/arch" ]; then
 	mkdir -p "$DEST_DIR/dyd/assets"
-	cp "$SRC_DIR/dyd/requirements/foo/dyd/traits/arch" \
+	cp "$SRC_DIR/dyd/dependencies/foo/dyd/traits/arch" \
 		"$DEST_DIR/dyd/assets/host-resolved-arch"
 fi
 

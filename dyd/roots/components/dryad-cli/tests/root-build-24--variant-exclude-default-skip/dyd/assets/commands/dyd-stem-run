@@ -45,7 +45,7 @@ _verify() {
 		return 1
 	fi
 
-	dep_count=$(find "$deps_path" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')
+	dep_count=$(find "$deps_path" -mindepth 1 -maxdepth 1 \( -name 'stem' -o -name 'stem~*' \) | wc -l | tr -d ' ')
 	if [ "$dep_count" != "3" ]; then
 		echo "[ERROR] Fail: expected exactly 3 variant stem dependencies, got $dep_count" 1>&2
 		find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2

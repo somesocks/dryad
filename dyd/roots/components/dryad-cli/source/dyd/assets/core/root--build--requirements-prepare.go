@@ -3,6 +3,7 @@ package core
 import (
 	dydfs "dryad/filesystem"
 	"dryad/task"
+	"io"
 
 	"dryad/internal/filepath"
 	"dryad/internal/os"
@@ -19,8 +20,6 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 		"^(" +
 			"([^/]*)" +
 			"|([^/]*/dyd)" +
-			"|([^/]*/dyd/traits)" +
-			"|([^/]*/dyd/traits/.*)" +
 			")$",
 	)
 
@@ -40,10 +39,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 	}
 
 	var RE_ROOT_BUILD_REQUIREMENTS_PREPARE_SHOULD_MATCH = regexp.MustCompile(
-		"^(" +
-			"([^/]*/dyd/fingerprint)" +
-			"|([^/]*/dyd/traits/.*)" +
-			")$",
+		"^([^/]*/dyd/fingerprint)$",
 	)
 
 	// matcher used to match files to copy
@@ -87,70 +83,26 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 			return err, nil
 		}
 
-		// zlog.Trace().
-		// 	Str("reqsParentPath", reqsParentPath).
-		// 	Msg("rootBuild_requirementsPrepare.fs_on_match")
+		srcFile, err := os.Open(node.Path)
+		if err != nil {
+			return err, nil
+		}
+		defer srcFile.Close()
 
-		var isSymlink = node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
-		var isInternalLink = false
-		var linkTarget = ""
+		destFile, err := os.Create(reqsPath)
+		if err != nil {
+			return err, nil
+		}
+		defer destFile.Close()
 
-		// zlog.Trace().
-		// 	Bool("isSymlink", isSymlink).
-		// 	Msg("rootBuild_requirementsPrepare.fs_on_match")
-
-		// check if its an package-internal symlink
-		if isSymlink {
-			linkTarget, err = os.Readlink(node.Path)
-			if err != nil {
-				return err, nil
-			}
-
-			absLinkTarget := linkTarget
-
-			// clean up relative links
-			if !filepath.IsAbs(absLinkTarget) {
-				absLinkTarget = filepath.Clean(filepath.Join(filepath.Dir(node.Path), absLinkTarget))
-			}
-
-			isInternalLink, err = fileIsDescendant(absLinkTarget, node.BasePath)
-			if err != nil {
-				return err, nil
-			}
+		_, err = io.Copy(destFile, srcFile)
+		if err != nil {
+			return err, nil
 		}
 
-		// if it's an internal link clone it,
-		// otherwise, copy the file
-		if isInternalLink {
-			err = os.Symlink(linkTarget, reqsPath)
-			if err != nil {
-				return err, nil
-			}
-		} else {
-			srcFile, err := os.Open(node.Path)
-			if err != nil {
-				return err, nil
-			}
-			defer srcFile.Close()
-
-			var destFile *os.File
-			destFile, err = os.Create(reqsPath)
-			if err != nil {
-				return err, nil
-			}
-			defer destFile.Close()
-
-			_, err = destFile.ReadFrom(srcFile)
-			if err != nil {
-				return err, nil
-			}
-
-			// heap files should be set to R-X--X--X
-			err = destFile.Chmod(0o511)
-			if err != nil {
-				return err, nil
-			}
-
+		err = destFile.Chmod(0o511)
+		if err != nil {
+			return err, nil
 		}
 
 		return nil, nil

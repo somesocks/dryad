@@ -1,0 +1,157 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+  TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+  chmod -R 755 "$TEMP_DIR"
+  cd "$TEMP_DIR"
+}
+
+_find_heap_object_dir() {
+  local version_path="$1"
+  local fingerprint="$2"
+  local fingerprint_path
+  local relative_fingerprint_path
+
+  while IFS= read -r fingerprint_path; do
+    relative_fingerprint_path=${fingerprint_path#"$version_path"/}
+    if ! printf '%s\n' "$relative_fingerprint_path" | grep -Eq '^([a-z2-7]{2}/){0,12}[a-z2-7]{2,26}/dyd/fingerprint$'; then
+      continue
+    fi
+    if [ "$(cat "$fingerprint_path")" = "$fingerprint" ]; then
+      dirname "$(dirname "$fingerprint_path")"
+      return 0
+    fi
+  done < <(find "$version_path" -type f -path '*/dyd/fingerprint')
+
+  return 1
+}
+
+_test() {
+  dryad root build "dyd/roots/root-top" --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+_verify() {
+  local sprout_path="$TEMP_DIR/dyd/sprouts/root-top"
+  local sprout_stem_path
+  local sprout_result_fingerprint
+  local provenance_link_path="$sprout_path/dyd/dependencies/stem.provenance"
+  local provenance_path
+  local provenance_result_fingerprint
+  local dependency_path
+  local source_fingerprint
+  local dependency_target_path
+  local dependency_target_fingerprint
+  local dependency_count
+  local results_count
+  local helper_source_fingerprint
+  local helper_dependency_path
+  local top_source_fingerprint
+
+  assert_directory_exists "$sprout_path"
+
+  if [ ! -L "$provenance_link_path" ]; then
+    echo "[ERROR] Fail: expected sprout provenance dependency link at $provenance_link_path" 1>&2
+    return 1
+  fi
+
+  provenance_path=$(readlink -f "$provenance_link_path")
+  assert_directory_exists "$provenance_path"
+  assert_file_content_equals "$provenance_path/dyd/type" "stem"
+  assert_file_content_equals "$provenance_path/dyd/traits/kind" "provenance"
+
+  sprout_stem_path=$(readlink -f "$sprout_path/dyd/dependencies/stem")
+  sprout_result_fingerprint=$(cat "$sprout_stem_path/dyd/fingerprint")
+  provenance_result_fingerprint=$(cat "$provenance_path/dyd/traits/result-fingerprint")
+  if [ "$sprout_result_fingerprint" != "$provenance_result_fingerprint" ]; then
+    echo "[ERROR] Fail: expected provenance result fingerprint to match sprout stem fingerprint" 1>&2
+    echo "sprout=$sprout_result_fingerprint provenance=$provenance_result_fingerprint" 1>&2
+    return 1
+  fi
+
+  assert_file_content_equals "$sprout_path/dyd/requirements/stem.provenance/dyd/fingerprint" "$(cat "$provenance_path/dyd/fingerprint")"
+
+  dependency_count=$(find "$provenance_path/dyd/dependencies" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')
+  if [ "$dependency_count" != "2" ]; then
+    echo "[ERROR] Fail: expected exactly two provenance dependencies, found $dependency_count" 1>&2
+    find "$provenance_path/dyd/dependencies" -mindepth 1 -maxdepth 1 1>&2 || true
+    return 1
+  fi
+
+  results_count=$(find "$provenance_path/dyd/assets/results" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
+  if [ "$results_count" != "2" ]; then
+    echo "[ERROR] Fail: expected exactly two provenance result directories, found $results_count" 1>&2
+    find "$provenance_path/dyd/assets/results" -mindepth 1 -maxdepth 1 -type d 1>&2 || true
+    return 1
+  fi
+
+  top_source_fingerprint=$(find "$provenance_path/dyd/assets/results/$provenance_result_fingerprint" -mindepth 1 -maxdepth 1 -type f | head -n 1 | xargs -r basename)
+  if [ -z "$top_source_fingerprint" ]; then
+    echo "[ERROR] Fail: expected top-level provenance result mapping in assets" 1>&2
+    return 1
+  fi
+
+  dependency_path="$provenance_path/dyd/dependencies/$top_source_fingerprint"
+  if [ ! -L "$dependency_path" ]; then
+    echo "[ERROR] Fail: expected provenance source dependency to be a symlink: $dependency_path" 1>&2
+    return 1
+  fi
+
+  dependency_target_path=$(readlink -f "$dependency_path")
+  assert_directory_exists "$dependency_target_path"
+  dependency_target_fingerprint=$(cat "$dependency_target_path/dyd/fingerprint")
+  if [ "$dependency_target_fingerprint" != "$top_source_fingerprint" ]; then
+    echo "[ERROR] Fail: expected provenance dependency target fingerprint to match dependency name" 1>&2
+    return 1
+  fi
+  assert_file_content_equals "$provenance_path/dyd/requirements/$top_source_fingerprint/dyd/fingerprint" "$top_source_fingerprint"
+  assert_file_exists "$provenance_path/dyd/assets/results/$provenance_result_fingerprint/$top_source_fingerprint"
+
+  helper_dependency_path=$(find "$provenance_path/dyd/dependencies" -mindepth 1 -maxdepth 1 ! -name "$top_source_fingerprint" | head -n 1)
+  helper_source_fingerprint=$(basename "$helper_dependency_path")
+  if [ ! -L "$helper_dependency_path" ]; then
+    echo "[ERROR] Fail: expected helper provenance dependency to be a symlink: $helper_dependency_path" 1>&2
+    return 1
+  fi
+
+  dependency_target_path=$(readlink -f "$helper_dependency_path")
+  assert_directory_exists "$dependency_target_path"
+  dependency_target_fingerprint=$(cat "$dependency_target_path/dyd/fingerprint")
+  if [ "$dependency_target_fingerprint" != "$helper_source_fingerprint" ]; then
+    echo "[ERROR] Fail: expected helper provenance dependency target fingerprint to match dependency name" 1>&2
+    return 1
+  fi
+  assert_file_content_equals "$provenance_path/dyd/requirements/$helper_source_fingerprint/dyd/fingerprint" "$helper_source_fingerprint"
+
+  source_fingerprint=$(find "$provenance_path/dyd/assets/results" -mindepth 2 -maxdepth 2 -type f ! -path "*/$provenance_result_fingerprint/$top_source_fingerprint" | head -n 1 | xargs -r basename)
+  if [ -z "$source_fingerprint" ]; then
+    echo "[ERROR] Fail: expected helper result mapping in provenance assets" 1>&2
+    return 1
+  fi
+  if [ "$source_fingerprint" != "$helper_source_fingerprint" ]; then
+    echo "[ERROR] Fail: expected helper result mapping to point at the helper source fingerprint" 1>&2
+    return 1
+  fi
+}
+
+_teardown() {
+  if [ -d "$TEMP_DIR" ]; then
+    chmod -R 755 "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+  fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

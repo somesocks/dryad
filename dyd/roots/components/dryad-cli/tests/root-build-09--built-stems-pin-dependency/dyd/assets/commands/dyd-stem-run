@@ -51,8 +51,6 @@ _verify() {
 
 	assert_directory_exists "$requirements_path"
 	assert_file_exists "$requirements_path/dyd/fingerprint"
-	assert_file_exists "$requirements_path/dyd/traits/channel"
-	assert_file_content_equals "$requirements_path/dyd/traits/channel" "stable"
 	assert_file_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/root-01.txt"
 	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/root-01.txt" "root-01"
 

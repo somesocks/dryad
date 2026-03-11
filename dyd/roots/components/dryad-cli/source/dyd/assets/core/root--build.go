@@ -115,6 +115,35 @@ func rootMaterializeSprout(ctx *task.ExecutionContext, req rootMaterializeSprout
 		if err != nil {
 			return fmt.Errorf("error linking stem dependency for sprout: %w", err), ""
 		}
+
+		buildResult := req.BuildResultByVariant[descriptor]
+		if buildResult == nil {
+			return fmt.Errorf("missing build result for variant descriptor: %s", descriptor), ""
+		}
+
+		err, provenanceStem := rootBuildProvenanceStem(
+			ctx,
+			rootBuildProvenanceStemRequest{
+				Garden:      req.Root.Roots.Garden,
+				BuildResult: buildResult,
+			},
+		)
+		if err != nil {
+			return err, ""
+		}
+
+		provenanceName := "stem.provenance"
+		if descriptor != "" {
+			provenanceName = provenanceName + RootRequirementSelectorSeparator + descriptor
+		}
+
+		err = os.Symlink(
+			provenanceStem.BasePath,
+			filepath.Join(sproutDependenciesPath, provenanceName),
+		)
+		if err != nil {
+			return fmt.Errorf("error linking provenance stem for sprout: %w", err), ""
+		}
 	}
 
 	err = sproutRequirementsPrepare(sproutBuildPath)
