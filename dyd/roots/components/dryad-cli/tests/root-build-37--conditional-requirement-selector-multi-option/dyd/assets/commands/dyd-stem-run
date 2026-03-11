@@ -31,7 +31,7 @@ _verify() {
 
 	if [ ! -L "$stem_amd64_linux" ] || [ ! -L "$stem_arm64_linux" ] || [ ! -L "$stem_amd64_darwin" ] || [ ! -L "$stem_arm64_darwin" ]; then
 		echo "[ERROR] Fail: expected all arch/os stem variants in sprout dependencies" 1>&2
-		find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		find "$deps_path" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
 		return 1
 	fi
 
@@ -39,8 +39,8 @@ _verify() {
 	dep_for_arm64_linux="$stem_arm64_linux/dyd/dependencies/foo"
 	if [ ! -L "$dep_for_amd64_linux" ] || [ ! -L "$dep_for_arm64_linux" ]; then
 		echo "[ERROR] Fail: expected dependency 'foo' for linux variants matched by condition selector list" 1>&2
-		find "$stem_amd64_linux/dyd/dependencies" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
-		find "$stem_arm64_linux/dyd/dependencies" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		find "$stem_amd64_linux/dyd/dependencies" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
+		find "$stem_arm64_linux/dyd/dependencies" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
 		return 1
 	fi
 
@@ -48,8 +48,8 @@ _verify() {
 	dep_for_arm64_darwin="$stem_arm64_darwin/dyd/dependencies/foo"
 	if [ -e "$dep_for_amd64_darwin" ] || [ -L "$dep_for_amd64_darwin" ] || [ -e "$dep_for_arm64_darwin" ] || [ -L "$dep_for_arm64_darwin" ]; then
 		echo "[ERROR] Fail: dependency 'foo' should be omitted for darwin variants not matched by condition selector list" 1>&2
-		find "$stem_amd64_darwin/dyd/dependencies" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
-		find "$stem_arm64_darwin/dyd/dependencies" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		find "$stem_amd64_darwin/dyd/dependencies" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
+		find "$stem_arm64_darwin/dyd/dependencies" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
 		return 1
 	fi
 }

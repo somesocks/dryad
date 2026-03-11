@@ -58,7 +58,7 @@ _verify() {
 
 		variant_stem="$candidate_stem"
 		break
-	done < <(find "$TEMP_DIR/dyd/heap/stems" -type f -path '*/dyd/requirements/*/dyd/fingerprint')
+	done < <(find "$TEMP_DIR/dyd/heap/stems" -type f -path '*/dyd/requirements/*')
 
 	if [ -z "$variant_stem" ]; then
 		echo "[ERROR] Fail: expected to find resolved root-variant stem from packed requirements" 1>&2

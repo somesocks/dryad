@@ -49,10 +49,7 @@ _verify() {
 	requirement_source_path="$TEMP_DIR/dyd/roots/root-01/dyd/requirements/root-02"
 	dependency_target=$(readlink -f "$dependency_path")
 
-	assert_directory_exists "$requirements_path"
-	assert_file_exists "$requirements_path/dyd/fingerprint"
-	assert_file_exists "$requirements_path/dyd/traits/channel"
-	assert_file_content_equals "$requirements_path/dyd/traits/channel" "stable"
+	assert_file_exists "$requirements_path"
 	assert_file_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/root-01.txt"
 	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/root-01.txt" "root-01"
 
@@ -63,7 +60,7 @@ _verify() {
 	assert_file_content_equals "$dependency_target/dyd/traits/channel" "stable"
 
 	dependency_fingerprint=$(cat "$dependency_target/dyd/fingerprint")
-	assert_file_content_equals "$requirements_path/dyd/fingerprint" "$dependency_fingerprint"
+	assert_file_content_equals "$requirements_path" "$dependency_fingerprint"
 
 	case "$dependency_target" in
 		"$TEMP_DIR"/dyd/heap/stems/v2/*)

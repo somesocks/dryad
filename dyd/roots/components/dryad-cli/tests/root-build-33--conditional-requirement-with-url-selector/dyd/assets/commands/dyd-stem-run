@@ -29,20 +29,20 @@ _verify() {
 
 	if [ ! -L "$stem_amd64" ]; then
 		echo "[ERROR] Fail: expected variant stem dependency 'stem~arch=amd64'" 1>&2
-		find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		find "$deps_path" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
 		return 1
 	fi
 
 	if [ ! -L "$stem_arm64" ]; then
 		echo "[ERROR] Fail: expected variant stem dependency 'stem~arch=arm64'" 1>&2
-		find "$deps_path" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		find "$deps_path" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
 		return 1
 	fi
 
 	dep_for_amd64="$stem_amd64/dyd/dependencies/foo"
 	if [ ! -L "$dep_for_amd64" ]; then
 		echo "[ERROR] Fail: expected dependency 'foo' for arch=amd64 variant" 1>&2
-		find "$stem_amd64/dyd/dependencies" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		find "$stem_amd64/dyd/dependencies" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
 		return 1
 	fi
 
@@ -52,7 +52,7 @@ _verify() {
 	dep_for_arm64="$stem_arm64/dyd/dependencies/foo"
 	if [ -e "$dep_for_arm64" ] || [ -L "$dep_for_arm64" ]; then
 		echo "[ERROR] Fail: dependency 'foo' should be omitted for arch=arm64 variant" 1>&2
-		find "$stem_arm64/dyd/dependencies" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort 1>&2
+		find "$stem_arm64/dyd/dependencies" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
 		return 1
 	fi
 }

@@ -4,6 +4,7 @@ import (
 	// dydfs "dryad/filesystem"
 	"dryad/internal/os"
 	"dryad/task"
+	"fmt"
 
 	// "io/fs"
 	// "io/ioutil"
@@ -50,7 +51,7 @@ func rootBuild_stage1DependencyName(
 
 // stage 1 - walk through the root dependencies, build them if necessary,
 // and add the fingerprint as a dependency
-var rootBuild_stage1 func(ctx *task.ExecutionContext, req rootBuild_stage1_request) (error, any)
+var rootBuild_stage1 func(ctx *task.ExecutionContext, req rootBuild_stage1_request) (error, []*RootBuildResult)
 
 func init() {
 
@@ -179,7 +180,7 @@ func init() {
 		return nil, buildDependencyRequests
 	}
 
-	var rootBuild_stage1_buildDependency = func(ctx *task.ExecutionContext, req rootBuild_stage1_buildDependencyRequest) (error, string) {
+	var rootBuild_stage1_buildDependency = func(ctx *task.ExecutionContext, req rootBuild_stage1_buildDependencyRequest) (error, *RootBuildResult) {
 
 		var unsafeDepReference = UnsafeRootReference{
 			Roots:    req.Roots,
@@ -192,10 +193,10 @@ func init() {
 		// verify that root path is valid for dependency
 		err, safeDepReference = unsafeDepReference.Resolve(ctx)
 		if err != nil {
-			return err, ""
+			return err, nil
 		}
 
-		err, dependencyFingerprint := safeDepReference.BuildStem(
+		err, dependencyBuildResult := safeDepReference.BuildStem(
 			ctx,
 			RootBuildStemRequest{
 				VariantDescriptor: req.DependencyVariantDescriptor,
@@ -206,12 +207,20 @@ func init() {
 			},
 		)
 		if err != nil {
-			return err, ""
+			return err, nil
+		}
+		if dependencyBuildResult == nil {
+			return fmt.Errorf("missing dependency build result: %s", req.DependencyPath), nil
 		}
 
-		err, dependencyHeapPath := heapStemsFingerprintPath(ctx, req.BaseRequest.Roots.Garden, filepath.Join(req.BaseRequest.Roots.Garden.BasePath, "dyd", "heap", "stems"), dependencyFingerprint)
+		err, dependencyHeapPath := heapStemsFingerprintPath(
+			ctx,
+			req.BaseRequest.Roots.Garden,
+			filepath.Join(req.BaseRequest.Roots.Garden.BasePath, "dyd", "heap", "stems"),
+			dependencyBuildResult.ResultFingerprint,
+		)
 		if err != nil {
-			return err, ""
+			return err, nil
 		}
 
 		dependencyName := req.DependencyName
@@ -221,16 +230,16 @@ func init() {
 		err = os.Symlink(dependencyHeapPath, targetDepPath)
 
 		if err != nil {
-			return err, ""
+			return err, nil
 		}
 
-		return nil, ""
+		return nil, dependencyBuildResult
 	}
 
 	var rootBuild_stage1_buildDependencies = task.ParallelMap(rootBuild_stage1_buildDependency)
 
-	var rootBuild_stage1_processResults = func(ctx *task.ExecutionContext, req []string) (error, any) {
-		return nil, nil
+	var rootBuild_stage1_processResults = func(ctx *task.ExecutionContext, req []*RootBuildResult) (error, []*RootBuildResult) {
+		return nil, req
 	}
 
 	rootBuild_stage1 = task.Series4(

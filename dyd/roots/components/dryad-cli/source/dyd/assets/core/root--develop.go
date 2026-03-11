@@ -520,7 +520,7 @@ func rootDevelop_stage1(
 			return err, nil
 		}
 
-		err, dependencyFingerprint := safeDepReference.BuildStem(
+		err, dependencyBuildResult := safeDepReference.BuildStem(
 			ctx,
 			RootBuildStemRequest{
 				VariantDescriptor: req.DependencyVariantDescriptor,
@@ -529,12 +529,15 @@ func rootDevelop_stage1(
 		if err != nil {
 			return err, nil
 		}
+		if dependencyBuildResult == nil {
+			return fmt.Errorf("missing dependency build result: %s", req.DependencyPath), nil
+		}
 
 		err, dependencyHeapPath := heapStemsFingerprintPath(
 			ctx,
 			roots.Garden,
 			filepath.Join(roots.Garden.BasePath, "dyd", "heap", "stems"),
-			dependencyFingerprint,
+			dependencyBuildResult.ResultFingerprint,
 		)
 		if err != nil {
 			return err, nil
