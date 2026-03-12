@@ -351,6 +351,18 @@ func rootBuildStemResult(ctx *task.ExecutionContext, req rootBuildRequest) (erro
 		return err, nil
 	}
 
+	err, rootStem := rootBuild_stage4(
+		ctx,
+		rootBuild_stage4_request{
+			Garden:        req.Root.Roots.Garden,
+			RootPath:      rootPath,
+			WorkspacePath: workspacePath,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("error packing root into heap: %w", err), nil
+	}
+
 	var heapDerivations *SafeHeapDerivationsReference
 	if !isUnstableRoot {
 		err, heap := req.Root.Roots.Garden.Heap().Resolve(ctx)
@@ -383,18 +395,6 @@ func rootBuildStemResult(ctx *task.ExecutionContext, req rootBuildRequest) (erro
 		Str("path", gardenRootPath).
 		Str("variant", variantLabel).
 		Msg("root build - building root")
-
-	err, rootStem := rootBuild_stage4(
-		ctx,
-		rootBuild_stage4_request{
-			Garden:        req.Root.Roots.Garden,
-			RootPath:      rootPath,
-			WorkspacePath: workspacePath,
-		},
-	)
-	if err != nil {
-		return fmt.Errorf("error packing root into heap: %w", err), nil
-	}
 
 	stemBuildPath, err := os.MkdirTemp("", "dryad-*")
 	if err != nil {

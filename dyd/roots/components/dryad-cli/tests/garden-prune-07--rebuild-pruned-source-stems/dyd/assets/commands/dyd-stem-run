@@ -1,0 +1,255 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+HELPER_A_SOURCE_STEM_PATH=''
+HELPER_A_DERIVATION_PATH=''
+HELPER_SHARED_RESULT_STEM_PATH=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+  TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+  TEMP_DIR="$(_realpath_dir "$TEMP_DIR")"
+}
+
+_realpath_dir() {
+  (
+    cd "$1"
+    pwd -P
+  )
+}
+
+_prepare() {
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+  chmod -R 755 "$TEMP_DIR"
+
+  _make_helper_root "root-c" "helper-a-source"
+  _make_helper_root "root-d" "helper-b-source"
+  _make_head_root "root-a" "head-a-content" "root-c"
+  _make_head_root "root-b" "head-b-content" "root-d"
+
+  cd "$TEMP_DIR"
+}
+
+_make_helper_root() {
+  local root_name="$1"
+  local source_marker="$2"
+  local root_path="$TEMP_DIR/dyd/roots/$root_name"
+
+  mkdir -p "$root_path/dyd/assets"
+  mkdir -p "$root_path/dyd/commands"
+
+  printf 'root' > "$root_path/dyd/type"
+  printf '%s' "$source_marker" > "$root_path/dyd/assets/source-marker.txt"
+  cat > "$root_path/dyd/commands/dyd-root-build" <<EOF
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+DEST_DIR=\$DYD_BUILD
+
+mkdir -p "\$DEST_DIR/dyd/assets"
+cat > "\$DEST_DIR/dyd/assets/value.txt" <<'INNER_EOF'
+shared-helper-result
+INNER_EOF
+EOF
+  chmod 755 "$root_path/dyd/commands/dyd-root-build"
+}
+
+_make_head_root() {
+  local root_name="$1"
+  local head_content="$2"
+  local helper_root="$3"
+  local root_path="$TEMP_DIR/dyd/roots/$root_name"
+
+  mkdir -p "$root_path/dyd/commands"
+  mkdir -p "$root_path/dyd/requirements"
+
+  printf 'root' > "$root_path/dyd/type"
+  printf 'root:../../../%s' "$helper_root" > "$root_path/dyd/requirements/$helper_root"
+
+  cat > "$root_path/dyd/commands/dyd-root-build" <<EOF
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=\$DYD_STEM
+DEST_DIR=\$DYD_BUILD
+
+helper_value=\$(cat "\$SRC_DIR/dyd/dependencies/$helper_root/dyd/assets/value.txt")
+
+mkdir -p "\$DEST_DIR/dyd/assets"
+mkdir -p "\$DEST_DIR/dyd/dependencies"
+
+cat > "\$DEST_DIR/dyd/assets/value.txt" <<'INNER_EOF'
+$head_content
+INNER_EOF
+
+cat > "\$DEST_DIR/dyd/assets/build-summary.txt" <<INNER_EOF
+head=$root_name
+helper=$helper_root:\$helper_value
+INNER_EOF
+
+ln -s "\$SRC_DIR/dyd/dependencies/$helper_root" "\$DEST_DIR/dyd/dependencies/$helper_root"
+EOF
+  chmod 755 "$root_path/dyd/commands/dyd-root-build"
+}
+
+_age_path() {
+  local path="$1"
+
+  find "$path" \
+    \( -type l -o -type f -o -type d \) \
+    -exec touch -h -d "2000-01-01 00:00:00" {} +
+}
+
+_find_derivation_by_result_first() {
+  local result_fingerprint="$1"
+  local derivation_path=''
+
+  while IFS= read -r derivation_path; do
+    if [ "$(cat "$derivation_path")" = "$result_fingerprint" ]; then
+      printf '%s\n' "$derivation_path"
+      return 0
+    fi
+  done < <(find "$TEMP_DIR/dyd/heap/derivations/roots/v2" -mindepth 1 -type f 2>/dev/null)
+
+  return 1
+}
+
+_fingerprint_from_derivation_path() {
+  local derivation_path="$1"
+  local version_path="$TEMP_DIR/dyd/heap/derivations/roots/v2"
+  local relative_path=''
+
+  relative_path=${derivation_path#"$version_path"/}
+  printf 'v2-%s\n' "$(printf '%s' "$relative_path" | tr -d '/')"
+}
+
+_stem_path_for_fingerprint() {
+  local fingerprint="$1"
+  local encoded=''
+
+  encoded=${fingerprint#v2-}
+  printf '%s\n' "$TEMP_DIR/dyd/heap/stems/v2/${encoded:0:2}/${encoded:2}"
+}
+
+_build_root() {
+  local root_name="$1"
+  local log_path="$2"
+
+  if ! dryad root build "dyd/roots/$root_name" --scope=none --log-level="$DYD_LOG_LEVEL" >"$log_path" 2>&1; then
+    echo "[ERROR] Fail: expected $root_name build to succeed" 1>&2
+    cat "$log_path" 1>&2
+    return 1
+  fi
+}
+
+_test() {
+  local build_root_a_log="$TEMP_DIR/build-root-a-initial.log"
+  local build_root_b_log="$TEMP_DIR/build-root-b.log"
+  local build_root_a_final_log="$TEMP_DIR/build-root-a-final.log"
+  local wipe_log="$TEMP_DIR/sprouts-wipe.log"
+  local prune_log="$TEMP_DIR/prune.log"
+  local helper_a_result_fingerprint=''
+  local helper_b_result_fingerprint=''
+  local helper_a_derivation_source_fingerprint=''
+
+  _build_root "root-a" "$build_root_a_log"
+
+  HELPER_SHARED_RESULT_STEM_PATH="$(_realpath_dir "$TEMP_DIR/dyd/sprouts/root-a/dyd/dependencies/stem/dyd/dependencies/root-c")"
+  helper_a_result_fingerprint=$(cat "$HELPER_SHARED_RESULT_STEM_PATH/dyd/fingerprint")
+  HELPER_A_DERIVATION_PATH="$(_find_derivation_by_result_first "$helper_a_result_fingerprint" || true)"
+
+  if [ -z "$HELPER_A_DERIVATION_PATH" ]; then
+    echo "[ERROR] Fail: expected a derivation file for helper root-c after building root-a" 1>&2
+    return 1
+  fi
+
+  helper_a_derivation_source_fingerprint="$(_fingerprint_from_derivation_path "$HELPER_A_DERIVATION_PATH")"
+  HELPER_A_SOURCE_STEM_PATH="$(_stem_path_for_fingerprint "$helper_a_derivation_source_fingerprint")"
+
+  if [ ! -d "$HELPER_A_SOURCE_STEM_PATH" ]; then
+    echo "[ERROR] Fail: expected helper root-c source stem to exist after building root-a" 1>&2
+    echo "path=$HELPER_A_SOURCE_STEM_PATH" 1>&2
+    return 1
+  fi
+
+  if ! dryad sprouts wipe --log-level="$DYD_LOG_LEVEL" >"$wipe_log" 2>&1; then
+    echo "[ERROR] Fail: expected sprouts wipe to succeed" 1>&2
+    cat "$wipe_log" 1>&2
+    return 1
+  fi
+
+  _build_root "root-b" "$build_root_b_log"
+
+  helper_b_result_fingerprint=$(cat "$TEMP_DIR/dyd/sprouts/root-b/dyd/dependencies/stem/dyd/dependencies/root-d/dyd/fingerprint")
+  if [ "$helper_b_result_fingerprint" != "$helper_a_result_fingerprint" ]; then
+    echo "[ERROR] Fail: expected helper roots root-c and root-d to produce the same result stem fingerprint" 1>&2
+    echo "helper_a_result_fingerprint=$helper_a_result_fingerprint" 1>&2
+    echo "helper_b_result_fingerprint=$helper_b_result_fingerprint" 1>&2
+    return 1
+  fi
+
+  _age_path "$TEMP_DIR"
+
+  if ! dryad garden prune --log-level="$DYD_LOG_LEVEL" >"$prune_log" 2>&1; then
+    echo "[ERROR] Fail: expected garden prune to succeed" 1>&2
+    cat "$prune_log" 1>&2
+    return 1
+  fi
+
+  if [ -e "$HELPER_A_SOURCE_STEM_PATH" ]; then
+    echo "[ERROR] Fail: expected helper root-c source stem to be pruned once root-b became the live graph" 1>&2
+    echo "path=$HELPER_A_SOURCE_STEM_PATH" 1>&2
+    return 1
+  fi
+
+  if [ ! -e "$HELPER_A_DERIVATION_PATH" ]; then
+    echo "[ERROR] Fail: expected helper root-c derivation to remain because the shared result stem is still live" 1>&2
+    echo "path=$HELPER_A_DERIVATION_PATH" 1>&2
+    return 1
+  fi
+
+  if [ ! -e "$HELPER_SHARED_RESULT_STEM_PATH" ]; then
+    echo "[ERROR] Fail: expected the shared helper result stem to remain live through root-b" 1>&2
+    echo "path=$HELPER_SHARED_RESULT_STEM_PATH" 1>&2
+    return 1
+  fi
+
+  _build_root "root-a" "$build_root_a_final_log"
+}
+
+_verify() {
+  local root_a_final_log="$TEMP_DIR/build-root-a-final.log"
+
+  assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-a"
+  assert_file_exists "$TEMP_DIR/dyd/sprouts/root-a/dyd/fingerprint"
+  assert_directory_exists "$HELPER_A_SOURCE_STEM_PATH"
+  assert_file_exists "$TEMP_DIR/dyd/sprouts/root-a/dyd/dependencies/stem/dyd/fingerprint"
+  assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-a/dyd/dependencies/stem/dyd/assets/value.txt" "head-a-content"
+  assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-a/dyd/dependencies/stem/dyd/assets/build-summary.txt" "head=root-a
+helper=root-c:shared-helper-result"
+  assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-a/dyd/dependencies/stem/dyd/dependencies/root-c/dyd/assets/value.txt" "shared-helper-result"
+  assert_file_exists "$HELPER_A_DERIVATION_PATH"
+  assert_directory_exists "$HELPER_SHARED_RESULT_STEM_PATH"
+
+  if ! grep -F "root build - building root" "$root_a_final_log" | grep -F "root-a" >/dev/null 2>&1; then
+    echo "[ERROR] Fail: expected the final root-a build to rebuild root-a" 1>&2
+    cat "$root_a_final_log" 1>&2
+    return 1
+  fi
+}
+
+_teardown() {
+  if [ -d "$TEMP_DIR" ]; then
+    chmod -R 755 "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+  fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
