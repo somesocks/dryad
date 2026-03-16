@@ -13,12 +13,14 @@ Each root includes directories such as:
 - `dyd/assets` - source/input files
 - `dyd/commands` - command scripts, including `dyd-root-build`
 - `dyd/traits` - metadata files
+- `dyd/variants` - variant dimension catalogs and include/exclude rules
 - `dyd/requirements` - dependency declarations
 - `dyd/docs`, `dyd/secrets`
 
 Variant selectors are also supported for root content paths:
 - `dyd/assets~<descriptor>`
 - `dyd/commands~<descriptor>`
+- `dyd/traits~<descriptor>`
 - `dyd/secrets~<descriptor>`
 - `dyd/docs~<descriptor>`
 - `dyd/requirements~<descriptor>`

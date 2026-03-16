@@ -18,6 +18,7 @@ type rootBuild_stage0_request struct {
 	VariantDescriptor        string
 	SelectedAssetsPath       string
 	SelectedCommandsPath     string
+	SelectedTraitsPath       string
 	SelectedSecretsPath      string
 	SelectedDocsPath         string
 	SelectedRequirementsPath string
@@ -34,7 +35,7 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		zlog.Trace().
 			Msg("RootBuild/stage0/prepReq")
 
-		err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndRequirementsPaths(
+		err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsPaths(
 			ctx,
 			req.RootPath,
 			req.VariantDescriptor,
@@ -45,6 +46,7 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 
 		req.SelectedAssetsPath = selectedPaths.AssetsPath
 		req.SelectedCommandsPath = selectedPaths.CommandsPath
+		req.SelectedTraitsPath = selectedPaths.TraitsPath
 		req.SelectedSecretsPath = selectedPaths.SecretsPath
 		req.SelectedDocsPath = selectedPaths.DocsPath
 		req.SelectedRequirementsPath = selectedPaths.RequirementsPath
@@ -127,6 +129,7 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		err := rootBuild_materializeVariantTraits(
 			ctx,
 			req.RootPath,
+			req.SelectedTraitsPath,
 			req.WorkspacePath,
 			req.VariantDescriptor,
 		)

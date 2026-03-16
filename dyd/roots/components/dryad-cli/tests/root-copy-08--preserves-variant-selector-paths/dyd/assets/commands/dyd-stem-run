@@ -30,11 +30,13 @@ _verify() {
 	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02/dyd/assets~$SELECTOR"
 	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02/dyd/commands~$SELECTOR"
 	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02/dyd/docs~$SELECTOR"
+	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02/dyd/traits~$SELECTOR"
 	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02/dyd/secrets~$SELECTOR"
 	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02/dyd/requirements~$SELECTOR"
 
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-02/dyd/assets~$SELECTOR/value.txt" "selector-asset"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-02/dyd/docs~$SELECTOR/about.md" "selector-doc"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-02/dyd/traits~$SELECTOR/name" "selector-trait"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-02/dyd/secrets~$SELECTOR/secret.txt" "selector-secret"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-02/dyd/requirements~$SELECTOR/root-dep" "root:../../../root-dep"
 	assert_file_exists "$TEMP_DIR/dyd/roots/root-02/dyd/commands~$SELECTOR/dyd-root-build"
@@ -42,6 +44,7 @@ _verify() {
 	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-02/dyd/type" "sprout"
 	assert_file_content_equals "$root_stem/dyd/assets/value.txt" "selector-asset"
 	assert_file_content_equals "$root_stem/dyd/assets/about.txt" "selector-doc"
+	assert_file_content_equals "$root_stem/dyd/assets/trait.txt" "selector-trait"
 	assert_file_content_equals "$root_stem/dyd/assets/secret.txt" "selector-secret"
 	assert_file_content_equals "$root_stem/dyd/assets/dep.txt" "root-dep"
 }

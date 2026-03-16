@@ -28,7 +28,7 @@ func TestRootBuildMaterializeVariantTraits_AppliesSelectionWithoutMaterializingV
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
 
-	err := rootBuild_materializeVariantTraits(task.SERIAL_CONTEXT, rootPath, workspacePath, "arch=amd64+os=linux")
+	err := rootBuild_materializeVariantTraits(task.SERIAL_CONTEXT, rootPath, filepath.Join(rootPath, "dyd", "traits"), workspacePath, "arch=amd64+os=linux")
 	assert.Nil(err)
 
 	assert.Equal("demo", readTrimmedFileForTest(t, filepath.Join(workspacePath, "dyd", "traits", "name")))
@@ -50,7 +50,7 @@ func TestRootBuildMaterializeVariantTraits_UnderspecifiedFails(t *testing.T) {
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
 
-	err := rootBuild_materializeVariantTraits(task.SERIAL_CONTEXT, rootPath, workspacePath, "os=linux")
+	err := rootBuild_materializeVariantTraits(task.SERIAL_CONTEXT, rootPath, filepath.Join(rootPath, "dyd", "traits"), workspacePath, "os=linux")
 	assert.NotNil(err)
 	assert.Contains(err.Error(), "under-specified root variant descriptor dimension")
 }
@@ -63,7 +63,7 @@ func TestRootBuildMaterializeVariantTraits_NoVariantsRejectsDescriptor(t *testin
 
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "name"), "demo")
 
-	err := rootBuild_materializeVariantTraits(task.SERIAL_CONTEXT, rootPath, workspacePath, "os=linux")
+	err := rootBuild_materializeVariantTraits(task.SERIAL_CONTEXT, rootPath, filepath.Join(rootPath, "dyd", "traits"), workspacePath, "os=linux")
 	assert.NotNil(err)
 	assert.Contains(err.Error(), "root has no variant dimensions")
 }
@@ -77,7 +77,7 @@ func TestRootBuildMaterializeVariantTraits_NoVariantsKeepsSymlinkBehavior(t *tes
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "name"), "demo")
 	writeFileForTest(t, filepath.Join(workspacePath, "dyd", ".keep"), "")
 
-	err := rootBuild_materializeVariantTraits(task.SERIAL_CONTEXT, rootPath, workspacePath, "")
+	err := rootBuild_materializeVariantTraits(task.SERIAL_CONTEXT, rootPath, filepath.Join(rootPath, "dyd", "traits"), workspacePath, "")
 	assert.Nil(err)
 	if err != nil {
 		return
@@ -98,7 +98,7 @@ func TestRootBuildMaterializeVariantTraits_NoneConflictsWithExistingTrait(t *tes
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "os"), "linux")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "none"), "true")
 
-	err := rootBuild_materializeVariantTraits(task.SERIAL_CONTEXT, rootPath, workspacePath, "os=none")
+	err := rootBuild_materializeVariantTraits(task.SERIAL_CONTEXT, rootPath, filepath.Join(rootPath, "dyd", "traits"), workspacePath, "os=none")
 	assert.NotNil(err)
 	assert.Contains(err.Error(), "requires omitted trait")
 }
@@ -112,7 +112,7 @@ func TestRootBuildMaterializeVariantTraits_OmittedDimensionUsesEnabledNone(t *te
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "name"), "demo")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "none"), "true")
 
-	err := rootBuild_materializeVariantTraits(task.SERIAL_CONTEXT, rootPath, workspacePath, "")
+	err := rootBuild_materializeVariantTraits(task.SERIAL_CONTEXT, rootPath, filepath.Join(rootPath, "dyd", "traits"), workspacePath, "")
 	assert.Nil(err)
 
 	assert.Equal("demo", readTrimmedFileForTest(t, filepath.Join(workspacePath, "dyd", "traits", "name")))
@@ -136,7 +136,7 @@ func TestRootBuildMaterializeVariantTraits_RejectsNonConcreteKeywords(t *testing
 
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
 
-	err := rootBuild_materializeVariantTraits(task.SERIAL_CONTEXT, rootPath, workspacePath, "os=inherit")
+	err := rootBuild_materializeVariantTraits(task.SERIAL_CONTEXT, rootPath, filepath.Join(rootPath, "dyd", "traits"), workspacePath, "os=inherit")
 	assert.NotNil(err)
 	assert.Contains(err.Error(), "invalid concrete root variant option")
 }
@@ -151,7 +151,7 @@ func TestRootBuildMaterializeVariantTraits_OverwritesMismatchedTraitInWorkspace(
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
 
-	err := rootBuild_materializeVariantTraits(task.SERIAL_CONTEXT, rootPath, workspacePath, "os=darwin")
+	err := rootBuild_materializeVariantTraits(task.SERIAL_CONTEXT, rootPath, filepath.Join(rootPath, "dyd", "traits"), workspacePath, "os=darwin")
 	assert.Nil(err)
 
 	assert.Equal("darwin", readTrimmedFileForTest(t, filepath.Join(workspacePath, "dyd", "traits", "os")))

@@ -87,6 +87,7 @@
     - Variant selectors are supported with `<root>/dyd/commands~<descriptor>`.
     - `<root>/dyd/commands/dyd-root-build` - this is the build script for the package.
   - `<root>/dyd/traits` - _traits_ - metadata files specifying traits for the root (name, version, license, etc.).
+    - Variant selectors are supported with `<root>/dyd/traits~<descriptor>`.
   - `<root>/dyd/variants` - _variants_ - variant dimension catalogs plus `_include` / `_exclude` rules used to resolve concrete builds.
   - `<root>/dyd/docs` - _docs_ - documentation files for the root.
     - Variant selectors are supported with `<root>/dyd/docs~<descriptor>`.
@@ -157,7 +158,7 @@
   - Filesystem form: `arch=amd64+os=linux` (used in filenames and dependency suffixes).
   - URL form: `?arch=amd64&os=linux` (used in requirement target URLs).
 - Variant selectors for root content paths:
-  - Supported path kinds: `dyd/assets`, `dyd/commands`, `dyd/secrets`, `dyd/docs`, `dyd/requirements`.
+  - Supported path kinds: `dyd/assets`, `dyd/commands`, `dyd/traits`, `dyd/secrets`, `dyd/docs`, `dyd/requirements`.
   - Selector form: `<path_kind>~<descriptor>`, for example `assets~arch=amd64,arm64+os=linux`.
   - Selector matching uses the same behavior as include/exclude filters:
     - supported: concrete options, `none`, `any`, and comma lists.

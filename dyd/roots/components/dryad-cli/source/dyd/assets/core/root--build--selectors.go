@@ -24,6 +24,7 @@ type rootBuildSelectorSelectionState struct {
 type rootBuildSelectedPaths struct {
 	AssetsPath       string
 	CommandsPath     string
+	TraitsPath       string
 	SecretsPath      string
 	DocsPath         string
 	RequirementsPath string
@@ -180,7 +181,7 @@ func rootBuild_considerSelectorMatch(
 	return nil
 }
 
-func rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndRequirementsPaths(
+func rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsPaths(
 	ctx *task.ExecutionContext,
 	rootPath string,
 	variantDescriptor string,
@@ -218,6 +219,7 @@ func rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndRequirementsPaths(
 
 	assetsState := rootBuildSelectorSelectionState{}
 	commandsState := rootBuildSelectorSelectionState{}
+	traitsState := rootBuildSelectorSelectionState{}
 	secretsState := rootBuildSelectorSelectionState{}
 	docsState := rootBuildSelectorSelectionState{}
 	requirementsState := rootBuildSelectorSelectionState{}
@@ -252,6 +254,19 @@ func rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndRequirementsPaths(
 				"dyd/commands",
 				"commands",
 				&commandsState,
+			)
+			if err != nil {
+				return err, rootBuildSelectedPaths{}
+			}
+
+			err = rootBuild_considerSelectorMatch(
+				matchContext,
+				selectorName,
+				selectorPath,
+				"traits",
+				"dyd/traits",
+				"traits",
+				&traitsState,
 			)
 			if err != nil {
 				return err, rootBuildSelectedPaths{}
@@ -309,6 +324,9 @@ func rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndRequirementsPaths(
 	if commandsState.MatchCount > 1 {
 		return fmt.Errorf("multiple matching dyd/commands selectors for variant %s", variantLabel), rootBuildSelectedPaths{}
 	}
+	if traitsState.MatchCount > 1 {
+		return fmt.Errorf("multiple matching dyd/traits selectors for variant %s", variantLabel), rootBuildSelectedPaths{}
+	}
 	if secretsState.MatchCount > 1 {
 		return fmt.Errorf("multiple matching dyd/secrets selectors for variant %s", variantLabel), rootBuildSelectedPaths{}
 	}
@@ -322,6 +340,7 @@ func rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndRequirementsPaths(
 	return nil, rootBuildSelectedPaths{
 		AssetsPath:       assetsState.MatchPath,
 		CommandsPath:     commandsState.MatchPath,
+		TraitsPath:       traitsState.MatchPath,
 		SecretsPath:      secretsState.MatchPath,
 		DocsPath:         docsState.MatchPath,
 		RequirementsPath: requirementsState.MatchPath,
