@@ -7,7 +7,7 @@ if [ ! -f "$os_trait_file" ]; then
 	exit 1
 fi
 
-if [ -e "$DYD_STEM/dyd/traits/variants" ]; then
+if [ -e "$DYD_STEM/dyd/variants" ]; then
 	echo "[ERROR] variant catalog should be removed in materialized develop workspace" 1>&2
 	exit 1
 fi

@@ -37,6 +37,8 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 			"|(dyd/requirements(~[^/]+)?/.*)" +
 			"|(dyd/secrets(~[^/]+)?)" +
 			"|(dyd/secrets(~[^/]+)?/.*)" +
+			"|(dyd/variants)" +
+			"|(dyd/variants/.*)" +
 			"|(dyd/traits)" +
 			"|(dyd/traits/.*)" +
 			")$",
@@ -61,6 +63,8 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 			"|(dyd/fingerprint)" +
 			"|(dyd/type)" +
 			"|(dyd/root)" +
+			"|(dyd/variants)" +
+			"|(dyd/variants/.*)" +
 			"|(dyd/traits)" +
 			"|(dyd/traits/.*)" +
 			")$",

@@ -8,15 +8,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRootDevelopMaterializeVariantTraits_AppliesSelectionAndRemovesVariants(t *testing.T) {
+func TestRootDevelopMaterializeVariantTraits_AppliesSelectionWithoutMaterializingVariants(t *testing.T) {
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
 	workspacePath := t.TempDir()
 
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "name"), "demo")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
 
 	err := rootDevelop_copyDir(
 		task.SERIAL_CONTEXT,
@@ -32,12 +32,12 @@ func TestRootDevelopMaterializeVariantTraits_AppliesSelectionAndRemovesVariants(
 	assert.Equal("linux", readTrimmedFileForTest(t, filepath.Join(workspacePath, "dyd", "traits", "os")))
 	assert.Equal("demo", readTrimmedFileForTest(t, filepath.Join(workspacePath, "dyd", "traits", "name")))
 
-	workspaceVariantsPath := filepath.Join(workspacePath, "dyd", "traits", "variants")
+	workspaceVariantsPath := filepath.Join(workspacePath, "dyd", "variants")
 	workspaceVariantsExists, err := fileExists(workspaceVariantsPath)
 	assert.Nil(err)
 	assert.False(workspaceVariantsExists)
 
-	rootVariantsPath := filepath.Join(rootPath, "dyd", "traits", "variants")
+	rootVariantsPath := filepath.Join(rootPath, "dyd", "variants")
 	rootVariantsExists, err := fileExists(rootVariantsPath)
 	assert.Nil(err)
 	assert.True(rootVariantsExists)
@@ -64,7 +64,7 @@ func TestRootDevelopMaterializeVariantTraits_OmittedDimensionUsesEnabledNone(t *
 	workspacePath := t.TempDir()
 
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "name"), "demo")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "none"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "none"), "true")
 
 	err := rootDevelop_copyDir(
 		task.SERIAL_CONTEXT,
@@ -84,7 +84,7 @@ func TestRootDevelopMaterializeVariantTraits_OmittedDimensionUsesEnabledNone(t *
 	assert.Nil(err)
 	assert.False(osTraitExists)
 
-	workspaceVariantsPath := filepath.Join(workspacePath, "dyd", "traits", "variants")
+	workspaceVariantsPath := filepath.Join(workspacePath, "dyd", "variants")
 	workspaceVariantsExists, err := fileExists(workspaceVariantsPath)
 	assert.Nil(err)
 	assert.False(workspaceVariantsExists)

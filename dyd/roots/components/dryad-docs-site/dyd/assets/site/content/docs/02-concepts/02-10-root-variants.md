@@ -13,7 +13,7 @@ Root variants let one root produce multiple concrete build outputs from variant 
 
 Variant configuration lives under:
 
-- `<root>/dyd/traits/variants/<dimension>/<option>`
+- `<root>/dyd/variants/<dimension>/<option>`
 
 Each option file must contain exactly `true` or `false`:
 
@@ -23,7 +23,7 @@ Each option file must contain exactly `true` or `false`:
 Example:
 
 ```text
-dyd/traits/variants/
+dyd/variants/
   os/
     linux      # true
     darwin     # true
@@ -125,7 +125,7 @@ In root content path selectors (`dyd/assets~...`, `dyd/commands~...`, `dyd/secre
 
 Variant exclusions live under:
 
-- `<root>/dyd/traits/variants/_exclude/<descriptor>`
+- `<root>/dyd/variants/_exclude/<descriptor>`
 
 Each exclusion file also contains `true` or `false`:
 
@@ -145,7 +145,7 @@ Exclusion selectors must specify every enabled dimension. Unlike requirement sel
 
 Variant inclusions live under:
 
-- `<root>/dyd/traits/variants/_include/<descriptor>`
+- `<root>/dyd/variants/_include/<descriptor>`
 
 Each inclusion file also contains `true` or `false`:
 
@@ -171,7 +171,9 @@ Resolution behavior:
 
 When dryad builds a concrete variant:
 
+- variant configuration is read from `dyd/variants/`
 - selected variant options are materialized into concrete traits under `dyd/traits/`
+- `dyd/variants/` itself is not materialized into stems or develop workspaces
 - if a dimension is selected as `none`, that trait key is omitted in the concrete build
 
 For quick inspection of resolved build variants for a root, use:

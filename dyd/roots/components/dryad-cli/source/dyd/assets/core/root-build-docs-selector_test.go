@@ -24,8 +24,8 @@ func TestRootBuildSelectDocsPath_ConditionalSelectorMatchesConcreteVariant(t *te
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "docs~os=linux", "about.md"), "linux")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "docs~os=darwin", "about.md"), "darwin")
 
@@ -38,10 +38,10 @@ func TestRootBuildSelectDocsPath_OmittedSelectorDimensionsAreImplicitAny(t *test
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "arm64"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "docs~os=linux", "about.md"), "linux-any-arch")
 
 	err, docsPath := rootBuild_selectDocsPathForTest(
@@ -57,8 +57,8 @@ func TestRootBuildSelectDocsPath_NoMatchesIsAllowed(t *testing.T) {
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "docs~os=darwin", "about.md"), "darwin")
 
 	err, docsPath := rootBuild_selectDocsPathForTest(task.SERIAL_CONTEXT, rootPath, "os=linux")
@@ -70,9 +70,9 @@ func TestRootBuildSelectDocsPath_NoneAnyAndOptionListsAreSupported(t *testing.T)
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "none"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "none"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "docs~os=linux,none", "about.md"), "none-or-linux")
 
 	err, docsPath := rootBuild_selectDocsPathForTest(task.SERIAL_CONTEXT, rootPath, "")
@@ -88,7 +88,7 @@ func TestRootBuildSelectDocsPath_InheritAndHostAreRejected(t *testing.T) {
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "docs~os=inherit", "about.md"), "bad")
 
 	err, _ := rootBuild_selectDocsPathForTest(task.SERIAL_CONTEXT, rootPath, "os=linux")
@@ -96,7 +96,7 @@ func TestRootBuildSelectDocsPath_InheritAndHostAreRejected(t *testing.T) {
 	assert.Contains(err.Error(), "inherit option is not supported for docs variant selectors")
 
 	rootPath = t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "docs~os=host", "about.md"), "bad")
 
 	err, _ = rootBuild_selectDocsPathForTest(task.SERIAL_CONTEXT, rootPath, "os=linux")
@@ -108,7 +108,7 @@ func TestRootBuildSelectDocsPath_MultipleMatchesFails(t *testing.T) {
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "docs", "about.md"), "default")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "docs~os=linux", "about.md"), "linux")
 
@@ -123,8 +123,8 @@ func TestRootBuildStage0_LinksOnlySelectedDocs(t *testing.T) {
 	rootPath := t.TempDir()
 	workspacePath := t.TempDir()
 
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "docs~os=linux", "about.md"), "linux")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "docs~os=darwin", "about.md"), "darwin")
 
@@ -151,8 +151,8 @@ func TestRootBuildStage0_NoMatchingDocsLeavesDocsPathAbsent(t *testing.T) {
 	rootPath := t.TempDir()
 	workspacePath := t.TempDir()
 
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "docs~os=darwin", "about.md"), "darwin")
 
 	err, _ := rootBuild_stage0(task.SERIAL_CONTEXT, rootBuild_stage0_request{

@@ -119,10 +119,10 @@ func TestRootRequirementResolveTargets_InheritAndConcrete(t *testing.T) {
 	sourceRootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
 	targetRootPath := createRootForVariantRequirementTest(t, gardenPath, "dep")
 
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "arch", "arm64"), "true")
 
 	createRequirementForVariantRequirementTest(
 		t,
@@ -155,8 +155,8 @@ func TestRootRequirementResolveTargets_InheritNoneFromParent(t *testing.T) {
 	sourceRootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
 	targetRootPath := createRootForVariantRequirementTest(t, gardenPath, "dep")
 
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "none"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "none"), "true")
 
 	createRequirementForVariantRequirementTest(
 		t,
@@ -185,10 +185,10 @@ func TestRootRequirementResolveTargets_AnyExpandsCartesianProduct(t *testing.T) 
 	sourceRootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
 	targetRootPath := createRootForVariantRequirementTest(t, gardenPath, "dep")
 
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "arch", "arm64"), "true")
 
 	createRequirementForVariantRequirementTest(
 		t,
@@ -230,7 +230,7 @@ func TestRootRequirementResolveTargets_AnySingleTargetStillForcesSuffix(t *testi
 	sourceRootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
 	targetRootPath := createRootForVariantRequirementTest(t, gardenPath, "dep")
 
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "linux"), "true")
 
 	createRequirementForVariantRequirementTest(
 		t,
@@ -260,10 +260,10 @@ func TestRootRequirementResolveTargets_OptionListExpandsSetAndForcesSuffix(t *te
 	sourceRootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
 	targetRootPath := createRootForVariantRequirementTest(t, gardenPath, "dep")
 
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "arch", "arm64"), "true")
 
 	createRequirementForVariantRequirementTest(
 		t,
@@ -303,8 +303,8 @@ func TestRootRequirementResolveTargets_UnderspecifiedFails(t *testing.T) {
 	sourceRootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
 	targetRootPath := createRootForVariantRequirementTest(t, gardenPath, "dep")
 
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "arch", "amd64"), "true")
 
 	createRequirementForVariantRequirementTest(
 		t,
@@ -329,7 +329,7 @@ func TestRootRequirementResolveTargets_HostResolvesCurrentRuntime(t *testing.T) 
 	sourceRootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
 	targetRootPath := createRootForVariantRequirementTest(t, gardenPath, "dep")
 
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", runtime.GOOS), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", runtime.GOOS), "true")
 	createRequirementForVariantRequirementTest(
 		t,
 		sourceRootPath,
@@ -357,7 +357,7 @@ func TestRootRequirementResolveTargets_HostUnsupportedDimensionFails(t *testing.
 	sourceRootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
 	targetRootPath := createRootForVariantRequirementTest(t, gardenPath, "dep")
 
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "version", "1.0"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "version", "1.0"), "true")
 	createRequirementForVariantRequirementTest(
 		t,
 		sourceRootPath,
@@ -381,11 +381,11 @@ func TestRootRequirementResolveTargets_ExclusionsFilterResolvedVariants(t *testi
 	sourceRootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
 	targetRootPath := createRootForVariantRequirementTest(t, gardenPath, "dep")
 
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "_exclude", "arch=amd64+os=darwin"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "_exclude", "arch=amd64+os=darwin"), "true")
 
 	createRequirementForVariantRequirementTest(
 		t,
@@ -423,11 +423,11 @@ func TestRootRequirementResolveTargets_ExclusionsAnySelectorFiltersResolvedVaria
 	sourceRootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
 	targetRootPath := createRootForVariantRequirementTest(t, gardenPath, "dep")
 
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "_exclude", "arch=any+os=darwin"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "_exclude", "arch=any+os=darwin"), "true")
 
 	createRequirementForVariantRequirementTest(
 		t,
@@ -464,11 +464,11 @@ func TestRootRequirementResolveTargets_ExclusionsPartialSelectorFiltersResolvedV
 	sourceRootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
 	targetRootPath := createRootForVariantRequirementTest(t, gardenPath, "dep")
 
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "_exclude", "arch=arm64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "_exclude", "arch=arm64"), "true")
 
 	createRequirementForVariantRequirementTest(
 		t,
@@ -505,11 +505,11 @@ func TestRootRequirementResolveTargets_InclusionsFilterResolvedVariants(t *testi
 	sourceRootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
 	targetRootPath := createRootForVariantRequirementTest(t, gardenPath, "dep")
 
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "_include", "arch=amd64+os=any"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "_include", "arch=amd64+os=any"), "true")
 
 	createRequirementForVariantRequirementTest(
 		t,
@@ -546,11 +546,11 @@ func TestRootRequirementResolveTargets_InclusionsPartialSelectorFiltersResolvedV
 	sourceRootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
 	targetRootPath := createRootForVariantRequirementTest(t, gardenPath, "dep")
 
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "_include", "os=darwin"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "_include", "os=darwin"), "true")
 
 	createRequirementForVariantRequirementTest(
 		t,
@@ -587,11 +587,11 @@ func TestRootRequirementResolveTargets_EmptyInclusionMapIncludesAllVariants(t *t
 	sourceRootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
 	targetRootPath := createRootForVariantRequirementTest(t, gardenPath, "dep")
 
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "_include", "arch=amd64+os=linux"), "false")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "_include", "arch=amd64+os=linux"), "false")
 
 	createRequirementForVariantRequirementTest(
 		t,
@@ -616,9 +616,9 @@ func TestRootRequirementResolveTargets_FailsWhenSelectionIsExcluded(t *testing.T
 	sourceRootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
 	targetRootPath := createRootForVariantRequirementTest(t, gardenPath, "dep")
 
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "traits", "variants", "_exclude", "arch=amd64+os=darwin"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "_exclude", "arch=amd64+os=darwin"), "true")
 
 	createRequirementForVariantRequirementTest(
 		t,
