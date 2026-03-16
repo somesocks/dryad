@@ -14,6 +14,7 @@ import (
 func rootBuild_materializeVariantTraits(
 	ctx *task.ExecutionContext,
 	rootPath string,
+	traitsSourcePath string,
 	workspacePath string,
 	variantDescriptor string,
 ) error {
@@ -28,12 +29,15 @@ func rootBuild_materializeVariantTraits(
 		return err
 	}
 
-	traitsSourcePath := filepath.Join(rootPath, "dyd", "traits")
 	traitsDestinationPath := filepath.Join(workspacePath, "dyd", "traits")
 
 	sourceTraitsExists, err := fileExists(traitsSourcePath)
 	if err != nil {
 		return err
+	}
+	warnTraitsBasePath := traitsSourcePath
+	if warnTraitsBasePath == "" {
+		warnTraitsBasePath = filepath.Join(rootPath, "dyd", "traits")
 	}
 
 	if len(dimensions) == 0 {
@@ -129,7 +133,7 @@ func rootBuild_materializeVariantTraits(
 			rawValue := strings.TrimSpace(string(rawBytes))
 			if rawValue != selectedOption {
 				warnVariantTraitOverwrite(
-					filepath.Join(rootPath, "dyd", "traits", dimension.Name),
+					filepath.Join(warnTraitsBasePath, dimension.Name),
 					rawValue,
 					selectedOption,
 				)

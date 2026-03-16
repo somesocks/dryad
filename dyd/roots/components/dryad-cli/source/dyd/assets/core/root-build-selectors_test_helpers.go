@@ -7,7 +7,7 @@ func rootBuild_selectAssetsPathForTest(
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
-	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndRequirementsPaths(
+	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsPaths(
 		ctx,
 		rootPath,
 		variantDescriptor,
@@ -20,7 +20,7 @@ func rootBuild_selectCommandsPathForTest(
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
-	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndRequirementsPaths(
+	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsPaths(
 		ctx,
 		rootPath,
 		variantDescriptor,
@@ -33,7 +33,7 @@ func rootBuild_selectSecretsPathForTest(
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
-	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndRequirementsPaths(
+	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsPaths(
 		ctx,
 		rootPath,
 		variantDescriptor,
@@ -46,7 +46,7 @@ func rootBuild_selectDocsPathForTest(
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
-	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndRequirementsPaths(
+	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsPaths(
 		ctx,
 		rootPath,
 		variantDescriptor,
@@ -59,10 +59,23 @@ func rootBuild_selectRequirementsPathForTest(
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
-	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndRequirementsPaths(
+	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsPaths(
 		ctx,
 		rootPath,
 		variantDescriptor,
 	)
 	return err, selectedPaths.RequirementsPath
+}
+
+func rootBuild_selectTraitsPathForTest(
+	ctx *task.ExecutionContext,
+	rootPath string,
+	variantDescriptor string,
+) (error, string) {
+	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsPaths(
+		ctx,
+		rootPath,
+		variantDescriptor,
+	)
+	return err, selectedPaths.TraitsPath
 }

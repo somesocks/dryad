@@ -39,8 +39,8 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 			"|(dyd/secrets(~[^/]+)?/.*)" +
 			"|(dyd/variants)" +
 			"|(dyd/variants/.*)" +
-			"|(dyd/traits)" +
-			"|(dyd/traits/.*)" +
+			"|(dyd/traits(~[^/]+)?)" +
+			"|(dyd/traits(~[^/]+)?/.*)" +
 			")$",
 	)
 
@@ -65,8 +65,8 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 			"|(dyd/root)" +
 			"|(dyd/variants)" +
 			"|(dyd/variants/.*)" +
-			"|(dyd/traits)" +
-			"|(dyd/traits/.*)" +
+			"|(dyd/traits(~[^/]+)?)" +
+			"|(dyd/traits(~[^/]+)?/.*)" +
 			")$",
 	)
 

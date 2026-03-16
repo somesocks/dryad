@@ -85,6 +85,7 @@ Root content path selectors:
 
 - `dyd/assets~<descriptor>`
 - `dyd/commands~<descriptor>`
+- `dyd/traits~<descriptor>`
 - `dyd/secrets~<descriptor>`
 - `dyd/docs~<descriptor>`
 - `dyd/requirements~<descriptor>`
@@ -111,7 +112,7 @@ In requirement *conditions*:
 - `none` matches when parent omits that dimension.
 - `host` matches parent variant against host `os`/`arch`.
 
-In root content path selectors (`dyd/assets~...`, `dyd/commands~...`, `dyd/secrets~...`, `dyd/docs~...`, `dyd/requirements~...`):
+In root content path selectors (`dyd/assets~...`, `dyd/commands~...`, `dyd/traits~...`, `dyd/secrets~...`, `dyd/docs~...`, `dyd/requirements~...`):
 
 - supported: concrete options, `none`, `any`, and comma lists
 - not supported: `inherit` and `host`
