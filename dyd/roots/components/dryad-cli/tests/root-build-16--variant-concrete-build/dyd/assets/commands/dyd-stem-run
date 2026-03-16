@@ -68,7 +68,7 @@ _verify() {
 	assert_directory_exists "$variant_stem"
 	assert_file_exists "$variant_stem/dyd/traits/os"
 	assert_file_content_equals "$variant_stem/dyd/traits/os" "linux"
-	assert_directory_not_exists "$variant_stem/dyd/traits/variants"
+	assert_directory_not_exists "$variant_stem/dyd/variants"
 }
 
 _teardown() {

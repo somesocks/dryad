@@ -121,17 +121,5 @@ func rootDevelop_materializeVariantTraits(
 		}
 	}
 
-	workspaceVariantsPath := filepath.Join(traitsDestinationPath, "variants")
-	workspaceVariantsExists, err := fileExists(workspaceVariantsPath)
-	if err != nil {
-		return err
-	}
-	if workspaceVariantsExists {
-		err = os.RemoveAll(workspaceVariantsPath)
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }

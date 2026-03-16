@@ -35,10 +35,10 @@ func TestRootResolveBuildVariants_DefaultsToAllEnabledOptions(t *testing.T) {
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "arm64"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
@@ -56,10 +56,10 @@ func TestRootResolveBuildVariants_UnderspecifiedSelectorDefaultsMissingDimension
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "arm64"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{
@@ -77,10 +77,10 @@ func TestRootResolveBuildVariants_OptionListSelectorExpandsSet(t *testing.T) {
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "arm64"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{
@@ -98,8 +98,8 @@ func TestRootResolveBuildVariants_IgnoreUnknownDimensionsWhenRequested(t *testin
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{
@@ -117,7 +117,7 @@ func TestRootResolveBuildVariants_RejectUnknownDimensionsWhenNotIgnored(t *testi
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, _ := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{
@@ -131,9 +131,9 @@ func TestRootResolveBuildVariants_NoneOptionOmitsDimension(t *testing.T) {
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "none"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "none"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
@@ -149,7 +149,7 @@ func TestRootResolveBuildVariants_DisabledOptionFails(t *testing.T) {
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "false")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "false")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, _ := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{
@@ -163,7 +163,7 @@ func TestRootResolveBuildVariants_InheritIsRejected(t *testing.T) {
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, _ := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{
@@ -177,8 +177,8 @@ func TestRootResolveBuildVariants_HostResolvesRuntime(t *testing.T) {
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", runtime.GOOS), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "other"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", runtime.GOOS), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "other"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{
@@ -194,7 +194,7 @@ func TestRootResolveBuildVariants_HostUnsupportedDimensionRejected(t *testing.T)
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "tool", "local"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "tool", "local"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, _ := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{
@@ -208,12 +208,12 @@ func TestRootResolveBuildVariants_AppliesExclusions(t *testing.T) {
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_exclude", "arch=amd64+os=linux"), "false")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_exclude", "arch=arm64+os=darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "_exclude", "arch=amd64+os=linux"), "false")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "_exclude", "arch=arm64+os=darwin"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
@@ -230,11 +230,11 @@ func TestRootResolveBuildVariants_AppliesAnyExclusionSelector(t *testing.T) {
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_exclude", "arch=any+os=darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "_exclude", "arch=any+os=darwin"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
@@ -250,11 +250,11 @@ func TestRootResolveBuildVariants_AppliesOptionListExclusionSelector(t *testing.
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_exclude", "arch=amd64+os=darwin,linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "_exclude", "arch=amd64+os=darwin,linux"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
@@ -270,11 +270,11 @@ func TestRootResolveBuildVariants_AppliesPartialExclusionSelector(t *testing.T) 
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_exclude", "arch=arm64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "_exclude", "arch=arm64"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
@@ -290,9 +290,9 @@ func TestRootResolveBuildVariants_RejectsInheritInExclusionSelector(t *testing.T
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_exclude", "arch=amd64+os=inherit"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "_exclude", "arch=amd64+os=inherit"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, _ := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
@@ -304,9 +304,9 @@ func TestRootResolveBuildVariants_RejectsHostInExclusionSelector(t *testing.T) {
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", runtime.GOOS), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_exclude", "arch=amd64+os=host"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", runtime.GOOS), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "_exclude", "arch=amd64+os=host"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, _ := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
@@ -318,12 +318,12 @@ func TestRootResolveBuildVariants_AppliesInclusions(t *testing.T) {
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_include", "arch=amd64+os=linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_include", "arch=arm64+os=darwin"), "false")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "_include", "arch=amd64+os=linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "_include", "arch=arm64+os=darwin"), "false")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
@@ -338,11 +338,11 @@ func TestRootResolveBuildVariants_AppliesPartialInclusionSelector(t *testing.T) 
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_include", "os=darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "_include", "os=darwin"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
@@ -358,11 +358,11 @@ func TestRootResolveBuildVariants_EmptyInclusionMapIncludesAllVariants(t *testin
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_include", "arch=amd64+os=linux"), "false")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "_include", "arch=amd64+os=linux"), "false")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
@@ -380,12 +380,12 @@ func TestRootResolveBuildVariants_AppliesInclusionsAndExclusions(t *testing.T) {
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "darwin"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "arm64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_include", "arch=any+os=darwin"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_exclude", "arch=arm64+os=darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "arm64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "_include", "arch=any+os=darwin"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "_exclude", "arch=arm64+os=darwin"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
@@ -400,9 +400,9 @@ func TestRootResolveBuildVariants_RejectsInheritInInclusionSelector(t *testing.T
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_include", "arch=amd64+os=inherit"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "_include", "arch=amd64+os=inherit"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, _ := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
@@ -414,9 +414,9 @@ func TestRootResolveBuildVariants_RejectsHostInInclusionSelector(t *testing.T) {
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", runtime.GOOS), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_include", "arch=amd64+os=host"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", runtime.GOOS), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "_include", "arch=amd64+os=host"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, _ := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
@@ -428,9 +428,9 @@ func TestRootResolveBuildVariants_FailsWhenSelectionIsExcluded(t *testing.T) {
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "os", "linux"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "arch", "amd64"), "true")
-	writeFileForTest(t, filepath.Join(rootPath, "dyd", "traits", "variants", "_exclude", "arch=amd64+os=linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "_exclude", "arch=amd64+os=linux"), "true")
 
 	root := SafeRootReference{BasePath: rootPath}
 	err, _ := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{

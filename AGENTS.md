@@ -87,6 +87,7 @@
     - Variant selectors are supported with `<root>/dyd/commands~<descriptor>`.
     - `<root>/dyd/commands/dyd-root-build` - this is the build script for the package.
   - `<root>/dyd/traits` - _traits_ - metadata files specifying traits for the root (name, version, license, etc.).
+  - `<root>/dyd/variants` - _variants_ - variant dimension catalogs plus `_include` / `_exclude` rules used to resolve concrete builds.
   - `<root>/dyd/docs` - _docs_ - documentation files for the root.
     - Variant selectors are supported with `<root>/dyd/docs~<descriptor>`.
   - `<root>/dyd/secrets` - _secrets_ - secret assets for the root (deployment secrets, signing keys, etc.).
@@ -134,8 +135,8 @@
 
 ### Dryad concepts - root variants
 
-- Variant configuration lives under `<root>/dyd/traits/variants/`.
-  - Dimensions: `<root>/dyd/traits/variants/<dimension>/`
+- Variant configuration lives under `<root>/dyd/variants/`.
+  - Dimensions: `<root>/dyd/variants/<dimension>/`
   - Options: files under each dimension with contents `true` or `false`
 - Valid names use `[A-Za-z0-9._-]+`.
 - Selector keywords:
@@ -150,7 +151,7 @@
 - Reserved option names in dimension catalogs:
   - `inherit`, `any`, and `host` are reserved and not allowed as dimension option files.
 - Exclusions:
-  - `<root>/dyd/traits/variants/_exclude/<descriptor>` files toggle excluded concrete variants with `true`/`false`.
+  - `<root>/dyd/variants/_exclude/<descriptor>` files toggle excluded concrete variants with `true`/`false`.
   - Exclusion descriptor filenames must be canonical filesystem descriptors (sorted keys, `+`-separated).
 - Descriptor forms:
   - Filesystem form: `arch=amd64+os=linux` (used in filenames and dependency suffixes).

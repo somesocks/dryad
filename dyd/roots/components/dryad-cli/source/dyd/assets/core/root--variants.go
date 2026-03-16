@@ -7,7 +7,7 @@ import (
 
 func (root *SafeRootReference) Variants() *UnsafeRootVariantsReference {
 	var rootVariantsRef = UnsafeRootVariantsReference{
-		BasePath: filepath.Join(root.BasePath, "dyd", "traits", "variants"),
+		BasePath: filepath.Join(root.BasePath, "dyd", "variants"),
 		Root:     root,
 	}
 	return &rootVariantsRef
