@@ -26,10 +26,14 @@ func _gardenPath(path string) (string, error) {
 		Str("path", path).
 		Msg("GardenPath/abs")
 
-	path, err = filepath.EvalSymlinks(path)
+	parentPath := filepath.Dir(path)
+	basePath := filepath.Base(path)
+
+	parentPath, err = filepath.EvalSymlinks(parentPath)
 	if err != nil {
 		return "", err
 	}
+	path = filepath.Join(parentPath, basePath)
 	zlog.Trace().
 		Str("path", path).
 		Msg("GardenPath/evalSym")

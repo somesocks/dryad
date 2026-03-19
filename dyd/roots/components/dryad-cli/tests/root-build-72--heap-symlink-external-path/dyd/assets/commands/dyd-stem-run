@@ -1,0 +1,203 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+EXTERNAL_HEAP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+  TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+  EXTERNAL_HEAP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'external-heap-dir'`
+}
+
+_prepare() {
+  cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+  chmod -R 755 "$TEMP_DIR"
+  ln -s "$EXTERNAL_HEAP_DIR" "$TEMP_DIR/dyd/heap"
+  cd "$TEMP_DIR"
+}
+
+_find_heap_object_dir() {
+  local version_path="$1"
+  local fingerprint="$2"
+  local fingerprint_path
+  local relative_fingerprint_path
+
+  while IFS= read -r fingerprint_path; do
+    relative_fingerprint_path=${fingerprint_path#"$version_path"/}
+    if ! printf '%s\n' "$relative_fingerprint_path" | grep -Eq '^([a-z2-7]{2}/){0,12}[a-z2-7]{2,26}/dyd/fingerprint$'; then
+      continue
+    fi
+    if [ "$(cat "$fingerprint_path")" = "$fingerprint" ]; then
+      dirname "$(dirname "$fingerprint_path")"
+      return 0
+    fi
+  done < <(find "$version_path" -type f -path '*/dyd/fingerprint')
+
+  return 1
+}
+
+_assert_heap_symlink() {
+  if [ ! -L "$TEMP_DIR/dyd/heap" ]; then
+    echo "[ERROR] Fail: expected dyd/heap to be a symlink" 1>&2
+    return 1
+  fi
+  if [ "$(readlink "$TEMP_DIR/dyd/heap")" != "$EXTERNAL_HEAP_DIR" ]; then
+    echo "[ERROR] Fail: expected dyd/heap to point at the external heap directory" 1>&2
+    return 1
+  fi
+}
+
+_build_root_a() {
+  local log_path="$1"
+  if ! dryad root build "dyd/roots/root-a" --scope=none --log-level="$DYD_LOG_LEVEL" >"$log_path" 2>&1; then
+    echo "[ERROR] Fail: expected root build to succeed with detached heap" 1>&2
+    cat "$log_path" 1>&2
+    return 1
+  fi
+}
+
+_run_root_a() {
+  local marker="$1"
+  local log_path="$2"
+  if ! dryad sprout run dyd/sprouts/root-a \
+    --scope=none \
+    --context=testctx \
+    --command=/bin/sh \
+    --log-level="$DYD_LOG_LEVEL" \
+    -- \
+    -c "printf '$marker' > \"\$HOME/ran\"" >"$log_path" 2>&1; then
+    echo "[ERROR] Fail: expected sprout run to succeed with detached heap" 1>&2
+    cat "$log_path" 1>&2
+    return 1
+  fi
+}
+
+_assert_live_root_a() {
+  local expected_marker="$1"
+  local sprout_path="$TEMP_DIR/dyd/sprouts/root-a"
+  local stem_fp_path="$sprout_path/dyd/dependencies/stem/dyd/fingerprint"
+  local sprout_fp_path="$sprout_path/dyd/fingerprint"
+  local asset_path="$sprout_path/dyd/dependencies/stem/dyd/assets/shared.txt"
+  local secret_path="$sprout_path/dyd/dependencies/stem/dyd/secrets/shared.txt"
+  local context_marker="$EXTERNAL_HEAP_DIR/contexts/testctx/ran"
+
+  assert_directory_exists "$sprout_path"
+  assert_file_exists "$stem_fp_path"
+  assert_file_exists "$sprout_fp_path"
+  assert_file_exists "$asset_path"
+  assert_file_exists "$secret_path"
+  assert_file_content_equals "$asset_path" "shared-asset-content"
+  assert_file_content_equals "$secret_path" "shared-secret-content"
+  assert_file_exists "$context_marker"
+  assert_file_content_equals "$context_marker" "$expected_marker"
+
+  if [ ! -L "$sprout_path" ]; then
+    echo "[ERROR] Fail: expected dyd/sprouts/root-a to be a symlink" 1>&2
+    return 1
+  fi
+
+  sprout_link_target=$(readlink "$sprout_path")
+  case "$sprout_link_target" in
+    ../heap/sprouts/*) ;;
+    *)
+      echo "[ERROR] Fail: expected dyd/sprouts/root-a to link through dyd/heap, got $sprout_link_target" 1>&2
+      return 1
+      ;;
+  esac
+
+  STEM_FP=$(cat "$stem_fp_path")
+  SPROUT_FP=$(cat "$sprout_fp_path")
+  HEAP_STEM_PATH=$(_find_heap_object_dir "$EXTERNAL_HEAP_DIR/stems/v2" "$STEM_FP" || true)
+  HEAP_SPROUT_PATH=$(_find_heap_object_dir "$EXTERNAL_HEAP_DIR/sprouts/v2" "$SPROUT_FP" || true)
+  DERIVATION_PATH=$(find "$EXTERNAL_HEAP_DIR/derivations/roots/v2" -mindepth 1 -type f | head -n 1 || true)
+
+  assert_directory_exists "$HEAP_STEM_PATH"
+  assert_directory_exists "$HEAP_SPROUT_PATH"
+  assert_file_exists "$DERIVATION_PATH"
+}
+
+_assert_no_tmp_entries() {
+  if find "$EXTERNAL_HEAP_DIR/files" -type f -name '.tmp-*' 2>/dev/null | grep -q .; then
+    echo "[ERROR] Fail: expected no temp files left in external heap/files" 1>&2
+    find "$EXTERNAL_HEAP_DIR/files" -type f -name '.tmp-*' 1>&2
+    return 1
+  fi
+
+  if find "$EXTERNAL_HEAP_DIR/secrets" -type f -name '.tmp-*' 2>/dev/null | grep -q .; then
+    echo "[ERROR] Fail: expected no temp files left in external heap/secrets" 1>&2
+    find "$EXTERNAL_HEAP_DIR/secrets" -type f -name '.tmp-*' 1>&2
+    return 1
+  fi
+}
+
+_test() {
+  _assert_heap_symlink
+
+  _build_root_a "$TEMP_DIR/root-build-before-prune.log"
+  _run_root_a "run-before-prune" "$TEMP_DIR/root-run-before-prune.log"
+  _assert_live_root_a "run-before-prune"
+  _assert_no_tmp_entries
+
+  BEFORE_PRUNE_STEM_PATH="$HEAP_STEM_PATH"
+  BEFORE_PRUNE_SPROUT_PATH="$HEAP_SPROUT_PATH"
+  BEFORE_PRUNE_DERIVATION_PATH="$DERIVATION_PATH"
+
+  if ! dryad garden prune --log-level="$DYD_LOG_LEVEL" >"$TEMP_DIR/garden-prune.log" 2>&1; then
+    echo "[ERROR] Fail: expected garden prune to succeed with detached heap" 1>&2
+    cat "$TEMP_DIR/garden-prune.log" 1>&2
+    return 1
+  fi
+
+  assert_directory_exists "$BEFORE_PRUNE_STEM_PATH"
+  assert_directory_exists "$BEFORE_PRUNE_SPROUT_PATH"
+  assert_file_exists "$BEFORE_PRUNE_DERIVATION_PATH"
+
+  _run_root_a "run-after-prune" "$TEMP_DIR/root-run-after-prune.log"
+  _assert_live_root_a "run-after-prune"
+
+  if ! dryad garden wipe --log-level="$DYD_LOG_LEVEL" >"$TEMP_DIR/garden-wipe.log" 2>&1; then
+    echo "[ERROR] Fail: expected garden wipe to succeed with detached heap" 1>&2
+    cat "$TEMP_DIR/garden-wipe.log" 1>&2
+    return 1
+  fi
+
+  _assert_heap_symlink
+  assert_directory_not_exists "$TEMP_DIR/dyd/sprouts"
+  assert_directory_not_exists "$EXTERNAL_HEAP_DIR/files"
+  assert_directory_not_exists "$EXTERNAL_HEAP_DIR/secrets"
+  assert_directory_not_exists "$EXTERNAL_HEAP_DIR/stems"
+  assert_directory_not_exists "$EXTERNAL_HEAP_DIR/sprouts"
+  assert_directory_not_exists "$EXTERNAL_HEAP_DIR/derivations"
+  assert_directory_not_exists "$EXTERNAL_HEAP_DIR/contexts"
+
+  _build_root_a "$TEMP_DIR/root-build-after-wipe.log"
+  _run_root_a "run-after-wipe" "$TEMP_DIR/root-run-after-wipe.log"
+  _assert_live_root_a "run-after-wipe"
+  _assert_no_tmp_entries
+}
+
+_verify() {
+  _assert_heap_symlink
+  _assert_live_root_a "run-after-wipe"
+  _assert_no_tmp_entries
+}
+
+_teardown() {
+  if [ -d "$TEMP_DIR" ]; then
+    chmod -R 755 "$TEMP_DIR"
+    rm -rf "$TEMP_DIR"
+  fi
+  if [ -n "$EXTERNAL_HEAP_DIR" ] && [ -d "$EXTERNAL_HEAP_DIR" ]; then
+    chmod -R 755 "$EXTERNAL_HEAP_DIR"
+    rm -rf "$EXTERNAL_HEAP_DIR"
+  fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
