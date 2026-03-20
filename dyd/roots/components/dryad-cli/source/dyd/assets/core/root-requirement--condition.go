@@ -73,7 +73,13 @@ func rootRequirementConditionMatches(
 		dimensionMatches := false
 		for _, option := range options {
 			switch option {
-			case VariantOptionAny, VariantOptionInherit:
+			case VariantOptionAny:
+				_, exists := parentVariant[dimension]
+				if exists {
+					dimensionMatches = true
+				}
+
+			case VariantOptionInherit:
 				dimensionMatches = true
 
 			case VariantOptionHost:

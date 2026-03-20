@@ -164,13 +164,16 @@ func resolveSproutRunStemVariants(
 
 	for dimensionName, requestedOptions := range normalizedSelector {
 		for _, requestedOption := range requestedOptions {
-			if requestedOption == VariantOptionAny {
-				continue
-			}
-
 			optionExists := false
 			for _, variant := range available {
 				option, hasDimension := variant.Descriptor[dimensionName]
+				if requestedOption == VariantOptionAny {
+					if hasDimension {
+						optionExists = true
+						break
+					}
+					continue
+				}
 				if requestedOption == VariantOptionNone {
 					if !hasDimension {
 						optionExists = true
@@ -199,8 +202,11 @@ func resolveSproutRunStemVariants(
 			dimensionMatched := false
 			for _, requestedOption := range requestedOptions {
 				if requestedOption == VariantOptionAny {
-					dimensionMatched = true
-					break
+					if hasDimension {
+						dimensionMatched = true
+						break
+					}
+					continue
 				}
 
 				if requestedOption == VariantOptionNone {

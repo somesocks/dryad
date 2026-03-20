@@ -48,6 +48,27 @@ func TestResolveSproutRunStemVariants_AnySelectorReturnsSet(t *testing.T) {
 	)
 }
 
+func TestResolveSproutRunStemVariants_AnySelectorExcludesNone(t *testing.T) {
+	assert := assert.New(t)
+
+	available := []sproutRunStemVariant{
+		{Descriptor: VariantDescriptor{}, DescriptorRaw: ""},
+		{Descriptor: testSproutRunVariantDescriptor(t, "os=linux"), DescriptorRaw: "os=linux"},
+	}
+
+	err, selected := resolveSproutRunStemVariants(
+		available,
+		testSproutRunVariantDescriptor(t, "os=any"),
+	)
+	assert.Nil(err)
+	assert.Equal(
+		[]string{
+			"os=linux",
+		},
+		testSproutRunVariantDescriptors(t, selected),
+	)
+}
+
 func TestResolveSproutRunStemVariants_OptionListSelectorReturnsSet(t *testing.T) {
 	assert := assert.New(t)
 

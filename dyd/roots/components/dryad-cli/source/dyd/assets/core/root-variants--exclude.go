@@ -95,6 +95,7 @@ type rootVariantExclusionOptionChoice struct {
 func rootVariantFilterResolveChoicesForDimension(
 	dimension VariantDimension,
 	requestedOptionRaw string,
+	hasRequestedOption bool,
 	filterKind string,
 ) (error, []rootVariantExclusionOptionChoice) {
 	exists := map[string]bool{}
@@ -134,6 +135,33 @@ func rootVariantFilterResolveChoicesForDimension(
 		choices = append(choices, choice)
 	}
 
+	appendEnabledChoices := func(includeNone bool) error {
+		for _, option := range dimension.Options {
+			if !option.Enabled {
+				continue
+			}
+			if option.Name == VariantOptionNone {
+				if includeNone {
+					appendUniqueChoice(rootVariantExclusionOptionChoice{Omit: true})
+				}
+				continue
+			}
+			appendUniqueChoice(rootVariantExclusionOptionChoice{Option: option.Name})
+		}
+		if len(choices) == 0 {
+			return fmt.Errorf("no enabled variant options for %s variant resolution: %s", filterKind, dimension.Name)
+		}
+		return nil
+	}
+
+	if !hasRequestedOption {
+		err := appendEnabledChoices(true)
+		if err != nil {
+			return err, nil
+		}
+		return nil, choices
+	}
+
 	err, requestedOptions := variantDescriptorOptionValues(requestedOptionRaw)
 	if err != nil {
 		return err, nil
@@ -142,18 +170,9 @@ func rootVariantFilterResolveChoicesForDimension(
 	for _, requestedOption := range requestedOptions {
 		switch requestedOption {
 		case VariantOptionAny:
-			for _, option := range dimension.Options {
-				if !option.Enabled {
-					continue
-				}
-				if option.Name == VariantOptionNone {
-					appendUniqueChoice(rootVariantExclusionOptionChoice{Omit: true})
-					continue
-				}
-				appendUniqueChoice(rootVariantExclusionOptionChoice{Option: option.Name})
-			}
-			if len(choices) == 0 {
-				return fmt.Errorf("no enabled variant options for %s variant resolution: %s", filterKind, dimension.Name), nil
+			err := appendEnabledChoices(false)
+			if err != nil {
+				return err, nil
 			}
 		case VariantOptionInherit:
 			return fmt.Errorf("inherit option is not supported for %s variant selectors: %s", filterKind, dimension.Name), nil
@@ -194,13 +213,11 @@ func expandVariantRule(
 		dimension := dimensionsByName[dimensionName]
 
 		requestedOption, hasRequestedOption := rule.Descriptor[dimensionName]
-		if !hasRequestedOption {
-			requestedOption = VariantOptionAny
-		}
 
 		err, choices := rootVariantFilterResolveChoicesForDimension(
 			dimension,
 			requestedOption,
+			hasRequestedOption,
 			filterKind,
 		)
 		if err != nil {

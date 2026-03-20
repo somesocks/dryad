@@ -102,6 +102,29 @@ func rootRequirementResolveChoicesForDimension(
 		choices = append(choices, choice)
 	}
 
+	appendEnabledChoices := func(includeNone bool) error {
+		for _, option := range dimension.Options {
+			if !option.Enabled {
+				continue
+			}
+
+			if option.Name == VariantOptionNone {
+				if includeNone {
+					appendUniqueChoice(rootRequirementOptionChoice{Omit: true})
+				}
+				continue
+			}
+
+			appendUniqueChoice(rootRequirementOptionChoice{Option: option.Name})
+		}
+
+		if len(choices) == 0 {
+			return fmt.Errorf("no enabled variant options for any resolution: %s", dimension.Name)
+		}
+
+		return nil
+	}
+
 	err, requestedOptions := variantDescriptorOptionValues(requestedOptionRaw)
 	if err != nil {
 		return err, nil
@@ -122,21 +145,9 @@ func rootRequirementResolveChoicesForDimension(
 			appendUniqueChoice(choice)
 
 		case VariantOptionAny:
-			for _, option := range dimension.Options {
-				if !option.Enabled {
-					continue
-				}
-
-				if option.Name == VariantOptionNone {
-					appendUniqueChoice(rootRequirementOptionChoice{Omit: true})
-					continue
-				}
-
-				appendUniqueChoice(rootRequirementOptionChoice{Option: option.Name})
-			}
-
-			if len(choices) == 0 {
-				return fmt.Errorf("no enabled variant options for any resolution: %s", dimension.Name), nil
+			err := appendEnabledChoices(false)
+			if err != nil {
+				return err, nil
 			}
 
 		case VariantOptionHost:

@@ -19,6 +19,7 @@ type rootBuildOptionChoice struct {
 func rootBuildResolveChoicesForDimension(
 	dimension VariantDimension,
 	requestedOptionRaw string,
+	hasRequestedOption bool,
 ) (error, []rootBuildOptionChoice) {
 	exists := map[string]bool{}
 	enabled := map[string]bool{}
@@ -57,6 +58,37 @@ func rootBuildResolveChoicesForDimension(
 		choices = append(choices, choice)
 	}
 
+	appendEnabledChoices := func(includeNone bool) error {
+		for _, option := range dimension.Options {
+			if !option.Enabled {
+				continue
+			}
+
+			if option.Name == VariantOptionNone {
+				if includeNone {
+					appendUniqueChoice(rootBuildOptionChoice{Omit: true})
+				}
+				continue
+			}
+
+			appendUniqueChoice(rootBuildOptionChoice{Option: option.Name})
+		}
+
+		if len(choices) == 0 {
+			return fmt.Errorf("no enabled variant options for root build resolution: %s", dimension.Name)
+		}
+
+		return nil
+	}
+
+	if !hasRequestedOption {
+		err := appendEnabledChoices(true)
+		if err != nil {
+			return err, nil
+		}
+		return nil, choices
+	}
+
 	err, requestedOptions := variantDescriptorOptionValues(requestedOptionRaw)
 	if err != nil {
 		return err, nil
@@ -65,21 +97,9 @@ func rootBuildResolveChoicesForDimension(
 	for _, requestedOption := range requestedOptions {
 		switch requestedOption {
 		case VariantOptionAny:
-			for _, option := range dimension.Options {
-				if !option.Enabled {
-					continue
-				}
-
-				if option.Name == VariantOptionNone {
-					appendUniqueChoice(rootBuildOptionChoice{Omit: true})
-					continue
-				}
-
-				appendUniqueChoice(rootBuildOptionChoice{Option: option.Name})
-			}
-
-			if len(choices) == 0 {
-				return fmt.Errorf("no enabled variant options for root build resolution: %s", dimension.Name), nil
+			err := appendEnabledChoices(false)
+			if err != nil {
+				return err, nil
 			}
 
 		case VariantOptionInherit:
@@ -157,13 +177,11 @@ func (root *SafeRootReference) ResolveBuildVariants(
 		dimension := dimensionsByName[dimensionName]
 
 		requestedOption, hasRequestedOption := effectiveSelector[dimensionName]
-		if !hasRequestedOption {
-			requestedOption = VariantOptionAny
-		}
 
 		err, choices := rootBuildResolveChoicesForDimension(
 			dimension,
 			requestedOption,
+			hasRequestedOption,
 		)
 		if err != nil {
 			return err, nil

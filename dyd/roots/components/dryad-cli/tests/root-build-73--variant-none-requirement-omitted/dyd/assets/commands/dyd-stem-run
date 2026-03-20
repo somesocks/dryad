@@ -37,6 +37,13 @@ _find_heap_object_dir() {
 }
 
 _test() {
+	assert_file_exists "$TEMP_DIR/dyd/roots/root-variant/dyd/variants/os/none"
+	if [ "$(cat "$TEMP_DIR/dyd/roots/root-variant/dyd/variants/os/none")" != "true" ]; then
+		echo "[ERROR] Fail: expected sample dependency root to enable os=none" 1>&2
+		cat "$TEMP_DIR/dyd/roots/root-variant/dyd/variants/os/none" 1>&2
+		return 1
+	fi
+
 	dryad root build "dyd/roots/root-parent" --log-level="$DYD_LOG_LEVEL" > /dev/null
 }
 
