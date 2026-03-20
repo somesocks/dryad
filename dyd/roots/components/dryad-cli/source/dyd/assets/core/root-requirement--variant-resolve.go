@@ -163,6 +163,15 @@ func rootRequirementResolveChoicesForDimension(
 	return nil, choices
 }
 
+func rootRequirementDimensionHasEnabledNone(dimension VariantDimension) bool {
+	for _, option := range dimension.Options {
+		if option.Name == VariantOptionNone && option.Enabled {
+			return true
+		}
+	}
+	return false
+}
+
 func (targetSpec *RootRequirementTargetSpec) ResolveVariants(
 	ctx *task.ExecutionContext,
 	req RootRequirementResolveVariantsRequest,
@@ -211,7 +220,11 @@ func (targetSpec *RootRequirementTargetSpec) ResolveVariants(
 
 		requestedOption, hasRequestedOption := requirementVariant[dimensionName]
 		if !hasRequestedOption {
-			return fmt.Errorf("under-specified requirement variant dimension: %s", dimensionName), nil
+			if rootRequirementDimensionHasEnabledNone(dimension) {
+				requestedOption = VariantOptionNone
+			} else {
+				return fmt.Errorf("under-specified requirement variant dimension: %s", dimensionName), nil
+			}
 		}
 
 		err, choices := rootRequirementResolveChoicesForDimension(

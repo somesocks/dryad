@@ -178,6 +178,37 @@ func TestRootRequirementResolveTargets_InheritNoneFromParent(t *testing.T) {
 	assert.Equal("", variant)
 }
 
+func TestRootRequirementResolveTargets_OmittedDimensionUsesEnabledNone(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	sourceRootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
+	targetRootPath := createRootForVariantRequirementTest(t, gardenPath, "dep")
+
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(targetRootPath, "dyd", "variants", "os", "none"), "true")
+
+	createRequirementForVariantRequirementTest(
+		t,
+		sourceRootPath,
+		"dep",
+		targetRootPath,
+		"",
+	)
+
+	requirement := resolveRequirementForVariantRequirementTest(t, gardenPath, sourceRootPath, "dep")
+	err, targets := requirement.ResolveTargets(task.SERIAL_CONTEXT, RootRequirementResolveTargetsRequest{
+		ParentVariant: VariantDescriptor{"os": "linux"},
+	})
+	assert.Nil(err)
+	assert.Len(targets, 1)
+	assert.False(targets[0].ForceVariantSuffix)
+
+	err, variant := variantDescriptorEncodeFilesystem(targets[0].VariantDescriptor)
+	assert.Nil(err)
+	assert.Equal("", variant)
+}
+
 func TestRootRequirementResolveTargets_AnyExpandsCartesianProduct(t *testing.T) {
 	assert := assert.New(t)
 

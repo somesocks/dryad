@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_find_heap_object_dir() {
+	local version_path="$1"
+	local fingerprint="$2"
+	local fingerprint_path
+	local relative_fingerprint_path
+
+	while IFS= read -r fingerprint_path; do
+		relative_fingerprint_path=${fingerprint_path#"$version_path"/}
+		if ! printf '%s\n' "$relative_fingerprint_path" | grep -Eq '^([a-z2-7]{2}/){0,12}[a-z2-7]{2,26}/dyd/fingerprint$'; then
+			continue
+		fi
+		if [ "$(cat "$fingerprint_path")" = "$fingerprint" ]; then
+			dirname "$(dirname "$fingerprint_path")"
+			return 0
+		fi
+	done < <(find "$version_path" -type f -path '*/dyd/fingerprint')
+
+	return 1
+}
+
+_test() {
+	dryad root build "dyd/roots/root-parent" --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+_verify() {
+	variant_stem=''
+	while IFS= read -r req_fp_file; do
+		if [ -z "$req_fp_file" ]; then
+			continue
+		fi
+
+		candidate_fingerprint=$(cat "$req_fp_file")
+		candidate_stem=$(_find_heap_object_dir "$TEMP_DIR/dyd/heap/stems/v2" "$candidate_fingerprint" || true)
+		if [ -z "$candidate_stem" ] || [ ! -d "$candidate_stem" ]; then
+			continue
+		fi
+		if [ ! -f "$candidate_stem/dyd/assets/variant.txt" ]; then
+			continue
+		fi
+
+		variant_stem="$candidate_stem"
+		break
+	done < <(find "$TEMP_DIR/dyd/heap/stems" -type f -path '*/dyd/requirements/*')
+
+	if [ -z "$variant_stem" ]; then
+		echo "[ERROR] Fail: expected to find resolved root-variant stem from packed requirements" 1>&2
+		return 1
+	fi
+
+	assert_directory_exists "$variant_stem"
+	assert_file_not_exists "$variant_stem/dyd/traits/os"
+	assert_directory_not_exists "$variant_stem/dyd/variants"
+
+	resolved_dep_path=''
+	for dep_name in "root-variant" "root-variant~os=none"; do
+		dep_path="$TEMP_DIR/dyd/sprouts/root-parent/dyd/dependencies/stem/dyd/dependencies/$dep_name"
+		if [ -L "$dep_path" ] || [ -e "$dep_path" ]; then
+			resolved_dep_path=$(readlink -f "$dep_path")
+			break
+		fi
+	done
+	if [ -z "$resolved_dep_path" ]; then
+		echo "[ERROR] Fail: expected to find root-variant dependency under root-parent sprout stem dependencies" 1>&2
+		return 1
+	fi
+
+	assert_directory_exists "$resolved_dep_path"
+	assert_file_not_exists "$resolved_dep_path/dyd/traits/os"
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
