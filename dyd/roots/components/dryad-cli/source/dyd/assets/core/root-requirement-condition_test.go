@@ -128,7 +128,7 @@ func TestRootRequirementConditionMatches_ConcreteAnyAndNone(t *testing.T) {
 		},
 	)
 	assert.Nil(err)
-	assert.True(matches)
+	assert.False(matches)
 }
 
 func TestRootRequirementConditionMatches_InheritIsWildcard(t *testing.T) {

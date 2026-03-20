@@ -84,6 +84,23 @@ func TestRootBuildSelectAssetsPath_NoneAnyAndOptionListsAreSupported(t *testing.
 	assert.Equal(filepath.Join(rootPath, "dyd", "assets~os=linux,none"), assetsPath)
 }
 
+func TestRootBuildSelectAssetsPath_ExplicitAnyExcludesEnabledNone(t *testing.T) {
+	assert := assert.New(t)
+
+	rootPath := t.TempDir()
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "none"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "assets~os=any", "main"), "defined-only")
+
+	err, assetsPath := rootBuild_selectAssetsPathForTest(task.SERIAL_CONTEXT, rootPath, "")
+	assert.Nil(err)
+	assert.Equal("", assetsPath)
+
+	err, assetsPath = rootBuild_selectAssetsPathForTest(task.SERIAL_CONTEXT, rootPath, "os=linux")
+	assert.Nil(err)
+	assert.Equal(filepath.Join(rootPath, "dyd", "assets~os=any"), assetsPath)
+}
+
 func TestRootBuildSelectAssetsPath_InheritAndHostAreRejected(t *testing.T) {
 	assert := assert.New(t)
 

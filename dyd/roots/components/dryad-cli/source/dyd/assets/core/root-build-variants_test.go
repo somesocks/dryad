@@ -145,6 +145,43 @@ func TestRootResolveBuildVariants_NoneOptionOmitsDimension(t *testing.T) {
 	}, encodeVariantDescriptorsForTest(t, variants))
 }
 
+func TestRootResolveBuildVariants_ExplicitAnyExcludesEnabledNone(t *testing.T) {
+	assert := assert.New(t)
+
+	rootPath := t.TempDir()
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "none"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
+
+	root := SafeRootReference{BasePath: rootPath}
+	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{
+		Selector: variantDescriptorFromFilesystemForTest(t, "os=any"),
+	})
+	assert.Nil(err)
+
+	assert.Equal([]string{
+		"arch=amd64+os=linux",
+	}, encodeVariantDescriptorsForTest(t, variants))
+}
+
+func TestRootResolveBuildVariants_ExplicitAnyExclusionLeavesEnabledNone(t *testing.T) {
+	assert := assert.New(t)
+
+	rootPath := t.TempDir()
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "none"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "arch", "amd64"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "_exclude", "os=any"), "true")
+
+	root := SafeRootReference{BasePath: rootPath}
+	err, variants := root.ResolveBuildVariants(task.SERIAL_CONTEXT, RootResolveBuildVariantsRequest{})
+	assert.Nil(err)
+
+	assert.Equal([]string{
+		"arch=amd64",
+	}, encodeVariantDescriptorsForTest(t, variants))
+}
+
 func TestRootResolveBuildVariants_DisabledOptionFails(t *testing.T) {
 	assert := assert.New(t)
 

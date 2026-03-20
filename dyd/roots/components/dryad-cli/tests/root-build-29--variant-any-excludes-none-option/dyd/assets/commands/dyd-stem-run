@@ -24,17 +24,21 @@ _verify() {
 	list_path="$TEMP_DIR/dyd/sprouts/root-top/dyd/dependencies/stem/dyd/assets/variant-requirements.list"
 	assert_file_exists "$list_path"
 
-	if [ "$(wc -l < "$list_path" | tr -d ' ')" != "3" ]; then
-		echo "[ERROR] Fail: expected exactly 3 resolved requirement names" 1>&2
+	if [ "$(wc -l < "$list_path" | tr -d ' ')" != "2" ]; then
+		echo "[ERROR] Fail: expected exactly 2 resolved requirement names" 1>&2
 		cat "$list_path" 1>&2
 		return 1
 	fi
 
-	grep -Fxq "foo" "$list_path"
 	grep -Fxq "foo~os=darwin" "$list_path"
 	grep -Fxq "foo~os=linux" "$list_path"
+	if grep -Fxq "foo" "$list_path"; then
+		echo "[ERROR] Fail: explicit any selector should not include omitted dependency naming" 1>&2
+		cat "$list_path" 1>&2
+		return 1
+	fi
 	if grep -Fxq "foo~os=none" "$list_path"; then
-		echo "[ERROR] Fail: none variant should be encoded as omitted dimension" 1>&2
+		echo "[ERROR] Fail: explicit any selector should exclude the none variant" 1>&2
 		cat "$list_path" 1>&2
 		return 1
 	fi

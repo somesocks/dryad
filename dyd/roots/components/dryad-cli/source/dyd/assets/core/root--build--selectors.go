@@ -107,13 +107,11 @@ func rootBuild_selectorMatchesVariant(
 
 	for _, dimensionName := range ctx.DimensionNames {
 		requestedOption, hasRequestedOption := selector[dimensionName]
-		if !hasRequestedOption {
-			requestedOption = VariantOptionAny
-		}
 
 		err, choices := rootVariantFilterResolveChoicesForDimension(
 			ctx.DimensionsByName[dimensionName],
 			requestedOption,
+			hasRequestedOption,
 			selectorType,
 		)
 		if err != nil {

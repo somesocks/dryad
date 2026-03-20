@@ -97,7 +97,8 @@ Root content path selectors:
 - Selects the omitted option for a dimension.
 
 `any`
-- Expands to all enabled options for that dimension.
+- Selects all enabled concrete options for that dimension.
+- It does not include `none`.
 
 `inherit`
 - For requirement target selectors, takes the option from the parent/root variant for the same dimension.
@@ -108,15 +109,24 @@ Root content path selectors:
 
 In requirement *conditions*:
 
-- `any` and `inherit` act as wildcards.
+- `any` matches when the parent has a concrete value for that dimension.
+- `inherit` acts as a wildcard.
 - `none` matches when parent omits that dimension.
 - `host` matches parent variant against host `os`/`arch`.
+
+In requirement *target selectors*:
+
+- `any` selects all enabled concrete options for that dimension and does not include `none`.
+- `none` selects the omitted variant for that dimension.
+- `inherit` uses the parent value for that dimension and resolves to `none` if the parent omits it.
+- `host` resolves from the current host for `os` and `arch`.
+- omitted dimensions resolve to `none` when that target dimension enables `none`; otherwise the selector is under-specified and fails.
 
 In root content path selectors (`dyd/assets~...`, `dyd/commands~...`, `dyd/traits~...`, `dyd/secrets~...`, `dyd/docs~...`, `dyd/requirements~...`):
 
 - supported: concrete options, `none`, `any`, and comma lists
 - not supported: `inherit` and `host`
-- omitted dimensions are implicit `any`; the plain path (for example `dyd/assets`) is the empty selector and therefore matches all variants
+- omitted dimensions are wildcards over all enabled values, including `none`; the plain path (for example `dyd/assets`) is the empty selector and therefore matches all variants
 - selector descriptors must be canonical filesystem descriptors
 - for each path kind, at most one selector may match:
   - no matches are allowed (the path is omitted from the build input)
@@ -137,7 +147,7 @@ Exclusion filenames must be canonical filesystem descriptors, for example:
 
 - `arch=amd64+os=darwin`
 
-Exclusion selectors must specify every enabled dimension. Unlike requirement selectors, exclusions are root-local and do not support parent/host context:
+Exclusion selectors may omit dimensions; omitted dimensions act as wildcards over all enabled values, including `none`. Unlike requirement selectors, exclusions are root-local and do not support parent/host context:
 
 - supported in `_exclude`: concrete options, `none`, `any`, and comma lists (for example `os=darwin,linux`)
 - not supported in `_exclude`: `inherit` and `host`
@@ -153,7 +163,7 @@ Each inclusion file also contains `true` or `false`:
 - `true` means inclusion is active
 - `false` means inclusion is ignored
 
-Inclusion filenames must be canonical filesystem descriptors and specify every enabled dimension.
+Inclusion filenames must be canonical filesystem descriptors.
 
 Inclusion selectors use the same selector rules as exclusions:
 
