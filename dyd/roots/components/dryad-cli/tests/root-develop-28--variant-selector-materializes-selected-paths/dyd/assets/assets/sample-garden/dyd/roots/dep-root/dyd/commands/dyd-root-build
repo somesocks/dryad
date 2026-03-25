@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+cp -R "$DYD_STEM/dyd/assets/." "$DYD_BUILD/dyd/assets/"
