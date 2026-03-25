@@ -173,32 +173,38 @@ func rootDevelop_collectState(
 
 func rootDevelop_collectAll(
 	ctx *task.ExecutionContext,
-	rootPath string,
+	basePath string,
+	selectedPaths *rootDevelopSelectedPaths,
 ) (map[string]rootDevelopFileState, error) {
+	paths := rootDevelop_defaultSelectedPaths(basePath)
+	if selectedPaths != nil {
+		paths = *selectedPaths
+	}
+
 	specs := []rootDevelopCollectSpec{
 		{
-			BasePath:    filepath.Join(rootPath, "dyd", "assets"),
+			BasePath:    paths.AssetsPath,
 			RelPrefix:   filepath.Join("dyd", "assets"),
 			ApplyIgnore: true,
 		},
 		{
-			BasePath:  filepath.Join(rootPath, "dyd", "commands"),
+			BasePath:  paths.CommandsPath,
 			RelPrefix: filepath.Join("dyd", "commands"),
 		},
 		{
-			BasePath:  filepath.Join(rootPath, "dyd", "docs"),
+			BasePath:  paths.DocsPath,
 			RelPrefix: filepath.Join("dyd", "docs"),
 		},
 		{
-			BasePath:  filepath.Join(rootPath, "dyd", "traits"),
+			BasePath:  paths.TraitsPath,
 			RelPrefix: filepath.Join("dyd", "traits"),
 		},
 		{
-			BasePath:  filepath.Join(rootPath, "dyd", "secrets"),
+			BasePath:  paths.SecretsPath,
 			RelPrefix: filepath.Join("dyd", "secrets"),
 		},
 		{
-			BasePath:  filepath.Join(rootPath, "dyd", "requirements"),
+			BasePath:  paths.RequirementsPath,
 			RelPrefix: filepath.Join("dyd", "requirements"),
 		},
 	}
@@ -271,15 +277,20 @@ func rootDevelop_saveChanges(
 	workspacePath string,
 	snapshotStemPath string,
 ) ([]string, error) {
-	rootStates, err := rootDevelop_collectAll(ctx, rootPath)
+	err, selectedPaths := rootDevelop_readSelectedPaths(workspacePath)
 	if err != nil {
 		return nil, err
 	}
-	workspaceStates, err := rootDevelop_collectAll(ctx, workspacePath)
+
+	rootStates, err := rootDevelop_collectAll(ctx, rootPath, selectedPaths)
 	if err != nil {
 		return nil, err
 	}
-	snapshot, err := rootDevelop_collectAll(ctx, snapshotStemPath)
+	workspaceStates, err := rootDevelop_collectAll(ctx, workspacePath, nil)
+	if err != nil {
+		return nil, err
+	}
+	snapshot, err := rootDevelop_collectAll(ctx, snapshotStemPath, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +331,11 @@ func rootDevelop_saveChanges(
 		changed = append(changed, key)
 
 		if !rootChanged || rootDevelop_stateEqual(wPtr, rPtr) {
-			destPath := filepath.Join(rootPath, key)
+			destPath, hasDestination := rootDevelop_targetBasePathForKey(key, rootPath, selectedPaths)
+			if !hasDestination {
+				conflicts = append(conflicts, key)
+				continue
+			}
 			srcPath := filepath.Join(workspacePath, key)
 
 			if wPtr == nil {
@@ -357,15 +372,20 @@ func rootDevelop_statusChanges(
 	workspacePath string,
 	snapshotStemPath string,
 ) ([]rootDevelopStatusEntry, error) {
-	rootStates, err := rootDevelop_collectAll(ctx, rootPath)
+	err, selectedPaths := rootDevelop_readSelectedPaths(workspacePath)
 	if err != nil {
 		return nil, err
 	}
-	workspaceStates, err := rootDevelop_collectAll(ctx, workspacePath)
+
+	rootStates, err := rootDevelop_collectAll(ctx, rootPath, selectedPaths)
 	if err != nil {
 		return nil, err
 	}
-	snapshot, err := rootDevelop_collectAll(ctx, snapshotStemPath)
+	workspaceStates, err := rootDevelop_collectAll(ctx, workspacePath, nil)
+	if err != nil {
+		return nil, err
+	}
+	snapshot, err := rootDevelop_collectAll(ctx, snapshotStemPath, nil)
 	if err != nil {
 		return nil, err
 	}

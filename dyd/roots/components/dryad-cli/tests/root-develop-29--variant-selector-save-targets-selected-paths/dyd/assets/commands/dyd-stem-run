@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+assert_not_exists() {
+	path="$1"
+	if [ -e "$path" ]; then
+		echo "[ERROR] Fail: path '$path' should not exist" 1>&2
+		return 1
+	fi
+}
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	EDITOR_PATH="$SRC_DIR/dyd/commands/dev-editor"
+	(dryad root develop start dyd/roots/root-01 --variant="os=linux" --shell="$EDITOR_PATH" --on-exit=save --log-level="$DYD_LOG_LEVEL" < /dev/null) 1>&2
+}
+
+_verify() {
+	ROOT_PATH="$TEMP_DIR/dyd/roots/root-01/dyd"
+
+	assert_file_content_equals "$ROOT_PATH/assets~os=linux/value.txt" "asset-updated"
+	assert_file_content_equals "$ROOT_PATH/assets~os=linux/new.txt" "asset-new"
+	assert_not_exists "$ROOT_PATH/assets~os=linux/delete.txt"
+
+	assert_file_content_equals "$ROOT_PATH/commands~os=linux/value.txt" "command-updated"
+	assert_file_content_equals "$ROOT_PATH/docs~os=linux/value.txt" "doc-updated"
+	assert_file_content_equals "$ROOT_PATH/traits~os=linux/value.txt" "trait-updated"
+	assert_file_content_equals "$ROOT_PATH/secrets~os=linux/value.txt" "secret-updated"
+	assert_file_content_equals "$ROOT_PATH/requirements~os=linux/dep-added" "root:../../../dep-root"
+
+	assert_not_exists "$ROOT_PATH/assets"
+	assert_not_exists "$ROOT_PATH/commands"
+	assert_not_exists "$ROOT_PATH/docs"
+	assert_not_exists "$ROOT_PATH/traits"
+	assert_not_exists "$ROOT_PATH/secrets"
+	assert_not_exists "$ROOT_PATH/requirements"
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

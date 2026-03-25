@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+OUT_DIR="$DYD_GARDEN/dyd/heap/root-develop-28--variant-selector-materializes-selected-paths"
+mkdir -p "$OUT_DIR"
+
+cat "$DYD_STEM/dyd/assets/value.txt" > "$OUT_DIR/assets"
+cat "$DYD_STEM/dyd/commands/value.txt" > "$OUT_DIR/commands"
+cat "$DYD_STEM/dyd/docs/value.txt" > "$OUT_DIR/docs"
+cat "$DYD_STEM/dyd/traits/value.txt" > "$OUT_DIR/traits"
+cat "$DYD_STEM/dyd/secrets/value.txt" > "$OUT_DIR/secrets"
+cat "$DYD_STEM/dyd/requirements/dep" > "$OUT_DIR/requirements"

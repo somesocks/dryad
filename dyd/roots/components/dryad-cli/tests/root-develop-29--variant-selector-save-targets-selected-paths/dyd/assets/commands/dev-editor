@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+printf "asset-updated" > "$DYD_STEM/dyd/assets/value.txt"
+printf "asset-new" > "$DYD_STEM/dyd/assets/new.txt"
+rm "$DYD_STEM/dyd/assets/delete.txt"
+
+printf "command-updated" > "$DYD_STEM/dyd/commands/value.txt"
+printf "doc-updated" > "$DYD_STEM/dyd/docs/value.txt"
+printf "trait-updated" > "$DYD_STEM/dyd/traits/value.txt"
+printf "secret-updated" > "$DYD_STEM/dyd/secrets/value.txt"
+printf "root:../../../dep-root" > "$DYD_STEM/dyd/requirements/dep-added"

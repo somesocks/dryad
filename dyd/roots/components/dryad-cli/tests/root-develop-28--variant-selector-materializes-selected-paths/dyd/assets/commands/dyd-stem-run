@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	EDITOR_PATH="$SRC_DIR/dyd/commands/dev-editor"
+	(dryad root develop start dyd/roots/root-01 --variant="os=linux" --shell="$EDITOR_PATH" --log-level="$DYD_LOG_LEVEL" < /dev/null) 1>&2
+}
+
+_verify() {
+	OUT_DIR="$TEMP_DIR/dyd/heap/root-develop-28--variant-selector-materializes-selected-paths"
+	assert_file_content_equals "$OUT_DIR/assets" "asset-linux"
+	assert_file_content_equals "$OUT_DIR/commands" "command-linux"
+	assert_file_content_equals "$OUT_DIR/docs" "doc-linux"
+	assert_file_content_equals "$OUT_DIR/traits" "trait-linux"
+	assert_file_content_equals "$OUT_DIR/secrets" "secret-linux"
+	assert_file_content_equals "$OUT_DIR/requirements" "root:../../../dep-root"
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
