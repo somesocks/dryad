@@ -14,27 +14,80 @@ _setup() {
 _prepare() {
 	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
 	chmod -R 755 "$TEMP_DIR"
+	printf 'true' > "$TEMP_DIR/dyd/roots/root-skip/dyd/variants/os/darwin"
 	cd "$TEMP_DIR"
+	TEMP_DIR=$(pwd -P)
 }
 
 _test() {
 	OUTPUT=$(dryad root descendants dyd/roots/root-base --log-level="$DYD_LOG_LEVEL")
-
-	if ! printf '%s\n' "$OUTPUT" | grep -Fxq 'dyd/roots/root-mid'; then
-		echo "[ERROR] Fail: expected root descendants to include dyd/roots/root-mid" 1>&2
+	EXPECTED=$(cat <<'EOF'
+dyd/roots/root-mid?os=linux
+dyd/roots/root-skip?os=darwin
+dyd/roots/root-top?os=linux
+EOF
+)
+	if [ "$OUTPUT" != "$EXPECTED" ]; then
+		echo "[ERROR] Fail: expected bare root descendants output to be exact, sorted variant refs" 1>&2
 		echo "$OUTPUT" 1>&2
 		return 1
 	fi
 
-	if ! printf '%s\n' "$OUTPUT" | grep -Fxq 'dyd/roots/root-top'; then
-		echo "[ERROR] Fail: expected root descendants to include dyd/roots/root-top" 1>&2
-		echo "$OUTPUT" 1>&2
+	OUTPUT_FS=$(dryad root descendants dyd/roots/root-base~os=linux --log-level="$DYD_LOG_LEVEL")
+	if [ "$OUTPUT_FS" != "$EXPECTED" ]; then
+		echo "[ERROR] Fail: expected filesystem-qualified root ref to select linux descendants only" 1>&2
+		echo "$OUTPUT_FS" 1>&2
 		return 1
 	fi
 
-	if printf '%s\n' "$OUTPUT" | grep -Fxq 'dyd/roots/root-skip'; then
-		echo "[ERROR] Fail: expected root descendants to omit dyd/roots/root-skip for non-matching condition" 1>&2
-		echo "$OUTPUT" 1>&2
+	OUTPUT_URL=$(dryad root descendants 'dyd/roots/root-base?os=linux' --log-level="$DYD_LOG_LEVEL")
+	if [ "$OUTPUT_URL" != "$EXPECTED" ]; then
+		echo "[ERROR] Fail: expected URL-qualified root ref to select linux descendants only" 1>&2
+		echo "$OUTPUT_URL" 1>&2
+		return 1
+	fi
+
+	OUTPUT_FLAG=$(dryad root descendants dyd/roots/root-base --variant=os=linux --log-level="$DYD_LOG_LEVEL")
+	if [ "$OUTPUT_FLAG" != "$EXPECTED" ]; then
+		echo "[ERROR] Fail: expected --variant selector to select linux descendants only" 1>&2
+		echo "$OUTPUT_FLAG" 1>&2
+		return 1
+	fi
+
+	OUTPUT_ABS=$(dryad root descendants dyd/roots/root-base~os=linux --relative=false --log-level="$DYD_LOG_LEVEL")
+	if ! printf '%s\n' "$OUTPUT_ABS" | grep -Fxq "$TEMP_DIR/dyd/roots/root-skip?os=darwin"; then
+		echo "[ERROR] Fail: expected --relative=false to print absolute variant refs" 1>&2
+		echo "$OUTPUT_ABS" 1>&2
+		return 1
+	fi
+
+	if dryad root descendants dyd/roots/root-base~os=linux --variant=os=darwin --log-level="$DYD_LOG_LEVEL" >"$TEMP_DIR/conflict.stdout" 2>"$TEMP_DIR/conflict.stderr"; then
+		echo "[ERROR] Fail: expected command to reject selectors specified in both root_ref and --variant" 1>&2
+		return 1
+	fi
+	if ! grep -Fq 'root descendant selector specified in both root_ref and --variant' "$TEMP_DIR/conflict.stderr"; then
+		echo "[ERROR] Fail: expected conflict error message for root_ref and --variant selectors" 1>&2
+		cat "$TEMP_DIR/conflict.stderr" 1>&2
+		return 1
+	fi
+
+	if dryad root descendants '?os=linux' --log-level="$DYD_LOG_LEVEL" >"$TEMP_DIR/empty-path-url.stdout" 2>"$TEMP_DIR/empty-path-url.stderr"; then
+		echo "[ERROR] Fail: expected command to reject URL-qualified root refs with an empty path" 1>&2
+		return 1
+	fi
+	if ! grep -Fq 'missing root ref path' "$TEMP_DIR/empty-path-url.stderr"; then
+		echo "[ERROR] Fail: expected missing root ref path error for URL-qualified root refs with an empty path" 1>&2
+		cat "$TEMP_DIR/empty-path-url.stderr" 1>&2
+		return 1
+	fi
+
+	if dryad root descendants '~os=linux' --log-level="$DYD_LOG_LEVEL" >"$TEMP_DIR/empty-path-fs.stdout" 2>"$TEMP_DIR/empty-path-fs.stderr"; then
+		echo "[ERROR] Fail: expected command to reject filesystem-qualified root refs with an empty path" 1>&2
+		return 1
+	fi
+	if ! grep -Fq 'missing root ref path' "$TEMP_DIR/empty-path-fs.stderr"; then
+		echo "[ERROR] Fail: expected missing root ref path error for filesystem-qualified root refs with an empty path" 1>&2
+		cat "$TEMP_DIR/empty-path-fs.stderr" 1>&2
 		return 1
 	fi
 }
