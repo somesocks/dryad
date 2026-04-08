@@ -7,6 +7,7 @@ import (
 	"dryad/internal/filepath"
 	"dryad/task"
 	"fmt"
+	"sort"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -14,9 +15,11 @@ import (
 var rootAncestorsCommand = func() clib.Command {
 
 	type ParsedArgs struct {
-		RootPath string
-		Relative bool
-		Parallel int
+		RootPath    string
+		Selector    dryad.VariantDescriptor
+		HasSelector bool
+		Relative    bool
+		Parallel    int
 	}
 
 	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
@@ -24,10 +27,13 @@ var rootAncestorsCommand = func() clib.Command {
 		var options = req.Opts
 		var err error
 
+		var rootRefRaw string
 		var rootPath string
+		var selector dryad.VariantDescriptor
+		var hasSelector bool
 
 		if len(args) > 0 {
-			rootPath = args[0]
+			rootRefRaw = args[0]
 		}
 
 		var relative bool = true
@@ -46,15 +52,38 @@ var rootAncestorsCommand = func() clib.Command {
 			parallel = PARALLEL_COUNT_DEFAULT
 		}
 
+		err, rootRef := parseRootRef(rootRefRaw)
+		if err != nil {
+			return err, ParsedArgs{}
+		}
+		rootPath = rootRef.Path
+		selector = rootRef.Selector
+		hasSelector = rootRef.HasSelector
+
+		if options["variant"] != nil {
+			if hasSelector {
+				return fmt.Errorf("root ancestor selector specified in both root_ref and --variant"), ParsedArgs{}
+			}
+
+			err, variantContext := dryad.RootVariantContextFromFilesystem(options["variant"].(string))
+			if err != nil {
+				return err, ParsedArgs{}
+			}
+			selector = variantContext.Descriptor
+			hasSelector = true
+		}
+
 		err, rootPath = dydfs.PartialEvalSymlinks(ctx, rootPath)
 		if err != nil {
 			return err, ParsedArgs{}
 		}
 
 		return nil, ParsedArgs{
-			RootPath: rootPath,
-			Relative: relative,
-			Parallel: parallel,
+			RootPath:    rootPath,
+			Selector:    selector,
+			HasSelector: hasSelector,
+			Relative:    relative,
+			Parallel:    parallel,
 		}
 	}
 
@@ -78,6 +107,19 @@ var rootAncestorsCommand = func() clib.Command {
 		}
 		rootPath = root.BasePath
 
+		err, startVariants := root.ResolveBuildVariants(
+			ctx,
+			dryad.RootResolveBuildVariantsRequest{
+				Selector: args.Selector,
+			},
+		)
+		if err != nil {
+			return err, nil
+		}
+		if len(startVariants) == 0 {
+			return fmt.Errorf("resolved root ancestor variants are empty"), nil
+		}
+
 		err, graph := roots.Graph(
 			ctx,
 			dryad.RootsGraphRequest{
@@ -95,9 +137,28 @@ var rootAncestorsCommand = func() clib.Command {
 			}
 		}
 
-		ancestors := graph.Descendants(make(dryad.TStringSet), []string{rootPath}).ToArray([]string{})
+		startNodes := make([]string, 0, len(startVariants))
+		startNodeSet := make(map[string]bool, len(startVariants))
+		for _, variant := range startVariants {
+			nodePath := rootPath
+
+			err, variantSelectorRaw := (dryad.RootVariantContext{Descriptor: variant}).URL()
+			if err != nil {
+				return err, nil
+			}
+
+			node := nodePath + variantSelectorRaw
+			startNodes = append(startNodes, node)
+			startNodeSet[node] = true
+		}
+
+		ancestors := graph.DescendantNodes(make(dryad.TStringSet), startNodes).ToArray([]string{})
+		sort.Strings(ancestors)
 
 		for _, v := range ancestors {
+			if startNodeSet[v] {
+				continue
+			}
 			fmt.Println(v)
 		}
 
@@ -126,13 +187,14 @@ var rootAncestorsCommand = func() clib.Command {
 		},
 	)
 
-	command := clib.NewCommand("ancestors", "list all roots the selected root depends on (directly and indirectly)").
+	command := clib.NewCommand("ancestors", "list all package variants the selected root depends on (directly and indirectly)").
 		WithArg(
 			clib.
-				NewArg("root_path", "path to the root").
+				NewArg("root_ref", "path to the root, optionally qualified with a variant selector").
 				AsOptional().
 				WithAutoComplete(ArgAutoCompletePath),
 		).
+		WithOption(clib.NewOption("variant", "select root variants to start from (filesystem form: dimension=option+dimension=option). supports none/any/host; inherit is invalid. may resolve to multiple concrete variants").WithType(clib.OptionTypeString)).
 		WithOption(clib.NewOption("relative", "print roots relative to the base garden path. default true").WithType(clib.OptionTypeBool)).
 		WithAction(action)
 

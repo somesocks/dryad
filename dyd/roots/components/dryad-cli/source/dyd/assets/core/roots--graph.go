@@ -93,6 +93,18 @@ func (g TRootsGraph) descendantsFromNode(results TStringSet, visited map[string]
 	}
 }
 
+func (g TRootsGraph) descendantNodesFromNode(results TStringSet, visited map[string]bool, node string) {
+	if visited[node] {
+		return
+	}
+	visited[node] = true
+
+	for _, target := range g[node] {
+		results[target] = true
+		g.descendantNodesFromNode(results, visited, target)
+	}
+}
+
 func (g TRootsGraph) Descendants(results TStringSet, roots []string) TStringSet {
 	if results == nil {
 		results = make(map[string]bool)
@@ -107,6 +119,19 @@ func (g TRootsGraph) Descendants(results TStringSet, roots []string) TStringSet 
 		for _, startNode := range startNodes {
 			g.descendantsFromNode(results, visited, startNode)
 		}
+	}
+
+	return results
+}
+
+func (g TRootsGraph) DescendantNodes(results TStringSet, nodes []string) TStringSet {
+	if results == nil {
+		results = make(map[string]bool)
+	}
+	visited := map[string]bool{}
+
+	for _, node := range nodes {
+		g.descendantNodesFromNode(results, visited, node)
 	}
 
 	return results
