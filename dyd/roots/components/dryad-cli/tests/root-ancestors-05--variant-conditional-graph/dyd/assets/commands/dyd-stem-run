@@ -16,6 +16,7 @@ _prepare() {
 	chmod -R 755 "$TEMP_DIR"
 	printf 'true' > "$TEMP_DIR/dyd/roots/root-top/dyd/variants/os/darwin"
 	cd "$TEMP_DIR"
+	TEMP_DIR=$(pwd -P)
 }
 
 _test() {
