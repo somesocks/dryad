@@ -4,6 +4,7 @@ import (
 	"bufio"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	dydfs "dryad/filesystem"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
@@ -69,7 +70,7 @@ var rootsAffectedCommand = func() clib.Command {
 
 		for scanner.Scan() {
 			path := scanner.Text()
-			path, err = filepath.Abs(path)
+			path, err = dydfs.PartialEvalSymlinks(ctx, path)
 			if err != nil {
 				return err, nil
 			}
