@@ -56,10 +56,15 @@ func resolveRequirementForVariantRequirementTest(
 		Roots:    roots,
 	}
 
-	err, requirementsRef := sourceRoot.Requirements().Resolve(task.SERIAL_CONTEXT)
+	err, sourceVariant := sourceRoot.ResolveBuildVariantReference(
+		task.SERIAL_CONTEXT,
+		RootResolveBuildVariantsRequest{},
+	)
 	assert.Nil(t, err)
+	assert.NotNil(t, sourceVariant)
+	assert.NotNil(t, sourceVariant.Requirements)
 
-	err, requirement := requirementsRef.Requirement(alias).Resolve(task.SERIAL_CONTEXT)
+	err, requirement := sourceVariant.Requirements.Requirement(alias).Resolve(task.SERIAL_CONTEXT)
 	assert.Nil(t, err)
 	assert.NotNil(t, requirement)
 
@@ -238,6 +243,84 @@ func TestRootRequirementResolveTargets_AnyExcludesEnabledNone(t *testing.T) {
 	err, variant := variantDescriptorEncodeFilesystem(targets[0].VariantDescriptor)
 	assert.Nil(err)
 	assert.Equal("os=linux", variant)
+}
+
+func TestSafeRootVariantEnsureRequirements_CreatesExactSelectorPath(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	rootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
+
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "darwin"), "true")
+
+	garden := &SafeGardenReference{BasePath: gardenPath}
+	roots := &SafeRootsReference{
+		BasePath: filepath.Join(gardenPath, "dyd", "roots"),
+		Garden:   garden,
+	}
+	root := &SafeRootReference{
+		BasePath: rootPath,
+		Roots:    roots,
+	}
+
+	err, variant := root.ResolveBuildVariantReference(
+		task.SERIAL_CONTEXT,
+		RootResolveBuildVariantsRequest{
+			Selector: VariantDescriptor{"os": "linux"},
+		},
+	)
+	assert.Nil(err)
+	assert.NotNil(variant)
+	assert.Nil(variant.Requirements)
+
+	err, requirements := variant.EnsureRequirements(task.SERIAL_CONTEXT)
+	assert.Nil(err)
+	assert.NotNil(requirements)
+	assert.Equal(filepath.Join(rootPath, "dyd", "requirements~os=linux"), requirements.BasePath)
+
+	exists, err := fileExists(requirements.BasePath)
+	assert.Nil(err)
+	assert.True(exists)
+}
+
+func TestSafeRootVariantEnsureRequirements_CreatesExplicitNoneSelectorPath(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	rootPath := createRootForVariantRequirementTest(t, gardenPath, "source")
+
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "linux"), "true")
+	writeFileForTest(t, filepath.Join(rootPath, "dyd", "variants", "os", "none"), "true")
+
+	garden := &SafeGardenReference{BasePath: gardenPath}
+	roots := &SafeRootsReference{
+		BasePath: filepath.Join(gardenPath, "dyd", "roots"),
+		Garden:   garden,
+	}
+	root := &SafeRootReference{
+		BasePath: rootPath,
+		Roots:    roots,
+	}
+
+	err, variant := root.ResolveBuildVariantReference(
+		task.SERIAL_CONTEXT,
+		RootResolveBuildVariantsRequest{
+			Selector: VariantDescriptor{"os": "none"},
+		},
+	)
+	assert.Nil(err)
+	assert.NotNil(variant)
+	assert.Empty(variant.Descriptor)
+
+	err, requirements := variant.EnsureRequirements(task.SERIAL_CONTEXT)
+	assert.Nil(err)
+	assert.NotNil(requirements)
+	assert.Equal(filepath.Join(rootPath, "dyd", "requirements~os=none"), requirements.BasePath)
+
+	exists, err := fileExists(requirements.BasePath)
+	assert.Nil(err)
+	assert.True(exists)
 }
 
 func TestRootRequirementResolveTargets_AnyExpandsCartesianProduct(t *testing.T) {

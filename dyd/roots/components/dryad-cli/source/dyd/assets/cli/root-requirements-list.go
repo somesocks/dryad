@@ -35,6 +35,7 @@ func rootRequirementsList_encodeVariantSelectorURL(selector dryad.VariantDescrip
 var rootRequirementsListCommand = func() clib.Command {
 	type ParsedArgs struct {
 		RootPath string
+		Variant  string
 		Relative bool
 		Parallel int
 	}
@@ -42,11 +43,13 @@ var rootRequirementsListCommand = func() clib.Command {
 	var parseArgs = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
 		var args = req.Args
 		var options = req.Opts
+		var rootRefRaw string
 		var rootPath string
+		var hasSelector bool
 		var err error
 
 		if len(args) > 0 {
-			rootPath = args[0]
+			rootRefRaw = args[0]
 		}
 
 		var relative bool
@@ -64,6 +67,29 @@ var rootRequirementsListCommand = func() clib.Command {
 			parallel = PARALLEL_COUNT_DEFAULT
 		}
 
+		err, rootRef := parseRootRef(rootRefRaw)
+		if err != nil {
+			return err, ParsedArgs{}
+		}
+		rootPath = rootRef.Path
+		hasSelector = rootRef.HasSelector
+
+		var variant string
+		if hasSelector {
+			err, variantContext := (dryad.RootVariantContext{Descriptor: rootRef.Selector}).Filesystem()
+			if err != nil {
+				return err, ParsedArgs{}
+			}
+			variant = variantContext
+		}
+
+		if options["variant"] != nil {
+			if hasSelector {
+				return fmt.Errorf("root requirements selector specified in both root_ref and --variant"), ParsedArgs{}
+			}
+			variant = options["variant"].(string)
+		}
+
 		err, rootPath = dydfs.PartialEvalSymlinks(ctx, rootPath)
 		if err != nil {
 			return err, ParsedArgs{}
@@ -71,6 +97,7 @@ var rootRequirementsListCommand = func() clib.Command {
 
 		return nil, ParsedArgs{
 			RootPath: rootPath,
+			Variant:  variant,
 			Relative: relative,
 			Parallel: parallel,
 		}
@@ -87,15 +114,18 @@ var rootRequirementsListCommand = func() clib.Command {
 			return err, nil
 		}
 
-		err, safeRoot := roots.Root(args.RootPath).Resolve(ctx)
+		err, safeVariant := resolveSingleRootVariantReference(
+			ctx,
+			roots,
+			args.RootPath,
+			args.Variant,
+		)
 		if err != nil {
 			return err, nil
 		}
 
-		err, safeRequirements := safeRoot.Requirements().Resolve(ctx)
-		if err != nil {
-			return err, nil
-		} else if safeRequirements == nil {
+		safeRequirements := safeVariant.Requirements
+		if safeRequirements == nil {
 			// no requirements, so exit
 			return nil, nil
 		}
@@ -170,13 +200,14 @@ var rootRequirementsListCommand = func() clib.Command {
 		},
 	)
 
-	command := clib.NewCommand("list", "list all requirements of this root").
+	command := clib.NewCommand("list", "list all requirements of the selected root variant").
 		WithArg(
 			clib.
-				NewArg("root_path", "path to the root").
+				NewArg("root_ref", "path to the root, optionally qualified with a variant selector").
 				AsOptional().
 				WithAutoComplete(ArgAutoCompletePath),
 		).
+		WithOption(clib.NewOption("variant", "select the root variant to list (using filesystem variant notation: dimension1=option1,option2+dimension2=option3). required when the root resolves to multiple variants").WithType(clib.OptionTypeString)).
 		WithOption(clib.NewOption("relative", "print roots relative to the base garden path. default true").WithType(clib.OptionTypeBool)).
 		WithAction(action)
 

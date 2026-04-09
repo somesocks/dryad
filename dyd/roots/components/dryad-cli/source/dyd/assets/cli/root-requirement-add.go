@@ -45,6 +45,7 @@ func rootRequirementAdd_parseDependencyTarget(raw string) (error, string, string
 var rootRequirementAddCommand = func() clib.Command {
 	type ParsedArgs struct {
 		RootPath           string
+		Variant            string
 		DepPath            string
 		DepVariantSelector string
 		Alias              string
@@ -88,8 +89,14 @@ var rootRequirementAddCommand = func() clib.Command {
 			return err, ParsedArgs{}
 		}
 
+		var variant string
+		if options["variant"] != nil {
+			variant = options["variant"].(string)
+		}
+
 		return nil, ParsedArgs{
 			RootPath:           rootPath,
+			Variant:            variant,
 			DepPath:            depPath,
 			DepVariantSelector: depVariantSelector,
 			Alias:              alias,
@@ -108,12 +115,17 @@ var rootRequirementAddCommand = func() clib.Command {
 			return err, nil
 		}
 
-		err, root := roots.Root(args.RootPath).Resolve(ctx)
+		err, variant := resolveSingleRootVariantReference(
+			ctx,
+			roots,
+			args.RootPath,
+			args.Variant,
+		)
 		if err != nil {
 			return err, nil
 		}
 
-		err, reqs := root.Requirements().Resolve(ctx)
+		err, reqs := variant.EnsureRequirements(ctx)
 		if err != nil {
 			return err, nil
 		}
@@ -167,6 +179,7 @@ var rootRequirementAddCommand = func() clib.Command {
 				WithAutoComplete(ArgAutoCompletePath),
 		).
 		WithArg(clib.NewArg("alias", "the alias to add the root under. if not specified, this defaults to the basename of the linked root").AsOptional()).
+		WithOption(clib.NewOption("variant", "select the root variant to modify (using filesystem variant notation: dimension1=option1,option2+dimension2=option3). required when the root resolves to multiple variants").WithType(clib.OptionTypeString)).
 		WithAction(action)
 
 	command = ParallelCommand(command)

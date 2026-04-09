@@ -122,15 +122,23 @@ func rootAffected_requirementsPathMatchesVariant(
 
 func rootAffected_variantMatchesChangedPath(
 	changedPath string,
-	variant VariantDescriptor,
-	selectedPaths rootBuildSelectedPaths,
+	variant *SafeRootVariantReference,
 ) (error, bool) {
-	selectedPathValues := []string{
-		selectedPaths.AssetsPath,
-		selectedPaths.CommandsPath,
-		selectedPaths.TraitsPath,
-		selectedPaths.SecretsPath,
-		selectedPaths.DocsPath,
+	selectedPathValues := []string{}
+	if variant.Assets != nil {
+		selectedPathValues = append(selectedPathValues, variant.Assets.BasePath)
+	}
+	if variant.Commands != nil {
+		selectedPathValues = append(selectedPathValues, variant.Commands.BasePath)
+	}
+	if variant.Traits != nil {
+		selectedPathValues = append(selectedPathValues, variant.Traits.BasePath)
+	}
+	if variant.Secrets != nil {
+		selectedPathValues = append(selectedPathValues, variant.Secrets.BasePath)
+	}
+	if variant.Docs != nil {
+		selectedPathValues = append(selectedPathValues, variant.Docs.BasePath)
 	}
 
 	for _, selectedPathValue := range selectedPathValues {
@@ -145,8 +153,13 @@ func rootAffected_variantMatchesChangedPath(
 
 	return rootAffected_requirementsPathMatchesVariant(
 		changedPath,
-		selectedPaths.RequirementsPath,
-		variant,
+		func() string {
+			if variant.Requirements == nil {
+				return ""
+			}
+			return variant.Requirements.BasePath
+		}(),
+		variant.Descriptor,
 	)
 }
 
@@ -154,7 +167,7 @@ func (root *SafeRootReference) ResolveAffectedVariants(
 	ctx *task.ExecutionContext,
 	changedPaths []string,
 ) (error, []VariantDescriptor) {
-	err, resolvedVariants := root.ResolveBuildVariants(
+	err, resolvedVariants := root.ResolveBuildVariantReferences(
 		ctx,
 		RootResolveBuildVariantsRequest{},
 	)
@@ -168,33 +181,22 @@ func (root *SafeRootReference) ResolveAffectedVariants(
 			return err, nil
 		}
 		if affectsAllVariants {
-			return nil, resolvedVariants
+			results := make([]VariantDescriptor, 0, len(resolvedVariants))
+			for _, resolvedVariant := range resolvedVariants {
+				results = append(results, resolvedVariant.Descriptor)
+			}
+			return nil, results
 		}
 	}
 
 	affectedVariants := make([]VariantDescriptor, 0, len(resolvedVariants))
 
 	for _, resolvedVariant := range resolvedVariants {
-		err, variantDescriptor := RootVariantContext{Descriptor: resolvedVariant}.Filesystem()
-		if err != nil {
-			return err, nil
-		}
-
-		err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsPaths(
-			ctx,
-			root.BasePath,
-			variantDescriptor,
-		)
-		if err != nil {
-			return err, nil
-		}
-
 		isAffected := false
 		for _, changedPath := range changedPaths {
 			err, matchesVariant := rootAffected_variantMatchesChangedPath(
 				changedPath,
 				resolvedVariant,
-				selectedPaths,
 			)
 			if err != nil {
 				return err, nil
@@ -206,7 +208,7 @@ func (root *SafeRootReference) ResolveAffectedVariants(
 		}
 
 		if isAffected {
-			affectedVariants = append(affectedVariants, resolvedVariant)
+			affectedVariants = append(affectedVariants, resolvedVariant.Descriptor)
 		}
 	}
 

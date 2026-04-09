@@ -153,7 +153,6 @@ func rootsGraph(
 	var graphMux sync.Mutex
 
 	var onRoot = func(ctx *task.ExecutionContext, root *SafeRootReference) (error, any) {
-		var requirements *SafeRootRequirementsReference
 		var err error
 		var rootPath string
 		var gardenPath string = root.Roots.Garden.BasePath
@@ -166,7 +165,7 @@ func rootsGraph(
 			}
 		}
 
-		err, sourceVariants := root.ResolveBuildVariants(ctx, RootResolveBuildVariantsRequest{
+		err, sourceVariants := root.ResolveBuildVariantReferences(ctx, RootResolveBuildVariantsRequest{
 			Selector:                VariantDescriptor{},
 			IgnoreUnknownDimensions: true,
 		})
@@ -174,15 +173,10 @@ func rootsGraph(
 			return err, nil
 		}
 
-		err, requirements = root.Requirements().Resolve(ctx)
-		if err != nil {
-			return err, nil
-		}
-
 		for _, sourceVariant := range sourceVariants {
 			sourceVariant := sourceVariant
 
-			err, sourceSelectorRaw := variantDescriptorEncodeURL(sourceVariant)
+			err, sourceSelectorRaw := sourceVariant.URL()
 			if err != nil {
 				return err, nil
 			}
@@ -192,6 +186,7 @@ func rootsGraph(
 			graph.EnsureNode(sourceNode)
 			graphMux.Unlock()
 
+			requirements := sourceVariant.Requirements
 			if requirements == nil {
 				continue
 			}
@@ -210,7 +205,7 @@ func rootsGraph(
 						return err, nil
 					}
 
-					err, shouldInclude := rootRequirementConditionMatches(sourceVariant, condition)
+					err, shouldInclude := rootRequirementConditionMatches(sourceVariant.Descriptor, condition)
 					if err != nil {
 						return err, nil
 					}
@@ -219,7 +214,7 @@ func rootsGraph(
 					}
 
 					err, targets := requirement.ResolveTargets(ctx, RootRequirementResolveTargetsRequest{
-						ParentVariant: sourceVariant,
+						ParentVariant: sourceVariant.Descriptor,
 					})
 					if err != nil {
 						return err, nil

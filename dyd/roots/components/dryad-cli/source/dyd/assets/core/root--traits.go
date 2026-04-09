@@ -6,7 +6,7 @@ import (
 	// zlog "github.com/rs/zerolog/log"
 )
 
-func (root *SafeRootReference) Traits() *UnsafeRootTraitsReference {
+func (root *SafeRootReference) UnqualifiedTraits() *UnsafeRootTraitsReference {
 	var rootTraitsRef = UnsafeRootTraitsReference{
 		BasePath: filepath.Join(root.BasePath, "dyd", "traits"),
 		Root:     root,

@@ -39,12 +39,24 @@ _test() {
 
 	ROOT_1="$PWD/dyd/roots/root-01"
 	ROOT_2="$PWD/dyd/roots/root-02"
+	ROOT_3="$PWD/dyd/roots/root-03"
+	ROOT_4="$PWD/dyd/roots/root-04"
 
-	(cd "$ROOT_1" && dryad root requirement add "$ROOT_2?os=linux&arch=amd64" "dep-02~os=linux+arch=any") 1>&2;
+	mkdir -p "$ROOT_3/dyd/variants/arch"
+	mkdir -p "$ROOT_3/dyd/variants/os"
+	printf 'root' > "$ROOT_3/dyd/type"
+	printf 'true' > "$ROOT_3/dyd/variants/arch/amd64"
+	printf 'true' > "$ROOT_3/dyd/variants/os/linux"
+	printf 'true' > "$ROOT_3/dyd/variants/os/darwin"
+
+	mkdir -p "$ROOT_4/dyd"
+	printf 'root' > "$ROOT_4/dyd/type"
+
+	(cd "$ROOT_1" && dryad root requirement add "$ROOT_2?arch=amd64&os=linux" "dep-02~arch=any+os=linux") 1>&2;
 
 	LIST_OUTPUT=$(cd "$ROOT_1" && dryad root requirements list)
 	case "$LIST_OUTPUT" in
-		*"dyd/roots/root-01/dyd/requirements/dep-02~arch=any+os=linux -> root:../../../root-02?arch=amd64&os=linux"*)
+		*"dyd/roots/root-01/dyd/requirements~arch=amd64+os=linux/dep-02~arch=any+os=linux -> root:../../../root-02?arch=amd64&os=linux"*)
 			;;
 		*)
 			echo "[ERROR] Fail: expected requirements list to include dep-02" 1>&2
@@ -85,11 +97,11 @@ _test() {
 		return 1
 	fi
 
-	printf 'root:../../../root-02?os=linux&arch=amd64' > "$ROOT_1/dyd/requirements/dep-03"
+	printf 'root:../../../root-02?arch=amd64&os=linux' > "$ROOT_1/dyd/requirements~arch=amd64+os=linux/dep-03"
 
 	LIST_OUTPUT_WITH_SELECTOR=$(cd "$ROOT_1" && dryad root requirements list)
 	case "$LIST_OUTPUT_WITH_SELECTOR" in
-		*"dyd/roots/root-01/dyd/requirements/dep-03 -> root:../../../root-02?arch=amd64&os=linux"*)
+		*"dyd/roots/root-01/dyd/requirements~arch=amd64+os=linux/dep-03 -> root:../../../root-02?arch=amd64&os=linux"*)
 			;;
 		*)
 			echo "[ERROR] Fail: expected requirements list to canonicalize selector query order" 1>&2
@@ -98,12 +110,99 @@ _test() {
 			;;
 	esac
 
-	(cd "$ROOT_1" && dryad root requirement remove "dep-02~os=linux+arch=any") 1>&2;
+	(cd "$ROOT_1" && dryad root requirement remove "dep-02~arch=any+os=linux") 1>&2;
 	(cd "$ROOT_1" && dryad root requirement remove dep-03) 1>&2;
 
 	LIST_OUTPUT_AFTER=$(cd "$ROOT_1" && dryad root requirements list)
 	if [ -n "$LIST_OUTPUT_AFTER" ]; then
 		echo "[ERROR] Fail: expected requirements list to be empty after removal" 1>&2
+		return 1
+	fi
+
+	set +e
+	AMBIGUOUS_ADD_OUTPUT=$(cd "$ROOT_3" && dryad root requirement add "$ROOT_4" dep-04 2>&1)
+	AMBIGUOUS_ADD_STATUS=$?
+	set -e
+	if [ "$AMBIGUOUS_ADD_STATUS" -eq 0 ]; then
+		echo "[ERROR] Fail: expected root requirement add without --variant to fail for a multi-variant root" 1>&2
+		return 1
+	fi
+	case "$AMBIGUOUS_ADD_OUTPUT" in
+		*"under-specified root variant selector"*)
+			;;
+		*)
+			echo "[ERROR] Fail: expected ambiguous add to report an under-specified root variant selector" 1>&2
+			echo "$AMBIGUOUS_ADD_OUTPUT" 1>&2
+			return 1
+			;;
+	esac
+
+	(cd "$ROOT_3" && dryad root requirement add --variant=arch=amd64+os=linux "$ROOT_4" dep-04) 1>&2;
+
+	MULTI_VARIANT_LIST_OUTPUT=$(cd "$ROOT_3" && dryad root requirements list --variant=arch=amd64+os=linux)
+	case "$MULTI_VARIANT_LIST_OUTPUT" in
+		*"dyd/roots/root-03/dyd/requirements~arch=amd64+os=linux/dep-04 -> root:../../../root-04"*)
+			;;
+		*)
+			echo "[ERROR] Fail: expected requirements list to show the exact selected root variant requirements path" 1>&2
+			echo "$MULTI_VARIANT_LIST_OUTPUT" 1>&2
+			return 1
+			;;
+	esac
+
+	QUALIFIED_LIST_OUTPUT=$(dryad root requirements list "$ROOT_3~arch=amd64+os=linux")
+	case "$QUALIFIED_LIST_OUTPUT" in
+		*"dyd/roots/root-03/dyd/requirements~arch=amd64+os=linux/dep-04 -> root:../../../root-04"*)
+			;;
+		*)
+			echo "[ERROR] Fail: expected root requirements list to accept a filesystem-qualified root ref" 1>&2
+			echo "$QUALIFIED_LIST_OUTPUT" 1>&2
+			return 1
+			;;
+	esac
+
+	set +e
+	AMBIGUOUS_LIST_OUTPUT=$(cd "$ROOT_3" && dryad root requirements list 2>&1)
+	AMBIGUOUS_LIST_STATUS=$?
+	set -e
+	if [ "$AMBIGUOUS_LIST_STATUS" -eq 0 ]; then
+		echo "[ERROR] Fail: expected root requirements list without --variant to fail for a multi-variant root" 1>&2
+		return 1
+	fi
+	case "$AMBIGUOUS_LIST_OUTPUT" in
+		*"under-specified root variant selector"*)
+			;;
+		*)
+			echo "[ERROR] Fail: expected ambiguous list to report an under-specified root variant selector" 1>&2
+			echo "$AMBIGUOUS_LIST_OUTPUT" 1>&2
+			return 1
+			;;
+	esac
+
+	set +e
+	AMBIGUOUS_REMOVE_OUTPUT=$(cd "$ROOT_3" && dryad root requirement remove dep-04 2>&1)
+	AMBIGUOUS_REMOVE_STATUS=$?
+	set -e
+	if [ "$AMBIGUOUS_REMOVE_STATUS" -eq 0 ]; then
+		echo "[ERROR] Fail: expected root requirement remove without --variant to fail for a multi-variant root" 1>&2
+		return 1
+	fi
+	case "$AMBIGUOUS_REMOVE_OUTPUT" in
+		*"under-specified root variant selector"*)
+			;;
+		*)
+			echo "[ERROR] Fail: expected ambiguous remove to report an under-specified root variant selector" 1>&2
+			echo "$AMBIGUOUS_REMOVE_OUTPUT" 1>&2
+			return 1
+			;;
+	esac
+
+	(cd "$ROOT_3" && dryad root requirement remove --variant=arch=amd64+os=linux dep-04) 1>&2;
+
+	MULTI_VARIANT_LIST_AFTER_REMOVE=$(cd "$ROOT_3" && dryad root requirements list --variant=arch=amd64+os=linux)
+	if [ -n "$MULTI_VARIANT_LIST_AFTER_REMOVE" ]; then
+		echo "[ERROR] Fail: expected selected root variant requirements to be empty after removal" 1>&2
+		echo "$MULTI_VARIANT_LIST_AFTER_REMOVE" 1>&2
 		return 1
 	fi
 }

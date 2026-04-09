@@ -107,7 +107,7 @@ var rootFilterCelEnv = func() *cel.Env {
 						Str("trait", path).
 						Msg("CEL calling trait")
 
-					err, traits := wrapper.root.Traits().Resolve(wrapper.ctx)
+					err, traits := wrapper.root.UnqualifiedTraits().Resolve(wrapper.ctx)
 					if err != nil {
 						zlog.Error().
 							Err(err).
