@@ -4,10 +4,12 @@ import (
 	"bufio"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	dydfs "dryad/filesystem"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
+	"sort"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -62,20 +64,20 @@ var rootsAffectedCommand = func() clib.Command {
 			return err, nil
 		}
 
-		rootSet := make(dryad.TStringSet)
+		changedPathsByRoot := make(map[string][]string)
 
 		scanner := bufio.NewScanner(os.Stdin)
 
 		for scanner.Scan() {
 			path := scanner.Text()
-			path, err = filepath.Abs(path)
+			err, path = dydfs.PartialEvalSymlinks(ctx, path)
 			if err != nil {
 				return err, nil
 			}
-			path = _rootsOwningDependencyCorrection(path)
-			err, root := roots.Root(path).Resolve(ctx)
+			owningPath := _rootsOwningDependencyCorrection(path)
+			err, root := roots.Root(owningPath).Resolve(ctx)
 			if err == nil {
-				rootSet[root.BasePath] = true
+				changedPathsByRoot[root.BasePath] = append(changedPathsByRoot[root.BasePath], path)
 			}
 		}
 
@@ -84,12 +86,47 @@ var rootsAffectedCommand = func() clib.Command {
 			return err, nil
 		}
 
-		rootList := rootSet.ToArray([]string{})
+		startNodes := make([]string, 0)
+		startNodeSet := make(dryad.TStringSet)
+
+		for rootPath, changedPaths := range changedPathsByRoot {
+			err, root := roots.Root(rootPath).Resolve(ctx)
+			if err != nil {
+				return err, nil
+			}
+
+			err, affectedVariants := root.ResolveAffectedVariants(ctx, changedPaths)
+			if err != nil {
+				return err, nil
+			}
+
+			renderedRootPath := root.BasePath
+			if args.Relative {
+				renderedRootPath, err = filepath.Rel(garden.BasePath, renderedRootPath)
+				if err != nil {
+					return err, nil
+				}
+			}
+
+			for _, affectedVariant := range affectedVariants {
+				err, selectorRaw := (dryad.RootVariantContext{Descriptor: affectedVariant}).URL()
+				if err != nil {
+					return err, nil
+				}
+
+				node := renderedRootPath + selectorRaw
+				if startNodeSet[node] {
+					continue
+				}
+				startNodeSet[node] = true
+				startNodes = append(startNodes, node)
+			}
+		}
 
 		err, graph := roots.Graph(
 			ctx,
 			dryad.RootsGraphRequest{
-				Relative: false,
+				Relative: args.Relative,
 			},
 		)
 		if err != nil {
@@ -98,26 +135,16 @@ var rootsAffectedCommand = func() clib.Command {
 
 		graph = graph.Transpose()
 
-		// find the descendants of the affected roots
-		descendants := graph.Descendants(make(dryad.TStringSet), rootList)
-		for k := range descendants {
-			rootSet[k] = true
+		affectedNodes := graph.DescendantNodes(make(dryad.TStringSet), startNodes)
+		for node := range startNodeSet {
+			affectedNodes[node] = true
 		}
 
-		// Print the resulting roots
-		if args.Relative {
-			for key := range rootSet {
-				// calculate the relative path to the root from the base of the garden
-				relPath, err := filepath.Rel(garden.BasePath, key)
-				if err != nil {
-					return err, nil
-				}
-				fmt.Println(relPath)
-			}
-		} else {
-			for key := range rootSet {
-				fmt.Println(key)
-			}
+		affectedList := affectedNodes.ToArray([]string{})
+		sort.Strings(affectedList)
+
+		for _, affectedNode := range affectedList {
+			fmt.Println(affectedNode)
 		}
 
 		return nil, nil
@@ -144,8 +171,8 @@ var rootsAffectedCommand = func() clib.Command {
 		},
 	)
 
-	command := clib.NewCommand("affected", "take a list of files from stdin, and print a list of roots that may depend on those files").
-		WithOption(clib.NewOption("relative", "print roots relative to the base garden path. default true").WithType(clib.OptionTypeBool)).
+	command := clib.NewCommand("affected", "take a list of files from stdin, and print a list of root variants that may depend on those files").
+		WithOption(clib.NewOption("relative", "print root refs relative to the base garden path. default true").WithType(clib.OptionTypeBool)).
 		WithAction(action)
 
 	command = ParallelCommand(command)
