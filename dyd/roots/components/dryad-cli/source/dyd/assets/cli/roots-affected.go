@@ -70,7 +70,7 @@ var rootsAffectedCommand = func() clib.Command {
 
 		for scanner.Scan() {
 			path := scanner.Text()
-			path, err = dydfs.PartialEvalSymlinks(ctx, path)
+			err, path = dydfs.PartialEvalSymlinks(ctx, path)
 			if err != nil {
 				return err, nil
 			}
