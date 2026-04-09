@@ -1,0 +1,170 @@
+#!/usr/bin/env bash
+
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_assert_roots_affected_output() {
+	local actual="$1"
+	local expected="$2"
+	local message="$3"
+
+	if [ "$actual" != "$expected" ]; then
+		echo "[ERROR] Fail: $message" 1>&2
+		echo "$actual" 1>&2
+		return 1
+	fi
+}
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	printf 'true' > "$TEMP_DIR/dyd/roots/root-base/dyd/variants/os/darwin"
+	printf 'true' > "$TEMP_DIR/dyd/roots/root-skip/dyd/variants/os/darwin"
+	mkdir -p "$TEMP_DIR/dyd/roots/root-base/dyd/assets~os=linux"
+	mkdir -p "$TEMP_DIR/dyd/roots/root-base/dyd/assets~os=darwin"
+	mkdir -p "$TEMP_DIR/dyd/roots/root-base/dyd/commands~os=linux"
+	mkdir -p "$TEMP_DIR/dyd/roots/root-base/dyd/commands~os=darwin"
+	mkdir -p "$TEMP_DIR/dyd/roots/root-base/dyd/traits~os=linux"
+	mkdir -p "$TEMP_DIR/dyd/roots/root-base/dyd/traits~os=darwin"
+	mkdir -p "$TEMP_DIR/dyd/roots/root-base/dyd/secrets~os=linux"
+	mkdir -p "$TEMP_DIR/dyd/roots/root-base/dyd/secrets~os=darwin"
+	mkdir -p "$TEMP_DIR/dyd/roots/root-base/dyd/docs"
+	printf 'linux\n' > "$TEMP_DIR/dyd/roots/root-base/dyd/assets~os=linux/main"
+	printf 'darwin\n' > "$TEMP_DIR/dyd/roots/root-base/dyd/assets~os=darwin/main"
+	printf '#!/usr/bin/env bash\n' > "$TEMP_DIR/dyd/roots/root-base/dyd/commands~os=linux/dyd-root-build"
+	printf '#!/usr/bin/env bash\n' > "$TEMP_DIR/dyd/roots/root-base/dyd/commands~os=darwin/dyd-root-build"
+	printf 'linux\n' > "$TEMP_DIR/dyd/roots/root-base/dyd/traits~os=linux/name"
+	printf 'darwin\n' > "$TEMP_DIR/dyd/roots/root-base/dyd/traits~os=darwin/name"
+	printf 'linux\n' > "$TEMP_DIR/dyd/roots/root-base/dyd/secrets~os=linux/token"
+	printf 'darwin\n' > "$TEMP_DIR/dyd/roots/root-base/dyd/secrets~os=darwin/token"
+	printf 'shared\n' > "$TEMP_DIR/dyd/roots/root-base/dyd/docs/about.md"
+
+	mkdir -p "$TEMP_DIR/dyd/roots/root-plain/dyd/assets"
+	printf 'root' > "$TEMP_DIR/dyd/roots/root-plain/dyd/type"
+	printf 'plain\n' > "$TEMP_DIR/dyd/roots/root-plain/dyd/assets/main"
+
+	mkdir -p "$TEMP_DIR/dyd/roots/root-plain-user/dyd/requirements"
+	printf 'root' > "$TEMP_DIR/dyd/roots/root-plain-user/dyd/type"
+	printf 'root:../../../root-plain' > "$TEMP_DIR/dyd/roots/root-plain-user/dyd/requirements/plain"
+	cd "$TEMP_DIR"
+	TEMP_DIR=$(pwd -P)
+}
+
+_test() {
+	EXPECTED_LINUX=$(cat <<'EOF'
+dyd/roots/root-base?os=linux
+dyd/roots/root-mid?os=linux
+dyd/roots/root-skip?os=darwin
+dyd/roots/root-top?os=linux
+EOF
+)
+	EXPECTED_ALL=$(cat <<'EOF'
+dyd/roots/root-base?os=darwin
+dyd/roots/root-base?os=linux
+dyd/roots/root-mid?os=linux
+dyd/roots/root-skip?os=darwin
+dyd/roots/root-top?os=linux
+EOF
+)
+	EXPECTED_PLAIN=$(cat <<'EOF'
+dyd/roots/root-plain
+dyd/roots/root-plain-user
+EOF
+)
+
+	OUTPUT=$(printf '%s\n' \
+		'dyd/roots/root-base/dyd/assets~os=linux/main' \
+		| dryad roots affected --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_affected_output "$OUTPUT" "$EXPECTED_LINUX" "expected roots affected output to be exact, sorted variant refs for assets selector"
+
+	OUTPUT_COMMANDS=$(printf '%s\n' \
+		'dyd/roots/root-base/dyd/commands~os=linux/dyd-root-build' \
+		| dryad roots affected --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_affected_output "$OUTPUT_COMMANDS" "$EXPECTED_LINUX" "expected commands selector changes to affect linux root variants"
+
+	OUTPUT_TRAITS=$(printf '%s\n' \
+		'dyd/roots/root-base/dyd/traits~os=linux/name' \
+		| dryad roots affected --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_affected_output "$OUTPUT_TRAITS" "$EXPECTED_LINUX" "expected traits selector changes to affect linux root variants"
+
+	OUTPUT_SECRETS=$(printf '%s\n' \
+		'dyd/roots/root-base/dyd/secrets~os=linux/token' \
+		| dryad roots affected --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_affected_output "$OUTPUT_SECRETS" "$EXPECTED_LINUX" "expected secrets selector changes to affect linux root variants"
+
+	OUTPUT_DOCS=$(printf '%s\n' \
+		'dyd/roots/root-base/dyd/docs/about.md' \
+		| dryad roots affected --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_affected_output "$OUTPUT_DOCS" "$EXPECTED_ALL" "expected plain docs changes to affect all root variants"
+
+	OUTPUT_REQUIREMENT=$(printf '%s\n' \
+		'dyd/roots/root-top/dyd/requirements/mid~os=linux' \
+		| dryad roots affected --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_affected_output "$OUTPUT_REQUIREMENT" 'dyd/roots/root-top?os=linux' "expected conditional requirement file changes to affect only matching root variants"
+
+	OUTPUT_VARIANTS=$(printf '%s\n' \
+		'dyd/roots/root-base/dyd/variants/os/linux' \
+		| dryad roots affected --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_affected_output "$OUTPUT_VARIANTS" "$EXPECTED_ALL" "expected dyd/variants changes to affect all root variants"
+
+	OUTPUT_TYPE=$(printf '%s\n' \
+		'dyd/roots/root-base/dyd/type' \
+		| dryad roots affected --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_affected_output "$OUTPUT_TYPE" "$EXPECTED_ALL" "expected dyd/type changes to affect all root variants"
+
+	OUTPUT_PLAIN=$(printf '%s\n' \
+		'dyd/roots/root-plain/dyd/assets/main' \
+		| dryad roots affected --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_affected_output "$OUTPUT_PLAIN" "$EXPECTED_PLAIN" "expected no-variant roots to be printed without selectors"
+
+	OUTPUT_UNION=$(printf '%s\n' \
+		'dyd/roots/root-base/dyd/assets~os=linux/main' \
+		'dyd/roots/root-base/dyd/assets~os=darwin/main' \
+		'dyd/roots/root-base/dyd/assets~os=linux/main' \
+		| dryad roots affected --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_affected_output "$OUTPUT_UNION" "$EXPECTED_ALL" "expected mixed stdin unions and duplicate paths to dedupe and merge affected variants correctly"
+
+	OUTPUT_ABS=$(printf '%s\n' \
+		'dyd/roots/root-base/dyd/assets~os=linux/main' \
+		| dryad roots affected --relative=false --log-level="$DYD_LOG_LEVEL")
+	if ! printf '%s\n' "$OUTPUT_ABS" | grep -Fxq "$TEMP_DIR/dyd/roots/root-top?os=linux"; then
+		echo "[ERROR] Fail: expected --relative=false to print absolute variant refs" 1>&2
+		echo "$OUTPUT_ABS" 1>&2
+		return 1
+	fi
+
+	OUTPUT_UNKNOWN=$(printf '%s\n' \
+		'does/not/belong/to/a/root' \
+		| dryad roots affected --log-level="$DYD_LOG_LEVEL")
+	if [ -n "$OUTPUT_UNKNOWN" ]; then
+		echo "[ERROR] Fail: expected unknown paths to be ignored" 1>&2
+		echo "$OUTPUT_UNKNOWN" 1>&2
+		return 1
+	fi
+}
+
+_verify() {
+	assert_directory_exists "$TEMP_DIR/dyd"
+	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
