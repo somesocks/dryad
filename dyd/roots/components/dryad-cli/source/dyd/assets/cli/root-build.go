@@ -26,9 +26,11 @@ var rootBuildCommand = func() clib.Command {
 		var args = req.Args
 		var options = req.Opts
 
-		var path string
+		var rootRefRaw string
+		var rootPath string
 		var parallel int
 		var variantDescriptor string
+		var hasSelector bool
 		var joinStdout bool
 		var joinStderr bool
 		var logStdout string
@@ -37,7 +39,7 @@ var rootBuildCommand = func() clib.Command {
 		var err error
 
 		if len(args) > 0 {
-			path = args[0]
+			rootRefRaw = args[0]
 		}
 
 		if options["parallel"] != nil {
@@ -46,7 +48,25 @@ var rootBuildCommand = func() clib.Command {
 			parallel = PARALLEL_COUNT_DEFAULT
 		}
 
+		err, rootRef := parseRootRef(rootRefRaw)
+		if err != nil {
+			return err, ParsedArgs{}
+		}
+		rootPath = rootRef.Path
+		hasSelector = rootRef.HasSelector
+
+		if hasSelector {
+			err, variantDescriptor = (dryad.RootVariantContext{Descriptor: rootRef.Selector}).Filesystem()
+			if err != nil {
+				return err, ParsedArgs{}
+			}
+		}
+
 		if options["variant"] != nil {
+			if hasSelector {
+				return fmt.Errorf("root build selector specified in both root_ref and --variant"), ParsedArgs{}
+			}
+
 			variantDescriptor = options["variant"].(string)
 		}
 
@@ -72,13 +92,13 @@ var rootBuildCommand = func() clib.Command {
 			joinStderr = false
 		}
 
-		err, path = dydfs.PartialEvalSymlinks(ctx, path)
+		err, rootPath = dydfs.PartialEvalSymlinks(ctx, rootPath)
 		if err != nil {
 			return err, ParsedArgs{}
 		}
 
 		return nil, ParsedArgs{
-			RootPath:          path,
+			RootPath:          rootPath,
 			VariantDescriptor: variantDescriptor,
 			Parallel:          parallel,
 			JoinStdout:        joinStdout,
@@ -161,7 +181,7 @@ var rootBuildCommand = func() clib.Command {
 		NewCommand("build", "build a specified root").
 		WithArg(
 			clib.
-				NewArg("path", "path to the root to build").
+				NewArg("root_ref", "path to the root to build, optionally qualified with a variant selector").
 				AsOptional().
 				WithAutoComplete(ArgAutoCompletePath),
 		).

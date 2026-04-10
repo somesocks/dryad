@@ -16,11 +16,46 @@ _prepare() {
 	cd "$TEMP_DIR"
 }
 
-_test() {
+_reset_garden_state() {
+	if [ -e "$TEMP_DIR/dyd/heap" ] || [ -L "$TEMP_DIR/dyd/heap" ]; then
+		chmod -R 755 "$TEMP_DIR/dyd/heap"
+	fi
+
+	if [ -e "$TEMP_DIR/dyd/sprouts" ] || [ -L "$TEMP_DIR/dyd/sprouts" ]; then
+		chmod -R 755 "$TEMP_DIR/dyd/sprouts"
+	fi
+
+	rm -rf "$TEMP_DIR/dyd/heap" "$TEMP_DIR/dyd/sprouts"
+}
+
+_test_variant_flag() {
 	dryad root build "dyd/roots/root-top" --variant="os=linux" --log-level="$DYD_LOG_LEVEL" > /dev/null
 }
 
-_verify() {
+_test_filesystem_root_ref() {
+	_reset_garden_state
+	dryad root build "dyd/roots/root-top~os=linux" --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+_test_url_root_ref() {
+	_reset_garden_state
+	dryad root build "dyd/roots/root-top?os=linux" --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+_test_duplicate_selector_fails() {
+	if dryad root build "dyd/roots/root-top~os=linux" --variant="os=darwin" --log-level="$DYD_LOG_LEVEL" >"$TEMP_DIR/conflict.stdout" 2>"$TEMP_DIR/conflict.stderr"; then
+		echo "[ERROR] Fail: expected root build to reject selectors specified in both root_ref and --variant" 1>&2
+		return 1
+	fi
+
+	if ! grep -Fq 'root build selector specified in both root_ref and --variant' "$TEMP_DIR/conflict.stderr"; then
+		echo "[ERROR] Fail: expected conflict error message for root_ref and --variant selectors" 1>&2
+		cat "$TEMP_DIR/conflict.stderr" 1>&2
+		return 1
+	fi
+}
+
+_verify_linux_variants_only() {
 	deps_path="$TEMP_DIR/dyd/sprouts/root-top/dyd/dependencies"
 	assert_directory_exists "$deps_path"
 
@@ -54,5 +89,10 @@ _teardown() {
 trap _teardown ERR EXIT
 _setup
 _prepare
-_test
-_verify
+_test_variant_flag
+_verify_linux_variants_only
+_test_filesystem_root_ref
+_verify_linux_variants_only
+_test_url_root_ref
+_verify_linux_variants_only
+_test_duplicate_selector_fails
