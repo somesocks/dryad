@@ -17,8 +17,8 @@ import (
 var rootsEachCommand = func() clib.Command {
 
 	type ParsedArgs struct {
-		FromStdinFilter      func(*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
-		IncludeExcludeFilter func(*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
+		FromStdinFilter      dryad.RootVariantFilter
+		IncludeExcludeFilter dryad.RootVariantFilter
 		Shell                string
 		Command              string
 		GardenPath           string
@@ -39,12 +39,12 @@ var rootsEachCommand = func() clib.Command {
 
 		var ignoreErrors bool
 
-		err, rootFilter := ArgRootFilterFromIncludeExclude(ctx, req)
+		err, rootFilter := ArgRootVariantFilterFromIncludeExclude(ctx, req)
 		if err != nil {
 			return err, ParsedArgs{}
 		}
 
-		err, fromStdinFilter := ArgRootFilterFromStdin(ctx, req)
+		err, fromStdinFilter := ArgRootVariantFilterFromStdin(ctx, req)
 		if err != nil {
 			return err, ParsedArgs{}
 		}
@@ -114,14 +114,14 @@ var rootsEachCommand = func() clib.Command {
 			return err, nil
 		}
 
-		err = roots.Walk(
+		err = roots.WalkVariants(
 			ctx,
-			dryad.RootsWalkRequest{
-				ShouldMatch: dryad.RootFiltersCompose(
+			dryad.RootsWalkVariantsRequest{
+				ShouldMatch: dryad.RootVariantFiltersCompose(
 					args.FromStdinFilter,
 					args.IncludeExcludeFilter,
 				),
-				OnMatch: func(ctx *task.ExecutionContext, root *dryad.SafeRootReference) (error, any) {
+				OnMatch: func(ctx *task.ExecutionContext, variant *dryad.SafeRootVariantReference) (error, any) {
 					var err error
 
 					cmd := exec.Command(
@@ -129,9 +129,23 @@ var rootsEachCommand = func() clib.Command {
 						[]string{"-c", args.Command}...,
 					)
 
-					cmd.Dir = root.BasePath
+					cmd.Dir = variant.Root.BasePath
 
 					cmd.Stdin = os.Stdin
+					err, variantRef := formatRootVariantRef(variant, false)
+					if err != nil {
+						return err, nil
+					}
+					err, variantDescriptor := variant.Filesystem()
+					if err != nil {
+						return err, nil
+					}
+					cmd.Env = append(
+						os.Environ(),
+						"DYD_ROOT="+variant.Root.BasePath,
+						"DYD_VARIANT="+variantDescriptor,
+						"DYD_ROOT_REF="+variantRef,
+					)
 
 					// optionally pipe the exec logs to us
 					if args.JoinStdout {
@@ -177,13 +191,13 @@ var rootsEachCommand = func() clib.Command {
 		},
 	)
 
-	command := clib.NewCommand("each", "run a command once for each root. the current working directory is set to the base path of the root for each execution.").
-		WithOption(clib.NewOption("include", "choose which roots are included in the list. the include filter is a CEL expression with access to a 'root' object that can be used to filter on properties of the root.").WithType(clib.OptionTypeMultiString)).
-		WithOption(clib.NewOption("exclude", "choose which roots are excluded from the list.  the exclude filter is a CEL expression with access to a 'root' object that can be used to filter on properties of the root.").WithType(clib.OptionTypeMultiString)).
+	command := clib.NewCommand("each", "run a command once for each root variant. the current working directory is set to the base path of the root for each execution.").
+		WithOption(clib.NewOption("include", "choose which root variants are included in the list. the include filter is a CEL expression with access to a 'root' object for each root variant.").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("exclude", "choose which root variants are excluded from the list. the exclude filter is a CEL expression with access to a 'root' object for each root variant.").WithType(clib.OptionTypeMultiString)).
 		WithOption(
 			clib.NewOption(
 				"from-stdin",
-				"if set, read a list of roots from stdin to use as a base list of roots instead of all roots. include and exclude filters will be applied after this list. default false",
+				"if set, read a list of root refs from stdin to use as a base list of root variants instead of all root variants. include and exclude filters will be applied after this list. default false",
 			).
 				WithType(clib.OptionTypeBool),
 		).

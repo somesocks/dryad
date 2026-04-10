@@ -10,7 +10,7 @@ import (
 
 type rootsBuildRequest struct {
 	Roots             *SafeRootsReference
-	Filter            func(*task.ExecutionContext, *SafeRootReference) (error, bool)
+	Filter            RootVariantFilter
 	VariantDescriptor string
 	JoinStdout        bool
 	JoinStderr        bool
@@ -44,31 +44,59 @@ func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, a
 	}
 
 	var buildRoot = func(ctx *task.ExecutionContext, root *SafeRootReference) (error, any) {
-
-		var err error
-		var shouldMatch bool
-
-		err, shouldMatch = request.Filter(ctx, root)
+		err, variantSelectorDescriptor := normalizeRootBuildVariantDescriptor(request.VariantDescriptor)
 		if err != nil {
 			return err, nil
 		}
 
-		// if the root isn't being excluded by a selector, build it
-		if shouldMatch {
-			err, _ = root.BuildSprout(
-				ctx,
-				RootBuildSproutRequest{
-					VariantDescriptor: request.VariantDescriptor,
-					JoinStdout:        request.JoinStdout,
-					JoinStderr:        request.JoinStderr,
-					LogStdout:         request.LogStdout,
-					LogStderr:         request.LogStderr,
-				},
-			)
+		err, variantSelector := variantDescriptorParseFilesystem(variantSelectorDescriptor)
+		if err != nil {
 			return err, nil
-		} else {
+		}
+
+		err, variants := root.ResolveBuildVariantReferences(
+			ctx,
+			RootResolveBuildVariantsRequest{
+				Selector:                variantSelector,
+				IgnoreUnknownDimensions: true,
+			},
+		)
+		if err != nil {
+			return err, nil
+		}
+
+		selectedDescriptors := make([]string, 0, len(variants))
+		for _, variant := range variants {
+			err, shouldMatch := request.Filter(ctx, variant)
+			if err != nil {
+				return err, nil
+			}
+			if !shouldMatch {
+				continue
+			}
+
+			err, rendered := variant.Filesystem()
+			if err != nil {
+				return err, nil
+			}
+			selectedDescriptors = append(selectedDescriptors, rendered)
+		}
+
+		if len(selectedDescriptors) == 0 {
 			return nil, nil
 		}
+
+		err, _ = root.BuildSproutVariants(
+			ctx,
+			RootBuildSproutVariantsRequest{
+				VariantDescriptors: selectedDescriptors,
+				JoinStdout:         request.JoinStdout,
+				JoinStderr:         request.JoinStderr,
+				LogStdout:          request.LogStdout,
+				LogStderr:          request.LogStderr,
+			},
+		)
+		return err, nil
 	}
 
 	// build each root in the garden
@@ -83,7 +111,7 @@ func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, a
 }
 
 type RootsBuildRequest struct {
-	Filter            func(*task.ExecutionContext, *SafeRootReference) (error, bool)
+	Filter            RootVariantFilter
 	VariantDescriptor string
 	JoinStdout        bool
 	JoinStderr        bool

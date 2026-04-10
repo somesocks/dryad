@@ -20,8 +20,8 @@ var rootsListCommand = func() clib.Command {
 		Relative             bool
 		ToSprouts            bool
 		Parallel             int
-		FromStdinFilter      func(*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
-		IncludeExcludeFilter func(*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
+		FromStdinFilter      dryad.RootVariantFilter
+		IncludeExcludeFilter dryad.RootVariantFilter
 	}
 
 	var parseArgs = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
@@ -56,12 +56,12 @@ var rootsListCommand = func() clib.Command {
 			parallel = PARALLEL_COUNT_DEFAULT
 		}
 
-		err, rootFilter := ArgRootFilterFromIncludeExclude(ctx, req)
+		err, rootFilter := ArgRootVariantFilterFromIncludeExclude(ctx, req)
 		if err != nil {
 			return err, ParsedArgs{}
 		}
 
-		err, fromStdinFilter := ArgRootFilterFromStdin(ctx, req)
+		err, fromStdinFilter := ArgRootVariantFilterFromStdin(ctx, req)
 		if err != nil {
 			return err, ParsedArgs{}
 		}
@@ -94,17 +94,16 @@ var rootsListCommand = func() clib.Command {
 			return err, nil
 		}
 
-		err = roots.Walk(
+		err = roots.WalkVariants(
 			ctx,
-			dryad.RootsWalkRequest{
-				ShouldMatch: dryad.RootFiltersCompose(
+			dryad.RootsWalkVariantsRequest{
+				ShouldMatch: dryad.RootVariantFiltersCompose(
 					args.FromStdinFilter,
 					args.IncludeExcludeFilter,
 				),
-				OnMatch: func(ctx *task.ExecutionContext, root *dryad.SafeRootReference) (error, any) {
+				OnMatch: func(ctx *task.ExecutionContext, variant *dryad.SafeRootVariantReference) (error, any) {
 					if args.ToSprouts {
-						// calculate the relative path to the root from the base of the roots
-						rootPath, err := filepath.Rel(root.Roots.BasePath, root.BasePath)
+						rootPath, err := filepath.Rel(variant.Root.Roots.BasePath, variant.Root.BasePath)
 						if err != nil {
 							return err, nil
 						}
@@ -116,17 +115,18 @@ var rootsListCommand = func() clib.Command {
 							sproutPath = filepath.Join(sprouts.BasePath, rootPath)
 						}
 
-						fmt.Println(sproutPath)
-					} else if args.Relative {
-						// calculate the relative path to the root from the base of the garden
-						relPath, err := filepath.Rel(root.Roots.Garden.BasePath, root.BasePath)
+						err, variantURL := variant.URL()
 						if err != nil {
 							return err, nil
 						}
 
-						fmt.Println(relPath)
+						fmt.Println(sproutPath + variantURL)
 					} else {
-						fmt.Println(root.BasePath)
+						err, variantRef := formatRootVariantRef(variant, args.Relative)
+						if err != nil {
+							return err, nil
+						}
+						fmt.Println(variantRef)
 					}
 					return nil, nil
 
@@ -158,7 +158,7 @@ var rootsListCommand = func() clib.Command {
 		},
 	)
 
-	command := clib.NewCommand("list", "list all roots that are dependencies for the current root (or roots of the current garden, if the path is not a root)").
+	command := clib.NewCommand("list", "list all root variants that are dependencies for the current root (or root variants of the current garden, if the path is not a root)").
 		WithArg(
 			clib.
 				NewArg("path", "path to the base garden to list roots in").
@@ -175,16 +175,16 @@ var rootsListCommand = func() clib.Command {
 		WithOption(
 			clib.NewOption(
 				"from-stdin",
-				"if set, read a list of roots from stdin to use as a base list to print, instead of all roots. include and exclude filters will be applied to this list. default false",
+				"if set, read a list of root refs from stdin to use as a base list to print, instead of all root variants. include and exclude filters will be applied to this list. default false",
 			).
 				WithType(clib.OptionTypeBool),
 		).
-		WithOption(clib.NewOption("include", "choose which roots are included in the list. the include filter is a CEL expression with access to a 'root' object that can be used to filter on properties of the root.").WithType(clib.OptionTypeMultiString)).
-		WithOption(clib.NewOption("exclude", "choose which roots are excluded from the list.  the exclude filter is a CEL expression with access to a 'root' object that can be used to filter on properties of the root.").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("include", "choose which root variants are included in the list. the include filter is a CEL expression with access to a 'root' object for each root variant.").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("exclude", "choose which root variants are excluded from the list. the exclude filter is a CEL expression with access to a 'root' object for each root variant.").WithType(clib.OptionTypeMultiString)).
 		WithOption(
 			clib.NewOption(
 				"to-sprouts",
-				"if set, print the corresponding sprout path for each root instead of the root path.",
+				"if set, print the corresponding sprout ref for each root variant instead of the root ref.",
 			).
 				WithType(clib.OptionTypeBool),
 		).
