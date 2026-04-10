@@ -59,7 +59,7 @@ var ArgRootFilterFromStdin = func(
 				return err, fromStdinFilter
 			}
 
-			path = _rootsOwningDependencyCorrection(path)
+			path = rootsInputOwnershipDependencyCorrection(path)
 			err, root = roots.Root(path).Resolve(ctx)
 			if err != nil {
 				zlog.Error().

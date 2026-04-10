@@ -9,19 +9,27 @@ func formatRootVariantRef(
 	variant *dryad.SafeRootVariantReference,
 	relative bool,
 ) (error, string) {
-	basePath := variant.Root.BasePath
+	return formatRootVariantDescriptorRef(variant.Root, variant.Descriptor, relative)
+}
+
+func formatRootVariantDescriptorRef(
+	root *dryad.SafeRootReference,
+	descriptor dryad.VariantDescriptor,
+	relative bool,
+) (error, string) {
+	basePath := root.BasePath
 	if relative {
 		var err error
 		basePath, err = filepath.Rel(
-			variant.Root.Roots.Garden.BasePath,
-			variant.Root.BasePath,
+			root.Roots.Garden.BasePath,
+			root.BasePath,
 		)
 		if err != nil {
 			return err, ""
 		}
 	}
 
-	err, variantURL := variant.URL()
+	err, variantURL := (dryad.RootVariantContext{Descriptor: descriptor}).URL()
 	if err != nil {
 		return err, ""
 	}

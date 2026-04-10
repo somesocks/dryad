@@ -4,29 +4,13 @@ import (
 	"bufio"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
+	"sort"
 
 	zlog "github.com/rs/zerolog/log"
 )
-
-var _rootsOwningDependencyCorrection = func(path string) string {
-	p1, _ := filepath.Split(path)
-	p1 = filepath.Clean(p1)
-	p2, f2 := filepath.Split(p1)
-	p2 = filepath.Clean(p2)
-	p3, f3 := filepath.Split(p2)
-	p3 = filepath.Clean(p3)
-
-	if f3 == "dyd" && f2 == "requirements" {
-		return p3
-	} else {
-		return path
-	}
-
-}
 
 var rootsOwningCommand = func() clib.Command {
 	type ParsedArgs struct {
@@ -69,20 +53,18 @@ var rootsOwningCommand = func() clib.Command {
 			return err, nil
 		}
 
-		rootSet := make(map[string]bool)
+		changedPathsByRoot := make(map[string][]string)
 
 		scanner := bufio.NewScanner(os.Stdin)
 
 		for scanner.Scan() {
-			path := scanner.Text()
-			path, err := filepath.Abs(path)
+			err, owningPath, changedPath := rootsInputOwnershipPaths(ctx, scanner.Text())
 			if err != nil {
 				return err, nil
 			}
-			path = _rootsOwningDependencyCorrection(path)
-			err, root := roots.Root(path).Resolve(ctx)
+			err, root := roots.Root(owningPath).Resolve(ctx)
 			if err == nil {
-				rootSet[root.BasePath] = true
+				changedPathsByRoot[root.BasePath] = append(changedPathsByRoot[root.BasePath], changedPath)
 			}
 		}
 
@@ -91,20 +73,33 @@ var rootsOwningCommand = func() clib.Command {
 			return err, nil
 		}
 
-		// Print the resulting roots
-		if args.Relative {
-			for key := range rootSet {
-				// calculate the relative path to the root from the base of the garden
-				relPath, err := filepath.Rel(garden.BasePath, key)
+		ownerSet := make(dryad.TStringSet)
+
+		for rootPath, changedPaths := range changedPathsByRoot {
+			err, root := roots.Root(rootPath).Resolve(ctx)
+			if err != nil {
+				return err, nil
+			}
+
+			err, owningVariants := root.ResolveAffectedVariants(ctx, changedPaths)
+			if err != nil {
+				return err, nil
+			}
+
+			for _, owningVariant := range owningVariants {
+				err, ownerRef := formatRootVariantDescriptorRef(&root, owningVariant, args.Relative)
 				if err != nil {
 					return err, nil
 				}
-				fmt.Println(relPath)
+				ownerSet[ownerRef] = true
 			}
-		} else {
-			for key := range rootSet {
-				fmt.Println(key)
-			}
+		}
+
+		owners := ownerSet.ToArray([]string{})
+		sort.Strings(owners)
+
+		for _, owner := range owners {
+			fmt.Println(owner)
 		}
 
 		return nil, nil
@@ -132,8 +127,8 @@ var rootsOwningCommand = func() clib.Command {
 		},
 	)
 
-	command := clib.NewCommand("owning", "list all roots that are owners of the provided files. The files to check should be provided as relative or absolute paths through stdin.").
-		WithOption(clib.NewOption("relative", "print roots relative to the base garden path. default true").WithType(clib.OptionTypeBool)).
+	command := clib.NewCommand("owning", "list all root variants that own the provided paths. The paths to check should be provided as relative or absolute paths through stdin.").
+		WithOption(clib.NewOption("relative", "print root refs relative to the base garden path. default true").WithType(clib.OptionTypeBool)).
 		WithAction(action)
 
 	command = ParallelCommand(command)

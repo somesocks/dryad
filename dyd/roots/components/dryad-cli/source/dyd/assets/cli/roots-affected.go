@@ -4,7 +4,6 @@ import (
 	"bufio"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	dydfs "dryad/filesystem"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
@@ -69,15 +68,13 @@ var rootsAffectedCommand = func() clib.Command {
 		scanner := bufio.NewScanner(os.Stdin)
 
 		for scanner.Scan() {
-			path := scanner.Text()
-			err, path = dydfs.PartialEvalSymlinks(ctx, path)
+			err, owningPath, changedPath := rootsInputOwnershipPaths(ctx, scanner.Text())
 			if err != nil {
 				return err, nil
 			}
-			owningPath := _rootsOwningDependencyCorrection(path)
 			err, root := roots.Root(owningPath).Resolve(ctx)
 			if err == nil {
-				changedPathsByRoot[root.BasePath] = append(changedPathsByRoot[root.BasePath], path)
+				changedPathsByRoot[root.BasePath] = append(changedPathsByRoot[root.BasePath], changedPath)
 			}
 		}
 

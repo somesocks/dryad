@@ -50,7 +50,7 @@ var ArgRootVariantFilterFromStdin = func(
 		if err != nil {
 			return err, nil
 		}
-		path = _rootsOwningDependencyCorrection(path)
+		path = rootsInputOwnershipDependencyCorrection(path)
 
 		err, root := roots.Root(path).Resolve(ctx)
 		if err != nil {

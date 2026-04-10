@@ -59,7 +59,7 @@ var ArgSproutFilterFromStdin = func(
 				return err, fromStdinFilter
 			}
 
-			path = _rootsOwningDependencyCorrection(path)
+			path = rootsInputOwnershipDependencyCorrection(path)
 			err, sprout = sprouts.Sprout(path).Resolve(ctx)
 			if err != nil {
 				zlog.Error().
