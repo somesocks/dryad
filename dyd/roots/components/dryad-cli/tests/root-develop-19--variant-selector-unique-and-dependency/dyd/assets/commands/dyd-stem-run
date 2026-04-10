@@ -16,13 +16,52 @@ _prepare() {
 	cd "$TEMP_DIR"
 }
 
-_test() {
+_output_path() {
+	printf '%s/dyd/heap/root-develop-19--variant-selector-unique-and-dependency/dep-os' "$TEMP_DIR"
+}
+
+_reset_output() {
+	rm -f "$(_output_path)"
+}
+
+_verify_linux_dependency() {
+	assert_file_content_equals "$(_output_path)" "linux"
+}
+
+_test_variant_flag() {
 	EDITOR_PATH="$PWD/dyd/roots/root-01/dyd/commands/dev-editor"
 	(dryad root develop start dyd/roots/root-01 --variant="arch=amd64" --shell="$EDITOR_PATH" --log-level="$DYD_LOG_LEVEL") 1>&2
 }
 
-_verify() {
-	assert_file_content_equals "$TEMP_DIR/dyd/heap/root-develop-19--variant-selector-unique-and-dependency/dep-os" "linux"
+_test_filesystem_root_ref() {
+	EDITOR_PATH="$PWD/dyd/roots/root-01/dyd/commands/dev-editor"
+	(dryad root develop start dyd/roots/root-01~arch=amd64 --shell="$EDITOR_PATH" --log-level="$DYD_LOG_LEVEL") 1>&2
+}
+
+_test_url_root_ref() {
+	EDITOR_PATH="$PWD/dyd/roots/root-01/dyd/commands/dev-editor"
+	(dryad root develop start 'dyd/roots/root-01?arch=amd64' --shell="$EDITOR_PATH" --log-level="$DYD_LOG_LEVEL") 1>&2
+}
+
+_test_duplicate_selector_fails() {
+	EDITOR_PATH="$PWD/dyd/roots/root-01/dyd/commands/dev-editor"
+	_reset_output
+
+	if dryad root develop start dyd/roots/root-01~arch=amd64 --variant="os=darwin" --shell="$EDITOR_PATH" --log-level="$DYD_LOG_LEVEL" >"$TEMP_DIR/conflict.stdout" 2>"$TEMP_DIR/conflict.stderr"; then
+		echo "[ERROR] Fail: expected root develop start to reject selectors specified in both root_ref and --variant" 1>&2
+		return 1
+	fi
+
+	if ! grep -Fq 'root develop selector specified in both root_ref and --variant' "$TEMP_DIR/conflict.stderr"; then
+		echo "[ERROR] Fail: expected conflict error message for root_ref and --variant selectors" 1>&2
+		cat "$TEMP_DIR/conflict.stderr" 1>&2
+		return 1
+	fi
+
+	if [ -e "$(_output_path)" ]; then
+		echo "[ERROR] Fail: root develop start ran the editor after duplicate selector parse failure" 1>&2
+		return 1
+	fi
 }
 
 _teardown() {
@@ -35,5 +74,12 @@ _teardown() {
 trap _teardown ERR EXIT
 _setup
 _prepare
-_test
-_verify
+_test_variant_flag
+_verify_linux_dependency
+_reset_output
+_test_filesystem_root_ref
+_verify_linux_dependency
+_reset_output
+_test_url_root_ref
+_verify_linux_dependency
+_test_duplicate_selector_fails

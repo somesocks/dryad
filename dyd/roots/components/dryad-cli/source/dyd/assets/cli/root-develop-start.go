@@ -26,11 +26,13 @@ var rootDevelopStartCommand = func() clib.Command {
 		var args = req.Args
 		var opts = req.Opts
 
+		var rootRefRaw string
 		var path string
 		var parallel int
 		var shell string
 		var shellArgs []string
 		var variant string
+		var hasSelector bool
 		var inherit bool
 		var onExit string
 
@@ -38,7 +40,7 @@ var rootDevelopStartCommand = func() clib.Command {
 			if strings.HasPrefix(args[0], "-") {
 				shellArgs = args
 			} else {
-				path = args[0]
+				rootRefRaw = args[0]
 				shellArgs = args[1:]
 			}
 		}
@@ -49,7 +51,25 @@ var rootDevelopStartCommand = func() clib.Command {
 			parallel = PARALLEL_COUNT_DEFAULT
 		}
 
+		err, rootRef := parseRootRef(rootRefRaw)
+		if err != nil {
+			return err, ParsedArgs{}
+		}
+		path = rootRef.Path
+		hasSelector = rootRef.HasSelector
+
+		if hasSelector {
+			err, variant = (dryad.RootVariantContext{Descriptor: rootRef.Selector}).Filesystem()
+			if err != nil {
+				return err, ParsedArgs{}
+			}
+		}
+
 		if opts["variant"] != nil {
+			if hasSelector {
+				return fmt.Errorf("root develop selector specified in both root_ref and --variant"), ParsedArgs{}
+			}
+
 			variant = opts["variant"].(string)
 		}
 
@@ -140,7 +160,7 @@ var rootDevelopStartCommand = func() clib.Command {
 	command := clib.NewCommand("start", "start a temporary development shell environment for a root").
 		WithArg(
 			clib.
-				NewArg("path", "path to the root to develop").
+				NewArg("root_ref", "path to the root to develop, optionally qualified with a variant selector").
 				AsOptional().
 				WithAutoComplete(ArgAutoCompletePath),
 		).
