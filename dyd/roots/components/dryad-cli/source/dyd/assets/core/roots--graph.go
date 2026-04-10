@@ -64,6 +64,8 @@ func (g TRootsGraph) Transpose() TRootsGraph {
 	transposed := make(TRootsGraph)
 
 	for src, requirements := range g {
+		transposed.EnsureNode(src)
+
 		for requirementName, target := range requirements {
 			transposedName := requirementName
 			if transposed[target] != nil {
@@ -146,120 +148,104 @@ func rootsGraph(
 	ctx *task.ExecutionContext,
 	req rootsGraphRequest,
 ) (error, TRootsGraph) {
-	var err error
 	var relative bool = req.Relative
 
 	graph := make(TRootsGraph)
 	var graphMux sync.Mutex
 
-	var onRoot = func(ctx *task.ExecutionContext, root *SafeRootReference) (error, any) {
-		var err error
+	var onVariant = func(ctx *task.ExecutionContext, sourceVariant *SafeRootVariantReference) (error, any) {
 		var rootPath string
+		var root *SafeRootReference = sourceVariant.Root
 		var gardenPath string = root.Roots.Garden.BasePath
 
 		rootPath = root.BasePath
 		if relative {
+			var err error
 			rootPath, err = filepath.Rel(gardenPath, rootPath)
 			if err != nil {
 				return err, nil
 			}
 		}
 
-		err, sourceVariants := root.ResolveBuildVariantReferences(ctx, RootResolveBuildVariantsRequest{
-			Selector:                VariantDescriptor{},
-			IgnoreUnknownDimensions: true,
-		})
+		err, sourceSelectorRaw := sourceVariant.URL()
 		if err != nil {
 			return err, nil
 		}
+		sourceNode := rootPath + sourceSelectorRaw
 
-		for _, sourceVariant := range sourceVariants {
-			sourceVariant := sourceVariant
+		graphMux.Lock()
+		graph.EnsureNode(sourceNode)
+		graphMux.Unlock()
 
-			err, sourceSelectorRaw := sourceVariant.URL()
-			if err != nil {
-				return err, nil
-			}
-			sourceNode := rootPath + sourceSelectorRaw
-
-			graphMux.Lock()
-			graph.EnsureNode(sourceNode)
-			graphMux.Unlock()
-
-			requirements := sourceVariant.Requirements
-			if requirements == nil {
-				continue
-			}
-
-			err = requirements.Walk(task.SERIAL_CONTEXT, RootRequirementsWalkRequest{
-				OnMatch: func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
-					requirementNameRaw := filepath.Base(requirement.BasePath)
-
-					err, requirementName := RootRequirementNormalizeName(requirementNameRaw)
-					if err != nil {
-						return err, nil
-					}
-
-					err, _, condition := rootRequirementParseName(requirementName)
-					if err != nil {
-						return err, nil
-					}
-
-					err, shouldInclude := rootRequirementConditionMatches(sourceVariant.Descriptor, condition)
-					if err != nil {
-						return err, nil
-					}
-					if !shouldInclude {
-						return nil, nil
-					}
-
-					err, targets := requirement.ResolveTargets(ctx, RootRequirementResolveTargetsRequest{
-						ParentVariant: sourceVariant.Descriptor,
-					})
-					if err != nil {
-						return err, nil
-					}
-
-					for _, target := range targets {
-						err, edgeName := rootBuild_stage1DependencyName(requirementName, target, len(targets))
-						if err != nil {
-							return err, nil
-						}
-
-						targetRootPath := target.Root.BasePath
-						if relative {
-							targetRootPath, err = filepath.Rel(gardenPath, targetRootPath)
-							if err != nil {
-								return err, nil
-							}
-						}
-
-						err, targetSelectorRaw := variantDescriptorEncodeURL(target.VariantDescriptor)
-						if err != nil {
-							return err, nil
-						}
-						targetNode := targetRootPath + targetSelectorRaw
-
-						graphMux.Lock()
-						graph.AddEdge(sourceNode, edgeName, targetNode)
-						graphMux.Unlock()
-					}
-
-					return nil, nil
-				},
-			})
-			if err != nil {
-				return err, nil
-			}
+		requirements := sourceVariant.Requirements
+		if requirements == nil {
+			return nil, nil
 		}
 
-		return nil, nil
+		err = requirements.Walk(task.SERIAL_CONTEXT, RootRequirementsWalkRequest{
+			OnMatch: func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
+				requirementNameRaw := filepath.Base(requirement.BasePath)
+
+				err, requirementName := RootRequirementNormalizeName(requirementNameRaw)
+				if err != nil {
+					return err, nil
+				}
+
+				err, _, condition := rootRequirementParseName(requirementName)
+				if err != nil {
+					return err, nil
+				}
+
+				err, shouldInclude := rootRequirementConditionMatches(sourceVariant.Descriptor, condition)
+				if err != nil {
+					return err, nil
+				}
+				if !shouldInclude {
+					return nil, nil
+				}
+
+				err, targets := requirement.ResolveTargets(ctx, RootRequirementResolveTargetsRequest{
+					ParentVariant: sourceVariant.Descriptor,
+				})
+				if err != nil {
+					return err, nil
+				}
+
+				for _, target := range targets {
+					err, edgeName := rootBuild_stage1DependencyName(requirementName, target, len(targets))
+					if err != nil {
+						return err, nil
+					}
+
+					targetRootPath := target.Root.BasePath
+					if relative {
+						targetRootPath, err = filepath.Rel(gardenPath, targetRootPath)
+						if err != nil {
+							return err, nil
+						}
+					}
+
+					err, targetSelectorRaw := variantDescriptorEncodeURL(target.VariantDescriptor)
+					if err != nil {
+						return err, nil
+					}
+					targetNode := targetRootPath + targetSelectorRaw
+
+					graphMux.Lock()
+					graph.AddEdge(sourceNode, edgeName, targetNode)
+					graphMux.Unlock()
+				}
+
+				return nil, nil
+			},
+		})
+		return err, nil
 	}
 
-	err = req.Roots.Walk(
+	err := req.Roots.WalkVariants(
 		ctx,
-		RootsWalkRequest{
-			OnMatch: onRoot,
+		RootsWalkVariantsRequest{
+			OnMatch: onVariant,
 		},
 	)
 

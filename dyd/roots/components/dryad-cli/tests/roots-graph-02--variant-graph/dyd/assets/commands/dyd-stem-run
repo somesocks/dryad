@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+TEMP_DIR=''
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_write_root() {
+	root_path="$1"
+
+	mkdir -p "$root_path/dyd/commands"
+	printf 'root' > "$root_path/dyd/type"
+	printf '#!/usr/bin/env bash\nset -euf -o pipefail\n' > "$root_path/dyd/commands/dyd-root-build"
+	chmod +x "$root_path/dyd/commands/dyd-root-build"
+}
+
+_write_variant_options() {
+	root_path="$1"
+
+	mkdir -p "$root_path/dyd/variants/os"
+	printf 'true' > "$root_path/dyd/variants/os/darwin"
+	printf 'true' > "$root_path/dyd/variants/os/linux"
+}
+
+_prepare() {
+	mkdir -p "$TEMP_DIR/dyd/roots"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+
+	_write_root "$TEMP_DIR/dyd/roots/root-base"
+	_write_root "$TEMP_DIR/dyd/roots/root-mid"
+	_write_root "$TEMP_DIR/dyd/roots/root-top"
+	_write_root "$TEMP_DIR/dyd/roots/root-plain"
+	_write_root "$TEMP_DIR/dyd/roots/root-plain-user"
+
+	_write_variant_options "$TEMP_DIR/dyd/roots/root-base"
+	_write_variant_options "$TEMP_DIR/dyd/roots/root-mid"
+	_write_variant_options "$TEMP_DIR/dyd/roots/root-top"
+
+	mkdir -p "$TEMP_DIR/dyd/roots/root-mid/dyd/requirements~os=linux"
+	printf 'root:../../../root-base?os=linux' > "$TEMP_DIR/dyd/roots/root-mid/dyd/requirements~os=linux/base"
+
+	mkdir -p "$TEMP_DIR/dyd/roots/root-top/dyd/requirements"
+	printf 'root:../../../root-mid?os=inherit' > "$TEMP_DIR/dyd/roots/root-top/dyd/requirements/mid~os=linux"
+	printf 'root:../../../root-base?os=darwin' > "$TEMP_DIR/dyd/roots/root-top/dyd/requirements/base~os=darwin"
+
+	mkdir -p "$TEMP_DIR/dyd/roots/root-plain-user/dyd/requirements"
+	printf 'root:../../../root-plain' > "$TEMP_DIR/dyd/roots/root-plain-user/dyd/requirements/plain"
+
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test_graph() {
+	GRAPH_OUTPUT=$(dryad roots graph --format=json-compact --log-level="$DYD_LOG_LEVEL")
+	EXPECTED_GRAPH='{"dyd/roots/root-base?os=darwin":{},"dyd/roots/root-base?os=linux":{},"dyd/roots/root-mid?os=darwin":{},"dyd/roots/root-mid?os=linux":{"base":"dyd/roots/root-base?os=linux"},"dyd/roots/root-plain":{},"dyd/roots/root-plain-user":{"plain":"dyd/roots/root-plain"},"dyd/roots/root-top?os=darwin":{"base~os=darwin":"dyd/roots/root-base?os=darwin"},"dyd/roots/root-top?os=linux":{"mid~os=linux":"dyd/roots/root-mid?os=linux"}}'
+
+	if [ "$GRAPH_OUTPUT" != "$EXPECTED_GRAPH" ]; then
+		echo "[ERROR] Fail: expected roots graph to print exact variant graph" 1>&2
+		echo "$GRAPH_OUTPUT" 1>&2
+		return 1
+	fi
+}
+
+_test_transposed_graph() {
+	GRAPH_OUTPUT=$(dryad roots graph --format=json-compact --transpose --log-level="$DYD_LOG_LEVEL")
+	EXPECTED_GRAPH='{"dyd/roots/root-base?os=darwin":{"base~os=darwin":"dyd/roots/root-top?os=darwin"},"dyd/roots/root-base?os=linux":{"base":"dyd/roots/root-mid?os=linux"},"dyd/roots/root-mid?os=darwin":{},"dyd/roots/root-mid?os=linux":{"mid~os=linux":"dyd/roots/root-top?os=linux"},"dyd/roots/root-plain":{"plain":"dyd/roots/root-plain-user"},"dyd/roots/root-plain-user":{},"dyd/roots/root-top?os=darwin":{},"dyd/roots/root-top?os=linux":{}}'
+
+	if [ "$GRAPH_OUTPUT" != "$EXPECTED_GRAPH" ]; then
+		echo "[ERROR] Fail: expected transposed roots graph to preserve and reverse exact variant graph" 1>&2
+		echo "$GRAPH_OUTPUT" 1>&2
+		return 1
+	fi
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test_graph
+_test_transposed_graph
