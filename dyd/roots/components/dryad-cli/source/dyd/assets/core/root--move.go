@@ -8,8 +8,8 @@ import (
 
 type rootMoveRequest struct {
 	Source *SafeRootReference
-	Dest *UnsafeRootReference
-	Unpin bool
+	Dest   *UnsafeRootReference
+	Unpin  bool
 }
 
 func rootMove(ctx *task.ExecutionContext, req rootMoveRequest) (error, *SafeRootReference) {
@@ -27,7 +27,7 @@ func rootMove(ctx *task.ExecutionContext, req rootMoveRequest) (error, *SafeRoot
 	err, newRoot = req.Source.Copy(
 		ctx,
 		RootCopyRequest{
-			Dest: req.Dest,
+			Dest:  req.Dest,
 			Unpin: req.Unpin,
 		},
 	)
@@ -39,7 +39,12 @@ func rootMove(ctx *task.ExecutionContext, req rootMoveRequest) (error, *SafeRoot
 	err = req.Source.Replace(
 		ctx,
 		RootReplaceRequest{
-			Dest: newRoot,
+			Source: RootReplaceTargetSpec{
+				Root: req.Source,
+			},
+			Dest: RootReplaceTargetSpec{
+				Root: newRoot,
+			},
 		},
 	)
 	if err != nil {
@@ -52,17 +57,17 @@ func rootMove(ctx *task.ExecutionContext, req rootMoveRequest) (error, *SafeRoot
 }
 
 type RootMoveRequest struct {
-	Dest *UnsafeRootReference
+	Dest  *UnsafeRootReference
 	Unpin bool
 }
 
-func (root *SafeRootReference) Move(ctx *task.ExecutionContext, req RootMoveRequest) (error) {
+func (root *SafeRootReference) Move(ctx *task.ExecutionContext, req RootMoveRequest) error {
 	err, _ := rootMove(
 		ctx,
 		rootMoveRequest{
 			Source: root,
-			Dest: req.Dest,
-			Unpin: req.Unpin,
+			Dest:   req.Dest,
+			Unpin:  req.Unpin,
 		},
 	)
 	return err

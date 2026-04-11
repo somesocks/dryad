@@ -18,8 +18,40 @@ _prepare() {
 	cd "$TEMP_DIR"
 }
 
+_create_variant_filtered_root() {
+	ROOT_NAME="$1"
+	ROOT_DIR="$TEMP_DIR/dyd/roots/$ROOT_NAME"
+
+	mkdir -p "$ROOT_DIR/dyd/assets"
+	mkdir -p "$ROOT_DIR/dyd/commands"
+	mkdir -p "$ROOT_DIR/dyd/variants/os"
+	mkdir -p "$ROOT_DIR/dyd/requirements~os=linux"
+	mkdir -p "$ROOT_DIR/dyd/requirements~os=darwin"
+
+	printf '%s' 'root' > "$ROOT_DIR/dyd/type"
+	printf '%s\n' "$ROOT_NAME" > "$ROOT_DIR/dyd/assets/name.txt"
+	cp "$TEMP_DIR/dyd/roots/root-03/dyd/commands/dyd-root-build" "$ROOT_DIR/dyd/commands/dyd-root-build"
+	chmod +x "$ROOT_DIR/dyd/commands/dyd-root-build"
+
+	printf '%s' 'true' > "$ROOT_DIR/dyd/variants/os/linux"
+	printf '%s' 'true' > "$ROOT_DIR/dyd/variants/os/darwin"
+
+	printf '%s' 'root:../../../root-01?arch=amd64&os=linux' > "$ROOT_DIR/dyd/requirements~os=linux/root-01"
+	printf '%s' 'root:../../../root-01?arch=amd64&os=linux' > "$ROOT_DIR/dyd/requirements~os=darwin/root-01"
+}
+
 _test() {
-	dryad root replace dyd/roots/root-01 dyd/roots/root-02 --log-level="$DYD_LOG_LEVEL" 1>&2
+	dryad root replace 'root:dyd/roots/root-01?os=linux' dyd/roots/root-02 --log-level="$DYD_LOG_LEVEL" 1>&2
+	dryad root replace 'root:dyd/roots/root-10?os=linux' 'dyd/roots/root-10~os=darwin' --log-level="$DYD_LOG_LEVEL" 1>&2
+
+	_create_variant_filtered_root root-20
+	_create_variant_filtered_root root-21
+	_create_variant_filtered_root root-22
+
+	dryad root replace 'root:dyd/roots/root-01?arch=amd64&os=linux' dyd/roots/root-02 --include='root.variant() == "os=linux"' --log-level="$DYD_LOG_LEVEL" 1>&2
+	dryad root replace 'root:dyd/roots/root-01?arch=amd64&os=linux' dyd/roots/root-02 --exclude='root.variant() == "os=darwin"' --log-level="$DYD_LOG_LEVEL" 1>&2
+	printf '%s\n' 'dyd/roots/root-22?os=linux' \
+		| dryad root replace 'root:dyd/roots/root-01?arch=amd64&os=linux' dyd/roots/root-02 --from-stdin --log-level="$DYD_LOG_LEVEL" 1>&2
 	dryad roots build --log-level="$DYD_LOG_LEVEL" 1>&2
 }
 
@@ -30,8 +62,22 @@ _verify() {
 	assert_directory_exists "$TEMP_DIR/dyd/roots/root-01"
 	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02"
 
-	# Ensure replace preserves target variant selector when rewriting dependents.
+	# Unqualified replacements preserve the existing target selector.
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-03/dyd/requirements/root-01" "root:../../../root-02?arch=amd64&os=linux"
+
+	# Qualified new targets patch only the selector dimensions they specify.
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-01/dyd/requirements/root-10" "root:../../../root-10?arch=amd64&os=darwin"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-02/dyd/requirements/root-10" "root:../../../root-10?arch=amd64&os=darwin"
+
+	# Include and exclude filters operate on source root variants, not whole roots.
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-20/dyd/requirements~os=linux/root-01" "root:../../../root-02?arch=amd64&os=linux"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-20/dyd/requirements~os=darwin/root-01" "root:../../../root-01?arch=amd64&os=linux"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-21/dyd/requirements~os=linux/root-01" "root:../../../root-02?arch=amd64&os=linux"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-21/dyd/requirements~os=darwin/root-01" "root:../../../root-01?arch=amd64&os=linux"
+
+	# From-stdin accepts qualified root refs and selects source root variants.
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-22/dyd/requirements~os=linux/root-01" "root:../../../root-02?arch=amd64&os=linux"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-22/dyd/requirements~os=darwin/root-01" "root:../../../root-01?arch=amd64&os=linux"
 
 	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-03"
 	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-03/dyd/type" "sprout"
