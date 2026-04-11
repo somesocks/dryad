@@ -1,3 +1,4 @@
-# root-build-58--variant-assets-selector-ambiguous-fails
+# root-build-66--variant-requirements-selector-ambiguous-fails
 
-Ensures root build fails when more than one `dyd/assets` selector matches the requested variant.
+Ensures `dryad root build` fails when more than one `dyd/requirements`
+selector matches the requested root variant.

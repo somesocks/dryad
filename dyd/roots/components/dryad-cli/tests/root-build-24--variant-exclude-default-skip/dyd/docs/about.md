@@ -1,3 +1,4 @@
-# root-build-18--variant-any-multi-target-naming
+# root-build-24--variant-exclude-default-skip
 
-Validates dependency naming for `any` cartesian expansion.
+Ensures `dryad root build` skips excluded variants by default when resolving the
+full build set from `dyd/variants/_exclude`.

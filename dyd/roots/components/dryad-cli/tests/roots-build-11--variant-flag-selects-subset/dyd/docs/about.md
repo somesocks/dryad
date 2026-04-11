@@ -1,3 +1,4 @@
-# root-build-18--variant-any-multi-target-naming
+# roots-build-11--variant-flag-selects-subset
 
-Validates dependency naming for `any` cartesian expansion.
+Ensures `dryad roots build --variant` limits builds to the matching concrete
+variant subset across the selected roots.
