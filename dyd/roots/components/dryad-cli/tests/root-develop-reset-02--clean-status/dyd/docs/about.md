@@ -1,3 +1,4 @@
-# root-develop-status-01--clean-status
+# root-develop-reset-02--clean-status
 
-Clean status (no changes).
+Ensures `dryad root develop reset` clears the status and restores the modified
+file content back to the original source state.

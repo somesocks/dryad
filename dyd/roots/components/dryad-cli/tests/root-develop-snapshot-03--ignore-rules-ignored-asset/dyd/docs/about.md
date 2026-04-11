@@ -1,3 +1,4 @@
-# root-develop-status-07--ignore-rules-ignored-asset
+# root-develop-snapshot-03--ignore-rules-ignored-asset
 
-Ignore rules: ignored asset change not reported.
+Ensures `dryad root develop snapshot` still emits snapshot output while status
+tracking reflects changes around ignored assets and ignore rules.

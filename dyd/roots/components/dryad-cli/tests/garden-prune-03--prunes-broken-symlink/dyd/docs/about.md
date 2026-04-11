@@ -1,4 +1,4 @@
+# garden-prune-03--prunes-broken-symlink
 
-# garden-prune-02--prunes-built-sprout
-
-This test case tests that `dryad garden prune` runs successfully against a garden that has a root with a broken symlink.
+This test case verifies that `dryad garden prune` succeeds in a garden whose
+built root contains a broken symlink.

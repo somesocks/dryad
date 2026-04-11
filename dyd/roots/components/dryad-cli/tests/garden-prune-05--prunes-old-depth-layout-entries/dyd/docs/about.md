@@ -1,4 +1,4 @@
+# garden-prune-05--prunes-old-depth-layout-entries
 
-# garden-prune-04--misses-stale-secret-heap-files
-
-This test case verifies that `dryad garden prune` should remove stale secret heap files after the last live sprout is wiped.
+This test case verifies that `dryad garden prune` removes stale heap entries
+left behind after changing the configured depth layout for heap namespaces.

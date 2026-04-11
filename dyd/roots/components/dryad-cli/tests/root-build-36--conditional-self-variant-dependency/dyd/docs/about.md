@@ -1,3 +1,4 @@
-# root-build-32--conditional-requirement-selector
+# root-build-36--conditional-self-variant-dependency
 
-Validates conditional requirement selectors on requirement filenames.
+Ensures conditional self-dependencies link the expected prior stage variants and
+do not introduce a self-dependency on the source stage.

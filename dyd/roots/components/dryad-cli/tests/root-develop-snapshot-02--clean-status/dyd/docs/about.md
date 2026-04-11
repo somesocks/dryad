@@ -1,3 +1,4 @@
-# root-develop-status-01--clean-status
+# root-develop-snapshot-02--clean-status
 
-Clean status (no changes).
+Ensures `dryad root develop snapshot` emits snapshot output for a clean
+development workspace after the editor-driven run path.
