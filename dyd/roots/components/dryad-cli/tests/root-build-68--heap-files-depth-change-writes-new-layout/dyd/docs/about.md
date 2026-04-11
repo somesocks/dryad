@@ -1,3 +1,4 @@
-# root-build-49--heap-cas-touches-existing-entries
+# root-build-68--heap-files-depth-change-writes-new-layout
 
-Validates heap CAS hits touch existing file and secret entries during root build.
+Ensures changing the configured `dyd/heap/files` depth causes subsequent root
+builds to write new files into the new layout while keeping old entries valid.

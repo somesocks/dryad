@@ -1,5 +1,4 @@
+# root-copy-05--copies-external-symlink
 
-# root-copy-04--copies-internal-symlink
-
-This test case tests that `dryad root copy` can copy a root with an external symlink,
-and that the symlink points to the correct location after copy (the original target).
+This test case verifies that `dryad root copy` preserves an external symlink and
+rewrites the copied symlink target correctly for the new root location.

@@ -1,12 +1,9 @@
 package core
 
 import (
-	fs2 "dryad/filesystem"
 	"dryad/task"
 
 	"dryad/internal/os"
-	// "errors"
-	// zlog "github.com/rs/zerolog/log"
 )
 
 func (rootRequirements *UnsafeRootRequirementsReference) Resolve(ctx *task.ExecutionContext) (error, *SafeRootRequirementsReference) {
@@ -20,16 +17,7 @@ func (rootRequirements *UnsafeRootRequirementsReference) Resolve(ctx *task.Execu
 	}
 
 	if !rootRequirementsExists {
-		err, _ := fs2.Mkdir2(
-			ctx,
-			fs2.MkdirRequest{
-				Path: rootRequirements.BasePath,
-				Mode: os.ModePerm,
-			},
-		)
-		if err != nil {
-			return err, nil
-		}
+		return nil, nil
 	}
 
 	safeRef = SafeRootRequirementsReference{
@@ -38,4 +26,13 @@ func (rootRequirements *UnsafeRootRequirementsReference) Resolve(ctx *task.Execu
 	}
 
 	return nil, &safeRef
+}
+
+func (rootRequirements *UnsafeRootRequirementsReference) Ensure(ctx *task.ExecutionContext) (error, *SafeRootRequirementsReference) {
+	err := os.MkdirAll(rootRequirements.BasePath, os.ModePerm)
+	if err != nil {
+		return err, nil
+	}
+
+	return rootRequirements.Resolve(ctx)
 }

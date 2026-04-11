@@ -7,12 +7,17 @@ func rootBuild_selectAssetsPathForTest(
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
-	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsPaths(
-		ctx,
-		rootPath,
-		variantDescriptor,
-	)
-	return err, selectedPaths.AssetsPath
+	rootRef := SafeRootReference{BasePath: rootPath}
+	err, unsafeVariant := rootRef.VariantFromFilesystem(variantDescriptor)
+	if err != nil {
+		return err, ""
+	}
+
+	err, variant := unsafeVariant.Resolve(ctx)
+	if err != nil || variant.Assets == nil {
+		return err, ""
+	}
+	return nil, variant.Assets.BasePath
 }
 
 func rootBuild_selectCommandsPathForTest(
@@ -20,12 +25,17 @@ func rootBuild_selectCommandsPathForTest(
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
-	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsPaths(
-		ctx,
-		rootPath,
-		variantDescriptor,
-	)
-	return err, selectedPaths.CommandsPath
+	rootRef := SafeRootReference{BasePath: rootPath}
+	err, unsafeVariant := rootRef.VariantFromFilesystem(variantDescriptor)
+	if err != nil {
+		return err, ""
+	}
+
+	err, variant := unsafeVariant.Resolve(ctx)
+	if err != nil || variant.Commands == nil {
+		return err, ""
+	}
+	return nil, variant.Commands.BasePath
 }
 
 func rootBuild_selectSecretsPathForTest(
@@ -33,12 +43,17 @@ func rootBuild_selectSecretsPathForTest(
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
-	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsPaths(
-		ctx,
-		rootPath,
-		variantDescriptor,
-	)
-	return err, selectedPaths.SecretsPath
+	rootRef := SafeRootReference{BasePath: rootPath}
+	err, unsafeVariant := rootRef.VariantFromFilesystem(variantDescriptor)
+	if err != nil {
+		return err, ""
+	}
+
+	err, variant := unsafeVariant.Resolve(ctx)
+	if err != nil || variant.Secrets == nil {
+		return err, ""
+	}
+	return nil, variant.Secrets.BasePath
 }
 
 func rootBuild_selectDocsPathForTest(
@@ -46,12 +61,17 @@ func rootBuild_selectDocsPathForTest(
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
-	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsPaths(
-		ctx,
-		rootPath,
-		variantDescriptor,
-	)
-	return err, selectedPaths.DocsPath
+	rootRef := SafeRootReference{BasePath: rootPath}
+	err, unsafeVariant := rootRef.VariantFromFilesystem(variantDescriptor)
+	if err != nil {
+		return err, ""
+	}
+
+	err, variant := unsafeVariant.Resolve(ctx)
+	if err != nil || variant.Docs == nil {
+		return err, ""
+	}
+	return nil, variant.Docs.BasePath
 }
 
 func rootBuild_selectRequirementsPathForTest(
@@ -59,12 +79,17 @@ func rootBuild_selectRequirementsPathForTest(
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
-	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsPaths(
-		ctx,
-		rootPath,
-		variantDescriptor,
-	)
-	return err, selectedPaths.RequirementsPath
+	rootRef := SafeRootReference{BasePath: rootPath}
+	err, unsafeVariant := rootRef.VariantFromFilesystem(variantDescriptor)
+	if err != nil {
+		return err, ""
+	}
+
+	err, variant := unsafeVariant.Resolve(ctx)
+	if err != nil || variant.Requirements == nil {
+		return err, ""
+	}
+	return nil, variant.Requirements.BasePath
 }
 
 func rootBuild_selectTraitsPathForTest(
@@ -72,10 +97,15 @@ func rootBuild_selectTraitsPathForTest(
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
-	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsPaths(
-		ctx,
-		rootPath,
-		variantDescriptor,
-	)
-	return err, selectedPaths.TraitsPath
+	rootRef := SafeRootReference{BasePath: rootPath}
+	err, unsafeVariant := rootRef.VariantFromFilesystem(variantDescriptor)
+	if err != nil {
+		return err, ""
+	}
+
+	err, variant := unsafeVariant.Resolve(ctx)
+	if err != nil || variant.Traits == nil {
+		return err, ""
+	}
+	return nil, variant.Traits.BasePath
 }

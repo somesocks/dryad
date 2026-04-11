@@ -1,3 +1,4 @@
-# root-build-32--conditional-requirement-selector
+# root-build-37--conditional-requirement-selector-multi-option
 
-Validates conditional requirement selectors on requirement filenames.
+Ensures conditional requirement filenames with multi-option selectors match all
+compatible source variants and omit unmatched variants.

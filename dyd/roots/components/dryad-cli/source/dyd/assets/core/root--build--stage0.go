@@ -35,21 +35,35 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		zlog.Trace().
 			Msg("RootBuild/stage0/prepReq")
 
-		err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsPaths(
-			ctx,
-			req.RootPath,
-			req.VariantDescriptor,
-		)
+		rootRef := SafeRootReference{BasePath: req.RootPath}
+		err, unsafeVariant := rootRef.VariantFromFilesystem(req.VariantDescriptor)
 		if err != nil {
 			return err, req
 		}
 
-		req.SelectedAssetsPath = selectedPaths.AssetsPath
-		req.SelectedCommandsPath = selectedPaths.CommandsPath
-		req.SelectedTraitsPath = selectedPaths.TraitsPath
-		req.SelectedSecretsPath = selectedPaths.SecretsPath
-		req.SelectedDocsPath = selectedPaths.DocsPath
-		req.SelectedRequirementsPath = selectedPaths.RequirementsPath
+		err, variant := unsafeVariant.Resolve(ctx)
+		if err != nil {
+			return err, req
+		}
+
+		if variant.Assets != nil {
+			req.SelectedAssetsPath = variant.Assets.BasePath
+		}
+		if variant.Commands != nil {
+			req.SelectedCommandsPath = variant.Commands.BasePath
+		}
+		if variant.Traits != nil {
+			req.SelectedTraitsPath = variant.Traits.BasePath
+		}
+		if variant.Secrets != nil {
+			req.SelectedSecretsPath = variant.Secrets.BasePath
+		}
+		if variant.Docs != nil {
+			req.SelectedDocsPath = variant.Docs.BasePath
+		}
+		if variant.Requirements != nil {
+			req.SelectedRequirementsPath = variant.Requirements.BasePath
+		}
 
 		return nil, req
 	}

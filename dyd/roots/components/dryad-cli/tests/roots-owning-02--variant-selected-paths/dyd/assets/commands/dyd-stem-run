@@ -1,0 +1,178 @@
+#!/usr/bin/env bash
+
+set -euf -o pipefail
+
+TEMP_DIR=''
+
+_assert_roots_owning_output() {
+	local actual="$1"
+	local expected="$2"
+	local message="$3"
+
+	if [ "$actual" != "$expected" ]; then
+		echo "[ERROR] Fail: $message" 1>&2
+		echo "$actual" 1>&2
+		return 1
+	fi
+}
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_write_root() {
+	root_path="$1"
+
+	mkdir -p "$root_path/dyd"
+	printf 'root' > "$root_path/dyd/type"
+}
+
+_write_matrix_variants() {
+	root_path="$1"
+
+	mkdir -p "$root_path/dyd/variants/arch"
+	mkdir -p "$root_path/dyd/variants/os"
+	printf 'true' > "$root_path/dyd/variants/arch/amd64"
+	printf 'true' > "$root_path/dyd/variants/arch/arm64"
+	printf 'true' > "$root_path/dyd/variants/os/darwin"
+	printf 'true' > "$root_path/dyd/variants/os/linux"
+}
+
+_prepare() {
+	mkdir -p "$TEMP_DIR/dyd/roots"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+
+	_write_root "$TEMP_DIR/dyd/roots/root-shared"
+	_write_root "$TEMP_DIR/dyd/roots/root-selected"
+	_write_root "$TEMP_DIR/dyd/roots/root-plain"
+
+	_write_matrix_variants "$TEMP_DIR/dyd/roots/root-shared"
+	_write_matrix_variants "$TEMP_DIR/dyd/roots/root-selected"
+
+	mkdir -p "$TEMP_DIR/dyd/roots/root-shared/dyd/assets/shared"
+	printf 'shared\n' > "$TEMP_DIR/dyd/roots/root-shared/dyd/assets/shared/main"
+
+	mkdir -p "$TEMP_DIR/dyd/roots/root-selected/dyd/assets~os=linux"
+	mkdir -p "$TEMP_DIR/dyd/roots/root-selected/dyd/commands~arch=amd64+os=linux"
+	mkdir -p "$TEMP_DIR/dyd/roots/root-selected/dyd/traits~os=linux"
+	mkdir -p "$TEMP_DIR/dyd/roots/root-selected/dyd/secrets~os=linux"
+	mkdir -p "$TEMP_DIR/dyd/roots/root-selected/dyd/docs~os=linux"
+	mkdir -p "$TEMP_DIR/dyd/roots/root-selected/dyd/requirements~os=linux"
+	printf 'linux\n' > "$TEMP_DIR/dyd/roots/root-selected/dyd/assets~os=linux/main"
+	printf '#!/usr/bin/env bash\n' > "$TEMP_DIR/dyd/roots/root-selected/dyd/commands~arch=amd64+os=linux/dyd-root-build"
+	printf 'selected\n' > "$TEMP_DIR/dyd/roots/root-selected/dyd/traits~os=linux/name"
+	printf 'secret\n' > "$TEMP_DIR/dyd/roots/root-selected/dyd/secrets~os=linux/token"
+	printf 'docs\n' > "$TEMP_DIR/dyd/roots/root-selected/dyd/docs~os=linux/readme"
+	printf 'root:../../../root-plain' > "$TEMP_DIR/dyd/roots/root-selected/dyd/requirements~os=linux/dep~arch=amd64"
+
+	mkdir -p "$TEMP_DIR/dyd/roots/root-plain/dyd/assets"
+	printf 'plain\n' > "$TEMP_DIR/dyd/roots/root-plain/dyd/assets/main"
+
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+	TEMP_DIR=$(pwd -P)
+}
+
+_test() {
+	EXPECTED_SHARED=$(cat <<'EOF'
+dyd/roots/root-shared?arch=amd64&os=darwin
+dyd/roots/root-shared?arch=amd64&os=linux
+dyd/roots/root-shared?arch=arm64&os=darwin
+dyd/roots/root-shared?arch=arm64&os=linux
+EOF
+)
+	EXPECTED_LINUX=$(cat <<'EOF'
+dyd/roots/root-selected?arch=amd64&os=linux
+dyd/roots/root-selected?arch=arm64&os=linux
+EOF
+)
+
+	OUTPUT_SHARED=$(printf '%s\n' \
+		'dyd/roots/root-shared/dyd/assets' \
+		| dryad roots owning --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_owning_output "$OUTPUT_SHARED" "$EXPECTED_SHARED" "expected shared selected folder to be owned by all variants selecting it"
+
+	OUTPUT_PARTIAL=$(printf '%s\n' \
+		'dyd/roots/root-selected/dyd/assets~os=linux/main' \
+		| dryad roots owning --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_owning_output "$OUTPUT_PARTIAL" "$EXPECTED_LINUX" "expected partial selector path to be owned by matching variants"
+
+	OUTPUT_COMMANDS=$(printf '%s\n' \
+		'dyd/roots/root-selected/dyd/commands~arch=amd64+os=linux/dyd-root-build' \
+		| dryad roots owning --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_owning_output "$OUTPUT_COMMANDS" 'dyd/roots/root-selected?arch=amd64&os=linux' "expected exact selector path to be owned by one variant"
+
+	OUTPUT_TRAITS=$(printf '%s\n' \
+		'dyd/roots/root-selected/dyd/traits~os=linux/name' \
+		| dryad roots owning --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_owning_output "$OUTPUT_TRAITS" "$EXPECTED_LINUX" "expected traits selector path to be owned by matching variants"
+
+	OUTPUT_SECRETS=$(printf '%s\n' \
+		'dyd/roots/root-selected/dyd/secrets~os=linux/token' \
+		| dryad roots owning --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_owning_output "$OUTPUT_SECRETS" "$EXPECTED_LINUX" "expected secrets selector path to be owned by matching variants"
+
+	OUTPUT_DOCS=$(printf '%s\n' \
+		'dyd/roots/root-selected/dyd/docs~os=linux/readme' \
+		| dryad roots owning --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_owning_output "$OUTPUT_DOCS" "$EXPECTED_LINUX" "expected docs selector path to be owned by matching variants"
+
+	OUTPUT_REQUIREMENTS_DIR=$(printf '%s\n' \
+		'dyd/roots/root-selected/dyd/requirements~os=linux' \
+		| dryad roots owning --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_owning_output "$OUTPUT_REQUIREMENTS_DIR" "$EXPECTED_LINUX" "expected requirements selector folder to be owned by matching variants"
+
+	OUTPUT_REQUIREMENT_FILE=$(printf '%s\n' \
+		'dyd/roots/root-selected/dyd/requirements~os=linux/dep~arch=amd64' \
+		| dryad roots owning --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_owning_output "$OUTPUT_REQUIREMENT_FILE" 'dyd/roots/root-selected?arch=amd64&os=linux' "expected conditional requirement file to be owned by matching variants"
+
+	OUTPUT_VARIANTS=$(printf '%s\n' \
+		'dyd/roots/root-selected/dyd/variants/os/linux' \
+		| dryad roots owning --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_owning_output "$OUTPUT_VARIANTS" "$(cat <<'EOF'
+dyd/roots/root-selected?arch=amd64&os=darwin
+dyd/roots/root-selected?arch=amd64&os=linux
+dyd/roots/root-selected?arch=arm64&os=darwin
+dyd/roots/root-selected?arch=arm64&os=linux
+EOF
+)" "expected variants catalog path to be owned by all variants"
+
+	OUTPUT_PLAIN=$(printf '%s\n' \
+		'dyd/roots/root-plain/dyd/assets/main' \
+		| dryad roots owning --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_owning_output "$OUTPUT_PLAIN" 'dyd/roots/root-plain' "expected default root variant to be printed without selector"
+
+	OUTPUT_UNION=$(printf '%s\n' \
+		'dyd/roots/root-selected/dyd/assets~os=linux/main' \
+		'dyd/roots/root-selected/dyd/requirements~os=linux/dep~arch=amd64' \
+		'dyd/roots/root-selected/dyd/assets~os=linux/main' \
+		| dryad roots owning --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_owning_output "$OUTPUT_UNION" "$EXPECTED_LINUX" "expected duplicate input paths to be deduped"
+
+	OUTPUT_ABS=$(printf '%s\n' \
+		'dyd/roots/root-selected/dyd/commands~arch=amd64+os=linux/dyd-root-build' \
+		| dryad roots owning --relative=false --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_owning_output "$OUTPUT_ABS" "$TEMP_DIR/dyd/roots/root-selected?arch=amd64&os=linux" "expected --relative=false to print absolute variant refs"
+
+	OUTPUT_UNKNOWN=$(printf '%s\n' \
+		'does/not/belong/to/a/root' \
+		| dryad roots owning --log-level="$DYD_LOG_LEVEL")
+	if [ -n "$OUTPUT_UNKNOWN" ]; then
+		echo "[ERROR] Fail: expected unknown paths to be ignored" 1>&2
+		echo "$OUTPUT_UNKNOWN" 1>&2
+		return 1
+	fi
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test

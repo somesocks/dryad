@@ -21,7 +21,7 @@ type rootBuildSelectorSelectionState struct {
 	MatchPath  string
 }
 
-type rootBuildSelectedPaths struct {
+type rootVariantSelectedPathValues struct {
 	AssetsPath       string
 	CommandsPath     string
 	TraitsPath       string
@@ -179,39 +179,97 @@ func rootBuild_considerSelectorMatch(
 	return nil
 }
 
-func rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsPaths(
+func rootVariant_resolveConcreteDescriptor(
 	ctx *task.ExecutionContext,
-	rootPath string,
-	variantDescriptor string,
-) (error, rootBuildSelectedPaths) {
-	err, variantContext := RootVariantContextFromFilesystem(variantDescriptor)
+	variant *UnsafeRootVariantReference,
+) (error, VariantDescriptor) {
+	err, normalizedDescriptor := normalizeVariantDescriptor(variant.Descriptor)
 	if err != nil {
-		return err, rootBuildSelectedPaths{}
+		return err, nil
 	}
 
-	rootRef := SafeRootReference{BasePath: rootPath}
-	err, dimensions := rootRef.VariantDimensions(ctx)
+	err, dimensions := variant.Root.VariantDimensions(ctx)
 	if err != nil {
-		return err, rootBuildSelectedPaths{}
+		return err, nil
+	}
+
+	dimensionsByName := map[string]VariantDimension{}
+	for _, dimension := range dimensions {
+		dimensionsByName[dimension.Name] = dimension
+	}
+
+	concreteDescriptor := VariantDescriptor{}
+
+	for descriptorDimension := range normalizedDescriptor {
+		_, exists := dimensionsByName[descriptorDimension]
+		if !exists {
+			return fmt.Errorf("over-specified root variant descriptor dimension: %s", descriptorDimension), nil
+		}
+	}
+
+	for _, dimension := range dimensions {
+		optionByName := map[string]VariantDimensionOption{}
+		for _, option := range dimension.Options {
+			optionByName[option.Name] = option
+		}
+
+		selectedOption, specified := normalizedDescriptor[dimension.Name]
+		if !specified {
+			if noneOption, hasNone := optionByName[VariantOptionNone]; hasNone && noneOption.Enabled {
+				continue
+			}
+			return fmt.Errorf("under-specified root variant descriptor dimension: %s", dimension.Name), nil
+		}
+
+		switch selectedOption {
+		case VariantOptionInherit, VariantOptionAny, VariantOptionHost:
+			return fmt.Errorf("invalid concrete root variant option for %s: %s", dimension.Name, selectedOption), nil
+		}
+
+		option, exists := optionByName[selectedOption]
+		if !exists {
+			return fmt.Errorf("wrongly-specified root variant option: %s=%s", dimension.Name, selectedOption), nil
+		}
+		if !option.Enabled {
+			return fmt.Errorf("disabled root variant option: %s=%s", dimension.Name, selectedOption), nil
+		}
+		if selectedOption == VariantOptionNone {
+			continue
+		}
+
+		concreteDescriptor[dimension.Name] = selectedOption
+	}
+
+	return nil, concreteDescriptor
+}
+
+func rootVariant_resolveSelectedPathValues(
+	ctx *task.ExecutionContext,
+	root *SafeRootReference,
+	concreteDescriptor VariantDescriptor,
+) (error, rootVariantSelectedPathValues) {
+	err, dimensions := root.VariantDimensions(ctx)
+	if err != nil {
+		return err, rootVariantSelectedPathValues{}
 	}
 
 	matchContext := rootBuild_newSelectorMatchContext(
 		dimensions,
-		variantContext.Descriptor,
+		concreteDescriptor,
 	)
 
-	dydPath := filepath.Join(rootPath, "dyd")
+	dydPath := filepath.Join(root.BasePath, "dyd")
 	dydPathExists, err := fileExists(dydPath)
 	if err != nil {
-		return err, rootBuildSelectedPaths{}
+		return err, rootVariantSelectedPathValues{}
 	}
 	if !dydPathExists {
-		return nil, rootBuildSelectedPaths{}
+		return nil, rootVariantSelectedPathValues{}
 	}
 
 	dydDir, err := os.Open(dydPath)
 	if err != nil {
-		return err, rootBuildSelectedPaths{}
+		return err, rootVariantSelectedPathValues{}
 	}
 	defer dydDir.Close()
 
@@ -225,7 +283,7 @@ func rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsP
 	for {
 		entryNames, err := dydDir.Readdirnames(64)
 		if err != nil && err != io.EOF {
-			return err, rootBuildSelectedPaths{}
+			return err, rootVariantSelectedPathValues{}
 		}
 
 		for _, selectorName := range entryNames {
@@ -241,7 +299,7 @@ func rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsP
 				&assetsState,
 			)
 			if err != nil {
-				return err, rootBuildSelectedPaths{}
+				return err, rootVariantSelectedPathValues{}
 			}
 
 			err = rootBuild_considerSelectorMatch(
@@ -254,7 +312,7 @@ func rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsP
 				&commandsState,
 			)
 			if err != nil {
-				return err, rootBuildSelectedPaths{}
+				return err, rootVariantSelectedPathValues{}
 			}
 
 			err = rootBuild_considerSelectorMatch(
@@ -267,7 +325,7 @@ func rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsP
 				&traitsState,
 			)
 			if err != nil {
-				return err, rootBuildSelectedPaths{}
+				return err, rootVariantSelectedPathValues{}
 			}
 
 			err = rootBuild_considerSelectorMatch(
@@ -280,7 +338,7 @@ func rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsP
 				&secretsState,
 			)
 			if err != nil {
-				return err, rootBuildSelectedPaths{}
+				return err, rootVariantSelectedPathValues{}
 			}
 
 			err = rootBuild_considerSelectorMatch(
@@ -293,7 +351,7 @@ func rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsP
 				&docsState,
 			)
 			if err != nil {
-				return err, rootBuildSelectedPaths{}
+				return err, rootVariantSelectedPathValues{}
 			}
 
 			err = rootBuild_considerSelectorMatch(
@@ -306,7 +364,7 @@ func rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsP
 				&requirementsState,
 			)
 			if err != nil {
-				return err, rootBuildSelectedPaths{}
+				return err, rootVariantSelectedPathValues{}
 			}
 		}
 
@@ -315,27 +373,32 @@ func rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsP
 		}
 	}
 
-	variantLabel := rootBuildLogVariantLabel(variantDescriptor)
-	if assetsState.MatchCount > 1 {
-		return fmt.Errorf("multiple matching dyd/assets selectors for variant %s", variantLabel), rootBuildSelectedPaths{}
-	}
-	if commandsState.MatchCount > 1 {
-		return fmt.Errorf("multiple matching dyd/commands selectors for variant %s", variantLabel), rootBuildSelectedPaths{}
-	}
-	if traitsState.MatchCount > 1 {
-		return fmt.Errorf("multiple matching dyd/traits selectors for variant %s", variantLabel), rootBuildSelectedPaths{}
-	}
-	if secretsState.MatchCount > 1 {
-		return fmt.Errorf("multiple matching dyd/secrets selectors for variant %s", variantLabel), rootBuildSelectedPaths{}
-	}
-	if docsState.MatchCount > 1 {
-		return fmt.Errorf("multiple matching dyd/docs selectors for variant %s", variantLabel), rootBuildSelectedPaths{}
-	}
-	if requirementsState.MatchCount > 1 {
-		return fmt.Errorf("multiple matching dyd/requirements selectors for variant %s", variantLabel), rootBuildSelectedPaths{}
+	err, variantLabel := variantDescriptorEncodeFilesystem(concreteDescriptor)
+	if err != nil {
+		return err, rootVariantSelectedPathValues{}
 	}
 
-	return nil, rootBuildSelectedPaths{
+	variantLabel = rootBuildLogVariantLabel(variantLabel)
+	if assetsState.MatchCount > 1 {
+		return fmt.Errorf("multiple matching dyd/assets selectors for variant %s", variantLabel), rootVariantSelectedPathValues{}
+	}
+	if commandsState.MatchCount > 1 {
+		return fmt.Errorf("multiple matching dyd/commands selectors for variant %s", variantLabel), rootVariantSelectedPathValues{}
+	}
+	if traitsState.MatchCount > 1 {
+		return fmt.Errorf("multiple matching dyd/traits selectors for variant %s", variantLabel), rootVariantSelectedPathValues{}
+	}
+	if secretsState.MatchCount > 1 {
+		return fmt.Errorf("multiple matching dyd/secrets selectors for variant %s", variantLabel), rootVariantSelectedPathValues{}
+	}
+	if docsState.MatchCount > 1 {
+		return fmt.Errorf("multiple matching dyd/docs selectors for variant %s", variantLabel), rootVariantSelectedPathValues{}
+	}
+	if requirementsState.MatchCount > 1 {
+		return fmt.Errorf("multiple matching dyd/requirements selectors for variant %s", variantLabel), rootVariantSelectedPathValues{}
+	}
+
+	return nil, rootVariantSelectedPathValues{
 		AssetsPath:       assetsState.MatchPath,
 		CommandsPath:     commandsState.MatchPath,
 		TraitsPath:       traitsState.MatchPath,
@@ -343,4 +406,36 @@ func rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsP
 		DocsPath:         docsState.MatchPath,
 		RequirementsPath: requirementsState.MatchPath,
 	}
+}
+
+func (variant *UnsafeRootVariantReference) Resolve(
+	ctx *task.ExecutionContext,
+) (error, *SafeRootVariantReference) {
+	err, concreteDescriptor := rootVariant_resolveConcreteDescriptor(ctx, variant)
+	if err != nil {
+		return err, nil
+	}
+
+	safeVariant := &SafeRootVariantReference{
+		Root:       variant.Root,
+		Descriptor: concreteDescriptor,
+	}
+
+	err, selectedPathValues := rootVariant_resolveSelectedPathValues(
+		ctx,
+		variant.Root,
+		concreteDescriptor,
+	)
+	if err != nil {
+		return err, nil
+	}
+
+	safeVariant.Assets = rootVariantSelectedAssets(selectedPathValues.AssetsPath, safeVariant)
+	safeVariant.Commands = rootVariantSelectedCommands(selectedPathValues.CommandsPath, safeVariant)
+	safeVariant.Traits = rootVariantSelectedTraits(selectedPathValues.TraitsPath, safeVariant)
+	safeVariant.Secrets = rootVariantSelectedSecrets(selectedPathValues.SecretsPath, safeVariant)
+	safeVariant.Docs = rootVariantSelectedDocs(selectedPathValues.DocsPath, safeVariant)
+	safeVariant.Requirements = rootVariantSelectedRequirements(selectedPathValues.RequirementsPath, safeVariant)
+
+	return nil, safeVariant
 }

@@ -11,7 +11,7 @@ import (
 var rootsBuildCommand = func() clib.Command {
 
 	type ParsedArgs struct {
-		Filter            func(*task.ExecutionContext, *dryad.SafeRootReference) (error, bool)
+		Filter            dryad.RootVariantFilter
 		VariantDescriptor string
 		Parallel          int
 		Path              string
@@ -72,28 +72,28 @@ var rootsBuildCommand = func() clib.Command {
 			joinStderr = false
 		}
 
-		err, rootFilter := ArgRootFilterFromIncludeExclude(ctx, req)
+		err, rootFilter := ArgRootVariantFilterFromIncludeExclude(ctx, req)
 		if err != nil {
 			return err, ParsedArgs{}
 		}
 
-		err, fromStdinFilter := ArgRootFilterFromStdin(ctx, req)
+		err, fromStdinFilter := ArgRootVariantFilterFromStdin(ctx, req)
 		if err != nil {
 			return err, ParsedArgs{}
 		}
 
-		var compositeFilter = func(ctx *task.ExecutionContext, root *dryad.SafeRootReference) (error, bool) {
+		var compositeFilter = func(ctx *task.ExecutionContext, variant *dryad.SafeRootVariantReference) (error, bool) {
 			var err error
 			var shouldMatch bool
 
-			err, shouldMatch = fromStdinFilter(ctx, root)
+			err, shouldMatch = fromStdinFilter(ctx, variant)
 			if err != nil {
 				return err, false
 			} else if !shouldMatch {
 				return nil, false
 			}
 
-			err, shouldMatch = rootFilter(ctx, root)
+			err, shouldMatch = rootFilter(ctx, variant)
 			return err, shouldMatch
 		}
 
@@ -171,7 +171,7 @@ var rootsBuildCommand = func() clib.Command {
 		},
 	)
 
-	command := clib.NewCommand("build", "build selected roots in a garden").
+	command := clib.NewCommand("build", "build selected root variants in a garden").
 		WithOption(
 			clib.
 				NewOption("path", "the target path for the garden to build").
@@ -185,12 +185,12 @@ var rootsBuildCommand = func() clib.Command {
 				).
 				WithType(clib.OptionTypeString),
 		).
-		WithOption(clib.NewOption("include", "choose which roots are included in the build. the include filter is a CEL expression with access to a 'root' object that can be used to filter on properties of the root.").WithType(clib.OptionTypeMultiString)).
-		WithOption(clib.NewOption("exclude", "choose which roots are excluded from the build.  the exclude filter is a CEL expression with access to a 'root' object that can be used to filter on properties of the root.").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("include", "choose which root variants are included in the build. the include filter is a CEL expression with access to a 'root' object for each root variant.").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("exclude", "choose which root variants are excluded from the build. the exclude filter is a CEL expression with access to a 'root' object for each root variant.").WithType(clib.OptionTypeMultiString)).
 		WithOption(
 			clib.NewOption(
 				"from-stdin",
-				"if set, read a list of roots from stdin to use as a base list of roots to build instead of all roots. include and exclude filters will be applied after this list. default false",
+				"if set, read a list of root refs from stdin to use as a base list of root variants to build instead of all root variants. include and exclude filters will be applied after this list. default false",
 			).
 				WithType(clib.OptionTypeBool),
 		).

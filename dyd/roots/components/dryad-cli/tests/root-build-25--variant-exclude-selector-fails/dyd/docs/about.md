@@ -1,3 +1,4 @@
-# root-build-18--variant-any-multi-target-naming
+# root-build-25--variant-exclude-selector-fails
 
-Validates dependency naming for `any` cartesian expansion.
+Ensures `dryad root build --variant` fails with a clear error when the selected
+concrete variant is excluded by `dyd/variants/_exclude`.

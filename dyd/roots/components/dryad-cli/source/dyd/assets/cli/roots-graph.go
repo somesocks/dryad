@@ -149,7 +149,7 @@ var rootsGraphCommand = func() clib.Command {
 		},
 	)
 
-	command := clib.NewCommand("graph", "print the local dependency graph of all roots in the garden").
+	command := clib.NewCommand("graph", "print the local dependency graph of all root variants in the garden").
 		WithOption(clib.NewOption("transpose", "transpose the dependency graph before printing").WithType(clib.OptionTypeBool)).
 		WithOption(clib.NewOption("relative", "print roots relative to the base garden path. default true").WithType(clib.OptionTypeBool)).
 		WithOption(clib.NewOption("format", "change the output format of the graph. can be one of (yaml, json, json-compact). defaults to yaml").WithType(clib.OptionTypeString)).

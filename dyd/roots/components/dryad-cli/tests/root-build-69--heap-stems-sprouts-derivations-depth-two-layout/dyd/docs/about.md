@@ -1,3 +1,4 @@
-# root-build-55--heap-derivations-file-format
+# root-build-69--heap-stems-sprouts-derivations-depth-two-layout
 
-Validates root derivations are written as regular files under the `dyd/heap/derivations/roots/v2` subtree.
+Ensures `dyd/heap/stems`, `dyd/heap/sprouts`, and `dyd/heap/derivations/roots`
+all honor a configured depth-2 fanout layout and leave no temporary entries.

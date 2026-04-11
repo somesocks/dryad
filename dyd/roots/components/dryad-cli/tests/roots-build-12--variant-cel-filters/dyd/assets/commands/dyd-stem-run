@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_reset_garden_state() {
+	if [ -e "$TEMP_DIR/dyd/heap" ] || [ -L "$TEMP_DIR/dyd/heap" ]; then
+		chmod -R 755 "$TEMP_DIR/dyd/heap"
+	fi
+
+	if [ -e "$TEMP_DIR/dyd/sprouts" ] || [ -L "$TEMP_DIR/dyd/sprouts" ]; then
+		chmod -R 755 "$TEMP_DIR/dyd/sprouts"
+	fi
+
+	rm -rf "$TEMP_DIR/dyd/heap" "$TEMP_DIR/dyd/sprouts"
+}
+
+_test() {
+	dryad roots build --include='root.trait("value.txt") == "linux"' --parallel=1 --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+_test_qualified_stdin() {
+	_reset_garden_state
+
+	printf '%s\n' \
+		'dyd/roots/root-implicit-any?arch=amd64&os=linux' \
+		| dryad roots build --from-stdin --parallel=1 --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+_test_qualified_stdin_with_variant_intersection() {
+	_reset_garden_state
+
+	printf '%s\n' \
+		'dyd/roots/root-implicit-any?arch=amd64&os=linux' \
+		| dryad roots build --from-stdin --variant="os=linux" --parallel=1 --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+_test_qualified_stdin_with_empty_variant_intersection() {
+	_reset_garden_state
+
+	printf '%s\n' \
+		'dyd/roots/root-implicit-any?arch=amd64&os=linux' \
+		| dryad roots build --from-stdin --variant="arch=arm64" --parallel=1 --log-level="$DYD_LOG_LEVEL" > /dev/null
+}
+
+_verify() {
+	implicit_any_deps="$TEMP_DIR/dyd/sprouts/root-implicit-any/dyd/dependencies"
+	no_match_deps="$TEMP_DIR/dyd/sprouts/root-no-match/dyd/dependencies"
+	option_list_sprout="$TEMP_DIR/dyd/sprouts/root-option-list"
+
+	assert_directory_exists "$implicit_any_deps"
+	assert_directory_exists "$no_match_deps"
+
+	assert_directory_exists "$implicit_any_deps/stem~arch=amd64+os=linux"
+	assert_directory_exists "$implicit_any_deps/stem~arch=arm64+os=linux"
+	assert_directory_exists "$no_match_deps/stem~os=linux"
+
+	if [ -e "$no_match_deps/stem~os=freebsd" ] || [ -L "$no_match_deps/stem~os=freebsd" ]; then
+		echo "[ERROR] Fail: unexpected freebsd dependency stem~os=freebsd" 1>&2
+		return 1
+	fi
+
+	if [ -e "$option_list_sprout" ] || [ -L "$option_list_sprout" ]; then
+		echo "[ERROR] Fail: unexpected sprout for root-option-list" 1>&2
+		find "$TEMP_DIR/dyd/sprouts" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
+		return 1
+	fi
+}
+
+_verify_only_amd64_linux_was_built() {
+	deps_path="$TEMP_DIR/dyd/sprouts/root-implicit-any/dyd/dependencies"
+
+	assert_directory_exists "$deps_path"
+	assert_directory_exists "$deps_path/stem~arch=amd64+os=linux"
+
+	if [ -e "$deps_path/stem~arch=arm64+os=linux" ] || [ -L "$deps_path/stem~arch=arm64+os=linux" ]; then
+		echo "[ERROR] Fail: unexpected dependency stem~arch=arm64+os=linux" 1>&2
+		return 1
+	fi
+
+	dep_count=$(find "$deps_path" -mindepth 1 -maxdepth 1 \( -name 'stem' -o -name 'stem~*' \) | wc -l | tr -d ' ')
+	if [ "$dep_count" != "1" ]; then
+		echo "[ERROR] Fail: expected exactly 1 stem dependency, got $dep_count" 1>&2
+		find "$deps_path" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
+		return 1
+	fi
+}
+
+_verify_no_roots_were_built() {
+	if [ -e "$TEMP_DIR/dyd/sprouts/root-implicit-any" ] || [ -L "$TEMP_DIR/dyd/sprouts/root-implicit-any" ]; then
+		echo "[ERROR] Fail: unexpected sprout for root-implicit-any" 1>&2
+		find "$TEMP_DIR/dyd/sprouts" -mindepth 1 -maxdepth 1 -exec basename {} ';' | sort 1>&2
+		return 1
+	fi
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
+_test_qualified_stdin
+_verify_only_amd64_linux_was_built
+_test_qualified_stdin_with_variant_intersection
+_verify_only_amd64_linux_was_built
+_test_qualified_stdin_with_empty_variant_intersection
+_verify_no_roots_were_built

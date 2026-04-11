@@ -1,3 +1,4 @@
-# root-build-45--variant-include-exclude-intersection
+# root-build-48--variant-partial-include-exclude-filters
 
-Validates that resolved variants must be included and not excluded.
+Ensures partial `variants/_include` and `variants/_exclude` selectors intersect
+correctly when resolving the final build variant set.

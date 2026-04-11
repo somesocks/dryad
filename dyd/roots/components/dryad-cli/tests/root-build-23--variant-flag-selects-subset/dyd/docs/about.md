@@ -1,3 +1,5 @@
-# root-build-18--variant-any-multi-target-naming
+# root-build-23--variant-flag-selects-subset
 
-Validates dependency naming for `any` cartesian expansion.
+Ensures `dryad root build` accepts `--variant`, filesystem-qualified root refs,
+and URL-qualified root refs to select a subset of concrete variants, and rejects
+selectors specified in both `root_ref` and `--variant`.

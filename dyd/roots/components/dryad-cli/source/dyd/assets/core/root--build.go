@@ -523,6 +523,20 @@ type RootBuildSproutRequest struct {
 	}
 }
 
+type RootBuildSproutVariantsRequest struct {
+	VariantDescriptors []string
+	JoinStdout         bool
+	JoinStderr         bool
+	LogStdout          struct {
+		Path string
+		Name string
+	}
+	LogStderr struct {
+		Path string
+		Name string
+	}
+}
+
 func rootBuildLogVariantLabel(variantDescriptor string) string {
 	if variantDescriptor == "" {
 		return "default"
@@ -587,17 +601,35 @@ func (root *SafeRootReference) BuildSprout(ctx *task.ExecutionContext, req RootB
 		return err, ""
 	}
 
+	renderedVariants := make([]string, 0, len(variants))
+	for _, variant := range variants {
+		err, concreteDescriptor := variantDescriptorEncodeFilesystem(variant)
+		if err != nil {
+			return err, ""
+		}
+
+		renderedVariants = append(renderedVariants, concreteDescriptor)
+	}
+
+	return root.BuildSproutVariants(
+		ctx,
+		RootBuildSproutVariantsRequest{
+			VariantDescriptors: renderedVariants,
+			JoinStdout:         req.JoinStdout,
+			JoinStderr:         req.JoinStderr,
+			LogStdout:          req.LogStdout,
+			LogStderr:          req.LogStderr,
+		},
+	)
+}
+
+func (root *SafeRootReference) BuildSproutVariants(ctx *task.ExecutionContext, req RootBuildSproutVariantsRequest) (error, string) {
 	type rootBuildVariantResult struct {
 		Descriptor  string
 		BuildResult *RootBuildResult
 	}
 
-	buildVariant := func(ctx *task.ExecutionContext, variant VariantDescriptor) (error, rootBuildVariantResult) {
-		err, concreteDescriptor := variantDescriptorEncodeFilesystem(variant)
-		if err != nil {
-			return err, rootBuildVariantResult{}
-		}
-
+	buildVariant := func(ctx *task.ExecutionContext, concreteDescriptor string) (error, rootBuildVariantResult) {
 		err, buildResult := root.BuildStem(
 			ctx,
 			RootBuildStemRequest{
@@ -618,7 +650,7 @@ func (root *SafeRootReference) BuildSprout(ctx *task.ExecutionContext, req RootB
 		}
 	}
 
-	err, builtVariants := task.ParallelMap(buildVariant)(ctx, variants)
+	err, builtVariants := task.ParallelMap(buildVariant)(ctx, req.VariantDescriptors)
 	if err != nil {
 		return err, ""
 	}

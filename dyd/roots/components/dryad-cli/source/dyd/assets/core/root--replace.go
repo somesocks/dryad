@@ -6,24 +6,39 @@ import (
 )
 
 type RootReplaceRequest struct {
-	Filter RootFilter
-	Dest   *SafeRootReference
+	Filter RootVariantFilter
+	Source RootReplaceTargetSpec
+	Dest   RootReplaceTargetSpec
 }
 
 func (root *SafeRootReference) Replace(ctx *task.ExecutionContext, request RootReplaceRequest) error {
 	var err error
+	seenRequirements := map[string]struct{}{}
 
 	var onRootRequirement = func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
-		var target *SafeRootReference
+		if _, seen := seenRequirements[requirement.BasePath]; seen {
+			return nil, nil
+		}
+		seenRequirements[requirement.BasePath] = struct{}{}
+
+		var targetSpec *RootRequirementTargetSpec
 		var err error
 
-		err, target = requirement.Target(ctx)
+		err, targetSpec = requirement.TargetSpec(ctx)
 		if err != nil {
 			return err, nil
 		}
 
-		if target.BasePath == root.BasePath {
-			err = requirement.Replace(ctx, request.Dest)
+		if rootRequirementTargetSpecMatchesReplaceTarget(targetSpec, request.Source) {
+			err, replacedTargetSpec := rootRequirementTargetSpecApplyReplaceTarget(
+				targetSpec,
+				request.Dest,
+			)
+			if err != nil {
+				return err, nil
+			}
+
+			err = requirement.Replace(ctx, replacedTargetSpec)
 			if err != nil {
 				return err, nil
 			}
@@ -32,10 +47,14 @@ func (root *SafeRootReference) Replace(ctx *task.ExecutionContext, request RootR
 		return nil, nil
 	}
 
-	var onRoot = func(ctx *task.ExecutionContext, root *SafeRootReference) (error, any) {
-		err := root.WalkAllRequirements(
+	var onVariant = func(ctx *task.ExecutionContext, variant *SafeRootVariantReference) (error, any) {
+		if variant.Requirements == nil {
+			return nil, nil
+		}
+
+		err := variant.Requirements.Walk(
 			ctx,
-			RootWalkAllRequirementsRequest{
+			RootRequirementsWalkRequest{
 				OnMatch: onRootRequirement,
 			},
 		)
@@ -46,11 +65,11 @@ func (root *SafeRootReference) Replace(ctx *task.ExecutionContext, request RootR
 		return nil, nil
 	}
 
-	err = root.Roots.Walk(
+	err = root.Roots.WalkVariants(
 		ctx,
-		RootsWalkRequest{
+		RootsWalkVariantsRequest{
 			ShouldMatch: request.Filter,
-			OnMatch:     onRoot,
+			OnMatch:     onVariant,
 		},
 	)
 	return err

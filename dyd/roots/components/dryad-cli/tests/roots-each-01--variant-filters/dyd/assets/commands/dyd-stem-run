@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+TEST_OUTPUT=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	TEMP_DIR="$(cd "$TEMP_DIR" && pwd -P)"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	TEST_OUTPUT=$(
+		dryad roots each \
+			--parallel=1 \
+			--join-stdout \
+			--include='root.trait("value.txt") == "linux"' \
+			-- 'printf "%s|%s\n" "$DYD_ROOT_REF" "$DYD_VARIANT"' \
+			| sort
+	)
+}
+
+_verify() {
+	EXPECTED_OUTPUT=$(
+		printf '%s\n%s\n%s' \
+			"$TEMP_DIR/dyd/roots/root-implicit-any?arch=amd64&os=linux|arch=amd64+os=linux" \
+			"$TEMP_DIR/dyd/roots/root-implicit-any?arch=arm64&os=linux|arch=arm64+os=linux" \
+			"$TEMP_DIR/dyd/roots/root-no-match?os=linux|os=linux"
+	)
+
+	assert_all_equal "$TEST_OUTPUT" "$EXPECTED_OUTPUT"
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

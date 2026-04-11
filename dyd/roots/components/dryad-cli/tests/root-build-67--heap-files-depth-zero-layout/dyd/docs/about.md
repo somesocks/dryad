@@ -1,3 +1,4 @@
-# root-build-49--heap-cas-touches-existing-entries
+# root-build-67--heap-files-depth-zero-layout
 
-Validates heap CAS hits touch existing file and secret entries during root build.
+Ensures `dyd/heap/files` uses a flat depth-0 layout when configured and leaves
+no temporary files behind after root build.

@@ -15,8 +15,8 @@ import (
 )
 
 type rootCelWrapper struct {
-	root *SafeRootReference
-	ctx  *task.ExecutionContext
+	variant *SafeRootVariantReference
+	ctx     *task.ExecutionContext
 }
 
 func (wrapper *rootCelWrapper) ConvertToNative(typeDesc reflect.Type) (any, error) {
@@ -26,9 +26,7 @@ func (wrapper *rootCelWrapper) ConvertToNative(typeDesc reflect.Type) (any, erro
 func (wrapper *rootCelWrapper) ConvertToType(typeValue ref.Type) ref.Val {
 	switch typeValue {
 	case types.StringType:
-		return types.String(fmt.Sprintf("Root{BasePath: %s}", wrapper.root.BasePath))
-		// case types.TypeType:
-		// 	return cel.ObjectType("Root")
+		return types.String(fmt.Sprintf("Root{BasePath: %s}", wrapper.variant.Root.BasePath))
 	}
 	return types.NewErr("unsupported type conversion")
 }
@@ -38,7 +36,20 @@ func (wrapper *rootCelWrapper) Equal(other ref.Val) ref.Val {
 	if !ok {
 		return types.False
 	}
-	return types.Bool(wrapper.root.BasePath == o.root.BasePath)
+
+	err, left := wrapper.variant.URL()
+	if err != nil {
+		return types.NewErr("error resolving root variant URL")
+	}
+	err, right := o.variant.URL()
+	if err != nil {
+		return types.NewErr("error resolving root variant URL")
+	}
+
+	return types.Bool(
+		wrapper.variant.Root.BasePath == o.variant.Root.BasePath &&
+			left == right,
+	)
 }
 
 func (wrapper *rootCelWrapper) Type() ref.Type {
@@ -50,10 +61,7 @@ func (wrapper *rootCelWrapper) Value() any {
 }
 
 func (wrapper *rootCelWrapper) Path() ref.Val {
-	var relRootPath string
-	var err error
-
-	relRootPath, err = filepath.Rel(wrapper.root.Roots.Garden.BasePath, wrapper.root.BasePath)
+	relRootPath, err := filepath.Rel(wrapper.variant.Root.Roots.Garden.BasePath, wrapper.variant.Root.BasePath)
 	if err != nil {
 		return types.NewErr("could not resolve root path")
 	}
@@ -61,9 +69,17 @@ func (wrapper *rootCelWrapper) Path() ref.Val {
 	return types.String(relRootPath)
 }
 
-var rootFilterCelEnv = func() *cel.Env {
+func (wrapper *rootCelWrapper) Variant() ref.Val {
+	err, rendered := wrapper.variant.Filesystem()
+	if err != nil {
+		return types.NewErr("could not resolve root variant descriptor")
+	}
 
-	var root_path_fun = cel.Function(
+	return types.String(rendered)
+}
+
+var rootFilterCelEnv = func() *cel.Env {
+	rootPathFun := cel.Function(
 		"path",
 		cel.MemberOverload(
 			"Root_path",
@@ -72,7 +88,6 @@ var rootFilterCelEnv = func() *cel.Env {
 			cel.UnaryBinding(
 				func(arg ref.Val) ref.Val {
 					wrapper, ok := arg.Value().(rootCelWrapper)
-
 					if !ok {
 						return types.NewErr("invalid type for path method")
 					}
@@ -83,7 +98,26 @@ var rootFilterCelEnv = func() *cel.Env {
 		),
 	)
 
-	var trait_fun = cel.Function(
+	rootVariantFun := cel.Function(
+		"variant",
+		cel.MemberOverload(
+			"Root_variant",
+			[]*cel.Type{cel.ObjectType("Root")},
+			cel.StringType,
+			cel.UnaryBinding(
+				func(arg ref.Val) ref.Val {
+					wrapper, ok := arg.Value().(rootCelWrapper)
+					if !ok {
+						return types.NewErr("invalid type for variant method")
+					}
+
+					return wrapper.Variant()
+				},
+			),
+		),
+	)
+
+	traitFun := cel.Function(
 		"trait",
 		cel.MemberOverload(
 			"Root_trait",
@@ -92,7 +126,6 @@ var rootFilterCelEnv = func() *cel.Env {
 			cel.BinaryBinding(
 				func(wrapperRef ref.Val, traitRef ref.Val) ref.Val {
 					wrapper, ok := wrapperRef.Value().(rootCelWrapper)
-
 					if !ok {
 						return types.NewErr("invalid type for root")
 					}
@@ -103,21 +136,31 @@ var rootFilterCelEnv = func() *cel.Env {
 					}
 
 					zlog.Trace().
-						Str("root", wrapper.root.BasePath).
+						Str("root", wrapper.variant.Root.BasePath).
+						Str("variant", fmt.Sprintf("%v", wrapper.variant.Descriptor)).
 						Str("trait", path).
 						Msg("CEL calling trait")
 
-					err, traits := wrapper.root.Traits().Resolve(wrapper.ctx)
-					if err != nil {
-						zlog.Error().
-							Err(err).
-							Msg("error getting root traits")
-						return types.NewErr("error resolving root traits")
-					} else if traits == nil {
+					traits := wrapper.variant.Traits
+					if traits == nil {
 						return types.NullValue
 					}
 
-					err, trait := traits.Trait(path).Resolve(wrapper.ctx)
+					unsafeTraits := UnsafeRootTraitsReference{
+						BasePath: traits.BasePath,
+						Root:     wrapper.variant.Root,
+					}
+					err, safeTraits := unsafeTraits.Resolve(wrapper.ctx)
+					if err != nil {
+						zlog.Error().
+							Err(err).
+							Msg("error getting root variant traits")
+						return types.NewErr("error resolving root variant traits")
+					} else if safeTraits == nil {
+						return types.NullValue
+					}
+
+					err, trait := safeTraits.Trait(path).Resolve(wrapper.ctx)
 					if err != nil {
 						zlog.Error().
 							Err(err).
@@ -135,12 +178,6 @@ var rootFilterCelEnv = func() *cel.Env {
 						return types.NullValue
 					}
 
-					zlog.Trace().
-						Str("root", wrapper.root.BasePath).
-						Str("trait", path).
-						Str("value", value).
-						Msg("CEL trait value")
-
 					return types.String(value)
 				},
 			),
@@ -149,17 +186,14 @@ var rootFilterCelEnv = func() *cel.Env {
 
 	env, err := cel.NewEnv(
 		cel.Types(cel.ObjectType("Root")),
-		trait_fun,
-		root_path_fun,
+		traitFun,
+		rootPathFun,
+		rootVariantFun,
 		cel.Variable("root", cel.ObjectType("Root")),
 	)
-
 	if err != nil {
-		zlog.Error().
-			Err(err).
-			Msg("error generating CEL environment")
+		zlog.Error().Err(err).Msg("error generating CEL environment")
 		panic(err)
-		// return err, false
 	}
 
 	return env
@@ -170,113 +204,76 @@ type RootCelFilterRequest struct {
 	Exclude []string
 }
 
-func RootCelFilter(request RootCelFilterRequest) (error, func(ctx *task.ExecutionContext, ref *SafeRootReference) (error, bool)) {
-	var includeFilters []cel.Program = make([]cel.Program, len(request.Include))
-	var excludeFilters []cel.Program = make([]cel.Program, len(request.Exclude))
-	var filter func(ctx *task.ExecutionContext, ref *SafeRootReference) (error, bool)
+func RootVariantCelFilter(request RootCelFilterRequest) (error, RootVariantFilter) {
+	includeFilters := make([]cel.Program, len(request.Include))
+	excludeFilters := make([]cel.Program, len(request.Exclude))
 
 	for k, v := range request.Include {
-		// compile CEL expression
 		ast, issues := rootFilterCelEnv.Compile(v)
 		if issues != nil && issues.Err() != nil {
-			zlog.Error().
-				Err(issues.Err()).
-				Msg("error compiling CEL expression")
+			zlog.Error().Err(issues.Err()).Msg("error compiling CEL expression")
 			return issues.Err(), nil
 		}
 
-		// create CEL program
 		prg, err := rootFilterCelEnv.Program(ast)
 		if err != nil {
-			zlog.Error().
-				Err(err).
-				Msg("error generating CEL program")
+			zlog.Error().Err(err).Msg("error generating CEL program")
 			return err, nil
 		}
-
 		includeFilters[k] = prg
 	}
 
 	for k, v := range request.Exclude {
-		// compile CEL expression
 		ast, issues := rootFilterCelEnv.Compile(v)
 		if issues != nil && issues.Err() != nil {
-			zlog.Error().
-				Err(issues.Err()).
-				Msg("error compiling CEL expression")
+			zlog.Error().Err(issues.Err()).Msg("error compiling CEL expression")
 			return issues.Err(), nil
 		}
 
-		// create CEL program
 		prg, err := rootFilterCelEnv.Program(ast)
 		if err != nil {
-			zlog.Error().
-				Err(err).
-				Msg("error generating CEL program")
+			zlog.Error().Err(err).Msg("error generating CEL program")
 			return err, nil
 		}
-
 		excludeFilters[k] = prg
 	}
 
-	filter = func(ctx *task.ExecutionContext, root *SafeRootReference) (error, bool) {
-		var matchesInclude = false
-		var matchesExclude = false
-
-		if len(includeFilters) == 0 {
-			matchesInclude = true
+	return nil, func(ctx *task.ExecutionContext, variant *SafeRootVariantReference) (error, bool) {
+		wrappedRef := rootCelWrapper{
+			variant: variant,
+			ctx:     ctx,
 		}
 
-		var rootCelWrapper = rootCelWrapper{
-			root: root,
-			ctx:  ctx,
-		}
-		var celArgs = map[string]any{
-			"root": &rootCelWrapper,
-		}
-
-		for _, include := range includeFilters {
-			var matchesFilter bool
-			result, _, err := include.Eval(celArgs)
+		for _, prg := range includeFilters {
+			out, _, err := prg.Eval(map[string]any{"root": &wrappedRef})
 			if err != nil {
-				zlog.Error().
-					Err(err).
-					Msg("error evaluating CEL filter")
 				return err, false
-			} else if result.Type() != types.BoolType {
-				return errors.New("expected boolean result from filter"), false
 			}
 
-			matchesFilter = result.Value().(bool)
-
-			matchesInclude = matchesInclude || matchesFilter
-			if matchesInclude {
-				break
+			val, ok := out.Value().(bool)
+			if !ok {
+				return errors.New("non-boolean expression in include filter"), false
+			}
+			if !val {
+				return nil, false
 			}
 		}
 
-		for _, exclude := range excludeFilters {
-			var matchesFilter bool
-			result, _, err := exclude.Eval(celArgs)
+		for _, prg := range excludeFilters {
+			out, _, err := prg.Eval(map[string]any{"root": &wrappedRef})
 			if err != nil {
-				zlog.Error().
-					Err(err).
-					Msg("error evaluating CEL filter")
 				return err, false
-			} else if result.Type() != types.BoolType {
-				return errors.New("expected boolean result from filter"), false
 			}
 
-			matchesFilter = result.Value().(bool)
-
-			matchesExclude = matchesExclude || matchesFilter
-			if matchesExclude {
-				break
+			val, ok := out.Value().(bool)
+			if !ok {
+				return errors.New("non-boolean expression in exclude filter"), false
+			}
+			if val {
+				return nil, false
 			}
 		}
 
-		return nil, matchesInclude && !matchesExclude
+		return nil, true
 	}
-
-	return nil, filter
 }

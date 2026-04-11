@@ -1,9 +1,9 @@
 package core
 
 import (
-	"encoding/json"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
+	"encoding/json"
 	"strings"
 
 	"dryad/task"
@@ -27,22 +27,49 @@ func rootDevelop_resolveSelectedPaths(
 	rootPath string,
 	variantDescriptor string,
 ) (error, rootDevelopSelectedPaths) {
-	err, selectedPaths := rootBuild_selectAssetsAndCommandsAndSecretsAndDocsAndTraitsAndRequirementsPaths(
-		ctx,
-		rootPath,
-		variantDescriptor,
-	)
+	rootRef := SafeRootReference{BasePath: rootPath}
+	err, unsafeVariant := rootRef.VariantFromFilesystem(variantDescriptor)
 	if err != nil {
 		return err, rootDevelopSelectedPaths{}
 	}
 
+	err, variant := unsafeVariant.Resolve(ctx)
+	if err != nil {
+		return err, rootDevelopSelectedPaths{}
+	}
+
+	assetsPath := ""
+	if variant.Assets != nil {
+		assetsPath = variant.Assets.BasePath
+	}
+	commandsPath := ""
+	if variant.Commands != nil {
+		commandsPath = variant.Commands.BasePath
+	}
+	traitsPath := ""
+	if variant.Traits != nil {
+		traitsPath = variant.Traits.BasePath
+	}
+	secretsPath := ""
+	if variant.Secrets != nil {
+		secretsPath = variant.Secrets.BasePath
+	}
+	docsPath := ""
+	if variant.Docs != nil {
+		docsPath = variant.Docs.BasePath
+	}
+	requirementsPath := ""
+	if variant.Requirements != nil {
+		requirementsPath = variant.Requirements.BasePath
+	}
+
 	return nil, rootDevelopSelectedPaths{
-		AssetsPath:       selectedPaths.AssetsPath,
-		CommandsPath:     selectedPaths.CommandsPath,
-		TraitsPath:       selectedPaths.TraitsPath,
-		SecretsPath:      selectedPaths.SecretsPath,
-		DocsPath:         selectedPaths.DocsPath,
-		RequirementsPath: selectedPaths.RequirementsPath,
+		AssetsPath:       assetsPath,
+		CommandsPath:     commandsPath,
+		TraitsPath:       traitsPath,
+		SecretsPath:      secretsPath,
+		DocsPath:         docsPath,
+		RequirementsPath: requirementsPath,
 	}
 }
 

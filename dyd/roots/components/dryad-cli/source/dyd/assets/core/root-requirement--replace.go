@@ -3,6 +3,7 @@ package core
 import (
 	fs2 "dryad/filesystem"
 	"dryad/task"
+	"fmt"
 
 	"dryad/internal/filepath"
 	"dryad/internal/os"
@@ -12,13 +13,65 @@ import (
 	// zlog "github.com/rs/zerolog/log"
 )
 
-func (rootRequirement *SafeRootRequirementReference) Replace(ctx *task.ExecutionContext, target *SafeRootReference) error {
+type RootReplaceTargetSpec struct {
+	Root               *SafeRootReference
+	VariantSelector    VariantDescriptor
+	HasVariantSelector bool
+}
+
+func rootRequirementTargetSpecMatchesReplaceTarget(
+	targetSpec *RootRequirementTargetSpec,
+	matchSpec RootReplaceTargetSpec,
+) bool {
+	if targetSpec.Root.BasePath != matchSpec.Root.BasePath {
+		return false
+	}
+
+	if !matchSpec.HasVariantSelector {
+		return true
+	}
+
+	for dimension, option := range matchSpec.VariantSelector {
+		targetOption, ok := targetSpec.VariantSelector[dimension]
+		if !ok || targetOption != option {
+			return false
+		}
+	}
+
+	return true
+}
+
+func rootRequirementTargetSpecApplyReplaceTarget(
+	targetSpec *RootRequirementTargetSpec,
+	replaceSpec RootReplaceTargetSpec,
+) (error, *RootRequirementTargetSpec) {
+	if replaceSpec.Root == nil {
+		return fmt.Errorf("missing replacement root"), nil
+	}
+
+	nextSelector := VariantDescriptor{}
+	for dimension, option := range targetSpec.VariantSelector {
+		nextSelector[dimension] = option
+	}
+
+	if replaceSpec.HasVariantSelector {
+		for dimension, option := range replaceSpec.VariantSelector {
+			nextSelector[dimension] = option
+		}
+	}
+
+	return nil, &RootRequirementTargetSpec{
+		Root:            replaceSpec.Root,
+		VariantSelector: nextSelector,
+	}
+}
+
+func (rootRequirement *SafeRootRequirementReference) Replace(ctx *task.ExecutionContext, targetSpec *RootRequirementTargetSpec) error {
 	var err error
 	var linkTarget string
 
-	err, targetSpec := rootRequirement.TargetSpec(ctx)
-	if err != nil {
-		return err
+	if targetSpec == nil || targetSpec.Root == nil {
+		return fmt.Errorf("missing replacement target")
 	}
 
 	err, variantSelector := variantDescriptorEncodeURL(targetSpec.VariantSelector)
@@ -28,7 +81,7 @@ func (rootRequirement *SafeRootRequirementReference) Replace(ctx *task.Execution
 
 	linkTarget, err = filepath.Rel(
 		filepath.Dir(rootRequirement.BasePath),
-		target.BasePath)
+		targetSpec.Root.BasePath)
 	if err != nil {
 		return err
 	}
