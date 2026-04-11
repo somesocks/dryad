@@ -29,11 +29,16 @@ _verify() {
 
 	assert_directory_not_exists "$TEMP_DIR/dyd/roots/root-01"
 	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02"
+	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02/dyd/variants"
+	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02/dyd/variants/arch"
+	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02/dyd/variants/os"
 	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02/dyd/assets~$SELECTOR"
 	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02/dyd/commands~$SELECTOR"
 	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02/dyd/docs~$SELECTOR"
 	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02/dyd/secrets~$SELECTOR"
 	assert_directory_exists "$TEMP_DIR/dyd/roots/root-02/dyd/requirements~$SELECTOR"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-02/dyd/variants/arch/amd64" "true"
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-02/dyd/variants/os/linux" "true"
 
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-02/dyd/assets~$SELECTOR/value.txt" "selector-asset"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-02/dyd/docs~$SELECTOR/about.md" "selector-doc"
