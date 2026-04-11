@@ -41,17 +41,17 @@ _create_variant_filtered_root() {
 }
 
 _test() {
-	dryad root replace 'root:dyd/roots/root-01?os=linux' dyd/roots/root-02 --log-level="$DYD_LOG_LEVEL" 1>&2
-	dryad root replace 'root:dyd/roots/root-10?os=linux' 'dyd/roots/root-10~os=darwin' --log-level="$DYD_LOG_LEVEL" 1>&2
+	dryad root replace 'root:dyd/roots/root-01?os=linux' dyd/roots/root-02 --parallel=8 --log-level="$DYD_LOG_LEVEL" 1>&2
+	dryad root replace 'root:dyd/roots/root-10?os=linux' 'dyd/roots/root-10~os=darwin' --parallel=8 --log-level="$DYD_LOG_LEVEL" 1>&2
 
 	_create_variant_filtered_root root-20
 	_create_variant_filtered_root root-21
 	_create_variant_filtered_root root-22
 
-	dryad root replace 'root:dyd/roots/root-01?arch=amd64&os=linux' dyd/roots/root-02 --include='root.variant() == "os=linux"' --log-level="$DYD_LOG_LEVEL" 1>&2
-	dryad root replace 'root:dyd/roots/root-01?arch=amd64&os=linux' dyd/roots/root-02 --exclude='root.variant() == "os=darwin"' --log-level="$DYD_LOG_LEVEL" 1>&2
+	dryad root replace 'root:dyd/roots/root-01?arch=amd64&os=linux' dyd/roots/root-02 --include='root.variant() == "os=linux"' --parallel=8 --log-level="$DYD_LOG_LEVEL" 1>&2
+	dryad root replace 'root:dyd/roots/root-01?arch=amd64&os=linux' dyd/roots/root-02 --exclude='root.variant() == "os=darwin"' --parallel=8 --log-level="$DYD_LOG_LEVEL" 1>&2
 	printf '%s\n' 'dyd/roots/root-22?os=linux' \
-		| dryad root replace 'root:dyd/roots/root-01?arch=amd64&os=linux' dyd/roots/root-02 --from-stdin --log-level="$DYD_LOG_LEVEL" 1>&2
+		| dryad root replace 'root:dyd/roots/root-01?arch=amd64&os=linux' dyd/roots/root-02 --from-stdin --parallel=8 --log-level="$DYD_LOG_LEVEL" 1>&2
 	dryad roots build --log-level="$DYD_LOG_LEVEL" 1>&2
 }
 

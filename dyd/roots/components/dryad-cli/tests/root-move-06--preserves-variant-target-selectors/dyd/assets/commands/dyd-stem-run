@@ -19,7 +19,7 @@ _prepare() {
 }
 
 _test() {
-	dryad root move dyd/roots/root-01 dyd/roots/root-02 --log-level="$DYD_LOG_LEVEL" 1>&2
+	dryad root move dyd/roots/root-01 dyd/roots/root-02 --parallel=8 --log-level="$DYD_LOG_LEVEL" 1>&2
 	dryad roots build --log-level="$DYD_LOG_LEVEL" 1>&2
 }
 

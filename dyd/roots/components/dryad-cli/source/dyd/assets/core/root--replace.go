@@ -12,15 +12,14 @@ type RootReplaceRequest struct {
 }
 
 func (root *SafeRootReference) Replace(ctx *task.ExecutionContext, request RootReplaceRequest) error {
-	var err error
-	seenRequirements := map[string]struct{}{}
+	filter := request.Filter
+	if filter == nil {
+		filter = func(*task.ExecutionContext, *SafeRootVariantReference) (error, bool) {
+			return nil, true
+		}
+	}
 
 	var onRootRequirement = func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
-		if _, seen := seenRequirements[requirement.BasePath]; seen {
-			return nil, nil
-		}
-		seenRequirements[requirement.BasePath] = struct{}{}
-
 		var targetSpec *RootRequirementTargetSpec
 		var err error
 
@@ -47,15 +46,48 @@ func (root *SafeRootReference) Replace(ctx *task.ExecutionContext, request RootR
 		return nil, nil
 	}
 
-	var onVariant = func(ctx *task.ExecutionContext, variant *SafeRootVariantReference) (error, any) {
-		if variant.Requirements == nil {
+	var onRoot = func(ctx *task.ExecutionContext, candidateRoot *SafeRootReference) (error, any) {
+		err, variants := candidateRoot.ResolveBuildVariantReferences(
+			ctx,
+			RootResolveBuildVariantsRequest{},
+		)
+		if err != nil {
+			return err, nil
+		}
+
+		matchedVariants := make([]*SafeRootVariantReference, 0, len(variants))
+		for _, variant := range variants {
+			err, shouldMatch := filter(ctx, variant)
+			if err != nil {
+				return err, nil
+			}
+			if shouldMatch {
+				matchedVariants = append(matchedVariants, variant)
+			}
+		}
+
+		if len(matchedVariants) == 0 {
 			return nil, nil
 		}
 
-		err := variant.Requirements.Walk(
+		selectedRequirementsPaths := map[string]struct{}{}
+		for _, variant := range matchedVariants {
+			if variant.Requirements == nil {
+				continue
+			}
+			selectedRequirementsPaths[variant.Requirements.BasePath] = struct{}{}
+		}
+
+		err = candidateRoot.WalkAllRequirements(
 			ctx,
-			RootRequirementsWalkRequest{
-				OnMatch: onRootRequirement,
+			RootWalkAllRequirementsRequest{
+				OnMatch: func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
+					if _, exists := selectedRequirementsPaths[requirement.Requirements.BasePath]; !exists {
+						return nil, nil
+					}
+
+					return onRootRequirement(ctx, requirement)
+				},
 			},
 		)
 		if err != nil {
@@ -65,11 +97,10 @@ func (root *SafeRootReference) Replace(ctx *task.ExecutionContext, request RootR
 		return nil, nil
 	}
 
-	err = root.Roots.WalkVariants(
+	err := root.Roots.Walk(
 		ctx,
-		RootsWalkVariantsRequest{
-			ShouldMatch: request.Filter,
-			OnMatch:     onVariant,
+		RootsWalkRequest{
+			OnMatch: onRoot,
 		},
 	)
 	return err
