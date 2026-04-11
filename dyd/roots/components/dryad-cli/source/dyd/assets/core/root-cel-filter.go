@@ -277,12 +277,3 @@ func RootVariantCelFilter(request RootCelFilterRequest) (error, RootVariantFilte
 		return nil, true
 	}
 }
-
-func RootCelFilter(request RootCelFilterRequest) (error, RootFilter) {
-	err, variantFilter := RootVariantCelFilter(request)
-	if err != nil {
-		return err, nil
-	}
-
-	return nil, RootVariantFilterToRootFilterAny(variantFilter)
-}

@@ -18,27 +18,3 @@ func RootVariantFiltersCompose(filters ...RootVariantFilter) RootVariantFilter {
 		return nil, true
 	}
 }
-
-func RootVariantFilterToRootFilterAny(filter RootVariantFilter) RootFilter {
-	return func(ctx *task.ExecutionContext, root *SafeRootReference) (error, bool) {
-		err, variants := root.ResolveBuildVariantReferences(
-			ctx,
-			RootResolveBuildVariantsRequest{},
-		)
-		if err != nil {
-			return err, false
-		}
-
-		for _, variant := range variants {
-			err, match := filter(ctx, variant)
-			if err != nil {
-				return err, false
-			}
-			if match {
-				return nil, true
-			}
-		}
-
-		return nil, false
-	}
-}
