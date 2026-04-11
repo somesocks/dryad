@@ -3,6 +3,9 @@ set -eu
 
 echo "DYD_SCOPE $DYD_SCOPE"
 
-dryad roots build \
-    --log-level="$DYD_LOG_LEVEL" \
-    --scope="$DYD_SCOPE"
+printf '%s\n' \
+    'dyd/roots/components/dryad-docs-site' \
+    'dyd/roots/tools/caddy~arch=host+os=host+version=2.9.1' \
+    | dryad roots build \
+        --log-level="$DYD_LOG_LEVEL" \
+        --scope="$DYD_SCOPE"
