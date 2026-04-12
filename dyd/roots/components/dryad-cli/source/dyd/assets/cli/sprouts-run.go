@@ -14,6 +14,11 @@ import (
 )
 
 var sproutsRunCommand = func() clib.Command {
+	type sproutsRunTarget struct {
+		Sprout            *dryad.SafeSproutReference
+		SproutRef         string
+		VariantDescriptor string
+	}
 
 	type ParsedArgs struct {
 		GardenPath           string
@@ -139,22 +144,80 @@ var sproutsRunCommand = func() clib.Command {
 		},
 	)
 
+	var sproutsRunTargetsFromStdin = func(
+		ctx *task.ExecutionContext,
+		args ParsedArgs,
+		sprouts *dryad.SafeSproutsReference,
+	) (error, bool, []sproutsRunTarget) {
+		var options = args.Request.Opts
+
+		var fromStdin bool
+		if options["from-stdin"] != nil {
+			fromStdin = options["from-stdin"].(bool)
+		}
+
+		if !fromStdin {
+			return nil, false, nil
+		}
+
+		targets := []sproutsRunTarget{}
+		targetSet := map[string]bool{}
+		scanner := bufio.NewScanner(os.Stdin)
+
+		for scanner.Scan() {
+			rawRef := strings.TrimSpace(scanner.Text())
+			if rawRef == "" {
+				continue
+			}
+
+			err, sproutRef := parseRootRef(rawRef)
+			if err != nil {
+				return err, false, nil
+			}
+
+			if args.VariantDescriptor != "" && sproutRef.HasSelector {
+				return fmt.Errorf("sprouts run selector specified in both stdin sprout_ref and --variant"), false, nil
+			}
+
+			err, sproutPath := resolveSproutPath(sproutRef.Path)
+			if err != nil {
+				return err, false, nil
+			}
+
+			err, sprout := sprouts.Sprout(sproutPath).Resolve(ctx)
+			if err != nil {
+				return err, false, nil
+			}
+
+			variantDescriptor := args.VariantDescriptor
+			if sproutRef.HasSelector {
+				err, variantDescriptor = (dryad.RootVariantContext{Descriptor: sproutRef.Selector}).Filesystem()
+				if err != nil {
+					return err, false, nil
+				}
+			}
+
+			targetKey := sprout.BasePath + "\x00" + variantDescriptor
+			if targetSet[targetKey] {
+				continue
+			}
+			targetSet[targetKey] = true
+
+			targets = append(targets, sproutsRunTarget{
+				Sprout:            sprout,
+				SproutRef:         rawRef,
+				VariantDescriptor: variantDescriptor,
+			})
+		}
+
+		if err := scanner.Err(); err != nil {
+			return err, false, nil
+		}
+
+		return nil, true, targets
+	}
+
 	var runSprouts = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
-		variantSelectorLabel := args.VariantDescriptor
-		if variantSelectorLabel == "" {
-			variantSelectorLabel = "default"
-		}
-
-		err, fromStdinFilter := ArgSproutFilterFromStdin(ctx, args.Request)
-		if err != nil {
-			return err, nil
-		}
-
-		sproutFilter := dryad.SproutFiltersCompose(
-			fromStdinFilter,
-			args.IncludeExcludeFilter,
-		)
-
 		unsafeGarden := dryad.Garden(args.GardenPath)
 
 		err, garden := unsafeGarden.Resolve(ctx)
@@ -167,41 +230,58 @@ var sproutsRunCommand = func() clib.Command {
 			return err, nil
 		}
 
+		err, fromStdin, stdinTargets := sproutsRunTargetsFromStdin(ctx, args, sprouts)
+		if err != nil {
+			return err, nil
+		}
+
 		// if confirm is set, we want to print the list
 		// of sprouts to run
 		if args.Confirm != "" {
 			fmt.Println("dryad sprouts exec will execute these sprouts:")
 
-			err := sprouts.Walk(
-				ctx,
-				dryad.SproutsWalkRequest{
-					OnSprout: func(ctx *task.ExecutionContext, sprout *dryad.SafeSproutReference) (error, any) {
+			if fromStdin {
+				for _, target := range stdinTargets {
+					err, shouldMatch := args.IncludeExcludeFilter(ctx, target.Sprout)
+					if err != nil {
+						return err, nil
+					}
+					if !shouldMatch {
+						continue
+					}
 
-						err, shouldMatch := sproutFilter(ctx, sprout)
-						if err != nil {
-							return err, nil
-						}
+					fmt.Println(" - " + target.SproutRef)
+				}
+			} else {
+				err := sprouts.Walk(
+					ctx,
+					dryad.SproutsWalkRequest{
+						OnSprout: func(ctx *task.ExecutionContext, sprout *dryad.SafeSproutReference) (error, any) {
+							err, shouldMatch := args.IncludeExcludeFilter(ctx, sprout)
+							if err != nil {
+								return err, nil
+							}
 
-						if !shouldMatch {
+							if !shouldMatch {
+								return nil, nil
+							}
+
+							relPath, err := filepath.Rel(sprout.Sprouts.Garden.BasePath, sprout.BasePath)
+							if err != nil {
+								return err, nil
+							}
+
+							fmt.Println(" - " + relPath)
+
 							return nil, nil
-						}
-
-						// calculate the relative path to the root from the base of the garden
-						relPath, err := filepath.Rel(sprout.Sprouts.Garden.BasePath, sprout.BasePath)
-						if err != nil {
-							return err, nil
-						}
-
-						fmt.Println(" - " + relPath)
-
-						return nil, nil
+						},
 					},
-				},
-			)
+				)
 
-			if err != nil {
-				zlog.Error().Err(err).Msg("error while crawling sprouts")
-				return err, nil
+				if err != nil {
+					zlog.Error().Err(err).Msg("error while crawling sprouts")
+					return err, nil
+				}
 			}
 
 			fmt.Println("are you sure? type '" + args.Confirm + "' to continue")
@@ -237,63 +317,95 @@ var sproutsRunCommand = func() clib.Command {
 			env["TERM"] = os.Getenv("TERM")
 		}
 
+		runTarget := func(ctx *task.ExecutionContext, sprout *dryad.SafeSproutReference, variantDescriptor string) error {
+			variantSelectorLabel := variantDescriptor
+			if variantSelectorLabel == "" {
+				variantSelectorLabel = "default"
+			}
+
+			zlog.Info().
+				Str("sprout", sprout.BasePath).
+				Str("variant_selector", variantSelectorLabel).
+				Msg("sprout run requested")
+
+			err := sprout.Run(
+				ctx,
+				dryad.SproutRunRequest{
+					VariantDescriptor: variantDescriptor,
+					Env:               env,
+					Args:              args.Extras,
+					JoinStdout:        args.JoinStdout,
+					JoinStderr:        args.JoinStderr,
+					LogStdout: struct {
+						Path string
+						Name string
+					}{
+						Path: args.LogStdout,
+						Name: "",
+					},
+					LogStderr: struct {
+						Path string
+						Name string
+					}{
+						Path: args.LogStderr,
+						Name: "",
+					},
+					Context: args.Context,
+				},
+			)
+			if err != nil {
+				zlog.Warn().
+					Str("sprout", sprout.BasePath).
+					Str("variant_selector", variantSelectorLabel).
+					Err(err).
+					Msg("sprout threw error during execution")
+				if !args.IgnoreErrors {
+					return err
+				}
+			} else {
+				zlog.Info().
+					Str("sprout", sprout.BasePath).
+					Str("variant_selector", variantSelectorLabel).
+					Msg("sprout run completed")
+			}
+
+			return nil
+		}
+
+		if fromStdin {
+			for _, target := range stdinTargets {
+				err, shouldMatch := args.IncludeExcludeFilter(ctx, target.Sprout)
+				if err != nil {
+					return err, nil
+				}
+
+				if !shouldMatch {
+					continue
+				}
+
+				err = runTarget(ctx, target.Sprout, target.VariantDescriptor)
+				if err != nil {
+					return err, nil
+				}
+			}
+
+			return nil, nil
+		}
+
 		err = sprouts.Walk(
 			ctx,
 			dryad.SproutsWalkRequest{
 				OnSprout: func(ctx *task.ExecutionContext, sprout *dryad.SafeSproutReference) (error, any) {
-
-					err, shouldMatch := sproutFilter(ctx, sprout)
+					err, shouldMatch := args.IncludeExcludeFilter(ctx, sprout)
 					if err != nil {
 						return err, nil
 					}
 
 					if shouldMatch {
-						zlog.Info().
-							Str("sprout", sprout.BasePath).
-							Str("variant_selector", variantSelectorLabel).
-							Msg("sprout run requested")
-
-						err := sprout.Run(
-							ctx,
-							dryad.SproutRunRequest{
-								VariantDescriptor: args.VariantDescriptor,
-								Env:               env,
-								Args:              args.Extras,
-								JoinStdout:        args.JoinStdout,
-								JoinStderr:        args.JoinStderr,
-								LogStdout: struct {
-									Path string
-									Name string
-								}{
-									Path: args.LogStdout,
-									Name: "",
-								},
-								LogStderr: struct {
-									Path string
-									Name string
-								}{
-									Path: args.LogStderr,
-									Name: "",
-								},
-								Context: args.Context,
-							},
-						)
+						err = runTarget(ctx, sprout, args.VariantDescriptor)
 						if err != nil {
-							zlog.Warn().
-								Str("sprout", sprout.BasePath).
-								Str("variant_selector", variantSelectorLabel).
-								Err(err).
-								Msg("sprout threw error during execution")
-							if !args.IgnoreErrors {
-								return err, nil
-							}
-						} else {
-							zlog.Info().
-								Str("sprout", sprout.BasePath).
-								Str("variant_selector", variantSelectorLabel).
-								Msg("sprout run completed")
+							return err, nil
 						}
-
 					}
 
 					return nil, nil
@@ -335,7 +447,7 @@ var sproutsRunCommand = func() clib.Command {
 		WithOption(
 			clib.NewOption(
 				"from-stdin",
-				"if set, read a list of sprouts from stdin to use as a base list to run, instead of all sprouts. include and exclude filters are applied to this list. default false",
+				"if set, read a list of sprout refs from stdin to use as a base list to run, instead of all sprouts. include and exclude filters are applied to this list. default false",
 			).
 				WithType(clib.OptionTypeBool),
 		).
