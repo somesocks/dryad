@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+_assert_linux_only() {
+	local out_dir="$1"
+	local log_path="$2"
+
+	assert_directory_exists "$out_dir"
+	assert_file_content_equals "$out_dir/amd64-linux" "ok"
+	assert_file_content_equals "$out_dir/arm64-linux" "ok"
+
+	if [ -f "$out_dir/amd64-darwin" ] || [ -f "$out_dir/arm64-darwin" ]; then
+		echo "[ERROR] Fail: darwin variants should not run for selector arch=any+os=linux" 1>&2
+		ls -1 "$out_dir" 1>&2
+		return 1
+	fi
+
+	if ! grep -Fq "sprout run starting" "$log_path"; then
+		echo "[ERROR] Fail: expected sprout run logs to include a start line" 1>&2
+		cat "$log_path" 1>&2
+		return 1
+	fi
+
+	if ! grep -Fq "variant=" "$log_path"; then
+		echo "[ERROR] Fail: expected sprout run logs to include a variant field" 1>&2
+		cat "$log_path" 1>&2
+		return 1
+	fi
+
+	for variant in "arch=amd64+os=linux" "arch=arm64+os=linux"; do
+		if ! grep -Fq "$variant" "$log_path"; then
+			echo "[ERROR] Fail: expected sprout run logs to include variant descriptor '$variant'" 1>&2
+			cat "$log_path" 1>&2
+			return 1
+		fi
+	done
+
+	for variant in "arch=amd64+os=darwin" "arch=arm64+os=darwin"; do
+		if grep -Fq "$variant" "$log_path"; then
+			echo "[ERROR] Fail: expected sprout run logs to exclude unmatched variant descriptor '$variant'" 1>&2
+			cat "$log_path" 1>&2
+			return 1
+		fi
+	done
+}
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	dryad root build "dyd/roots/root-top" --log-level="$DYD_LOG_LEVEL" > /dev/null
+
+	fs_log_path="$TEMP_DIR/sprout-run-filesystem.log"
+	dryad sprout run "dyd/sprouts/root-top~arch=any+os=linux" --log-level="$DYD_LOG_LEVEL" >"$fs_log_path" 2>&1
+
+	rm -rf "$TEMP_DIR/dyd/heap/sprout-run-09--qualified-variant-ref"
+
+	url_log_path="$TEMP_DIR/sprout-run-url.log"
+	dryad sprout run "dyd/sprouts/root-top?arch=any&os=linux" --log-level="$DYD_LOG_LEVEL" >"$url_log_path" 2>&1
+
+	set +e
+	duplicate_output=$(
+		dryad sprout run "dyd/sprouts/root-top~arch=any+os=linux" \
+			--variant="arch=amd64+os=linux" \
+			--log-level="$DYD_LOG_LEVEL" 2>&1
+	)
+	duplicate_status=$?
+	set -e
+}
+
+_verify() {
+	out_dir="$TEMP_DIR/dyd/heap/sprout-run-09--qualified-variant-ref"
+
+	_assert_linux_only "$out_dir" "$TEMP_DIR/sprout-run-filesystem.log"
+	_assert_linux_only "$out_dir" "$TEMP_DIR/sprout-run-url.log"
+
+	if [ "$duplicate_status" -eq 0 ]; then
+		echo "[ERROR] Fail: expected sprout run to fail when selector is specified in both sprout_ref and --variant" 1>&2
+		return 1
+	fi
+
+	if ! printf '%s' "$duplicate_output" | grep -Fq "sprout run selector specified in both sprout_ref and --variant"; then
+		echo "[ERROR] Fail: expected duplicate selector error for sprout run" 1>&2
+		printf '%s\n' "$duplicate_output" 1>&2
+		return 1
+	fi
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

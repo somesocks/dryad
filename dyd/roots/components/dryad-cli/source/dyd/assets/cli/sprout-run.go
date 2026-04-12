@@ -38,7 +38,7 @@ var sproutRunCommand = func() clib.Command {
 	command := clib.NewCommand("run", "execute the main for a sprout").
 		WithArg(
 			clib.
-				NewArg("path", "path to the sprout").
+				NewArg("sprout_ref", "path to the sprout, optionally qualified with a variant selector").
 				WithAutoComplete(ArgAutoCompletePath),
 		).
 		WithOption(clib.NewOption("variant", "variant descriptor selector for sprout stems (filesystem form: dimension=option+dimension=option). supports none/any/host; inherit is invalid for sprout runs")).
@@ -54,6 +54,7 @@ var sproutRunCommand = func() clib.Command {
 		WithAction(func(req clib.ActionRequest) int {
 			type ParsedArgs struct {
 				Path              string
+				SproutRef         string
 				Extras            []string
 				VariantDescriptor string
 				Context           string
@@ -71,9 +72,12 @@ var sproutRunCommand = func() clib.Command {
 				func(req clib.ActionRequest) (error, ParsedArgs) {
 					var args = req.Args
 					var opts = req.Opts
+					var sproutRefRaw string
+					var sproutPath string
 					var context string
 					var command string
 					var variantDescriptor string
+					var hasSelector bool
 					var inherit bool
 					var confirm string
 					var joinStdout bool
@@ -82,7 +86,27 @@ var sproutRunCommand = func() clib.Command {
 					var logStderr string
 					var parallel int
 
+					sproutRefRaw = args[0]
+
+					err, sproutRef := parseRootRef(sproutRefRaw)
+					if err != nil {
+						return err, ParsedArgs{}
+					}
+					sproutPath = sproutRef.Path
+					hasSelector = sproutRef.HasSelector
+
+					if hasSelector {
+						err, variantDescriptor = (dryad.RootVariantContext{Descriptor: sproutRef.Selector}).Filesystem()
+						if err != nil {
+							return err, ParsedArgs{}
+						}
+					}
+
 					if opts["variant"] != nil {
+						if hasSelector {
+							return fmt.Errorf("sprout run selector specified in both sprout_ref and --variant"), ParsedArgs{}
+						}
+
 						variantDescriptor = opts["variant"].(string)
 					}
 
@@ -131,7 +155,8 @@ var sproutRunCommand = func() clib.Command {
 					}
 
 					return nil, ParsedArgs{
-						Path:              args[0],
+						Path:              sproutPath,
+						SproutRef:         sproutRefRaw,
 						Extras:            args[1:],
 						VariantDescriptor: variantDescriptor,
 						Context:           context,
@@ -152,7 +177,7 @@ var sproutRunCommand = func() clib.Command {
 				// of sprouts to run
 				if args.Confirm != "" {
 					fmt.Println("this package will be executed:")
-					fmt.Println(args.Path)
+					fmt.Println(args.SproutRef)
 					fmt.Println("are you sure? type '" + args.Confirm + "' to continue")
 
 					reader := bufio.NewReader(os.Stdin)
