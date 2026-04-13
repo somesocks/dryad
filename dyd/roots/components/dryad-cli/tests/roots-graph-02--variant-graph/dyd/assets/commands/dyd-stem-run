@@ -54,7 +54,7 @@ _prepare() {
 
 _test_graph() {
 	GRAPH_OUTPUT=$(dryad roots graph --format=json-compact --log-level="$DYD_LOG_LEVEL")
-	EXPECTED_GRAPH='{"dyd/roots/root-base?os=darwin":{},"dyd/roots/root-base?os=linux":{},"dyd/roots/root-mid?os=darwin":{},"dyd/roots/root-mid?os=linux":{"base":"dyd/roots/root-base?os=linux"},"dyd/roots/root-plain":{},"dyd/roots/root-plain-user":{"plain":"dyd/roots/root-plain"},"dyd/roots/root-top?os=darwin":{"base~os=darwin":"dyd/roots/root-base?os=darwin"},"dyd/roots/root-top?os=linux":{"mid~os=linux":"dyd/roots/root-mid?os=linux"}}'
+	EXPECTED_GRAPH='{"dyd/roots/root-base~os=darwin":{},"dyd/roots/root-base~os=linux":{},"dyd/roots/root-mid~os=darwin":{},"dyd/roots/root-mid~os=linux":{"base":"dyd/roots/root-base~os=linux"},"dyd/roots/root-plain":{},"dyd/roots/root-plain-user":{"plain":"dyd/roots/root-plain"},"dyd/roots/root-top~os=darwin":{"base~os=darwin":"dyd/roots/root-base~os=darwin"},"dyd/roots/root-top~os=linux":{"mid~os=linux":"dyd/roots/root-mid~os=linux"}}'
 
 	if [ "$GRAPH_OUTPUT" != "$EXPECTED_GRAPH" ]; then
 		echo "[ERROR] Fail: expected roots graph to print exact variant graph" 1>&2
@@ -65,7 +65,7 @@ _test_graph() {
 
 _test_transposed_graph() {
 	GRAPH_OUTPUT=$(dryad roots graph --format=json-compact --transpose --log-level="$DYD_LOG_LEVEL")
-	EXPECTED_GRAPH='{"dyd/roots/root-base?os=darwin":{"base~os=darwin":"dyd/roots/root-top?os=darwin"},"dyd/roots/root-base?os=linux":{"base":"dyd/roots/root-mid?os=linux"},"dyd/roots/root-mid?os=darwin":{},"dyd/roots/root-mid?os=linux":{"mid~os=linux":"dyd/roots/root-top?os=linux"},"dyd/roots/root-plain":{"plain":"dyd/roots/root-plain-user"},"dyd/roots/root-plain-user":{},"dyd/roots/root-top?os=darwin":{},"dyd/roots/root-top?os=linux":{}}'
+	EXPECTED_GRAPH='{"dyd/roots/root-base~os=darwin":{"base~os=darwin":"dyd/roots/root-top~os=darwin"},"dyd/roots/root-base~os=linux":{"base":"dyd/roots/root-mid~os=linux"},"dyd/roots/root-mid~os=darwin":{},"dyd/roots/root-mid~os=linux":{"mid~os=linux":"dyd/roots/root-top~os=linux"},"dyd/roots/root-plain":{"plain":"dyd/roots/root-plain-user"},"dyd/roots/root-plain-user":{},"dyd/roots/root-top~os=darwin":{},"dyd/roots/root-top~os=linux":{}}'
 
 	if [ "$GRAPH_OUTPUT" != "$EXPECTED_GRAPH" ]; then
 		echo "[ERROR] Fail: expected transposed roots graph to preserve and reverse exact variant graph" 1>&2

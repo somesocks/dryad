@@ -140,14 +140,10 @@ var rootAncestorsCommand = func() clib.Command {
 		startNodes := make([]string, 0, len(startVariants))
 		startNodeSet := make(map[string]bool, len(startVariants))
 		for _, variant := range startVariants {
-			nodePath := rootPath
-
-			err, variantSelectorRaw := (dryad.RootVariantContext{Descriptor: variant}).URL()
+			err, node := formatVariantDescriptorRef(rootPath, variant)
 			if err != nil {
 				return err, nil
 			}
-
-			node := nodePath + variantSelectorRaw
 			startNodes = append(startNodes, node)
 			startNodeSet[node] = true
 		}

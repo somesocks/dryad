@@ -106,12 +106,10 @@ var rootsAffectedCommand = func() clib.Command {
 			}
 
 			for _, affectedVariant := range affectedVariants {
-				err, selectorRaw := (dryad.RootVariantContext{Descriptor: affectedVariant}).URL()
+				err, node := formatVariantDescriptorRef(renderedRootPath, affectedVariant)
 				if err != nil {
 					return err, nil
 				}
-
-				node := renderedRootPath + selectorRaw
 				if startNodeSet[node] {
 					continue
 				}

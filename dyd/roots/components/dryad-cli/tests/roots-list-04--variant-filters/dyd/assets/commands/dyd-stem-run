@@ -50,10 +50,10 @@ _test() {
 }
 
 _verify() {
-	EXPECTED_VARIANT_OUTPUT=$'dyd/roots/root-implicit-any?arch=amd64&os=linux\ndyd/roots/root-option-list?os=darwin'
-	EXPECTED_TRAIT_OUTPUT=$'dyd/roots/root-implicit-any?arch=amd64&os=linux\ndyd/roots/root-implicit-any?arch=arm64&os=linux\ndyd/roots/root-no-match?os=linux'
-	EXPECTED_STDIN_OUTPUT=$'dyd/roots/root-implicit-any?arch=amd64&os=linux\ndyd/roots/root-option-list?os=darwin'
-	EXPECTED_SPROUT_OUTPUT='dyd/sprouts/root-option-list?os=darwin'
+	EXPECTED_VARIANT_OUTPUT=$'dyd/roots/root-implicit-any~arch=amd64+os=linux\ndyd/roots/root-option-list~os=darwin'
+	EXPECTED_TRAIT_OUTPUT=$'dyd/roots/root-implicit-any~arch=amd64+os=linux\ndyd/roots/root-implicit-any~arch=arm64+os=linux\ndyd/roots/root-no-match~os=linux'
+	EXPECTED_STDIN_OUTPUT=$'dyd/roots/root-implicit-any~arch=amd64+os=linux\ndyd/roots/root-option-list~os=darwin'
+	EXPECTED_SPROUT_OUTPUT='dyd/sprouts/root-option-list~os=darwin'
 
 	assert_all_equal "$TEST_VARIANT_OUTPUT" "$EXPECTED_VARIANT_OUTPUT"
 	assert_all_equal "$TEST_TRAIT_OUTPUT" "$EXPECTED_TRAIT_OUTPUT"

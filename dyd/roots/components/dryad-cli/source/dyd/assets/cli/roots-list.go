@@ -115,12 +115,12 @@ var rootsListCommand = func() clib.Command {
 							sproutPath = filepath.Join(sprouts.BasePath, rootPath)
 						}
 
-						err, variantURL := variant.URL()
+						err, sproutRef := formatVariantDescriptorRef(sproutPath, variant.Descriptor)
 						if err != nil {
 							return err, nil
 						}
 
-						fmt.Println(sproutPath + variantURL)
+						fmt.Println(sproutRef)
 					} else {
 						err, variantRef := formatRootVariantRef(variant, args.Relative)
 						if err != nil {

@@ -37,7 +37,24 @@ func rootPathFromGraphNode(node string) string {
 	if idx := strings.Index(rootPath, "?"); idx > -1 {
 		rootPath = rootPath[:idx]
 	}
+	if idx := strings.LastIndex(rootPath, RootRequirementSelectorSeparator); idx > -1 && idx < len(rootPath)-len(RootRequirementSelectorSeparator) {
+		selectorRaw := rootPath[idx+len(RootRequirementSelectorSeparator):]
+		if err, _ := variantDescriptorNormalizeFilesystem(selectorRaw); err == nil {
+			rootPath = rootPath[:idx]
+		}
+	}
 	return rootPath
+}
+
+func rootGraphNode(path string, descriptor VariantDescriptor) (error, string) {
+	err, selectorRaw := variantDescriptorEncodeFilesystem(descriptor)
+	if err != nil {
+		return err, ""
+	}
+	if selectorRaw == "" {
+		return nil, path
+	}
+	return nil, path + RootRequirementSelectorSeparator + selectorRaw
 }
 
 func (g TRootsGraph) nodesForRoot(root string) []string {
@@ -167,11 +184,10 @@ func rootsGraph(
 			}
 		}
 
-		err, sourceSelectorRaw := sourceVariant.URL()
+		err, sourceNode := rootGraphNode(rootPath, sourceVariant.Descriptor)
 		if err != nil {
 			return err, nil
 		}
-		sourceNode := rootPath + sourceSelectorRaw
 
 		graphMux.Lock()
 		graph.EnsureNode(sourceNode)
@@ -225,11 +241,10 @@ func rootsGraph(
 						}
 					}
 
-					err, targetSelectorRaw := variantDescriptorEncodeURL(target.VariantDescriptor)
+					err, targetNode := rootGraphNode(targetRootPath, target.VariantDescriptor)
 					if err != nil {
 						return err, nil
 					}
-					targetNode := targetRootPath + targetSelectorRaw
 
 					graphMux.Lock()
 					graph.AddEdge(sourceNode, edgeName, targetNode)

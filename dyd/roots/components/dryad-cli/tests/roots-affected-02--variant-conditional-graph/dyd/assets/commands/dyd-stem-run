@@ -60,18 +60,18 @@ _prepare() {
 
 _test() {
 	EXPECTED_LINUX=$(cat <<'EOF'
-dyd/roots/root-base?os=linux
-dyd/roots/root-mid?os=linux
-dyd/roots/root-skip?os=darwin
-dyd/roots/root-top?os=linux
+dyd/roots/root-base~os=linux
+dyd/roots/root-mid~os=linux
+dyd/roots/root-skip~os=darwin
+dyd/roots/root-top~os=linux
 EOF
 )
 	EXPECTED_ALL=$(cat <<'EOF'
-dyd/roots/root-base?os=darwin
-dyd/roots/root-base?os=linux
-dyd/roots/root-mid?os=linux
-dyd/roots/root-skip?os=darwin
-dyd/roots/root-top?os=linux
+dyd/roots/root-base~os=darwin
+dyd/roots/root-base~os=linux
+dyd/roots/root-mid~os=linux
+dyd/roots/root-skip~os=darwin
+dyd/roots/root-top~os=linux
 EOF
 )
 	EXPECTED_PLAIN=$(cat <<'EOF'
@@ -108,7 +108,7 @@ EOF
 	OUTPUT_REQUIREMENT=$(printf '%s\n' \
 		'dyd/roots/root-top/dyd/requirements/mid~os=linux' \
 		| dryad roots affected --log-level="$DYD_LOG_LEVEL")
-	_assert_roots_affected_output "$OUTPUT_REQUIREMENT" 'dyd/roots/root-top?os=linux' "expected conditional requirement file changes to affect only matching root variants"
+	_assert_roots_affected_output "$OUTPUT_REQUIREMENT" 'dyd/roots/root-top~os=linux' "expected conditional requirement file changes to affect only matching root variants"
 
 	OUTPUT_VARIANTS=$(printf '%s\n' \
 		'dyd/roots/root-base/dyd/variants/os/linux' \
@@ -135,7 +135,7 @@ EOF
 	OUTPUT_ABS=$(printf '%s\n' \
 		'dyd/roots/root-base/dyd/assets~os=linux/main' \
 		| dryad roots affected --relative=false --log-level="$DYD_LOG_LEVEL")
-	if ! printf '%s\n' "$OUTPUT_ABS" | grep -Fxq "$TEMP_DIR/dyd/roots/root-top?os=linux"; then
+	if ! printf '%s\n' "$OUTPUT_ABS" | grep -Fxq "$TEMP_DIR/dyd/roots/root-top~os=linux"; then
 		echo "[ERROR] Fail: expected --relative=false to print absolute variant refs" 1>&2
 		echo "$OUTPUT_ABS" 1>&2
 		return 1

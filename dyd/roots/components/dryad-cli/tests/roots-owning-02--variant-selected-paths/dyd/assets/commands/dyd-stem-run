@@ -75,15 +75,15 @@ _prepare() {
 
 _test() {
 	EXPECTED_SHARED=$(cat <<'EOF'
-dyd/roots/root-shared?arch=amd64&os=darwin
-dyd/roots/root-shared?arch=amd64&os=linux
-dyd/roots/root-shared?arch=arm64&os=darwin
-dyd/roots/root-shared?arch=arm64&os=linux
+dyd/roots/root-shared~arch=amd64+os=darwin
+dyd/roots/root-shared~arch=amd64+os=linux
+dyd/roots/root-shared~arch=arm64+os=darwin
+dyd/roots/root-shared~arch=arm64+os=linux
 EOF
 )
 	EXPECTED_LINUX=$(cat <<'EOF'
-dyd/roots/root-selected?arch=amd64&os=linux
-dyd/roots/root-selected?arch=arm64&os=linux
+dyd/roots/root-selected~arch=amd64+os=linux
+dyd/roots/root-selected~arch=arm64+os=linux
 EOF
 )
 
@@ -100,7 +100,7 @@ EOF
 	OUTPUT_COMMANDS=$(printf '%s\n' \
 		'dyd/roots/root-selected/dyd/commands~arch=amd64+os=linux/dyd-root-build' \
 		| dryad roots owning --log-level="$DYD_LOG_LEVEL")
-	_assert_roots_owning_output "$OUTPUT_COMMANDS" 'dyd/roots/root-selected?arch=amd64&os=linux' "expected exact selector path to be owned by one variant"
+	_assert_roots_owning_output "$OUTPUT_COMMANDS" 'dyd/roots/root-selected~arch=amd64+os=linux' "expected exact selector path to be owned by one variant"
 
 	OUTPUT_TRAITS=$(printf '%s\n' \
 		'dyd/roots/root-selected/dyd/traits~os=linux/name' \
@@ -125,16 +125,16 @@ EOF
 	OUTPUT_REQUIREMENT_FILE=$(printf '%s\n' \
 		'dyd/roots/root-selected/dyd/requirements~os=linux/dep~arch=amd64' \
 		| dryad roots owning --log-level="$DYD_LOG_LEVEL")
-	_assert_roots_owning_output "$OUTPUT_REQUIREMENT_FILE" 'dyd/roots/root-selected?arch=amd64&os=linux' "expected conditional requirement file to be owned by matching variants"
+	_assert_roots_owning_output "$OUTPUT_REQUIREMENT_FILE" 'dyd/roots/root-selected~arch=amd64+os=linux' "expected conditional requirement file to be owned by matching variants"
 
 	OUTPUT_VARIANTS=$(printf '%s\n' \
 		'dyd/roots/root-selected/dyd/variants/os/linux' \
 		| dryad roots owning --log-level="$DYD_LOG_LEVEL")
 	_assert_roots_owning_output "$OUTPUT_VARIANTS" "$(cat <<'EOF'
-dyd/roots/root-selected?arch=amd64&os=darwin
-dyd/roots/root-selected?arch=amd64&os=linux
-dyd/roots/root-selected?arch=arm64&os=darwin
-dyd/roots/root-selected?arch=arm64&os=linux
+dyd/roots/root-selected~arch=amd64+os=darwin
+dyd/roots/root-selected~arch=amd64+os=linux
+dyd/roots/root-selected~arch=arm64+os=darwin
+dyd/roots/root-selected~arch=arm64+os=linux
 EOF
 )" "expected variants catalog path to be owned by all variants"
 
@@ -153,7 +153,7 @@ EOF
 	OUTPUT_ABS=$(printf '%s\n' \
 		'dyd/roots/root-selected/dyd/commands~arch=amd64+os=linux/dyd-root-build' \
 		| dryad roots owning --relative=false --log-level="$DYD_LOG_LEVEL")
-	_assert_roots_owning_output "$OUTPUT_ABS" "$TEMP_DIR/dyd/roots/root-selected?arch=amd64&os=linux" "expected --relative=false to print absolute variant refs"
+	_assert_roots_owning_output "$OUTPUT_ABS" "$TEMP_DIR/dyd/roots/root-selected~arch=amd64+os=linux" "expected --relative=false to print absolute variant refs"
 
 	OUTPUT_UNKNOWN=$(printf '%s\n' \
 		'does/not/belong/to/a/root' \

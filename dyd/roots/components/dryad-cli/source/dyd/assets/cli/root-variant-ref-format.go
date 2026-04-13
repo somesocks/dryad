@@ -5,6 +5,22 @@ import (
 	"dryad/internal/filepath"
 )
 
+func formatVariantDescriptorRef(
+	basePath string,
+	descriptor dryad.VariantDescriptor,
+) (error, string) {
+	err, variantFilesystem := (dryad.RootVariantContext{Descriptor: descriptor}).Filesystem()
+	if err != nil {
+		return err, ""
+	}
+
+	if variantFilesystem == "" {
+		return nil, basePath
+	}
+
+	return nil, basePath + dryad.RootRequirementSelectorSeparator + variantFilesystem
+}
+
 func formatRootVariantRef(
 	variant *dryad.SafeRootVariantReference,
 	relative bool,
@@ -29,10 +45,5 @@ func formatRootVariantDescriptorRef(
 		}
 	}
 
-	err, variantURL := (dryad.RootVariantContext{Descriptor: descriptor}).URL()
-	if err != nil {
-		return err, ""
-	}
-
-	return nil, basePath + variantURL
+	return formatVariantDescriptorRef(basePath, descriptor)
 }

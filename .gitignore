@@ -7,5 +7,9 @@
 /bootstrap/
 /docs/
 
+# codex artifacts
+/.codex
+/.codex/
+
 # used in CI test runs
 /logs/

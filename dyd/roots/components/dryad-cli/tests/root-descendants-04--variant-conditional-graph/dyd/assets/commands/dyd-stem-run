@@ -22,9 +22,9 @@ _prepare() {
 _test() {
 	OUTPUT=$(dryad root descendants dyd/roots/root-base --log-level="$DYD_LOG_LEVEL")
 	EXPECTED=$(cat <<'EOF'
-dyd/roots/root-mid?os=linux
-dyd/roots/root-skip?os=darwin
-dyd/roots/root-top?os=linux
+dyd/roots/root-mid~os=linux
+dyd/roots/root-skip~os=darwin
+dyd/roots/root-top~os=linux
 EOF
 )
 	if [ "$OUTPUT" != "$EXPECTED" ]; then
@@ -55,7 +55,7 @@ EOF
 	fi
 
 	OUTPUT_ABS=$(dryad root descendants dyd/roots/root-base~os=linux --relative=false --log-level="$DYD_LOG_LEVEL")
-	if ! printf '%s\n' "$OUTPUT_ABS" | grep -Fxq "$TEMP_DIR/dyd/roots/root-skip?os=darwin"; then
+	if ! printf '%s\n' "$OUTPUT_ABS" | grep -Fxq "$TEMP_DIR/dyd/roots/root-skip~os=darwin"; then
 		echo "[ERROR] Fail: expected --relative=false to print absolute variant refs" 1>&2
 		echo "$OUTPUT_ABS" 1>&2
 		return 1

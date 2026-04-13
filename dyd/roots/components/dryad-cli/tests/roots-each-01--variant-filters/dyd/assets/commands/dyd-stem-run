@@ -33,9 +33,9 @@ _test() {
 _verify() {
 	EXPECTED_OUTPUT=$(
 		printf '%s\n%s\n%s' \
-			"$TEMP_DIR/dyd/roots/root-implicit-any?arch=amd64&os=linux|arch=amd64+os=linux" \
-			"$TEMP_DIR/dyd/roots/root-implicit-any?arch=arm64&os=linux|arch=arm64+os=linux" \
-			"$TEMP_DIR/dyd/roots/root-no-match?os=linux|os=linux"
+			"$TEMP_DIR/dyd/roots/root-implicit-any~arch=amd64+os=linux|arch=amd64+os=linux" \
+			"$TEMP_DIR/dyd/roots/root-implicit-any~arch=arm64+os=linux|arch=arm64+os=linux" \
+			"$TEMP_DIR/dyd/roots/root-no-match~os=linux|os=linux"
 	)
 
 	assert_all_equal "$TEST_OUTPUT" "$EXPECTED_OUTPUT"
