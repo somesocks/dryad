@@ -2,6 +2,6 @@
 
 dryad sprouts run \
     --scope="$DYD_SCOPE" \
-    --include="sprout.path().contains('components/dryad-cli/tests')" \
+    --include="dyd/sprouts/components/dryad-cli/tests/**" \
     --log-level="$DYD_LOG_LEVEL" \
     $@

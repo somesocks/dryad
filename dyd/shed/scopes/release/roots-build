@@ -1,1 +1,1 @@
---include=root.path().contains('releases')
+--include=dyd/roots/releases/**
