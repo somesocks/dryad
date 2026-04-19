@@ -113,8 +113,8 @@ var sproutsRunCommand = func() clib.Command {
 				confirm = options["confirm"].(string)
 			}
 
-			err, includeExcludeFilter := dryad.SproutFilterFromCel(
-				dryad.SproutFilterFromCelRequest{
+			err, includeExcludeFilter := dryad.SproutSelectorFilter(
+				dryad.SelectorFilterRequest{
 					Include: includeOpts,
 					Exclude: excludeOpts,
 				},
@@ -451,8 +451,8 @@ var sproutsRunCommand = func() clib.Command {
 			).
 				WithType(clib.OptionTypeBool),
 		).
-		WithOption(clib.NewOption("include", "choose which sprouts are included. the include filter is a CEL expression with access to a 'sprout' object that can be used to filter on properties of each sprout.").WithType(clib.OptionTypeMultiString)).
-		WithOption(clib.NewOption("exclude", "choose which sprouts are excluded.  the exclude filter is a CEL expression with access to a 'sprout' object that can be used to filter on properties of each sprout.").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("include", "choose which sprouts are included. filter format: <path-glob>[~<selector>] or ~<selector>; selector keys match variants first, then traits.").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("exclude", "choose which sprouts are excluded. filter format: <path-glob>[~<selector>] or ~<selector>; selector keys match variants first, then traits.").WithType(clib.OptionTypeMultiString)).
 		WithOption(clib.NewOption("context", "name of the execution context. the HOME env var is set to the path for this context")).
 		WithOption(clib.NewOption("variant", "variant descriptor selector for sprout stems (filesystem form: dimension=option+dimension=option). supports none/any/host; inherit is invalid for sprout runs")).
 		WithOption(clib.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(clib.OptionTypeBool)).

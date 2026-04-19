@@ -23,8 +23,8 @@ var ArgRootVariantFilterFromIncludeExclude = func(
 		includeOpts = options["include"].([]string)
 	}
 
-	return core.RootVariantCelFilter(
-		core.RootCelFilterRequest{
+	return core.RootVariantSelectorFilter(
+		core.SelectorFilterRequest{
 			Include: includeOpts,
 			Exclude: excludeOpts,
 		},

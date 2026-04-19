@@ -185,8 +185,8 @@ var rootsBuildCommand = func() clib.Command {
 				).
 				WithType(clib.OptionTypeString),
 		).
-		WithOption(clib.NewOption("include", "choose which root variants are included in the build. the include filter is a CEL expression with access to a 'root' object for each root variant.").WithType(clib.OptionTypeMultiString)).
-		WithOption(clib.NewOption("exclude", "choose which root variants are excluded from the build. the exclude filter is a CEL expression with access to a 'root' object for each root variant.").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("include", "choose which root variants are included in the build. filter format: <path-glob>[~<selector>] or ~<selector>; selector keys match variants first, then traits.").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("exclude", "choose which root variants are excluded from the build. filter format: <path-glob>[~<selector>] or ~<selector>; selector keys match variants first, then traits.").WithType(clib.OptionTypeMultiString)).
 		WithOption(
 			clib.NewOption(
 				"from-stdin",

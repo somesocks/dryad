@@ -25,13 +25,14 @@ _prepare() {
 _test() {
 	TEST_VARIANT_OUTPUT=$(
 		dryad roots list \
-			--include='root.variant() == "arch=amd64+os=linux" || root.variant() == "os=darwin"' \
+			--include='**~arch=amd64+os=linux' \
+			--include='~os=darwin' \
 			| sort
 	)
 
 	TEST_TRAIT_OUTPUT=$(
 		dryad roots list \
-			--include='root.trait("value.txt") == "linux"' \
+			--include='~value.txt=linux' \
 			| sort
 	)
 
