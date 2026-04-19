@@ -29,7 +29,7 @@ _reset_garden_state() {
 }
 
 _test() {
-	dryad roots build --include='root.trait("value.txt") == "linux"' --parallel=1 --log-level="$DYD_LOG_LEVEL" > /dev/null
+	dryad roots build --include='~value.txt=linux' --parallel=1 --log-level="$DYD_LOG_LEVEL" > /dev/null
 }
 
 _test_qualified_stdin() {

@@ -207,13 +207,13 @@ var rootReplaceCommand = func() clib.Command {
 		WithOption(
 			clib.NewOption(
 				"include",
-				"choose which root variants are included in the search to find references to replace. the include filter is a CEL expression with access to a 'root' object for each root variant.",
+				"choose which root variants are included in the search to find references to replace. filter format: <path-glob>[~<selector>] or ~<selector>; selector keys match variants first, then traits.",
 			).WithType(clib.OptionTypeMultiString),
 		).
 		WithOption(
 			clib.NewOption(
 				"exclude",
-				"choose which root variants are excluded in the search to find references to replace. the exclude filter is a CEL expression with access to a 'root' object for each root variant.",
+				"choose which root variants are excluded in the search to find references to replace. filter format: <path-glob>[~<selector>] or ~<selector>; selector keys match variants first, then traits.",
 			).WithType(clib.OptionTypeMultiString),
 		).
 		WithOption(

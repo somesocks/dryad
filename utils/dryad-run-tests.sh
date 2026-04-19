@@ -7,7 +7,7 @@ mkdir -p ./logs/tests
 
 dryad sprouts run \
     --scope=none \
-    --include="sprout.path().contains('tests')" \
+    --include="dyd/sprouts/**/tests/**" \
     --log-level=debug \
     --log-stdout=./logs/tests \
     --log-stderr=./logs/tests

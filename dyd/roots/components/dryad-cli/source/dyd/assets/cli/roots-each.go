@@ -192,8 +192,8 @@ var rootsEachCommand = func() clib.Command {
 	)
 
 	command := clib.NewCommand("each", "run a command once for each root variant. the current working directory is set to the base path of the root for each execution.").
-		WithOption(clib.NewOption("include", "choose which root variants are included in the list. the include filter is a CEL expression with access to a 'root' object for each root variant.").WithType(clib.OptionTypeMultiString)).
-		WithOption(clib.NewOption("exclude", "choose which root variants are excluded from the list. the exclude filter is a CEL expression with access to a 'root' object for each root variant.").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("include", "choose which root variants are included in the list. filter format: <path-glob>[~<selector>] or ~<selector>; selector keys match variants first, then traits.").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("exclude", "choose which root variants are excluded from the list. filter format: <path-glob>[~<selector>] or ~<selector>; selector keys match variants first, then traits.").WithType(clib.OptionTypeMultiString)).
 		WithOption(
 			clib.NewOption(
 				"from-stdin",

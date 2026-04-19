@@ -24,7 +24,7 @@ _test() {
 		dryad roots each \
 			--parallel=1 \
 			--join-stdout \
-			--include='root.trait("value.txt") == "linux"' \
+			--include='~value.txt=linux' \
 			-- 'printf "%s|%s\n" "$DYD_ROOT_REF" "$DYD_VARIANT"' \
 			| sort
 	)

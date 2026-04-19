@@ -56,8 +56,8 @@ var sproutsListCommand = func() clib.Command {
 				includeOpts = options["include"].([]string)
 			}
 
-			err, sproutFilter := dryad.SproutFilterFromCel(
-				dryad.SproutFilterFromCelRequest{
+			err, sproutFilter := dryad.SproutSelectorFilter(
+				dryad.SelectorFilterRequest{
 					Include: includeOpts,
 					Exclude: excludeOpts,
 				},
@@ -177,8 +177,8 @@ var sproutsListCommand = func() clib.Command {
 			).
 				WithType(clib.OptionTypeBool),
 		).
-		WithOption(clib.NewOption("include", "choose which sprouts are included in the list. the include filter is a CEL expression with access to a 'sprout' object that can be used to filter on properties of each sprout.").WithType(clib.OptionTypeMultiString)).
-		WithOption(clib.NewOption("exclude", "choose which sprouts are excluded from the list.  the exclude filter is a CEL expression with access to a 'sprout' object that can be used to filter on properties of each sprout.").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("include", "choose which sprouts are included in the list. filter format: <path-glob>[~<selector>] or ~<selector>; selector keys match variants first, then traits.").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("exclude", "choose which sprouts are excluded from the list. filter format: <path-glob>[~<selector>] or ~<selector>; selector keys match variants first, then traits.").WithType(clib.OptionTypeMultiString)).
 		WithAction(action)
 
 	command = ParallelCommand(command)
