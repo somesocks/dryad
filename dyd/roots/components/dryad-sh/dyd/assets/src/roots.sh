@@ -437,6 +437,17 @@ dryad_url_query_normalize () {
     fi
 }
 
+dryad_url_query_warn_if_noncanonical () {
+    dryad_url_query_warn_query=$1
+
+    [ -n "$dryad_url_query_warn_query" ] || return 0
+
+    dryad_url_query_warn_normalized=$(dryad_url_query_join '&' "$dryad_url_query_warn_query")
+    if [ "$dryad_url_query_warn_query" != "$dryad_url_query_warn_normalized" ]; then
+        printf '%s\n' "dryad-sh: variant descriptor dimensions should be sorted alphabetically (ascending): ?$dryad_url_query_warn_query" >&2
+    fi
+}
+
 dryad_fs_descriptor_normalize () {
     dryad_fs_descriptor_raw=$1
 
@@ -1360,6 +1371,8 @@ dryad_root_build_materialize_traits () {
     dryad_root_build_traits_workspace=$3
     dryad_root_build_traits_selected=$(dryad_roots_owning_selected_path "$dryad_root_build_traits_root" "$dryad_root_build_traits_descriptor" traits)
     dryad_root_build_traits_dest=$dryad_root_build_traits_workspace/dyd/traits
+    dryad_root_build_traits_garden=$(dryad_garden_find)
+    dryad_root_build_traits_rel=${dryad_root_build_traits_root#"$dryad_root_build_traits_garden"/dyd/roots/}
 
     mkdir -p "$dryad_root_build_traits_dest"
     if [ -n "$dryad_root_build_traits_selected" ]; then
@@ -1376,6 +1389,13 @@ dryad_root_build_materialize_traits () {
     for dryad_root_build_traits_pair do
         dryad_root_build_traits_dim=${dryad_root_build_traits_pair%%=*}
         dryad_root_build_traits_value=${dryad_root_build_traits_pair#*=}
+        dryad_root_build_traits_path=$dryad_root_build_traits_dest/$dryad_root_build_traits_dim
+        if [ -f "$dryad_root_build_traits_path" ]; then
+            dryad_root_build_traits_existing=$(cat "$dryad_root_build_traits_path")
+            if [ "$dryad_root_build_traits_existing" != "$dryad_root_build_traits_value" ]; then
+                printf '%s\n' "dryad-sh: variant option overrides existing trait value path=dyd/roots/$dryad_root_build_traits_rel/dyd/traits/$dryad_root_build_traits_dim" >&2
+            fi
+        fi
         printf '%s' "$dryad_root_build_traits_value" > "$dryad_root_build_traits_dest/$dryad_root_build_traits_dim"
     done
 }
@@ -1450,6 +1470,219 @@ dryad_root_build_target_selector_matches_descriptor () {
     return 0
 }
 
+dryad_root_build_dependency_die () {
+    dryad_root_build_dep_die_garden=$1
+    dryad_root_build_dep_die_root=$2
+    shift 2
+    dryad_root_build_dep_die_rel=${dryad_root_build_dep_die_root#"$dryad_root_build_dep_die_garden"/dyd/roots/}
+    dryad_die "error resolving root dependencies for dyd/roots/$dryad_root_build_dep_die_rel: $*"
+}
+
+dryad_root_build_variant_option_enabled () {
+    dryad_root_build_variant_option_root=$1
+    dryad_root_build_variant_option_dim=$2
+    dryad_root_build_variant_option_name=$3
+    dryad_root_build_variant_option_path=$dryad_root_build_variant_option_root/dyd/variants/$dryad_root_build_variant_option_dim/$dryad_root_build_variant_option_name
+
+    [ -f "$dryad_root_build_variant_option_path" ] || return 1
+    dryad_root_build_variant_option_value=$(tr -d '[:space:]' < "$dryad_root_build_variant_option_path")
+    [ "$dryad_root_build_variant_option_value" = true ]
+}
+
+dryad_root_build_validate_target_option () {
+    dryad_root_build_validate_option_garden=$1
+    dryad_root_build_validate_option_source_root=$2
+    dryad_root_build_validate_option_target_root=$3
+    dryad_root_build_validate_option_dim=$4
+    dryad_root_build_validate_option_name=$5
+    dryad_root_build_validate_option_path=$dryad_root_build_validate_option_target_root/dyd/variants/$dryad_root_build_validate_option_dim/$dryad_root_build_validate_option_name
+
+    if [ ! -f "$dryad_root_build_validate_option_path" ]; then
+        dryad_root_build_dependency_die "$dryad_root_build_validate_option_garden" "$dryad_root_build_validate_option_source_root" "wrongly-specified requirement variant option: $dryad_root_build_validate_option_dim=$dryad_root_build_validate_option_name"
+    fi
+
+    if ! dryad_root_build_variant_option_enabled "$dryad_root_build_validate_option_target_root" "$dryad_root_build_validate_option_dim" "$dryad_root_build_validate_option_name"; then
+        dryad_root_build_dependency_die "$dryad_root_build_validate_option_garden" "$dryad_root_build_validate_option_source_root" "disabled requirement variant option: $dryad_root_build_validate_option_dim=$dryad_root_build_validate_option_name"
+    fi
+}
+
+dryad_root_build_target_selector_value () {
+    dryad_root_build_target_selector_value_selector=$1
+    dryad_root_build_target_selector_value_dim=$2
+
+    dryad_root_build_target_selector_value_old_ifs=$IFS
+    IFS=+
+    set -- $dryad_root_build_target_selector_value_selector
+    IFS=$dryad_root_build_target_selector_value_old_ifs
+
+    for dryad_root_build_target_selector_value_pair do
+        case $dryad_root_build_target_selector_value_pair in
+            "$dryad_root_build_target_selector_value_dim="* )
+                printf '%s\n' "${dryad_root_build_target_selector_value_pair#*=}"
+                return 0
+                ;;
+        esac
+    done
+
+    return 1
+}
+
+dryad_root_build_validate_target_selector () {
+    dryad_root_build_validate_garden=$1
+    dryad_root_build_validate_source_root=$2
+    dryad_root_build_validate_target_root=$3
+    dryad_root_build_validate_selector=$4
+    dryad_root_build_validate_parent_descriptor=$5
+    dryad_root_build_validate_variants=$dryad_root_build_validate_target_root/dyd/variants
+
+    if [ ! -d "$dryad_root_build_validate_variants" ]; then
+        if [ -n "$dryad_root_build_validate_selector" ]; then
+            dryad_root_build_validate_old_ifs=$IFS
+            IFS=+
+            set -- $dryad_root_build_validate_selector
+            IFS=$dryad_root_build_validate_old_ifs
+            for dryad_root_build_validate_pair do
+                dryad_root_build_dependency_die "$dryad_root_build_validate_garden" "$dryad_root_build_validate_source_root" "over-specified requirement variant dimension: ${dryad_root_build_validate_pair%%=*}"
+            done
+        fi
+        return 0
+    fi
+
+    dryad_root_build_validate_old_ifs=$IFS
+    IFS=+
+    set -- $dryad_root_build_validate_selector
+    IFS=$dryad_root_build_validate_old_ifs
+    for dryad_root_build_validate_pair do
+        dryad_root_build_validate_dim=${dryad_root_build_validate_pair%%=*}
+        case $dryad_root_build_validate_dim in
+            '' ) continue ;;
+            _include | _exclude ) ;;
+        esac
+        if [ ! -d "$dryad_root_build_validate_variants/$dryad_root_build_validate_dim" ]; then
+            dryad_root_build_dependency_die "$dryad_root_build_validate_garden" "$dryad_root_build_validate_source_root" "over-specified requirement variant dimension: $dryad_root_build_validate_dim"
+        fi
+    done
+
+    find "$dryad_root_build_validate_variants" -mindepth 1 -maxdepth 1 -type d |
+        while IFS= read -r dryad_root_build_validate_dim_path; do
+            dryad_root_build_validate_dim=$(basename "$dryad_root_build_validate_dim_path")
+            case $dryad_root_build_validate_dim in
+                _include | _exclude ) continue ;;
+            esac
+
+            dryad_root_build_validate_requested=$(dryad_root_build_target_selector_value "$dryad_root_build_validate_selector" "$dryad_root_build_validate_dim" || true)
+            if [ -z "$dryad_root_build_validate_requested" ]; then
+                if ! dryad_root_build_variant_option_enabled "$dryad_root_build_validate_target_root" "$dryad_root_build_validate_dim" none; then
+                    dryad_root_build_dependency_die "$dryad_root_build_validate_garden" "$dryad_root_build_validate_source_root" "under-specified requirement variant dimension: $dryad_root_build_validate_dim"
+                fi
+                continue
+            fi
+
+            dryad_root_build_validate_req_old_ifs=$IFS
+            IFS=,
+            set -- $dryad_root_build_validate_requested
+            IFS=$dryad_root_build_validate_req_old_ifs
+
+            for dryad_root_build_validate_option do
+                case $dryad_root_build_validate_option in
+                    inherit )
+                        dryad_root_build_validate_inherited=$(dryad_descriptor_value "$dryad_root_build_validate_parent_descriptor" "$dryad_root_build_validate_dim" || true)
+                        [ -n "$dryad_root_build_validate_inherited" ] || dryad_root_build_validate_inherited=none
+                        dryad_root_build_validate_target_option "$dryad_root_build_validate_garden" "$dryad_root_build_validate_source_root" "$dryad_root_build_validate_target_root" "$dryad_root_build_validate_dim" "$dryad_root_build_validate_inherited"
+                        ;;
+                    any )
+                        dryad_root_build_validate_any=0
+                        for dryad_root_build_validate_option_path in "$dryad_root_build_validate_dim_path"/*; do
+                            [ -f "$dryad_root_build_validate_option_path" ] || continue
+                            dryad_root_build_validate_option_name=$(basename "$dryad_root_build_validate_option_path")
+                            [ "$dryad_root_build_validate_option_name" != none ] || continue
+                            if dryad_root_build_variant_option_enabled "$dryad_root_build_validate_target_root" "$dryad_root_build_validate_dim" "$dryad_root_build_validate_option_name"; then
+                                dryad_root_build_validate_any=1
+                                break
+                            fi
+                        done
+                        [ "$dryad_root_build_validate_any" = 1 ] ||
+                            dryad_root_build_dependency_die "$dryad_root_build_validate_garden" "$dryad_root_build_validate_source_root" "no enabled variant options for any resolution: $dryad_root_build_validate_dim"
+                        ;;
+                    host )
+                        case $dryad_root_build_validate_dim in
+                            os ) dryad_root_build_validate_host=$(dryad_host_os) ;;
+                            arch ) dryad_root_build_validate_host=$(dryad_host_arch) ;;
+                            * )
+                                dryad_root_build_dependency_die "$dryad_root_build_validate_garden" "$dryad_root_build_validate_source_root" "host option is only supported for variant dimensions os/arch: $dryad_root_build_validate_dim"
+                                ;;
+                        esac
+                        dryad_root_build_validate_target_option "$dryad_root_build_validate_garden" "$dryad_root_build_validate_source_root" "$dryad_root_build_validate_target_root" "$dryad_root_build_validate_dim" "$dryad_root_build_validate_host"
+                        ;;
+                    * )
+                        dryad_root_build_validate_target_option "$dryad_root_build_validate_garden" "$dryad_root_build_validate_source_root" "$dryad_root_build_validate_target_root" "$dryad_root_build_validate_dim" "$dryad_root_build_validate_option"
+                        ;;
+                esac
+            done
+        done
+}
+
+dryad_root_build_validate_requirement_condition () {
+    dryad_root_build_validate_condition_garden=$1
+    dryad_root_build_validate_condition_root=$2
+    dryad_root_build_validate_condition_name=$3
+    dryad_root_build_validate_condition=$4
+
+    case $dryad_root_build_validate_condition_name in
+        *~* )
+            [ -n "$dryad_root_build_validate_condition" ] ||
+                dryad_root_build_dependency_die "$dryad_root_build_validate_condition_garden" "$dryad_root_build_validate_condition_root" "malformed requirement condition descriptor: $dryad_root_build_validate_condition_name"
+            ;;
+        * )
+            return 0
+            ;;
+    esac
+
+    dryad_root_build_validate_condition_old_ifs=$IFS
+    IFS=+
+    set -- $dryad_root_build_validate_condition
+    IFS=$dryad_root_build_validate_condition_old_ifs
+
+    for dryad_root_build_validate_condition_pair do
+        case $dryad_root_build_validate_condition_pair in
+            [ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-]*=* )
+                ;;
+            * )
+                dryad_root_build_dependency_die "$dryad_root_build_validate_condition_garden" "$dryad_root_build_validate_condition_root" "malformed requirement condition descriptor: $dryad_root_build_validate_condition_name"
+                ;;
+        esac
+
+        dryad_root_build_validate_condition_dim=${dryad_root_build_validate_condition_pair%%=*}
+        dryad_root_build_validate_condition_options=${dryad_root_build_validate_condition_pair#*=}
+        case $dryad_root_build_validate_condition_dim in
+            *[!ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-]* | '' )
+                dryad_root_build_dependency_die "$dryad_root_build_validate_condition_garden" "$dryad_root_build_validate_condition_root" "malformed requirement condition descriptor: $dryad_root_build_validate_condition_name"
+                ;;
+        esac
+
+        dryad_root_build_validate_condition_opt_old_ifs=$IFS
+        IFS=,
+        set -- $dryad_root_build_validate_condition_options
+        IFS=$dryad_root_build_validate_condition_opt_old_ifs
+
+        for dryad_root_build_validate_condition_option do
+            case $dryad_root_build_validate_condition_option in
+                host )
+                    case $dryad_root_build_validate_condition_dim in
+                        os | arch ) ;;
+                        * )
+                            dryad_root_build_dependency_die "$dryad_root_build_validate_condition_garden" "$dryad_root_build_validate_condition_root" "host option is only supported for variant dimensions os/arch: $dryad_root_build_validate_condition_dim"
+                            ;;
+                    esac
+                    ;;
+                '' )
+                    dryad_root_build_dependency_die "$dryad_root_build_validate_condition_garden" "$dryad_root_build_validate_condition_root" "malformed requirement condition descriptor: $dryad_root_build_validate_condition_name"
+                    ;;
+            esac
+        done
+    done
+}
+
 dryad_root_build_ref_path () {
     dryad_root_build_ref=$1
     case $dryad_root_build_ref in
@@ -1504,6 +1737,7 @@ dryad_root_build_prepare_dependencies () {
                 ;;
         esac
 
+        dryad_root_build_validate_requirement_condition "$dryad_root_build_deps_garden" "$dryad_root_build_deps_root" "$dryad_root_build_deps_name" "$dryad_root_build_deps_condition"
         if ! dryad_condition_matches_descriptor "$dryad_root_build_deps_condition" "$dryad_root_build_deps_descriptor"; then
             continue
         fi
@@ -1529,9 +1763,11 @@ dryad_root_build_prepare_dependencies () {
                 ;;
         esac
 
+        dryad_url_query_warn_if_noncanonical "$dryad_root_build_deps_query"
         dryad_root_build_deps_selector=$(dryad_url_query_to_descriptor "$dryad_root_build_deps_query")
         dryad_root_build_deps_file_dir=$(dryad_clean_cd "$(dirname "$dryad_root_build_deps_file")")
         dryad_root_build_deps_target_root=$(dryad_root_path_find "$(dryad_join_path "$dryad_root_build_deps_file_dir" "$dryad_root_build_deps_target_rel")")
+        dryad_root_build_validate_target_selector "$dryad_root_build_deps_garden" "$dryad_root_build_deps_root" "$dryad_root_build_deps_target_root" "$dryad_root_build_deps_selector" "$dryad_root_build_deps_descriptor"
         dryad_root_build_deps_matches_file=$(mktemp "${TMPDIR:-/tmp}/dryad-sh-root-deps.XXXXXX")
         dryad_root_build_selected_descriptors "$dryad_root_build_deps_target_root" "" |
             while IFS= read -r dryad_root_build_deps_candidate; do
@@ -2540,6 +2776,47 @@ dryad_roots_find_roots () {
         sort
 }
 
+dryad_roots_validate_filter_rules () {
+    dryad_roots_filter_root=$1
+    dryad_roots_filter_dir=$dryad_roots_filter_root/dyd/variants
+
+    for dryad_roots_filter_kind in _include _exclude; do
+        dryad_roots_filter_kind_dir=$dryad_roots_filter_dir/$dryad_roots_filter_kind
+        [ -d "$dryad_roots_filter_kind_dir" ] || continue
+        case $dryad_roots_filter_kind in
+            _include ) dryad_roots_filter_label=included ;;
+            _exclude ) dryad_roots_filter_label=excluded ;;
+        esac
+
+        for dryad_roots_filter_file in "$dryad_roots_filter_kind_dir"/*; do
+            [ -f "$dryad_roots_filter_file" ] || continue
+            dryad_roots_filter_enabled=$(tr -d '[:space:]' < "$dryad_roots_filter_file")
+            [ "$dryad_roots_filter_enabled" = true ] || continue
+            dryad_roots_filter_descriptor=$(basename "$dryad_roots_filter_file")
+
+            dryad_roots_filter_old_ifs=$IFS
+            IFS=+
+            set -- $dryad_roots_filter_descriptor
+            IFS=$dryad_roots_filter_old_ifs
+
+            for dryad_roots_filter_pair do
+                dryad_roots_filter_options=${dryad_roots_filter_pair#*=}
+                dryad_roots_filter_opt_old_ifs=$IFS
+                IFS=,
+                set -- $dryad_roots_filter_options
+                IFS=$dryad_roots_filter_opt_old_ifs
+                for dryad_roots_filter_option do
+                    case $dryad_roots_filter_option in
+                        inherit | host )
+                            dryad_die "$dryad_roots_filter_option option is not supported for $dryad_roots_filter_label variant selectors"
+                            ;;
+                    esac
+                done
+            done
+        done
+    done
+}
+
 dryad_roots_variant_descriptors () {
     dryad_roots_variant_root=$1
     dryad_roots_variant_dir=$dryad_roots_variant_root/dyd/variants
@@ -2548,6 +2825,8 @@ dryad_roots_variant_descriptors () {
         printf '\n'
         return 0
     fi
+
+    dryad_roots_validate_filter_rules "$dryad_roots_variant_root"
 
     find "$dryad_roots_variant_dir" -mindepth 2 -maxdepth 2 -type f |
         sed "s|^$dryad_roots_variant_dir/||" |
