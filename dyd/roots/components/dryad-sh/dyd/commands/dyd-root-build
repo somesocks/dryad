@@ -35,6 +35,8 @@ _build_single_file () {
         printf '\n'
         sed '1{/^#!/d;}' "$SRC_DIR"/scopes.sh
         printf '\n'
+        sed '1{/^#!/d;}' "$SRC_DIR"/hash.sh
+        printf '\n'
         sed '1{/^#!/d;}' "$SRC_DIR"/roots.sh
         printf '\n'
         sed '1{/^#!/d;}' "$SRC_DIR"/sprouts.sh
