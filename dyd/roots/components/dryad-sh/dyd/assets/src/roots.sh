@@ -1708,7 +1708,7 @@ dryad_roots_entry_matches_includes () {
     dryad_roots_match_root=$2
     dryad_roots_match_descriptor=$3
 
-    if [ -z "$dryad_roots_include" ]; then
+    if [ -z "${dryad_roots_include:-}" ]; then
         return 0
     fi
 
@@ -1722,6 +1722,36 @@ $dryad_roots_include
 EOF
 
     return 1
+}
+
+dryad_roots_entry_matches_excludes () {
+    dryad_roots_match_display=$1
+    dryad_roots_match_root=$2
+    dryad_roots_match_descriptor=$3
+
+    if [ -z "${dryad_roots_exclude:-}" ]; then
+        return 1
+    fi
+
+    while IFS= read -r dryad_roots_match_exclude; do
+        [ -n "$dryad_roots_match_exclude" ] || continue
+        if dryad_roots_entry_matches_include "$dryad_roots_match_display" "$dryad_roots_match_root" "$dryad_roots_match_descriptor" "$dryad_roots_match_exclude"; then
+            return 0
+        fi
+    done <<EOF
+$dryad_roots_exclude
+EOF
+
+    return 1
+}
+
+dryad_roots_entry_matches_filters () {
+    dryad_roots_match_display=$1
+    dryad_roots_match_root=$2
+    dryad_roots_match_descriptor=$3
+
+    dryad_roots_entry_matches_includes "$dryad_roots_match_display" "$dryad_roots_match_root" "$dryad_roots_match_descriptor" || return 1
+    ! dryad_roots_entry_matches_excludes "$dryad_roots_match_display" "$dryad_roots_match_root" "$dryad_roots_match_descriptor"
 }
 
 dryad_roots_print_display () {
@@ -1751,6 +1781,205 @@ dryad_roots_list_from_stdin () {
             dryad_roots_print_display "$dryad_roots_stdin_path~$dryad_roots_stdin_descriptor"
         else
             dryad_roots_print_display "$dryad_roots_stdin_path"
+        fi
+    done
+}
+
+dryad_roots_each_print_entry () {
+    dryad_roots_each_entry_root=$1
+    dryad_roots_each_entry_descriptor=$2
+    dryad_roots_each_entry_garden=$3
+    dryad_roots_each_entry_display=${dryad_roots_each_entry_root#"$dryad_roots_each_entry_garden"/}
+
+    if [ -n "$dryad_roots_each_entry_descriptor" ]; then
+        dryad_roots_each_entry_ref=$dryad_roots_each_entry_display~$dryad_roots_each_entry_descriptor
+    else
+        dryad_roots_each_entry_ref=$dryad_roots_each_entry_display
+    fi
+
+    if dryad_roots_entry_matches_filters "$dryad_roots_each_entry_ref" "$dryad_roots_each_entry_root" "$dryad_roots_each_entry_descriptor"; then
+        printf '%s\t%s\n' "$dryad_roots_each_entry_root" "$dryad_roots_each_entry_descriptor"
+    fi
+}
+
+dryad_roots_each_entries_all () {
+    dryad_roots_each_entries_garden=$1
+    dryad_roots_each_entries_dir=$dryad_roots_each_entries_garden/dyd/roots
+
+    [ -d "$dryad_roots_each_entries_dir" ] || return 0
+
+    dryad_roots_find_roots "$dryad_roots_each_entries_dir" | while IFS= read -r dryad_roots_each_entry_root; do
+        dryad_roots_variant_descriptors "$dryad_roots_each_entry_root" | while IFS= read -r dryad_roots_each_entry_descriptor; do
+            dryad_roots_each_print_entry "$dryad_roots_each_entry_root" "$dryad_roots_each_entry_descriptor" "$dryad_roots_each_entries_garden"
+        done
+    done
+}
+
+dryad_roots_each_entries_from_stdin () {
+    dryad_roots_each_entries_garden=$1
+
+    while IFS= read -r dryad_roots_each_stdin_ref; do
+        [ -n "$dryad_roots_each_stdin_ref" ] || continue
+        dryad_roots_each_stdin_parsed=$(dryad_root_ref_parse "$dryad_roots_each_stdin_ref")
+        dryad_roots_each_stdin_path=$(printf '%s\n' "$dryad_roots_each_stdin_parsed" | sed -n '1p')
+        dryad_roots_each_stdin_selector=$(printf '%s\n' "$dryad_roots_each_stdin_parsed" | sed -n '2p')
+        dryad_roots_each_stdin_root=$(dryad_root_path_find "$dryad_roots_each_stdin_path")
+
+        dryad_roots_variant_descriptors "$dryad_roots_each_stdin_root" | while IFS= read -r dryad_roots_each_stdin_descriptor; do
+            if dryad_root_variant_selector_matches_descriptor "$dryad_roots_each_stdin_selector" "$dryad_roots_each_stdin_descriptor"; then
+                dryad_roots_each_print_entry "$dryad_roots_each_stdin_root" "$dryad_roots_each_stdin_descriptor" "$dryad_roots_each_entries_garden"
+            fi
+        done
+    done
+}
+
+dryad_roots_each_run_entry () {
+    dryad_roots_each_run_root=$1
+    dryad_roots_each_run_descriptor=$2
+
+    if [ -n "$dryad_roots_each_run_descriptor" ]; then
+        dryad_roots_each_run_ref=$dryad_roots_each_run_root~$dryad_roots_each_run_descriptor
+    else
+        dryad_roots_each_run_ref=$dryad_roots_each_run_root
+    fi
+
+    if [ "$dryad_roots_each_join_stdout" = 1 ] && [ "$dryad_roots_each_join_stderr" = 1 ]; then
+        (
+            cd "$dryad_roots_each_run_root" || exit 1
+            DYD_ROOT=$dryad_roots_each_run_root \
+                DYD_ROOT_REF=$dryad_roots_each_run_ref \
+                DYD_VARIANT=$dryad_roots_each_run_descriptor \
+                "$dryad_roots_each_shell" -c "$dryad_roots_each_command"
+        )
+    elif [ "$dryad_roots_each_join_stdout" = 1 ]; then
+        (
+            cd "$dryad_roots_each_run_root" || exit 1
+            DYD_ROOT=$dryad_roots_each_run_root \
+                DYD_ROOT_REF=$dryad_roots_each_run_ref \
+                DYD_VARIANT=$dryad_roots_each_run_descriptor \
+                "$dryad_roots_each_shell" -c "$dryad_roots_each_command" 2>/dev/null
+        )
+    elif [ "$dryad_roots_each_join_stderr" = 1 ]; then
+        (
+            cd "$dryad_roots_each_run_root" || exit 1
+            DYD_ROOT=$dryad_roots_each_run_root \
+                DYD_ROOT_REF=$dryad_roots_each_run_ref \
+                DYD_VARIANT=$dryad_roots_each_run_descriptor \
+                "$dryad_roots_each_shell" -c "$dryad_roots_each_command" >/dev/null
+        )
+    else
+        (
+            cd "$dryad_roots_each_run_root" || exit 1
+            DYD_ROOT=$dryad_roots_each_run_root \
+                DYD_ROOT_REF=$dryad_roots_each_run_ref \
+                DYD_VARIANT=$dryad_roots_each_run_descriptor \
+                "$dryad_roots_each_shell" -c "$dryad_roots_each_command" >/dev/null 2>/dev/null
+        )
+    fi
+}
+
+dryad_cmd_roots_each () {
+    dryad_roots_include=
+    dryad_roots_exclude=
+    dryad_roots_each_from_stdin=0
+    dryad_roots_each_ignore_errors=0
+    dryad_roots_each_join_stdout=0
+    dryad_roots_each_join_stderr=0
+    dryad_roots_each_shell=${SHELL:-/bin/sh}
+    dryad_roots_each_command=
+
+    while [ "$#" -gt 0 ]; do
+        dryad_roots_each_arg=$(dryad_strip_option_quotes "$1")
+        case $dryad_roots_each_arg in
+            --help | -h )
+                cat <<'EOF'
+Usage:
+  dryad roots each [--include=<filter>] [--exclude=<filter>] [--from-stdin] [--shell=<shell>] -- <command>
+EOF
+                return 0
+                ;;
+            --include=* )
+                dryad_roots_include="${dryad_roots_include}
+${dryad_roots_each_arg#--include=}"
+                shift
+                ;;
+            --include )
+                [ "$#" -gt 1 ] || dryad_die "--include requires a value"
+                dryad_roots_include="${dryad_roots_include}
+$2"
+                shift 2
+                ;;
+            --exclude=* )
+                dryad_roots_exclude="${dryad_roots_exclude}
+${dryad_roots_each_arg#--exclude=}"
+                shift
+                ;;
+            --exclude )
+                [ "$#" -gt 1 ] || dryad_die "--exclude requires a value"
+                dryad_roots_exclude="${dryad_roots_exclude}
+$2"
+                shift 2
+                ;;
+            --from-stdin )
+                dryad_roots_each_from_stdin=1
+                shift
+                ;;
+            --ignore-errors )
+                dryad_roots_each_ignore_errors=1
+                shift
+                ;;
+            --join-stdout )
+                dryad_roots_each_join_stdout=1
+                shift
+                ;;
+            --join-stderr )
+                dryad_roots_each_join_stderr=1
+                shift
+                ;;
+            --shell=* )
+                dryad_roots_each_shell=${dryad_roots_each_arg#--shell=}
+                shift
+                ;;
+            --shell )
+                [ "$#" -gt 1 ] || dryad_die "--shell requires a value"
+                dryad_roots_each_shell=$2
+                shift 2
+                ;;
+            --scope=* | --log-level=* | --log-format=* | --parallel=* )
+                shift
+                ;;
+            --scope | --log-level | --log-format | --parallel )
+                [ "$#" -gt 1 ] || dryad_die "$1 requires a value"
+                shift 2
+                ;;
+            -- )
+                shift
+                break
+                ;;
+            --* )
+                dryad_die "unsupported roots each option: $1"
+                ;;
+            * )
+                break
+                ;;
+        esac
+    done
+
+    dryad_roots_each_command=$*
+    dryad_roots_each_garden=$(dryad_garden_find)
+
+    if [ "$dryad_roots_each_from_stdin" = 1 ]; then
+        dryad_roots_each_entries=$(dryad_roots_each_entries_from_stdin "$dryad_roots_each_garden" | sort -u)
+    else
+        dryad_roots_each_entries=$(dryad_roots_each_entries_all "$dryad_roots_each_garden" | sort -u)
+    fi
+
+    [ -n "$dryad_roots_each_entries" ] || return 0
+
+    printf '%s\n' "$dryad_roots_each_entries" | while IFS="$(printf '\t')" read -r dryad_roots_each_root dryad_roots_each_descriptor; do
+        [ -n "$dryad_roots_each_root" ] || continue
+        if ! dryad_roots_each_run_entry "$dryad_roots_each_root" "$dryad_roots_each_descriptor"; then
+            [ "$dryad_roots_each_ignore_errors" = 1 ] || return 1
         fi
     done
 }
@@ -2916,6 +3145,9 @@ EOF
         graph )
             dryad_cmd_roots_graph "$@"
             ;;
+        each )
+            dryad_cmd_roots_each "$@"
+            ;;
         owning )
             dryad_cmd_roots_owning "$@"
             ;;
@@ -2938,6 +3170,7 @@ EOF
             ;;
         list )
             dryad_roots_include=
+            dryad_roots_exclude=
             dryad_roots_from_stdin=0
             dryad_roots_to_sprouts=0
             while [ "$#" -gt 0 ]; do
@@ -2951,6 +3184,17 @@ ${dryad_roots_arg#--include=}"
                     --include )
                         [ "$#" -gt 1 ] || dryad_die "--include requires a value"
                         dryad_roots_include="${dryad_roots_include}
+$2"
+                        shift 2
+                        ;;
+                    --exclude=* )
+                        dryad_roots_exclude="${dryad_roots_exclude}
+${dryad_roots_arg#--exclude=}"
+                        shift
+                        ;;
+                    --exclude )
+                        [ "$#" -gt 1 ] || dryad_die "--exclude requires a value"
+                        dryad_roots_exclude="${dryad_roots_exclude}
 $2"
                         shift 2
                         ;;
@@ -3002,7 +3246,7 @@ EOF
                     if [ -n "$dryad_roots_descriptor" ]; then
                         dryad_roots_display=$dryad_roots_display~$dryad_roots_descriptor
                     fi
-                    if dryad_roots_entry_matches_includes "$dryad_roots_display" "$dryad_roots_root" "$dryad_roots_descriptor"; then
+                    if dryad_roots_entry_matches_filters "$dryad_roots_display" "$dryad_roots_root" "$dryad_roots_descriptor"; then
                         dryad_roots_print_display "$dryad_roots_display"
                     fi
                 done
@@ -3013,6 +3257,7 @@ EOF
 Usage:
   dryad roots affected
   dryad roots build
+  dryad roots each
   dryad roots graph
   dryad roots path
   dryad roots list

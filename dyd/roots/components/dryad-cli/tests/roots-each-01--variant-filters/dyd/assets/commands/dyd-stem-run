@@ -5,6 +5,8 @@ SRC_DIR=$DYD_STEM
 TEMP_DIR=''
 
 TEST_OUTPUT=''
+TEST_STDIN_OUTPUT=''
+TEST_EXCLUDE_OUTPUT=''
 
 . "$SRC_DIR/dyd/assets/assertions.sh"
 
@@ -28,6 +30,28 @@ _test() {
 			-- 'printf "%s|%s\n" "$DYD_ROOT_REF" "$DYD_VARIANT"' \
 			| sort
 	)
+
+	TEST_STDIN_OUTPUT=$(
+		printf '%s\n%s\n' \
+			'dyd/roots/root-implicit-any?arch=amd64&os=linux' \
+			'dyd/roots/root-option-list?os=darwin' \
+			| dryad roots each \
+				--from-stdin \
+				--parallel=1 \
+				--join-stdout \
+				-- 'printf "%s|%s\n" "$DYD_ROOT_REF" "$DYD_VARIANT"' \
+			| sort
+	)
+
+	TEST_EXCLUDE_OUTPUT=$(
+		dryad roots each \
+			--parallel=1 \
+			--join-stdout \
+			--include='~os=linux' \
+			--exclude='~arch=arm64' \
+			-- 'printf "%s|%s\n" "$DYD_ROOT_REF" "$DYD_VARIANT"' \
+			| sort
+	)
 }
 
 _verify() {
@@ -37,8 +61,21 @@ _verify() {
 			"$TEMP_DIR/dyd/roots/root-implicit-any~arch=arm64+os=linux|arch=arm64+os=linux" \
 			"$TEMP_DIR/dyd/roots/root-no-match~os=linux|os=linux"
 	)
+	EXPECTED_STDIN_OUTPUT=$(
+		printf '%s\n%s' \
+			"$TEMP_DIR/dyd/roots/root-implicit-any~arch=amd64+os=linux|arch=amd64+os=linux" \
+			"$TEMP_DIR/dyd/roots/root-option-list~os=darwin|os=darwin"
+	)
+	EXPECTED_EXCLUDE_OUTPUT=$(
+		printf '%s\n%s\n%s' \
+			"$TEMP_DIR/dyd/roots/root-implicit-any~arch=amd64+os=linux|arch=amd64+os=linux" \
+			"$TEMP_DIR/dyd/roots/root-no-match~os=linux|os=linux" \
+			"$TEMP_DIR/dyd/roots/root-option-list~os=linux|os=linux"
+	)
 
 	assert_all_equal "$TEST_OUTPUT" "$EXPECTED_OUTPUT"
+	assert_all_equal "$TEST_STDIN_OUTPUT" "$EXPECTED_STDIN_OUTPUT"
+	assert_all_equal "$TEST_EXCLUDE_OUTPUT" "$EXPECTED_EXCLUDE_OUTPUT"
 }
 
 _teardown() {
