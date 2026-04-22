@@ -1316,6 +1316,877 @@ dryad_cmd_root_descendants () {
     dryad_cmd_root_graph_walk descendants 1 "$@"
 }
 
+dryad_root_build_log () {
+    case $dryad_log_level in
+        debug | trace )
+            printf 'dryad-sh: %s\n' "$*" >&2
+            ;;
+    esac
+}
+
+dryad_root_build_selected_descriptors () {
+    dryad_root_build_selected_root=$1
+    dryad_root_build_selected_selector=$2
+
+    dryad_roots_variant_descriptors "$dryad_root_build_selected_root" |
+        while IFS= read -r dryad_root_build_selected_descriptor; do
+            if dryad_root_variant_selector_matches_descriptor "$dryad_root_build_selected_selector" "$dryad_root_build_selected_descriptor"; then
+                printf '%s\n' "$dryad_root_build_selected_descriptor"
+            fi
+        done
+}
+
+dryad_root_build_copy_dir_contents () {
+    dryad_root_build_copy_src=$1
+    dryad_root_build_copy_dst=$2
+
+    [ -d "$dryad_root_build_copy_src" ] || return 0
+    mkdir -p "$dryad_root_build_copy_dst"
+    cp -R "$dryad_root_build_copy_src/." "$dryad_root_build_copy_dst/"
+}
+
+dryad_root_build_materialize_traits () {
+    dryad_root_build_traits_root=$1
+    dryad_root_build_traits_descriptor=$2
+    dryad_root_build_traits_workspace=$3
+    dryad_root_build_traits_selected=$(dryad_roots_owning_selected_path "$dryad_root_build_traits_root" "$dryad_root_build_traits_descriptor" traits)
+    dryad_root_build_traits_dest=$dryad_root_build_traits_workspace/dyd/traits
+
+    mkdir -p "$dryad_root_build_traits_dest"
+    if [ -n "$dryad_root_build_traits_selected" ]; then
+        dryad_root_build_copy_dir_contents "$dryad_root_build_traits_selected" "$dryad_root_build_traits_dest"
+    fi
+
+    [ -n "$dryad_root_build_traits_descriptor" ] || return 0
+
+    dryad_root_build_traits_old_ifs=$IFS
+    IFS=+
+    set -- $dryad_root_build_traits_descriptor
+    IFS=$dryad_root_build_traits_old_ifs
+
+    for dryad_root_build_traits_pair do
+        dryad_root_build_traits_dim=${dryad_root_build_traits_pair%%=*}
+        dryad_root_build_traits_value=${dryad_root_build_traits_pair#*=}
+        printf '%s' "$dryad_root_build_traits_value" > "$dryad_root_build_traits_dest/$dryad_root_build_traits_dim"
+    done
+}
+
+dryad_root_build_prepare_source () {
+    dryad_root_build_prepare_root=$1
+    dryad_root_build_prepare_descriptor=$2
+    dryad_root_build_prepare_workspace=$3
+
+    mkdir -p "$dryad_root_build_prepare_workspace/dyd/dependencies"
+    dryad_root_build_materialize_traits "$dryad_root_build_prepare_root" "$dryad_root_build_prepare_descriptor" "$dryad_root_build_prepare_workspace"
+
+    for dryad_root_build_prepare_kind in assets commands secrets docs; do
+        dryad_root_build_prepare_selected=$(dryad_roots_owning_selected_path "$dryad_root_build_prepare_root" "$dryad_root_build_prepare_descriptor" "$dryad_root_build_prepare_kind")
+        if [ -n "$dryad_root_build_prepare_selected" ]; then
+            ln -s "$dryad_root_build_prepare_selected" "$dryad_root_build_prepare_workspace/dyd/$dryad_root_build_prepare_kind"
+        fi
+    done
+
+    dryad_root_build_prepare_requirements=$(dryad_roots_owning_selected_path "$dryad_root_build_prepare_root" "$dryad_root_build_prepare_descriptor" requirements)
+    if [ -n "$dryad_root_build_prepare_requirements" ]; then
+        ln -s "$dryad_root_build_prepare_requirements" "$dryad_root_build_prepare_workspace/dyd/~requirements"
+        ln -s "$dryad_root_build_prepare_requirements" "$dryad_root_build_prepare_workspace/dyd/requirements"
+    fi
+}
+
+dryad_root_build_target_selector_matches_descriptor () {
+    dryad_root_build_target_selector=$1
+    dryad_root_build_target_descriptor=$2
+    dryad_root_build_target_parent_descriptor=$3
+
+    [ -n "$dryad_root_build_target_selector" ] || return 0
+
+    dryad_root_build_target_old_ifs=$IFS
+    IFS=+
+    set -- $dryad_root_build_target_selector
+    IFS=$dryad_root_build_target_old_ifs
+
+    for dryad_root_build_target_pair do
+        dryad_root_build_target_dim=${dryad_root_build_target_pair%%=*}
+        dryad_root_build_target_want=${dryad_root_build_target_pair#*=}
+        dryad_root_build_target_got=$(dryad_descriptor_value "$dryad_root_build_target_descriptor" "$dryad_root_build_target_dim" || true)
+
+        case $dryad_root_build_target_want in
+            inherit )
+                dryad_root_build_target_want=$(dryad_descriptor_value "$dryad_root_build_target_parent_descriptor" "$dryad_root_build_target_dim" || true)
+                [ -n "$dryad_root_build_target_want" ] || dryad_root_build_target_want=none
+                ;;
+            host )
+                case $dryad_root_build_target_dim in
+                    os ) dryad_root_build_target_want=$(dryad_host_os) ;;
+                    arch ) dryad_root_build_target_want=$(dryad_host_arch) ;;
+                    * ) ;;
+                esac
+                ;;
+        esac
+
+        if [ "$dryad_root_build_target_want" = any ]; then
+            [ -n "$dryad_root_build_target_got" ] || return 1
+            continue
+        fi
+
+        if [ "$dryad_root_build_target_want" = none ]; then
+            [ -z "$dryad_root_build_target_got" ] || return 1
+            continue
+        fi
+
+        [ -n "$dryad_root_build_target_got" ] || return 1
+        dryad_option_list_contains "$dryad_root_build_target_want" "$dryad_root_build_target_got" || return 1
+    done
+
+    return 0
+}
+
+dryad_root_build_ref_path () {
+    dryad_root_build_ref=$1
+    case $dryad_root_build_ref in
+        *~* )
+            printf '%s\n' "${dryad_root_build_ref%%~*}"
+            ;;
+        * )
+            printf '%s\n' "$dryad_root_build_ref"
+            ;;
+    esac
+}
+
+dryad_root_build_ref_descriptor () {
+    dryad_root_build_ref=$1
+    case $dryad_root_build_ref in
+        *~* )
+            printf '%s\n' "${dryad_root_build_ref#*~}"
+            ;;
+    esac
+}
+
+dryad_root_build_descriptor_needs_suffix () {
+    dryad_root_build_suffix_selector=$1
+    dryad_root_build_suffix_count=$2
+
+    [ "$dryad_root_build_suffix_count" -gt 1 ] && return 0
+    case $dryad_root_build_suffix_selector in
+        *'=any'* ) return 0 ;;
+    esac
+    return 1
+}
+
+dryad_root_build_prepare_dependencies () {
+    dryad_root_build_deps_garden=$1
+    dryad_root_build_deps_root=$2
+    dryad_root_build_deps_descriptor=$3
+    dryad_root_build_deps_workspace=$4
+    dryad_root_build_deps_req_dir=$dryad_root_build_deps_workspace/dyd/~requirements
+
+    [ -d "$dryad_root_build_deps_req_dir" ] || return 0
+
+    for dryad_root_build_deps_file in "$dryad_root_build_deps_req_dir"/* "$dryad_root_build_deps_req_dir"/.[!.]* "$dryad_root_build_deps_req_dir"/..?*; do
+        [ -f "$dryad_root_build_deps_file" ] || [ -L "$dryad_root_build_deps_file" ] || continue
+
+        dryad_root_build_deps_name=$(basename "$dryad_root_build_deps_file")
+        dryad_root_build_deps_alias=${dryad_root_build_deps_name%%~*}
+        dryad_root_build_deps_condition=
+        case $dryad_root_build_deps_name in
+            *~* )
+                dryad_root_build_deps_condition=${dryad_root_build_deps_name#*~}
+                ;;
+        esac
+
+        if ! dryad_condition_matches_descriptor "$dryad_root_build_deps_condition" "$dryad_root_build_deps_descriptor"; then
+            continue
+        fi
+
+        dryad_root_build_deps_spec=$(dryad_requirement_target_spec "$dryad_root_build_deps_file")
+        case $dryad_root_build_deps_spec in
+            root:* )
+                ;;
+            * )
+                dryad_die "requirement target must use root: scheme: $dryad_root_build_deps_file"
+                ;;
+        esac
+
+        dryad_root_build_deps_body=${dryad_root_build_deps_spec#root:}
+        dryad_root_build_deps_query=
+        case $dryad_root_build_deps_body in
+            *\?* )
+                dryad_root_build_deps_target_rel=${dryad_root_build_deps_body%%\?*}
+                dryad_root_build_deps_query=${dryad_root_build_deps_body#*\?}
+                ;;
+            * )
+                dryad_root_build_deps_target_rel=$dryad_root_build_deps_body
+                ;;
+        esac
+
+        dryad_root_build_deps_selector=$(dryad_url_query_to_descriptor "$dryad_root_build_deps_query")
+        dryad_root_build_deps_file_dir=$(dryad_clean_cd "$(dirname "$dryad_root_build_deps_file")")
+        dryad_root_build_deps_target_root=$(dryad_root_path_find "$(dryad_join_path "$dryad_root_build_deps_file_dir" "$dryad_root_build_deps_target_rel")")
+        dryad_root_build_deps_matches_file=$(mktemp "${TMPDIR:-/tmp}/dryad-sh-root-deps.XXXXXX")
+        dryad_root_build_selected_descriptors "$dryad_root_build_deps_target_root" "" |
+            while IFS= read -r dryad_root_build_deps_candidate; do
+                if dryad_root_build_target_selector_matches_descriptor "$dryad_root_build_deps_selector" "$dryad_root_build_deps_candidate" "$dryad_root_build_deps_descriptor"; then
+                    printf '%s\n' "$dryad_root_build_deps_candidate"
+                fi
+            done > "$dryad_root_build_deps_matches_file"
+
+        dryad_root_build_deps_count=$(wc -l < "$dryad_root_build_deps_matches_file" | tr -d ' ')
+        [ "$dryad_root_build_deps_count" -gt 0 ] ||
+            dryad_die "root requirement target has no matching variants: $dryad_root_build_deps_file"
+
+        while IFS= read -r dryad_root_build_deps_target_descriptor; do
+            dryad_root_build_deps_fingerprint=$(dryad_root_build_stem "$dryad_root_build_deps_garden" "$dryad_root_build_deps_target_root" "$dryad_root_build_deps_target_descriptor")
+            dryad_root_build_deps_dep_name=$dryad_root_build_deps_alias
+            if dryad_root_build_descriptor_needs_suffix "$dryad_root_build_deps_selector" "$dryad_root_build_deps_count" &&
+                [ -n "$dryad_root_build_deps_target_descriptor" ]; then
+                dryad_root_build_deps_dep_name=$dryad_root_build_deps_alias~$dryad_root_build_deps_target_descriptor
+            fi
+            ln -s "$(dryad_root_build_heap_package_path "$dryad_root_build_deps_garden" stems "$dryad_root_build_deps_fingerprint")" "$dryad_root_build_deps_workspace/dyd/dependencies/$dryad_root_build_deps_dep_name"
+        done < "$dryad_root_build_deps_matches_file"
+        rm -f "$dryad_root_build_deps_matches_file"
+    done
+}
+
+dryad_root_build_prepare_path () {
+    dryad_root_build_path_workspace=$1
+    dryad_root_build_path_dir=$dryad_root_build_path_workspace/dyd/path
+
+    rm -rf "$dryad_root_build_path_dir"
+    mkdir -p "$dryad_root_build_path_dir"
+    [ -d "$dryad_root_build_path_workspace/dyd/dependencies" ] || return 0
+
+    for dryad_root_build_path_dep in "$dryad_root_build_path_workspace"/dyd/dependencies/*; do
+        [ -e "$dryad_root_build_path_dep" ] || [ -L "$dryad_root_build_path_dep" ] || continue
+        dryad_root_build_path_dep_name=$(basename "$dryad_root_build_path_dep")
+        [ -d "$dryad_root_build_path_dep/dyd/commands" ] || continue
+        for dryad_root_build_path_command in "$dryad_root_build_path_dep"/dyd/commands/*; do
+            [ -f "$dryad_root_build_path_command" ] || continue
+            dryad_root_build_path_command_name=$(basename "$dryad_root_build_path_command")
+            case $dryad_root_build_path_command_name in
+                dyd-stem-run | default )
+                    dryad_root_build_path_stub_name=$dryad_root_build_path_dep_name
+                    ;;
+                * )
+                    dryad_root_build_path_stub_name=$dryad_root_build_path_dep_name--$dryad_root_build_path_command_name
+                    ;;
+            esac
+            {
+                printf '%s\n' '#!/bin/sh'
+                printf '%s\n' 'set -eu'
+                printf '%s\n' 'export DYD_STEM="$(dirname "$0")/../dependencies/'"$dryad_root_build_path_dep_name"'"'
+                printf '%s\n' 'export PATH="$DYD_STEM/dyd/path:$PATH"'
+                printf '%s\n' 'exec "$DYD_STEM/dyd/commands/'"$dryad_root_build_path_command_name"'" "$@"'
+            } > "$dryad_root_build_path_dir/$dryad_root_build_path_stub_name"
+            chmod 755 "$dryad_root_build_path_dir/$dryad_root_build_path_stub_name"
+        done
+    done
+}
+
+dryad_root_build_prepare_built_requirements () {
+    dryad_root_build_reqs_stem=$1
+    dryad_root_build_reqs_dir=$dryad_root_build_reqs_stem/dyd/requirements
+    dryad_root_build_reqs_deps=$dryad_root_build_reqs_stem/dyd/dependencies
+
+    rm -rf "$dryad_root_build_reqs_dir"
+    mkdir -p "$dryad_root_build_reqs_dir"
+    [ -d "$dryad_root_build_reqs_deps" ] || return 0
+
+    for dryad_root_build_reqs_dep in "$dryad_root_build_reqs_deps"/*; do
+        [ -e "$dryad_root_build_reqs_dep" ] || [ -L "$dryad_root_build_reqs_dep" ] || continue
+        dryad_root_build_reqs_name=$(basename "$dryad_root_build_reqs_dep")
+        [ -f "$dryad_root_build_reqs_dep/dyd/fingerprint" ] ||
+            dryad_die "dependency missing fingerprint: $dryad_root_build_reqs_dep"
+        cp "$dryad_root_build_reqs_dep/dyd/fingerprint" "$dryad_root_build_reqs_dir/$dryad_root_build_reqs_name"
+    done
+}
+
+dryad_root_build_init_stem () {
+    dryad_root_build_init_stem_path=$1
+
+    mkdir -p "$dryad_root_build_init_stem_path/dyd/assets"
+    mkdir -p "$dryad_root_build_init_stem_path/dyd/commands"
+    mkdir -p "$dryad_root_build_init_stem_path/dyd/dependencies"
+    mkdir -p "$dryad_root_build_init_stem_path/dyd/docs"
+    mkdir -p "$dryad_root_build_init_stem_path/dyd/requirements"
+    mkdir -p "$dryad_root_build_init_stem_path/dyd/traits"
+}
+
+dryad_root_build_fingerprint () {
+    dryad_root_build_fingerprint_path=$1
+    dryad_root_build_fingerprint_manifest=$(mktemp "${TMPDIR:-/tmp}/dryad-sh-fingerprint.XXXXXX")
+
+    (
+        cd "$dryad_root_build_fingerprint_path" || exit 1
+        find . -mindepth 1 -print | sort | while IFS= read -r dryad_root_build_fingerprint_entry; do
+            if [ -L "$dryad_root_build_fingerprint_entry" ]; then
+                printf 'L %s %s\n' "$dryad_root_build_fingerprint_entry" "$(ls -ld "$dryad_root_build_fingerprint_entry")"
+            elif [ -d "$dryad_root_build_fingerprint_entry" ]; then
+                printf 'D %s\n' "$dryad_root_build_fingerprint_entry"
+            elif [ -f "$dryad_root_build_fingerprint_entry" ]; then
+                printf 'F %s ' "$dryad_root_build_fingerprint_entry"
+                cksum "$dryad_root_build_fingerprint_entry"
+            fi
+        done
+    ) > "$dryad_root_build_fingerprint_manifest"
+
+    dryad_root_build_fingerprint_sum=$(cksum "$dryad_root_build_fingerprint_manifest" | awk '{print $1 "-" $2}')
+    rm -f "$dryad_root_build_fingerprint_manifest"
+    printf 'v2-sh%s\n' "$dryad_root_build_fingerprint_sum"
+}
+
+dryad_root_build_heap_package_path () {
+    dryad_root_build_heap_garden=$1
+    dryad_root_build_heap_kind=$2
+    dryad_root_build_heap_fingerprint=$3
+    dryad_root_build_heap_encoded=${dryad_root_build_heap_fingerprint#v2-}
+
+    case $dryad_root_build_heap_encoded in
+        "$dryad_root_build_heap_fingerprint" )
+            printf '%s\n' "$dryad_root_build_heap_garden/dyd/heap/$dryad_root_build_heap_kind/$dryad_root_build_heap_fingerprint"
+            ;;
+        * )
+            printf '%s\n' "$dryad_root_build_heap_garden/dyd/heap/$dryad_root_build_heap_kind/v2/$dryad_root_build_heap_encoded"
+            ;;
+    esac
+}
+
+dryad_root_build_publish_dir () {
+    dryad_root_build_publish_src=$1
+    dryad_root_build_publish_dest=$2
+
+    if [ -e "$dryad_root_build_publish_dest" ] || [ -L "$dryad_root_build_publish_dest" ]; then
+        return 0
+    fi
+
+    mkdir -p "$(dirname "$dryad_root_build_publish_dest")"
+    dryad_root_build_publish_tmp=$dryad_root_build_publish_dest.tmp.$$
+    rm -rf "$dryad_root_build_publish_tmp"
+    mkdir -p "$dryad_root_build_publish_tmp"
+    cp -R "$dryad_root_build_publish_src/." "$dryad_root_build_publish_tmp/"
+    if ! mv "$dryad_root_build_publish_tmp" "$dryad_root_build_publish_dest" 2>/dev/null; then
+        rm -rf "$dryad_root_build_publish_tmp"
+        [ -e "$dryad_root_build_publish_dest" ] || return 1
+    fi
+}
+
+dryad_root_build_ensure_sprout_parent () {
+    dryad_root_build_parent_garden=$1
+    dryad_root_build_parent_rel=$2
+    dryad_root_build_parent_dir=$(dirname "$dryad_root_build_parent_rel")
+    dryad_root_build_parent_current=$(dryad_sprouts_ensure_dir "$dryad_root_build_parent_garden")
+
+    if [ "$dryad_root_build_parent_dir" = . ]; then
+        printf '%s\n' "$dryad_root_build_parent_current"
+        return 0
+    fi
+
+    dryad_root_build_parent_old_ifs=$IFS
+    IFS=/
+    set -- $dryad_root_build_parent_dir
+    IFS=$dryad_root_build_parent_old_ifs
+
+    for dryad_root_build_parent_segment do
+        [ -n "$dryad_root_build_parent_segment" ] || continue
+        dryad_root_build_parent_next=$dryad_root_build_parent_current/$dryad_root_build_parent_segment
+        if [ -e "$dryad_root_build_parent_next" ] && [ ! -d "$dryad_root_build_parent_next" ]; then
+            dryad_die "sprout parent path exists and is not a directory: $dryad_root_build_parent_next"
+        fi
+        if [ ! -d "$dryad_root_build_parent_next" ]; then
+            dryad_root_build_parent_restore=0
+            if ! dryad_path_has_owner_write "$dryad_root_build_parent_current"; then
+                dryad_root_build_parent_restore=1
+                chmod u+w "$dryad_root_build_parent_current"
+            fi
+            mkdir "$dryad_root_build_parent_next"
+            chmod 551 "$dryad_root_build_parent_next"
+            if [ "$dryad_root_build_parent_restore" = 1 ]; then
+                chmod u-w "$dryad_root_build_parent_current"
+            fi
+        fi
+        dryad_root_build_parent_current=$dryad_root_build_parent_next
+    done
+
+    printf '%s\n' "$dryad_root_build_parent_current"
+}
+
+dryad_root_build_run_command () {
+    dryad_root_build_run_garden=$1
+    dryad_root_build_run_rel=$2
+    dryad_root_build_run_source=$3
+    dryad_root_build_run_dest=$4
+    dryad_root_build_run_join_stdout=$5
+    dryad_root_build_run_join_stderr=$6
+    dryad_root_build_run_log_stdout=$7
+    dryad_root_build_run_log_stderr=$8
+
+    dryad_root_build_run_command=$dryad_root_build_run_source/dyd/commands/dyd-root-build
+    [ -f "$dryad_root_build_run_command" ] ||
+        dryad_die "missing root build command: $dryad_root_build_run_command"
+
+    dryad_root_build_run_stdout=$(mktemp "${TMPDIR:-/tmp}/dryad-sh-root-build.stdout.XXXXXX")
+    dryad_root_build_run_stderr=$(mktemp "${TMPDIR:-/tmp}/dryad-sh-root-build.stderr.XXXXXX")
+    dryad_root_build_run_path=$dryad_root_build_run_source/dyd/commands:$dryad_root_build_run_source/dyd/path:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    case $(dryad_host_os) in
+        darwin )
+            dryad_root_build_run_path=$dryad_root_build_run_path:/opt/homebrew/bin:/opt/homebrew/sbin
+            ;;
+    esac
+
+    set +e
+    (
+        cd "$dryad_root_build_run_source" || exit 1
+        PATH=$dryad_root_build_run_path \
+        DYD_STEM=$dryad_root_build_run_source \
+        DYD_BUILD=$dryad_root_build_run_dest \
+        DYD_GARDEN=$dryad_root_build_run_garden \
+        DYD_OS=$(dryad_host_os) \
+        DYD_ARCH=$(dryad_host_arch) \
+        DYD_LOG_LEVEL=$dryad_log_level \
+        "$dryad_root_build_run_command" "$dryad_root_build_run_dest"
+    ) > "$dryad_root_build_run_stdout" 2> "$dryad_root_build_run_stderr"
+    dryad_root_build_run_status=$?
+    set -e
+
+    if [ "$dryad_root_build_run_join_stdout" = 1 ]; then
+        cat "$dryad_root_build_run_stdout" >&2
+    fi
+    if [ "$dryad_root_build_run_join_stderr" = 1 ]; then
+        cat "$dryad_root_build_run_stderr" >&2
+    fi
+    if [ -n "$dryad_root_build_run_log_stdout" ]; then
+        mkdir -p "$dryad_root_build_run_log_stdout"
+        cp "$dryad_root_build_run_stdout" "$dryad_root_build_run_log_stdout/dyd-root-build--$(dryad_sprouts_run_sanitize_segment "$dryad_root_build_run_rel").out"
+    fi
+    if [ -n "$dryad_root_build_run_log_stderr" ]; then
+        mkdir -p "$dryad_root_build_run_log_stderr"
+        cp "$dryad_root_build_run_stderr" "$dryad_root_build_run_log_stderr/dyd-root-build--$(dryad_sprouts_run_sanitize_segment "$dryad_root_build_run_rel").err"
+    fi
+
+    rm -f "$dryad_root_build_run_stdout" "$dryad_root_build_run_stderr"
+    return "$dryad_root_build_run_status"
+}
+
+dryad_root_build_stem () {
+    dryad_root_build_stem_garden=$1
+    dryad_root_build_stem_root=$2
+    dryad_root_build_stem_descriptor=$3
+
+    dryad_root_build_stem_rel=${dryad_root_build_stem_root#"$dryad_root_build_stem_garden"/dyd/roots/}
+    dryad_root_build_stem_workspace=$(mktemp -d "${TMPDIR:-/tmp}/dryad-sh-root.XXXXXX")
+    dryad_root_build_stem_dest=$(mktemp -d "${TMPDIR:-/tmp}/dryad-sh-stem.XXXXXX")
+
+    dryad_root_build_log "root build - verifying root path=dyd/roots/$dryad_root_build_stem_rel variant=${dryad_root_build_stem_descriptor:-default}"
+
+    dryad_root_build_prepare_source "$dryad_root_build_stem_root" "$dryad_root_build_stem_descriptor" "$dryad_root_build_stem_workspace"
+    dryad_root_build_prepare_dependencies "$dryad_root_build_stem_garden" "$dryad_root_build_stem_root" "$dryad_root_build_stem_descriptor" "$dryad_root_build_stem_workspace"
+    dryad_root_build_prepare_path "$dryad_root_build_stem_workspace"
+
+    dryad_root_build_init_stem "$dryad_root_build_stem_dest"
+    dryad_root_build_log "root build - building root path=dyd/roots/$dryad_root_build_stem_rel variant=${dryad_root_build_stem_descriptor:-default}"
+    dryad_root_build_run_command \
+        "$dryad_root_build_stem_garden" \
+        "$dryad_root_build_stem_rel" \
+        "$dryad_root_build_stem_workspace" \
+        "$dryad_root_build_stem_dest" \
+        "${dryad_root_build_join_stdout:-0}" \
+        "${dryad_root_build_join_stderr:-0}" \
+        "${dryad_root_build_log_stdout:-}" \
+        "${dryad_root_build_log_stderr:-}" ||
+        dryad_die "error executing root to build stem: dyd/roots/$dryad_root_build_stem_rel"
+
+    dryad_root_build_prepare_built_requirements "$dryad_root_build_stem_dest"
+    dryad_root_build_prepare_path "$dryad_root_build_stem_dest"
+    printf '%s' stem > "$dryad_root_build_stem_dest/dyd/type"
+    dryad_root_build_stem_fingerprint=$(dryad_root_build_fingerprint "$dryad_root_build_stem_dest")
+    printf '%s' "$dryad_root_build_stem_fingerprint" > "$dryad_root_build_stem_dest/dyd/fingerprint"
+    dryad_root_build_publish_dir "$dryad_root_build_stem_dest" "$(dryad_root_build_heap_package_path "$dryad_root_build_stem_garden" stems "$dryad_root_build_stem_fingerprint")"
+
+    rm -rf "$dryad_root_build_stem_workspace" "$dryad_root_build_stem_dest"
+    dryad_root_build_log "root build - done building root path=dyd/roots/$dryad_root_build_stem_rel variant=${dryad_root_build_stem_descriptor:-default}"
+    printf '%s\n' "$dryad_root_build_stem_fingerprint"
+}
+
+dryad_root_build_materialize_sprout () {
+    dryad_root_build_sprout_garden=$1
+    dryad_root_build_sprout_root=$2
+    dryad_root_build_sprout_descriptors=$3
+    dryad_root_build_sprout_tmp=$(mktemp -d "${TMPDIR:-/tmp}/dryad-sh-sprout.XXXXXX")
+    dryad_root_build_sprout_rel=${dryad_root_build_sprout_root#"$dryad_root_build_sprout_garden"/dyd/roots/}
+
+    mkdir -p "$dryad_root_build_sprout_tmp/dyd/dependencies"
+    mkdir -p "$dryad_root_build_sprout_tmp/dyd/requirements"
+    mkdir -p "$dryad_root_build_sprout_tmp/dyd/traits"
+
+    if [ -d "$dryad_root_build_sprout_root/dyd/traits" ]; then
+        dryad_root_build_copy_dir_contents "$dryad_root_build_sprout_root/dyd/traits" "$dryad_root_build_sprout_tmp/dyd/traits"
+    fi
+
+    printf '%s\n' "$dryad_root_build_sprout_descriptors" | while IFS= read -r dryad_root_build_sprout_descriptor; do
+        [ -n "$dryad_root_build_sprout_descriptor" ] || [ "$(printf '%s\n' "$dryad_root_build_sprout_descriptors" | wc -l | tr -d ' ')" -eq 1 ] || true
+        dryad_root_build_sprout_stem_fingerprint=$(dryad_root_build_stem "$dryad_root_build_sprout_garden" "$dryad_root_build_sprout_root" "$dryad_root_build_sprout_descriptor")
+        dryad_root_build_sprout_dep_name=stem
+        if [ -n "$dryad_root_build_sprout_descriptor" ]; then
+            dryad_root_build_sprout_dep_name=stem~$dryad_root_build_sprout_descriptor
+        fi
+        ln -s "$(dryad_root_build_heap_package_path "$dryad_root_build_sprout_garden" stems "$dryad_root_build_sprout_stem_fingerprint")" "$dryad_root_build_sprout_tmp/dyd/dependencies/$dryad_root_build_sprout_dep_name"
+        printf '%s' "$dryad_root_build_sprout_stem_fingerprint" > "$dryad_root_build_sprout_tmp/dyd/requirements/$dryad_root_build_sprout_dep_name"
+    done
+
+    printf '%s' sprout > "$dryad_root_build_sprout_tmp/dyd/type"
+    dryad_root_build_sprout_fingerprint=$(dryad_root_build_fingerprint "$dryad_root_build_sprout_tmp")
+    printf '%s' "$dryad_root_build_sprout_fingerprint" > "$dryad_root_build_sprout_tmp/dyd/fingerprint"
+    dryad_root_build_sprout_heap_path=$(dryad_root_build_heap_package_path "$dryad_root_build_sprout_garden" sprouts "$dryad_root_build_sprout_fingerprint")
+    dryad_root_build_publish_dir "$dryad_root_build_sprout_tmp" "$dryad_root_build_sprout_heap_path"
+
+    dryad_root_build_sprout_link_parent=$(dryad_root_build_ensure_sprout_parent "$dryad_root_build_sprout_garden" "$dryad_root_build_sprout_rel")
+    dryad_root_build_sprout_link=$dryad_root_build_sprout_link_parent/$(basename "$dryad_root_build_sprout_rel")
+    dryad_root_build_sprout_restore_parent=0
+    if [ -d "$dryad_root_build_sprout_link_parent" ] &&
+        ! dryad_path_has_owner_write "$dryad_root_build_sprout_link_parent"; then
+        dryad_root_build_sprout_restore_parent=1
+        chmod u+w "$dryad_root_build_sprout_link_parent"
+    fi
+    if [ -e "$dryad_root_build_sprout_link" ] || [ -L "$dryad_root_build_sprout_link" ]; then
+        dryad_sprouts_make_tree_removable "$dryad_root_build_sprout_link"
+        rm -rf "$dryad_root_build_sprout_link"
+    fi
+    dryad_root_build_sprout_ln_status=0
+    ln -s "$dryad_root_build_sprout_heap_path" "$dryad_root_build_sprout_link" ||
+        dryad_root_build_sprout_ln_status=$?
+    if [ "$dryad_root_build_sprout_restore_parent" = 1 ]; then
+        chmod u-w "$dryad_root_build_sprout_link_parent"
+    fi
+    [ "$dryad_root_build_sprout_ln_status" = 0 ] ||
+        return "$dryad_root_build_sprout_ln_status"
+
+    rm -rf "$dryad_root_build_sprout_tmp"
+    dryad_root_build_log "root build - done verifying root path=dyd/roots/$dryad_root_build_sprout_rel"
+    printf '%s\n' "$dryad_root_build_sprout_fingerprint"
+}
+
+dryad_root_build_sprout () {
+    dryad_root_build_sprout_root=$1
+    dryad_root_build_sprout_selector=$2
+    dryad_root_build_sprout_garden=$3
+    dryad_root_build_sprout_descriptors=$(dryad_root_build_selected_descriptors "$dryad_root_build_sprout_root" "$dryad_root_build_sprout_selector")
+
+    if [ -z "$(printf '%s\n' "$dryad_root_build_sprout_descriptors" | sed '/^$/d')" ] &&
+        [ -d "$dryad_root_build_sprout_root/dyd/variants" ]; then
+        dryad_die "resolved root build variants are filtered by variants/_include and variants/_exclude"
+    fi
+
+    dryad_root_build_materialize_sprout "$dryad_root_build_sprout_garden" "$dryad_root_build_sprout_root" "$dryad_root_build_sprout_descriptors"
+}
+
+dryad_roots_build_entry () {
+    dryad_roots_build_entry_root=$1
+    dryad_roots_build_entry_descriptor=$2
+    dryad_roots_build_entry_garden=$3
+    dryad_roots_build_entry_display=${dryad_roots_build_entry_root#"$dryad_roots_build_entry_garden"/}
+
+    if [ -n "$dryad_roots_build_entry_descriptor" ]; then
+        dryad_roots_build_entry_ref=$dryad_roots_build_entry_display~$dryad_roots_build_entry_descriptor
+    else
+        dryad_roots_build_entry_ref=$dryad_roots_build_entry_display
+    fi
+
+    if dryad_root_variant_selector_matches_descriptor "$dryad_roots_build_variant" "$dryad_roots_build_entry_descriptor" &&
+        dryad_roots_entry_matches_filters "$dryad_roots_build_entry_ref" "$dryad_roots_build_entry_root" "$dryad_roots_build_entry_descriptor"; then
+        printf '%s\t%s\n' "$dryad_roots_build_entry_root" "$dryad_roots_build_entry_descriptor"
+    fi
+}
+
+dryad_roots_build_entries_all () {
+    dryad_roots_build_entries_garden=$1
+    dryad_roots_build_entries_dir=$dryad_roots_build_entries_garden/dyd/roots
+
+    [ -d "$dryad_roots_build_entries_dir" ] || return 0
+
+    dryad_roots_find_roots "$dryad_roots_build_entries_dir" | while IFS= read -r dryad_roots_build_entry_root; do
+        dryad_roots_variant_descriptors "$dryad_roots_build_entry_root" | while IFS= read -r dryad_roots_build_entry_descriptor; do
+            dryad_roots_build_entry "$dryad_roots_build_entry_root" "$dryad_roots_build_entry_descriptor" "$dryad_roots_build_entries_garden"
+        done
+    done
+}
+
+dryad_roots_build_entries_from_stdin () {
+    dryad_roots_build_entries_garden=$1
+
+    while IFS= read -r dryad_roots_build_stdin_ref; do
+        [ -n "$dryad_roots_build_stdin_ref" ] || continue
+        dryad_roots_build_stdin_parsed=$(dryad_root_ref_parse "$dryad_roots_build_stdin_ref")
+        dryad_roots_build_stdin_path=$(printf '%s\n' "$dryad_roots_build_stdin_parsed" | sed -n '1p')
+        dryad_roots_build_stdin_selector=$(printf '%s\n' "$dryad_roots_build_stdin_parsed" | sed -n '2p')
+        dryad_roots_build_stdin_root=$(dryad_root_path_find "$dryad_roots_build_stdin_path")
+
+        dryad_roots_variant_descriptors "$dryad_roots_build_stdin_root" | while IFS= read -r dryad_roots_build_stdin_descriptor; do
+            if dryad_root_variant_selector_matches_descriptor "$dryad_roots_build_stdin_selector" "$dryad_roots_build_stdin_descriptor"; then
+                dryad_roots_build_entry "$dryad_roots_build_stdin_root" "$dryad_roots_build_stdin_descriptor" "$dryad_roots_build_entries_garden"
+            fi
+        done
+    done
+}
+
+dryad_roots_build_run_entries () {
+    dryad_roots_build_run_entries=$1
+    dryad_roots_build_run_garden=$2
+    dryad_roots_build_run_roots=$(mktemp "${TMPDIR:-/tmp}/dryad-sh-roots-build.XXXXXX")
+
+    printf '%s\n' "$dryad_roots_build_run_entries" |
+        awk -F '\t' '$1 != "" { print $1 }' |
+        sort -u > "$dryad_roots_build_run_roots"
+
+    while IFS= read -r dryad_roots_build_run_root; do
+        [ -n "$dryad_roots_build_run_root" ] || continue
+        dryad_roots_build_run_descriptors=$(printf '%s\n' "$dryad_roots_build_run_entries" |
+            awk -F '\t' -v root="$dryad_roots_build_run_root" '$1 == root { print $2 }')
+        dryad_root_build_materialize_sprout "$dryad_roots_build_run_garden" "$dryad_roots_build_run_root" "$dryad_roots_build_run_descriptors" >/dev/null
+    done < "$dryad_roots_build_run_roots"
+
+    rm -f "$dryad_roots_build_run_roots"
+}
+
+dryad_cmd_roots_build () {
+    dryad_roots_include=
+    dryad_roots_exclude=
+    dryad_roots_build_from_stdin=0
+    dryad_roots_build_variant=
+    dryad_root_build_join_stdout=0
+    dryad_root_build_join_stderr=0
+    dryad_root_build_log_stdout=
+    dryad_root_build_log_stderr=
+
+    while [ "$#" -gt 0 ]; do
+        dryad_roots_build_arg=$(dryad_strip_option_quotes "$1")
+        case $dryad_roots_build_arg in
+            --help | -h )
+                cat <<'EOF'
+Usage:
+  dryad roots build [--include=<filter>] [--exclude=<filter>] [--from-stdin] [--variant=<descriptor>]
+EOF
+                return 0
+                ;;
+            --include=* )
+                dryad_roots_include="${dryad_roots_include}
+${dryad_roots_build_arg#--include=}"
+                shift
+                ;;
+            --include )
+                [ "$#" -gt 1 ] || dryad_die "--include requires a value"
+                dryad_roots_include="${dryad_roots_include}
+$2"
+                shift 2
+                ;;
+            --exclude=* )
+                dryad_roots_exclude="${dryad_roots_exclude}
+${dryad_roots_build_arg#--exclude=}"
+                shift
+                ;;
+            --exclude )
+                [ "$#" -gt 1 ] || dryad_die "--exclude requires a value"
+                dryad_roots_exclude="${dryad_roots_exclude}
+$2"
+                shift 2
+                ;;
+            --from-stdin )
+                dryad_roots_build_from_stdin=1
+                shift
+                ;;
+            --variant=* )
+                dryad_roots_build_variant=$(dryad_fs_descriptor_normalize "${dryad_roots_build_arg#--variant=}")
+                shift
+                ;;
+            --variant )
+                [ "$#" -gt 1 ] || dryad_die "--variant requires a value"
+                dryad_roots_build_variant=$(dryad_fs_descriptor_normalize "$2")
+                shift 2
+                ;;
+            --join-stdout=* )
+                dryad_root_build_join_stdout=$(dryad_bool_value "${dryad_roots_build_arg#--join-stdout=}")
+                shift
+                ;;
+            --join-stdout )
+                dryad_root_build_join_stdout=1
+                shift
+                ;;
+            --join-stderr=* )
+                dryad_root_build_join_stderr=$(dryad_bool_value "${dryad_roots_build_arg#--join-stderr=}")
+                shift
+                ;;
+            --join-stderr )
+                dryad_root_build_join_stderr=1
+                shift
+                ;;
+            --log-stdout=* )
+                dryad_root_build_log_stdout=${dryad_roots_build_arg#--log-stdout=}
+                dryad_root_build_join_stdout=0
+                shift
+                ;;
+            --log-stdout )
+                [ "$#" -gt 1 ] || dryad_die "--log-stdout requires a value"
+                dryad_root_build_log_stdout=$2
+                dryad_root_build_join_stdout=0
+                shift 2
+                ;;
+            --log-stderr=* )
+                dryad_root_build_log_stderr=${dryad_roots_build_arg#--log-stderr=}
+                dryad_root_build_join_stderr=0
+                shift
+                ;;
+            --log-stderr )
+                [ "$#" -gt 1 ] || dryad_die "--log-stderr requires a value"
+                dryad_root_build_log_stderr=$2
+                dryad_root_build_join_stderr=0
+                shift 2
+                ;;
+            --scope=* | --log-level=* | --log-format=* | --parallel=* | --path=* )
+                shift
+                ;;
+            --scope | --log-level | --log-format | --parallel | --path )
+                [ "$#" -gt 1 ] || dryad_die "$1 requires a value"
+                shift 2
+                ;;
+            -- )
+                shift
+                break
+                ;;
+            --* )
+                dryad_die "unsupported roots build option: $1"
+                ;;
+            * )
+                dryad_die "unsupported roots build argument: $1"
+                ;;
+        esac
+    done
+
+    dryad_roots_build_garden=$(dryad_garden_find)
+    dryad_sprouts_prune "$dryad_roots_build_garden"
+
+    if [ "$dryad_roots_build_from_stdin" = 1 ]; then
+        dryad_roots_build_entries=$(dryad_roots_build_entries_from_stdin "$dryad_roots_build_garden")
+    else
+        dryad_roots_build_entries=$(dryad_roots_build_entries_all "$dryad_roots_build_garden")
+    fi
+
+    [ -n "$dryad_roots_build_entries" ] || return 0
+    dryad_roots_build_run_entries "$dryad_roots_build_entries" "$dryad_roots_build_garden"
+}
+
+dryad_cmd_root_build () {
+    dryad_root_build_ref=
+    dryad_root_build_variant=
+    dryad_root_build_join_stdout=0
+    dryad_root_build_join_stderr=0
+    dryad_root_build_log_stdout=
+    dryad_root_build_log_stderr=
+
+    while [ "$#" -gt 0 ]; do
+        dryad_root_build_arg=$(dryad_strip_option_quotes "$1")
+        case $dryad_root_build_arg in
+            --help | -h )
+                cat <<'EOF'
+Usage:
+  dryad root build [root_ref] [--variant=<descriptor>]
+EOF
+                return 0
+                ;;
+            --variant=* )
+                [ -z "$dryad_root_build_variant" ] ||
+                    dryad_die "root build selector specified in both root_ref and --variant"
+                dryad_root_build_variant=$(dryad_fs_descriptor_normalize "${dryad_root_build_arg#--variant=}")
+                shift
+                ;;
+            --variant )
+                [ "$#" -gt 1 ] || dryad_die "--variant requires a value"
+                [ -z "$dryad_root_build_variant" ] ||
+                    dryad_die "root build selector specified in both root_ref and --variant"
+                dryad_root_build_variant=$(dryad_fs_descriptor_normalize "$2")
+                shift 2
+                ;;
+            --join-stdout=* )
+                dryad_root_build_join_stdout=$(dryad_bool_value "${dryad_root_build_arg#--join-stdout=}")
+                shift
+                ;;
+            --join-stdout )
+                dryad_root_build_join_stdout=1
+                shift
+                ;;
+            --join-stderr=* )
+                dryad_root_build_join_stderr=$(dryad_bool_value "${dryad_root_build_arg#--join-stderr=}")
+                shift
+                ;;
+            --join-stderr )
+                dryad_root_build_join_stderr=1
+                shift
+                ;;
+            --log-stdout=* )
+                dryad_root_build_log_stdout=${dryad_root_build_arg#--log-stdout=}
+                dryad_root_build_join_stdout=0
+                shift
+                ;;
+            --log-stdout )
+                [ "$#" -gt 1 ] || dryad_die "--log-stdout requires a value"
+                dryad_root_build_log_stdout=$2
+                dryad_root_build_join_stdout=0
+                shift 2
+                ;;
+            --log-stderr=* )
+                dryad_root_build_log_stderr=${dryad_root_build_arg#--log-stderr=}
+                dryad_root_build_join_stderr=0
+                shift
+                ;;
+            --log-stderr )
+                [ "$#" -gt 1 ] || dryad_die "--log-stderr requires a value"
+                dryad_root_build_log_stderr=$2
+                dryad_root_build_join_stderr=0
+                shift 2
+                ;;
+            --scope=* )
+                dryad_scope_arg=${dryad_root_build_arg#--scope=}
+                shift
+                ;;
+            --scope )
+                [ "$#" -gt 1 ] || dryad_die "--scope requires a value"
+                dryad_scope_arg=$2
+                shift 2
+                ;;
+            --log-level=* | --log-format=* | --parallel=* )
+                shift
+                ;;
+            --log-level | --log-format | --parallel )
+                [ "$#" -gt 1 ] || dryad_die "$1 requires a value"
+                shift 2
+                ;;
+            -- )
+                shift
+                break
+                ;;
+            --* )
+                dryad_die "unsupported root build option: $1"
+                ;;
+            * )
+                [ -z "$dryad_root_build_ref" ] ||
+                    dryad_die "root build accepts one root_ref"
+                dryad_root_build_ref=$1
+                shift
+                ;;
+        esac
+    done
+
+    dryad_root_build_parsed=$(dryad_root_ref_parse "${dryad_root_build_ref:-.}")
+    dryad_root_build_path=$(printf '%s\n' "$dryad_root_build_parsed" | sed -n '1p')
+    dryad_root_build_ref_selector=$(printf '%s\n' "$dryad_root_build_parsed" | sed -n '2p')
+    if [ -n "$dryad_root_build_ref_selector" ]; then
+        [ -z "$dryad_root_build_variant" ] ||
+            dryad_die "root build selector specified in both root_ref and --variant"
+        dryad_root_build_variant=$dryad_root_build_ref_selector
+    fi
+
+    dryad_root_build_garden=$(dryad_garden_find)
+    dryad_root_build_root=$(dryad_root_path_find "$dryad_root_build_path")
+    dryad_root_build_sprout "$dryad_root_build_root" "$dryad_root_build_variant" "$dryad_root_build_garden"
+}
+
 dryad_cmd_root () {
     dryad_root_action=${1:-}
     if [ "$#" -gt 0 ]; then
@@ -1325,6 +2196,9 @@ dryad_cmd_root () {
     case $dryad_root_action in
         ancestors )
             dryad_cmd_root_ancestors "$@"
+            ;;
+        build )
+            dryad_cmd_root_build "$@"
             ;;
         descendants )
             dryad_cmd_root_descendants "$@"
@@ -1351,6 +2225,7 @@ dryad_cmd_root () {
             cat <<'EOF'
 Usage:
   dryad root ancestors [path]
+  dryad root build [path]
   dryad root create <path>
   dryad root descendants [path]
   dryad root path [path]
@@ -3155,18 +4030,7 @@ EOF
             dryad_cmd_roots_affected "$@"
             ;;
         build )
-            dryad_roots_next=${1:-}
-            case $dryad_roots_next in
-                --help | -h )
-                    cat <<EOF
-Usage:
-  dryad roots $dryad_roots_action
-EOF
-                    ;;
-                * )
-                    dryad_die "roots $dryad_roots_action is not supported by dryad-sh yet"
-                    ;;
-            esac
+            dryad_cmd_roots_build "$@"
             ;;
         list )
             dryad_roots_include=

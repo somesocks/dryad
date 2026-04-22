@@ -28,6 +28,7 @@ Usage:
 Supported commands:
   garden path
   root ancestors [path]
+  root build [path]
   root create <path>
   root descendants [path]
   root path
@@ -38,6 +39,7 @@ Supported commands:
   root secrets list [path]
   root variants list [path]
   roots affected
+  roots build
   roots each
   roots graph
   roots owning
