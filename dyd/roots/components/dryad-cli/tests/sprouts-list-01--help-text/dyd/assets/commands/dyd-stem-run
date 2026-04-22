@@ -11,6 +11,9 @@ set -euf -o pipefail
 
 SRC_DIR=$DYD_STEM
 TEMP_DIR=''
+LIST_OUTPUT=''
+ABS_LIST_OUTPUT=''
+FILTERED_OUTPUT=''
 
 # import assertion functions
 . $SRC_DIR/dyd/assets/assertions.sh
@@ -27,6 +30,20 @@ _setup() {
 
 _prepare() {
 
+	mkdir -p "$TEMP_DIR/dyd/sprouts/nested"
+	mkdir -p "$TEMP_DIR/dyd/heap/sprouts/sprout-a/dyd/dependencies"
+	mkdir -p "$TEMP_DIR/dyd/heap/sprouts/sprout-b/dyd/dependencies"
+	mkdir -p "$TEMP_DIR/dyd/heap/stems/stem-default/dyd"
+	mkdir -p "$TEMP_DIR/dyd/heap/stems/stem-linux/dyd"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	printf 'sprout' > "$TEMP_DIR/dyd/heap/sprouts/sprout-a/dyd/type"
+	printf 'sprout' > "$TEMP_DIR/dyd/heap/sprouts/sprout-b/dyd/type"
+	printf 'stem-default' > "$TEMP_DIR/dyd/heap/stems/stem-default/dyd/fingerprint"
+	printf 'stem-linux' > "$TEMP_DIR/dyd/heap/stems/stem-linux/dyd/fingerprint"
+	ln -s "$TEMP_DIR/dyd/heap/stems/stem-default" "$TEMP_DIR/dyd/heap/sprouts/sprout-a/dyd/dependencies/stem"
+	ln -s "$TEMP_DIR/dyd/heap/stems/stem-linux" "$TEMP_DIR/dyd/heap/sprouts/sprout-b/dyd/dependencies/stem~os=linux"
+	ln -s "$TEMP_DIR/dyd/heap/sprouts/sprout-a" "$TEMP_DIR/dyd/sprouts/root-a"
+	ln -s "$TEMP_DIR/dyd/heap/sprouts/sprout-b" "$TEMP_DIR/dyd/sprouts/nested/root-b~os=linux"
 	cd "$TEMP_DIR"
 	:;
 }
@@ -34,10 +51,36 @@ _prepare() {
 _test() {
 
 	HELP_TEXT=$(dryad sprouts list --help);
+	LIST_OUTPUT=$(dryad sprouts list | sort)
+	ABS_LIST_OUTPUT=$(dryad sprouts list --relative=false | sort)
+	FILTERED_OUTPUT=$(dryad sprouts list --include='**~os=linux' | sort)
 }
 
 _verify() {
 	assert_not_empty "$HELP_TEXT" "help text"
+	EXPECTED_LIST_OUTPUT=$(printf '%s\n%s' \
+		'dyd/sprouts/nested/root-b~os=linux' \
+		'dyd/sprouts/root-a')
+	EXPECTED_ABS_LIST_OUTPUT=$(printf '%s\n%s' \
+		"$TEMP_DIR/dyd/sprouts/nested/root-b~os=linux" \
+		"$TEMP_DIR/dyd/sprouts/root-a")
+	EXPECTED_FILTERED_OUTPUT='dyd/sprouts/nested/root-b~os=linux'
+
+	if [ "$LIST_OUTPUT" != "$EXPECTED_LIST_OUTPUT" ]; then
+		echo "[ERROR] Fail: expected sprouts list output to be exact" 1>&2
+		echo "$LIST_OUTPUT" 1>&2
+		return 1
+	fi
+	if [ "$ABS_LIST_OUTPUT" != "$EXPECTED_ABS_LIST_OUTPUT" ]; then
+		echo "[ERROR] Fail: expected absolute sprouts list output to be exact" 1>&2
+		echo "$ABS_LIST_OUTPUT" 1>&2
+		return 1
+	fi
+	if [ "$FILTERED_OUTPUT" != "$EXPECTED_FILTERED_OUTPUT" ]; then
+		echo "[ERROR] Fail: expected filtered sprouts list output to be exact" 1>&2
+		echo "$FILTERED_OUTPUT" 1>&2
+		return 1
+	fi
 	:;
 }
 

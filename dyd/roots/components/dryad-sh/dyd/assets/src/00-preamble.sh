@@ -43,6 +43,8 @@ Supported commands:
   roots owning
   roots path
   roots list
+  sprouts path
+  sprouts list
   scopes path
   scopes list
   scope active

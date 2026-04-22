@@ -67,6 +67,9 @@ dryad_main () {
         roots )
             dryad_cmd_roots "$@"
             ;;
+        sprouts )
+            dryad_cmd_sprouts "$@"
+            ;;
         root )
             dryad_cmd_root "$@"
             ;;

@@ -11,6 +11,7 @@ set -euf -o pipefail
 
 SRC_DIR=$DYD_STEM
 TEMP_DIR=''
+SPROUTS_PATH=''
 
 # import assertion functions
 . $SRC_DIR/dyd/assets/assertions.sh
@@ -27,6 +28,8 @@ _setup() {
 
 _prepare() {
 
+	mkdir -p "$TEMP_DIR/dyd/sprouts"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
 	cd "$TEMP_DIR"
 	:;
 }
@@ -34,10 +37,16 @@ _prepare() {
 _test() {
 
 	HELP_TEXT=$(dryad sprouts path --help);
+	SPROUTS_PATH=$(dryad sprouts path);
 }
 
 _verify() {
 	assert_not_empty "$HELP_TEXT" "help text"
+	if [ "$SPROUTS_PATH" != "$TEMP_DIR/dyd/sprouts" ]; then
+		echo "[ERROR] Fail: expected sprouts path to point at garden sprouts dir" 1>&2
+		echo "$SPROUTS_PATH" 1>&2
+		return 1
+	fi
 	:;
 }
 

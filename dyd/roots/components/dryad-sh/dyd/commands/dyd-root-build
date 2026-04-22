@@ -37,6 +37,8 @@ _build_single_file () {
         printf '\n'
         sed '1{/^#!/d;}' "$SRC_DIR"/roots.sh
         printf '\n'
+        sed '1{/^#!/d;}' "$SRC_DIR"/sprouts.sh
+        printf '\n'
         sed '1{/^#!/d;}' "$SRC_DIR"/run.sh
         printf '\n'
         sed '1{/^#!/d;}' "$SRC_DIR"/scripts.sh
