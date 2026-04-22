@@ -46,6 +46,7 @@ Supported commands:
   sprouts path
   sprouts list
   sprouts prune
+  sprouts run
   sprouts wipe
   scopes path
   scopes list

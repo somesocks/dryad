@@ -54,14 +54,46 @@ _setup() {
 }
 
 _prepare() {
-	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
-	chmod -R 755 "$TEMP_DIR"
+	mkdir -p "$TEMP_DIR/dyd/sprouts"
+	mkdir -p "$TEMP_DIR/dyd/heap/sprouts/root-top/dyd/dependencies"
+
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	printf 'sprout' > "$TEMP_DIR/dyd/heap/sprouts/root-top/dyd/type"
+
+	for arch in amd64 arm64; do
+		for os_name in linux darwin; do
+			_create_variant_stem "$arch" "$os_name"
+		done
+	done
+
+	ln -s "$TEMP_DIR/dyd/heap/sprouts/root-top" "$TEMP_DIR/dyd/sprouts/root-top"
 	cd "$TEMP_DIR"
 }
 
-_test() {
-	dryad root build "dyd/roots/root-top" --log-level="$DYD_LOG_LEVEL" > /dev/null
+_create_variant_stem() {
+	arch="$1"
+	os_name="$2"
+	stem="$TEMP_DIR/dyd/heap/stems/$arch-$os_name"
 
+	mkdir -p "$stem/dyd/commands" "$stem/dyd/traits"
+	printf '%s' "$arch" > "$stem/dyd/traits/arch"
+	printf '%s' "$os_name" > "$stem/dyd/traits/os"
+	cat > "$stem/dyd/commands/dyd-stem-run" <<'EOF'
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+arch="$(cat "$DYD_STEM/dyd/traits/arch")"
+os_name="$(cat "$DYD_STEM/dyd/traits/os")"
+
+out_dir="$DYD_GARDEN/dyd/heap/sprouts-run-03--qualified-stdin-refs"
+mkdir -p "$out_dir"
+printf "ok\n" > "$out_dir/$arch-$os_name"
+EOF
+	chmod 755 "$stem/dyd/commands/dyd-stem-run"
+	ln -s "$stem" "$TEMP_DIR/dyd/heap/sprouts/root-top/dyd/dependencies/stem~arch=$arch+os=$os_name"
+}
+
+_test() {
 	fs_log_path="$TEMP_DIR/sprouts-run-filesystem.log"
 	printf '%s\n' 'dyd/sprouts/root-top~arch=any+os=linux' \
 		| dryad sprouts run --from-stdin --log-level="$DYD_LOG_LEVEL" >"$fs_log_path" 2>&1
@@ -85,6 +117,15 @@ _test() {
 			| dryad sprouts run --from-stdin --variant="arch=amd64+os=linux" --log-level="$DYD_LOG_LEVEL" 2>&1
 	)
 	duplicate_status=$?
+
+	overspecified_output=$(dryad sprouts run --variant="cpu=x86" --log-level="$DYD_LOG_LEVEL" 2>&1)
+	overspecified_status=$?
+
+	wrong_option_output=$(dryad sprouts run --variant="arch=s390x" --log-level="$DYD_LOG_LEVEL" 2>&1)
+	wrong_option_status=$?
+
+	inherit_output=$(dryad sprouts run --variant="arch=inherit" --log-level="$DYD_LOG_LEVEL" 2>&1)
+	inherit_status=$?
 	set -e
 }
 
@@ -108,6 +149,36 @@ _verify() {
 	if ! printf '%s' "$duplicate_output" | grep -Fq "sprouts run selector specified in both stdin sprout_ref and --variant"; then
 		echo "[ERROR] Fail: expected duplicate selector error for sprouts run" 1>&2
 		printf '%s\n' "$duplicate_output" 1>&2
+		return 1
+	fi
+
+	if [ "$overspecified_status" -eq 0 ]; then
+		echo "[ERROR] Fail: expected over-specified variant dimension to fail" 1>&2
+		return 1
+	fi
+	if ! printf '%s' "$overspecified_output" | grep -Fq "over-specified sprout run variant dimension: cpu"; then
+		echo "[ERROR] Fail: expected over-specified variant dimension error" 1>&2
+		printf '%s\n' "$overspecified_output" 1>&2
+		return 1
+	fi
+
+	if [ "$wrong_option_status" -eq 0 ]; then
+		echo "[ERROR] Fail: expected wrongly-specified variant option to fail" 1>&2
+		return 1
+	fi
+	if ! printf '%s' "$wrong_option_output" | grep -Fq "wrongly-specified sprout run variant option: arch=s390x"; then
+		echo "[ERROR] Fail: expected wrongly-specified variant option error" 1>&2
+		printf '%s\n' "$wrong_option_output" 1>&2
+		return 1
+	fi
+
+	if [ "$inherit_status" -eq 0 ]; then
+		echo "[ERROR] Fail: expected inherit variant selector to fail" 1>&2
+		return 1
+	fi
+	if ! printf '%s' "$inherit_output" | grep -Fq "inherit option is not supported for sprout run variant selectors: arch"; then
+		echo "[ERROR] Fail: expected inherit variant selector error" 1>&2
+		printf '%s\n' "$inherit_output" 1>&2
 		return 1
 	fi
 }

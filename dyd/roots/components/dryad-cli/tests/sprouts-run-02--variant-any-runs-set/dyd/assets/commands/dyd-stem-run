@@ -11,13 +11,48 @@ _setup() {
 }
 
 _prepare() {
-	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
-	chmod -R 755 "$TEMP_DIR"
+	mkdir -p "$TEMP_DIR/dyd/sprouts"
+	mkdir -p "$TEMP_DIR/dyd/heap/sprouts/root-top/dyd/dependencies"
+	mkdir -p "$TEMP_DIR/dyd/heap/sprouts/root-top/dyd/traits"
+
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	printf 'sprout' > "$TEMP_DIR/dyd/heap/sprouts/root-top/dyd/type"
+	printf 'runner' > "$TEMP_DIR/dyd/heap/sprouts/root-top/dyd/traits/role"
+
+	for arch in amd64 arm64; do
+		for os_name in linux darwin; do
+			_create_variant_stem "$arch" "$os_name"
+		done
+	done
+
+	ln -s "$TEMP_DIR/dyd/heap/sprouts/root-top" "$TEMP_DIR/dyd/sprouts/root-top"
 	cd "$TEMP_DIR"
 }
 
+_create_variant_stem() {
+	arch="$1"
+	os_name="$2"
+	stem="$TEMP_DIR/dyd/heap/stems/$arch-$os_name"
+
+	mkdir -p "$stem/dyd/commands" "$stem/dyd/traits"
+	printf '%s' "$arch" > "$stem/dyd/traits/arch"
+	printf '%s' "$os_name" > "$stem/dyd/traits/os"
+	cat > "$stem/dyd/commands/dyd-stem-run" <<'EOF'
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+arch="$(cat "$DYD_STEM/dyd/traits/arch")"
+os_name="$(cat "$DYD_STEM/dyd/traits/os")"
+
+out_dir="$DYD_GARDEN/dyd/heap/sprouts-run-02--variant-any-runs-set"
+mkdir -p "$out_dir"
+printf "ok\n" > "$out_dir/$arch-$os_name"
+EOF
+	chmod 755 "$stem/dyd/commands/dyd-stem-run"
+	ln -s "$stem" "$TEMP_DIR/dyd/heap/sprouts/root-top/dyd/dependencies/stem~arch=$arch+os=$os_name"
+}
+
 _test() {
-	dryad root build "dyd/roots/root-top" --log-level="$DYD_LOG_LEVEL" > /dev/null
 	out_dir="$TEMP_DIR/dyd/heap/sprouts-run-02--variant-any-runs-set"
 
 	variant_log_path="$TEMP_DIR/sprouts-run-variant.log"
@@ -26,6 +61,24 @@ _test() {
 
 	excluded_log_path="$TEMP_DIR/sprouts-run-excluded.log"
 	dryad sprouts run --exclude='~os=linux' --variant="arch=any+os=linux" --log-level="$DYD_LOG_LEVEL" >"$excluded_log_path" 2>&1
+
+	trait_log_path="$TEMP_DIR/sprouts-run-trait.log"
+	dryad sprouts run --include='~role=runner' --variant="arch=amd64+os=linux" --log-level="$DYD_LOG_LEVEL" >"$trait_log_path" 2>&1
+	mv "$out_dir" "$TEMP_DIR/trait-out"
+
+	missing_trait_log_path="$TEMP_DIR/sprouts-run-missing-trait.log"
+	dryad sprouts run --include='~role=none' --variant="arch=amd64+os=linux" --log-level="$DYD_LOG_LEVEL" >"$missing_trait_log_path" 2>&1
+
+	confirm_log_path="$TEMP_DIR/sprouts-run-confirm.log"
+	printf 'yes\n' | dryad sprouts run --confirm=yes --include='~role=runner' --variant="arch=amd64+os=linux" --log-level="$DYD_LOG_LEVEL" >"$confirm_log_path" 2>&1
+	mv "$out_dir" "$TEMP_DIR/confirm-out"
+
+	set +e
+	confirm_abort_output=$(
+		printf 'no\n' | dryad sprouts run --confirm=yes --include='~role=runner' --variant="arch=amd64+os=linux" --log-level="$DYD_LOG_LEVEL" 2>&1
+	)
+	confirm_abort_status=$?
+	set -e
 }
 
 _assert_linux_only() {
@@ -80,11 +133,31 @@ _verify() {
 
 	_assert_linux_only "$variant_out_dir"
 	_assert_linux_run_log "$variant_log_path"
+	assert_file_content_equals "$TEMP_DIR/trait-out/amd64-linux" "ok"
+	assert_file_content_equals "$TEMP_DIR/confirm-out/amd64-linux" "ok"
 	assert_directory_not_exists "$excluded_out_dir"
 
 	if grep -Fq "sprout run starting" "$excluded_log_path"; then
 		echo "[ERROR] Fail: expected naked selector exclude to prevent sprouts from running" 1>&2
 		cat "$excluded_log_path" 1>&2
+		return 1
+	fi
+
+	if grep -Fq "sprout run starting" "$missing_trait_log_path"; then
+		echo "[ERROR] Fail: expected missing trait selector to prevent sprouts from running" 1>&2
+		cat "$missing_trait_log_path" 1>&2
+		return 1
+	fi
+
+	if ! grep -Fq " - dyd/sprouts/root-top" "$confirm_log_path"; then
+		echo "[ERROR] Fail: expected confirm output to list the filtered sprout" 1>&2
+		cat "$confirm_log_path" 1>&2
+		return 1
+	fi
+
+	if ! printf '%s' "$confirm_abort_output" | grep -Fq "input does not match confirmation"; then
+		echo "[ERROR] Fail: expected confirm mismatch output" 1>&2
+		printf '%s\n' "$confirm_abort_output" 1>&2
 		return 1
 	fi
 }
