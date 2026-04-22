@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+assert_equal() {
+	if [ "$1" != "$2" ]; then
+		echo "[ERROR] Fail: expected ($2), got ($1)" 1>&2
+		return 1
+	fi
+}
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	mkdir -p "$TEMP_DIR/dyd/shed/scopes/dev"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	INITIAL_VALUE=$(dryad scope setting get dev roots-list)
+
+	dryad scope setting set dev roots-list 'alpha beta'
+	SET_VALUE=$(dryad scope setting get dev roots-list)
+	FILE_VALUE=$(cat "$TEMP_DIR/dyd/shed/scopes/dev/roots-list")
+	FILE_SIZE=$(wc -c < "$TEMP_DIR/dyd/shed/scopes/dev/roots-list" | tr -d ' ')
+
+	dryad scope setting set dev cli-args -- --include=value
+	DASH_VALUE=$(dryad scope setting get dev cli-args)
+
+	dryad scope setting unset dev roots-list
+	UNSET_VALUE=$(dryad scope setting get dev roots-list)
+
+	set +e
+	MISSING_SCOPE_OUTPUT=$(dryad scope setting get missing roots-list 2>&1)
+	MISSING_SCOPE_STATUS=$?
+	MISSING_UNSET_OUTPUT=$(dryad scope setting unset dev roots-list 2>&1)
+	MISSING_UNSET_STATUS=$?
+	set -e
+}
+
+_verify() {
+	assert_equal "$INITIAL_VALUE" ''
+	assert_equal "$SET_VALUE" 'alpha beta'
+	assert_equal "$FILE_VALUE" 'alpha beta'
+	assert_equal "$FILE_SIZE" 10
+	assert_equal "$DASH_VALUE" '--include=value'
+	assert_equal "$UNSET_VALUE" ''
+
+	if [ -e "$TEMP_DIR/dyd/shed/scopes/dev/roots-list" ]; then
+		echo "[ERROR] Fail: setting still exists after unset" 1>&2
+		return 1
+	fi
+
+	if [ "$MISSING_SCOPE_STATUS" -eq 0 ]; then
+		echo "[ERROR] Fail: missing scope get should fail" 1>&2
+		return 1
+	fi
+
+	case "$MISSING_SCOPE_OUTPUT" in
+		*"error"* ) ;;
+		* )
+			echo "[ERROR] Fail: missing scope output should contain error" 1>&2
+			return 1
+			;;
+	esac
+
+	if [ "$MISSING_UNSET_STATUS" -eq 0 ]; then
+		echo "[ERROR] Fail: missing setting unset should fail" 1>&2
+		return 1
+	fi
+
+	case "$MISSING_UNSET_OUTPUT" in
+		*"error"* ) ;;
+		* )
+			echo "[ERROR] Fail: missing unset output should contain error" 1>&2
+			return 1
+			;;
+	esac
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

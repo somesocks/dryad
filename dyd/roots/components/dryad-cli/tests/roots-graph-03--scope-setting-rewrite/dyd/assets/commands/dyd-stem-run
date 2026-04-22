@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+BASE_OUTPUT=''
+REWRITE_OUTPUT=''
+NONE_SCOPE_OUTPUT=''
+DEV_SCOPE_OUTPUT=''
+EXPECTED_GRAPH='{"dyd/roots/root-01":{"dep-02":"dyd/roots/root-02"},"dyd/roots/root-02":{}}'
+EXPECTED_TRANSPOSED_GRAPH='{"dyd/roots/root-01":{},"dyd/roots/root-02":{"dep-02":"dyd/roots/root-01"}}'
+
+_setup() {
+	#
+	# make a temporary working directory
+	# this command is linux / osx agnostic
+	# https://unix.stackexchange.com/questions/30091/fix-or-alternative-for-mktemp-in-os-x
+	# echo "\[INFO\] creating temporary working directory" 1>&2;
+	TEMP_DIR=''
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	# copy the sample garden to the working directory
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
+	chmod -R 755 "$TEMP_DIR"
+
+	mkdir -p "$TEMP_DIR/dyd/roots/root-01/dyd/requirements"
+	printf 'root:../../../root-02' > "$TEMP_DIR/dyd/roots/root-01/dyd/requirements/dep-02"
+
+	cd "$TEMP_DIR"
+	:;
+}
+
+_test() {
+	BASE_OUTPUT=$(dryad roots graph --format=json-compact)
+
+	dryad scope setting set dev roots-graph -- '--format=json-compact --transpose'
+
+	REWRITE_OUTPUT=$(dryad roots graph --format=json-compact)
+	NONE_SCOPE_OUTPUT=$(dryad roots graph --format=json-compact --scope=none)
+	DEV_SCOPE_OUTPUT=$(dryad roots graph --format=json-compact --scope=dev)
+}
+
+_verify() {
+	if [ "$BASE_OUTPUT" != "$EXPECTED_GRAPH" ]; then
+		echo "[ERROR] Fail: baseline roots graph output did not match. expected ($EXPECTED_GRAPH), got ($BASE_OUTPUT)" 1>&2
+		return 1
+	fi
+
+	if [ "$REWRITE_OUTPUT" != "$EXPECTED_TRANSPOSED_GRAPH" ]; then
+		echo "[ERROR] Fail: rewritten roots graph output did not match. expected ($EXPECTED_TRANSPOSED_GRAPH), got ($REWRITE_OUTPUT)" 1>&2
+		return 1
+	fi
+
+	if [ "$NONE_SCOPE_OUTPUT" != "$EXPECTED_GRAPH" ]; then
+		echo "[ERROR] Fail: --scope=none roots graph output did not match. expected ($EXPECTED_GRAPH), got ($NONE_SCOPE_OUTPUT)" 1>&2
+		return 1
+	fi
+
+	if [ "$DEV_SCOPE_OUTPUT" != "$EXPECTED_TRANSPOSED_GRAPH" ]; then
+		echo "[ERROR] Fail: explicit dev scope roots graph output did not match. expected ($EXPECTED_TRANSPOSED_GRAPH), got ($DEV_SCOPE_OUTPUT)" 1>&2
+		return 1
+	fi
+	:;
+}
+
+_teardown() {
+	# echo "\[INFO\] tearing down fixtures" 1>&2;
+	if [ -d "$TEMP_DIR" ]; then
+		rm -rf $TEMP_DIR
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

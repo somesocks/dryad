@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+LIST_AFTER_ADD=''
+LIST_AFTER_REMOVE_ONE=''
+LIST_AFTER_REMOVE_ALL=''
+
+# import assertion functions
+. $SRC_DIR/dyd/assets/assertions.sh
+
+assert_equal() {
+	if [ "$1" != "$2" ]; then
+		echo "[ERROR] Fail: expected ($2), got ($1)" 1>&2
+		return 1
+	fi
+}
+
+_setup() {
+	TEMP_DIR=''
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_create_root() {
+	ROOT_PATH="$1"
+	ROOT_DIR="$TEMP_DIR/dyd/roots/$ROOT_PATH"
+
+	mkdir -p "$ROOT_DIR/dyd/assets"
+	mkdir -p "$ROOT_DIR/dyd/commands"
+	mkdir -p "$ROOT_DIR/dyd/docs"
+	mkdir -p "$ROOT_DIR/dyd/requirements"
+	mkdir -p "$ROOT_DIR/dyd/secrets"
+	mkdir -p "$ROOT_DIR/dyd/traits"
+
+	printf 'root' > "$ROOT_DIR/dyd/type"
+}
+
+_prepare() {
+	mkdir -p "$TEMP_DIR/dyd/roots"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+
+	_create_root root-01
+	_create_root root-02
+	_create_root root-03
+
+	cd "$TEMP_DIR"
+	:;
+}
+
+_test() {
+	(cd "$TEMP_DIR/dyd/roots/root-01" && dryad root requirement add ../root-02)
+	(cd "$TEMP_DIR/dyd/roots/root-01" && dryad root requirement add 'root:../root-03?arch=amd64&os=linux' dep-03)
+
+	LIST_AFTER_ADD=$(dryad root requirements list dyd/roots/root-01 | sort)
+
+	(cd "$TEMP_DIR/dyd/roots/root-01" && dryad root requirement remove root-02)
+	LIST_AFTER_REMOVE_ONE=$(dryad root requirements list dyd/roots/root-01 | sort)
+
+	(cd "$TEMP_DIR/dyd/roots/root-01" && dryad root requirement remove dep-03)
+	LIST_AFTER_REMOVE_ALL=$(dryad root requirements list dyd/roots/root-01 | sort)
+}
+
+_verify() {
+	EXPECTED_AFTER_ADD="dyd/roots/root-01/dyd/requirements/dep-03 -> root:../../../root-03?arch=amd64&os=linux
+dyd/roots/root-01/dyd/requirements/root-02 -> root:../../../root-02"
+	EXPECTED_AFTER_REMOVE_ONE="dyd/roots/root-01/dyd/requirements/dep-03 -> root:../../../root-03?arch=amd64&os=linux"
+
+	assert_equal "$LIST_AFTER_ADD" "$EXPECTED_AFTER_ADD"
+	assert_equal "$LIST_AFTER_REMOVE_ONE" "$EXPECTED_AFTER_REMOVE_ONE"
+	assert_equal "$LIST_AFTER_REMOVE_ALL" ''
+	:;
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

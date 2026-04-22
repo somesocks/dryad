@@ -1,0 +1,53 @@
+#!/usr/bin/env sh
+
+set -eu
+
+_setup_globals () {
+    SRC_PACKAGE=$DYD_STEM
+    DEST_PACKAGE=$DYD_BUILD
+    DEST_MAIN=$DEST_PACKAGE/dyd/commands/dyd-stem-run
+    SRC_DIR=$SRC_PACKAGE/dyd/assets/src
+}
+
+_setup_logging () {
+    case ${DYD_LOG_LEVEL:-info} in
+        debug | trace ) set -x ;;
+        * ) ;;
+    esac
+}
+
+_copy_traits () {
+    if [ -d "$SRC_PACKAGE/dyd/traits" ]; then
+        cp -s -R "$SRC_PACKAGE"/dyd/traits/. "$DEST_PACKAGE"/dyd/traits/
+    fi
+}
+
+_build_single_file () {
+    mkdir -p "$DEST_PACKAGE/dyd/commands"
+
+    {
+        printf '%s\n' '#!/usr/bin/env sh'
+        printf '%s\n' '# Generated from components/dryad-sh. Edit dyd/assets/src/* instead.'
+        printf '\n'
+        sed '1{/^#!/d;}' "$SRC_DIR"/00-preamble.sh
+        printf '\n'
+        sed '1{/^#!/d;}' "$SRC_DIR"/garden.sh
+        printf '\n'
+        sed '1{/^#!/d;}' "$SRC_DIR"/scopes.sh
+        printf '\n'
+        sed '1{/^#!/d;}' "$SRC_DIR"/roots.sh
+        printf '\n'
+        sed '1{/^#!/d;}' "$SRC_DIR"/run.sh
+        printf '\n'
+        sed '1{/^#!/d;}' "$SRC_DIR"/scripts.sh
+        printf '\n'
+        sed '1{/^#!/d;}' "$SRC_DIR"/main.sh
+    } > "$DEST_MAIN"
+
+    chmod 755 "$DEST_MAIN"
+}
+
+_setup_logging
+_setup_globals
+_copy_traits
+_build_single_file

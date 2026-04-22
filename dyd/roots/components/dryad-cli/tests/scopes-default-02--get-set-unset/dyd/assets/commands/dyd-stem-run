@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+assert_equal() {
+	if [ "$1" != "$2" ]; then
+		echo "[ERROR] Fail: expected ($2), got ($1)" 1>&2
+		return 1
+	fi
+}
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	mkdir -p "$TEMP_DIR/dyd/shed/scopes/dev"
+	mkdir -p "$TEMP_DIR/dyd/shed/scopes/prod"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	INITIAL_DEFAULT=$(dryad scopes default get)
+
+	dryad scopes default set dev
+	DEV_DEFAULT=$(dryad scopes default get)
+	DEV_LINK=$(readlink "$TEMP_DIR/dyd/shed/scopes/default")
+
+	dryad scopes default set prod
+	PROD_DEFAULT=$(dryad scopes default get)
+	PROD_LINK=$(readlink "$TEMP_DIR/dyd/shed/scopes/default")
+
+	dryad scopes default unset
+	UNSET_DEFAULT=$(dryad scopes default get)
+
+	set +e
+	MISSING_OUTPUT=$(dryad scopes default set missing 2>&1)
+	MISSING_STATUS=$?
+	set -e
+}
+
+_verify() {
+	assert_equal "$INITIAL_DEFAULT" ''
+	assert_equal "$DEV_DEFAULT" dev
+	assert_equal "$DEV_LINK" dev
+	assert_equal "$PROD_DEFAULT" prod
+	assert_equal "$PROD_LINK" prod
+	assert_equal "$UNSET_DEFAULT" ''
+
+	if [ -e "$TEMP_DIR/dyd/shed/scopes/default" ]; then
+		echo "[ERROR] Fail: default scope link still exists after unset" 1>&2
+		return 1
+	fi
+
+	if [ "$MISSING_STATUS" -eq 0 ]; then
+		echo "[ERROR] Fail: setting a missing default scope should fail" 1>&2
+		return 1
+	fi
+
+	case "$MISSING_OUTPUT" in
+		*"error"* )
+			;;
+		* )
+			echo "[ERROR] Fail: missing scope output should contain error" 1>&2
+			return 1
+			;;
+	esac
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

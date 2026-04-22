@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+assert_equal() {
+	if [ "$1" != "$2" ]; then
+		echo "[ERROR] Fail: expected ($2), got ($1)" 1>&2
+		return 1
+	fi
+}
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	mkdir -p "$TEMP_DIR/dyd"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	DEV_PATH=$(dryad scope create dev)
+	PROD_PATH=$(dryad scope create prod --log-level="$DYD_LOG_LEVEL")
+	LIST_AFTER_CREATE=$(dryad scopes list --oneline=false)
+
+	printf 'keep me' > "$TEMP_DIR/dyd/shed/scopes/dev/value.txt"
+	DEV_PATH_AGAIN=$(dryad scope create dev)
+	DEV_VALUE=$(cat "$TEMP_DIR/dyd/shed/scopes/dev/value.txt")
+
+	dryad scope delete dev
+	LIST_AFTER_DELETE=$(dryad scopes list --oneline=false)
+
+	dryad scope delete missing
+	LIST_AFTER_MISSING_DELETE=$(dryad scopes list --oneline=false)
+}
+
+_verify() {
+	assert_equal "$DEV_PATH" "$TEMP_DIR/dyd/shed/scopes/dev"
+	assert_equal "$PROD_PATH" "$TEMP_DIR/dyd/shed/scopes/prod"
+	assert_equal "$DEV_PATH_AGAIN" "$TEMP_DIR/dyd/shed/scopes/dev"
+	assert_equal "$DEV_VALUE" 'keep me'
+	assert_equal "$LIST_AFTER_CREATE" $'dev\nprod'
+	assert_equal "$LIST_AFTER_DELETE" 'prod'
+	assert_equal "$LIST_AFTER_MISSING_DELETE" 'prod'
+
+	if [ -d "$TEMP_DIR/dyd/shed/scopes/dev" ]; then
+		echo "[ERROR] Fail: dev scope still exists after delete" 1>&2
+		return 1
+	fi
+
+	assert_directory_exists "$TEMP_DIR/dyd/shed/scopes/prod"
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

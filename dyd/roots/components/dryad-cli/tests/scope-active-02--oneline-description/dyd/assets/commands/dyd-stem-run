@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+
+. "$SRC_DIR/dyd/assets/assertions.sh"
+
+assert_equal() {
+	if [ "$1" != "$2" ]; then
+		echo "[ERROR] Fail: expected ($2), got ($1)" 1>&2
+		return 1
+	fi
+}
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	mkdir -p "$TEMP_DIR/dyd/shed/scopes/dev"
+	mkdir -p "$TEMP_DIR/dyd/shed/scopes/plain"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	printf 'development scope' > "$TEMP_DIR/dyd/shed/scopes/dev/.oneline"
+	ln -s dev "$TEMP_DIR/dyd/shed/scopes/default"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	ACTIVE_DEFAULT=$(dryad scope active)
+	ACTIVE_NO_ONELINE=$(dryad scope active --oneline=false)
+
+	dryad scope use plain
+	ACTIVE_PLAIN=$(dryad scope active)
+
+	dryad scope use none
+	ACTIVE_NONE=$(dryad scope active)
+}
+
+_verify() {
+	assert_equal "$ACTIVE_DEFAULT" 'dev - development scope'
+	assert_equal "$ACTIVE_NO_ONELINE" dev
+	assert_equal "$ACTIVE_PLAIN" plain
+	assert_equal "$ACTIVE_NONE" ''
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

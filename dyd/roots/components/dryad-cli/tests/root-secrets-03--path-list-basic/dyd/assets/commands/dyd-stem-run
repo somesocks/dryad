@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+SECRETS_PATH=''
+NESTED_SECRETS_PATH=''
+MISSING_SECRETS_PATH=''
+SECRETS_LIST=''
+
+# import assertion functions
+. $SRC_DIR/dyd/assets/assertions.sh
+
+assert_equal() {
+	if [ "$1" != "$2" ]; then
+		echo "[ERROR] Fail: expected ($2), got ($1)" 1>&2
+		return 1
+	fi
+}
+
+_setup() {
+	#
+	# make a temporary working directory
+	# this command is linux / osx agnostic
+	# https://unix.stackexchange.com/questions/30091/fix-or-alternative-for-mktemp-in-os-x
+	# echo "\[INFO\] creating temporary working directory" 1>&2;
+	TEMP_DIR=''
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	mkdir -p "$TEMP_DIR/dyd/roots/root-01/dyd/secrets/nested"
+	mkdir -p "$TEMP_DIR/dyd/roots/root-01/dyd/assets"
+	mkdir -p "$TEMP_DIR/dyd/roots/root-02/dyd/assets"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	printf 'root' > "$TEMP_DIR/dyd/roots/root-01/dyd/type"
+	printf 'root' > "$TEMP_DIR/dyd/roots/root-02/dyd/type"
+	printf 'alpha\n' > "$TEMP_DIR/dyd/roots/root-01/dyd/secrets/alpha.txt"
+	printf 'beta\n' > "$TEMP_DIR/dyd/roots/root-01/dyd/secrets/nested/beta.txt"
+
+	cd "$TEMP_DIR"
+	:;
+}
+
+_test() {
+	SECRETS_PATH=$(dryad root secrets path dyd/roots/root-01)
+	NESTED_SECRETS_PATH=$(dryad root secrets path dyd/roots/root-01/dyd/secrets/nested/beta.txt)
+	MISSING_SECRETS_PATH=$(dryad root secrets path dyd/roots/root-02)
+
+	SECRETS_LIST=$(dryad root secrets list dyd/roots/root-01 | sort)
+}
+
+_verify() {
+	EXPECTED_SECRETS_LIST="$TEMP_DIR/dyd/roots/root-01/dyd/secrets
+$TEMP_DIR/dyd/roots/root-01/dyd/secrets/alpha.txt
+$TEMP_DIR/dyd/roots/root-01/dyd/secrets/nested
+$TEMP_DIR/dyd/roots/root-01/dyd/secrets/nested/beta.txt"
+
+	assert_equal "$SECRETS_PATH" "$TEMP_DIR/dyd/roots/root-01/dyd/secrets"
+	assert_equal "$NESTED_SECRETS_PATH" "$TEMP_DIR/dyd/roots/root-01/dyd/secrets"
+	assert_equal "$MISSING_SECRETS_PATH" ''
+	assert_equal "$SECRETS_LIST" "$EXPECTED_SECRETS_LIST"
+	:;
+}
+
+_teardown() {
+	# echo "\[INFO\] tearing down fixtures" 1>&2;
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify

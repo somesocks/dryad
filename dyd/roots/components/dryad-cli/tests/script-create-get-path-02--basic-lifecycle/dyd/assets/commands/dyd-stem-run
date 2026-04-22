@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+
+#
+# turn this on to debug script
+# set -x
+
+#
+# abort on error
+# https://sipb.mit.edu/doc/safe-shell/
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+TEMP_DIR=''
+SCRIPT_PATH=''
+SCRIPT_CONTENT=''
+RUN_OUTPUT=''
+PROD_PATH=''
+PROD_CONTENT=''
+NO_SCOPE_STATUS=0
+NO_SCOPE_OUTPUT=''
+
+# import assertion functions
+. $SRC_DIR/dyd/assets/assertions.sh
+
+assert_equal() {
+	if [ "$1" != "$2" ]; then
+		echo "[ERROR] Fail: expected ($2), got ($1)" 1>&2
+		return 1
+	fi
+}
+
+_setup() {
+	#
+	# make a temporary working directory
+	# this command is linux / osx agnostic
+	# https://unix.stackexchange.com/questions/30091/fix-or-alternative-for-mktemp-in-os-x
+	# echo "\[INFO\] creating temporary working directory" 1>&2;
+	TEMP_DIR=''
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+}
+
+_prepare() {
+	mkdir -p "$TEMP_DIR/dyd/shed/scopes/dev"
+	mkdir -p "$TEMP_DIR/dyd/shed/scopes/prod"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	ln -s dev "$TEMP_DIR/dyd/shed/scopes/default"
+
+	cat > "$TEMP_DIR/editor" <<'EOE'
+#!/usr/bin/env bash
+set -euf -o pipefail
+{
+	printf '%s\n' '#!/usr/bin/env bash'
+	printf '%s\n' "printf '%s\n' hello"
+} > "$1"
+EOE
+	chmod +x "$TEMP_DIR/editor"
+
+	cd "$TEMP_DIR"
+	:;
+}
+
+_test() {
+	dryad script create hello --editor="$TEMP_DIR/editor"
+
+	SCRIPT_PATH=$(dryad script path hello)
+	SCRIPT_CONTENT=$(dryad script get hello)
+	RUN_OUTPUT=$(dryad run hello)
+
+	dryad script create deploy --scope=prod --editor="$TEMP_DIR/editor"
+	PROD_PATH=$(dryad script path deploy --scope=prod)
+	PROD_CONTENT=$(dryad script get deploy --scope=prod)
+
+	set +e
+	NO_SCOPE_OUTPUT=$(dryad script path hello --scope=none 2>&1)
+	NO_SCOPE_STATUS=$?
+	set -e
+}
+
+_verify() {
+	EXPECTED_SCRIPT='#!/usr/bin/env bash
+printf '"'"'%s\n'"'"' hello'
+
+	assert_equal "$SCRIPT_PATH" "$TEMP_DIR/dyd/shed/scopes/dev/script-run-hello"
+	assert_equal "$SCRIPT_CONTENT" "$EXPECTED_SCRIPT"
+	assert_equal "$RUN_OUTPUT" hello
+	assert_equal "$PROD_PATH" "$TEMP_DIR/dyd/shed/scopes/prod/script-run-deploy"
+	assert_equal "$PROD_CONTENT" "$EXPECTED_SCRIPT"
+
+	assert_file_exists "$SCRIPT_PATH"
+	assert_file_exists "$PROD_PATH"
+
+	if [ ! -x "$SCRIPT_PATH" ]; then
+		echo "[ERROR] Fail: created script is not executable" 1>&2
+		return 1
+	fi
+
+	if [ "$NO_SCOPE_STATUS" -eq 0 ]; then
+		echo "[ERROR] Fail: script path with --scope=none should fail" 1>&2
+		return 1
+	fi
+
+	case "$NO_SCOPE_OUTPUT" in
+		*"scope"* ) ;;
+		* )
+			echo "[ERROR] Fail: expected scope-related error output" 1>&2
+			return 1
+			;;
+	esac
+	:;
+}
+
+_teardown() {
+	# echo "\[INFO\] tearing down fixtures" 1>&2;
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_prepare
+_test
+_verify
