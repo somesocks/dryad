@@ -104,6 +104,161 @@ dryad_sprouts_list_from_stdin () {
     done
 }
 
+dryad_path_has_owner_write () {
+    dryad_path_has_owner_write_path=$1
+    dryad_path_has_owner_write_mode=$(ls -ld "$dryad_path_has_owner_write_path" 2>/dev/null | sed 's/ .*//') ||
+        return 1
+
+    case $dryad_path_has_owner_write_mode in
+        ??w* )
+            return 0
+            ;;
+        * )
+            return 1
+            ;;
+    esac
+}
+
+dryad_path_chmod_parent_owner_write () {
+    dryad_path_chmod_parent_path=$1
+    dryad_path_chmod_parent_parent=$(dirname "$dryad_path_chmod_parent_path")
+    if [ -d "$dryad_path_chmod_parent_parent" ] &&
+        ! dryad_path_has_owner_write "$dryad_path_chmod_parent_parent"; then
+        chmod u+w "$dryad_path_chmod_parent_parent"
+    fi
+}
+
+dryad_sprouts_ensure_dir () {
+    dryad_sprouts_ensure_garden=$1
+    dryad_sprouts_ensure_dir=$dryad_sprouts_ensure_garden/dyd/sprouts
+
+    if [ -e "$dryad_sprouts_ensure_dir" ] && [ ! -d "$dryad_sprouts_ensure_dir" ]; then
+        dryad_die "sprouts path exists and is not a directory: $dryad_sprouts_ensure_dir"
+    fi
+
+    if [ ! -d "$dryad_sprouts_ensure_dir" ]; then
+        dryad_path_chmod_parent_owner_write "$dryad_sprouts_ensure_dir"
+        mkdir -p "$dryad_sprouts_ensure_dir"
+        chmod 551 "$dryad_sprouts_ensure_dir"
+    fi
+
+    printf '%s\n' "$dryad_sprouts_ensure_dir"
+}
+
+dryad_sprouts_make_tree_removable () {
+    dryad_sprouts_make_tree_path=$1
+
+    [ -e "$dryad_sprouts_make_tree_path" ] || [ -L "$dryad_sprouts_make_tree_path" ] || return 0
+
+    dryad_path_chmod_parent_owner_write "$dryad_sprouts_make_tree_path"
+
+    if [ -d "$dryad_sprouts_make_tree_path" ] && [ ! -L "$dryad_sprouts_make_tree_path" ]; then
+        find "$dryad_sprouts_make_tree_path" -type d -exec chmod u+w {} \;
+    fi
+}
+
+dryad_sprouts_remove_children () {
+    dryad_sprouts_remove_children_dir=$1
+
+    [ -d "$dryad_sprouts_remove_children_dir" ] || return 0
+
+    dryad_sprouts_remove_restore_owner_write=0
+    if ! dryad_path_has_owner_write "$dryad_sprouts_remove_children_dir"; then
+        dryad_sprouts_remove_restore_owner_write=1
+    fi
+
+    dryad_sprouts_make_tree_removable "$dryad_sprouts_remove_children_dir"
+
+    find "$dryad_sprouts_remove_children_dir" -mindepth 1 -maxdepth 1 -exec rm -rf {} \;
+
+    if [ "$dryad_sprouts_remove_restore_owner_write" = 1 ]; then
+        chmod u-w "$dryad_sprouts_remove_children_dir"
+    fi
+}
+
+dryad_sprouts_prune () {
+    dryad_sprouts_prune_garden=$1
+    dryad_sprouts_prune_dir=$(dryad_sprouts_ensure_dir "$dryad_sprouts_prune_garden")
+    dryad_sprouts_prune_roots=$dryad_sprouts_prune_garden/dyd/roots
+
+    find "$dryad_sprouts_prune_dir" -depth -mindepth 1 -print |
+        while IFS= read -r dryad_sprouts_prune_entry; do
+            dryad_sprouts_prune_rel=${dryad_sprouts_prune_entry#"$dryad_sprouts_prune_dir"/}
+            dryad_sprouts_prune_root_equiv=$dryad_sprouts_prune_roots/$dryad_sprouts_prune_rel
+
+            if [ ! -e "$dryad_sprouts_prune_root_equiv" ] && [ ! -L "$dryad_sprouts_prune_root_equiv" ]; then
+                dryad_sprouts_prune_parent=$(dirname "$dryad_sprouts_prune_entry")
+                dryad_sprouts_prune_restore_parent=0
+                if [ -d "$dryad_sprouts_prune_parent" ] &&
+                    ! dryad_path_has_owner_write "$dryad_sprouts_prune_parent"; then
+                    dryad_sprouts_prune_restore_parent=1
+                fi
+
+                dryad_sprouts_make_tree_removable "$dryad_sprouts_prune_entry"
+                dryad_sprouts_prune_remove_status=0
+                rm -rf "$dryad_sprouts_prune_entry" ||
+                    dryad_sprouts_prune_remove_status=$?
+
+                if [ "$dryad_sprouts_prune_restore_parent" = 1 ] &&
+                    [ -d "$dryad_sprouts_prune_parent" ]; then
+                    chmod u-w "$dryad_sprouts_prune_parent"
+                fi
+
+                [ "$dryad_sprouts_prune_remove_status" = 0 ] ||
+                    return "$dryad_sprouts_prune_remove_status"
+            fi
+        done
+}
+
+dryad_cmd_sprouts_no_arg_action () {
+    dryad_sprouts_no_arg_action=$1
+    shift
+
+    while [ "$#" -gt 0 ]; do
+        dryad_sprouts_no_arg_arg=$(dryad_strip_option_quotes "$1")
+        case $dryad_sprouts_no_arg_arg in
+            --help | -h )
+                cat <<EOF
+Usage:
+  dryad sprouts $dryad_sprouts_no_arg_action
+EOF
+                return 0
+                ;;
+            --scope=* | --log-level=* | --log-format=* | --parallel=* )
+                shift
+                ;;
+            --scope | --log-level | --log-format | --parallel )
+                [ "$#" -gt 1 ] || dryad_die "$1 requires a value"
+                shift 2
+                ;;
+            -- )
+                shift
+                break
+                ;;
+            --* )
+                dryad_die "unsupported sprouts $dryad_sprouts_no_arg_action option: $1"
+                ;;
+            * )
+                dryad_die "unsupported sprouts $dryad_sprouts_no_arg_action argument: $1"
+                ;;
+        esac
+    done
+
+    dryad_sprouts_no_arg_garden=$(dryad_garden_find)
+    case $dryad_sprouts_no_arg_action in
+        wipe )
+            dryad_sprouts_no_arg_dir=$(dryad_sprouts_ensure_dir "$dryad_sprouts_no_arg_garden")
+            dryad_sprouts_remove_children "$dryad_sprouts_no_arg_dir"
+            ;;
+        prune )
+            dryad_sprouts_prune "$dryad_sprouts_no_arg_garden"
+            ;;
+        * )
+            dryad_die "unsupported sprouts action: $dryad_sprouts_no_arg_action"
+            ;;
+    esac
+}
+
 dryad_cmd_sprouts_path () {
     while [ "$#" -gt 0 ]; do
         dryad_sprouts_path_arg=$(dryad_strip_option_quotes "$1")
@@ -251,7 +406,10 @@ dryad_cmd_sprouts () {
         list )
             dryad_cmd_sprouts_list "$@"
             ;;
-        prune | run | wipe )
+        prune | wipe )
+            dryad_cmd_sprouts_no_arg_action "$dryad_sprouts_action" "$@"
+            ;;
+        run )
             dryad_sprouts_next=${1:-}
             case $dryad_sprouts_next in
                 --help | -h )

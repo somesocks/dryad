@@ -1,4 +1,4 @@
 
 # sprouts-wipe-04--idempotent-on-empty
 
-This test case tests that `dryad sprouts wipe` can be run repeatedly and remains successful on an already empty sprouts directory.
+This test case verifies that both dryad implementations leave an empty read-only sprouts directory empty across repeated `dryad sprouts wipe` calls.

@@ -28,11 +28,22 @@ _setup() {
 _prepare() {
 	# echo "[INFO] creating garden" 1>&2;
 
-	# copy the sample garden to the working directory
-	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR" 
-	chmod -R 755 "$TEMP_DIR"
+	mkdir -p "$TEMP_DIR/dyd/roots/root-01/dyd/assets"
+	mkdir -p "$TEMP_DIR/dyd/heap/sprouts/root-01/dyd"
+	mkdir -p "$TEMP_DIR/dyd/heap/sprouts/root-01/dyd/dependencies/stem/dyd/assets"
+	mkdir -p "$TEMP_DIR/dyd/sprouts/local-root/dyd/assets"
 
-	(cd "$TEMP_DIR" && dryad roots build)
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	printf 'root' > "$TEMP_DIR/dyd/roots/root-01/dyd/type"
+	printf 'test-file-01' > "$TEMP_DIR/dyd/roots/root-01/dyd/assets/test-file-01"
+	printf 'sprout' > "$TEMP_DIR/dyd/heap/sprouts/root-01/dyd/type"
+	printf 'heap-sprout-marker' > "$TEMP_DIR/dyd/heap/sprouts/root-01/dyd/marker"
+	printf 'test-file-01' > "$TEMP_DIR/dyd/heap/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-file-01"
+	printf 'sprout' > "$TEMP_DIR/dyd/sprouts/local-root/dyd/type"
+	printf 'local-sprout-marker' > "$TEMP_DIR/dyd/sprouts/local-root/dyd/assets/marker"
+
+	ln -s "$TEMP_DIR/dyd/heap/sprouts/root-01" "$TEMP_DIR/dyd/sprouts/root-01"
+	chmod -R u-w "$TEMP_DIR/dyd/sprouts"
 
 	:;
 }
@@ -49,9 +60,17 @@ _verify() {
 	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
 
 	assert_directory_exists "$TEMP_DIR/dyd/sprouts"
+	SPROUTS_MODE=$(ls -ld "$TEMP_DIR/dyd/sprouts" | sed 's/ .*//')
+	case "$SPROUTS_MODE" in
+		??w*)
+			echo "[ERROR] Fail: expected sprouts directory owner write bit to stay unset after wipe" 1>&2
+			return 1
+			;;
+	esac
 
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-01/dyd/type" "root"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-01/dyd/assets/test-file-01" "test-file-01"
+	assert_file_content_equals "$TEMP_DIR/dyd/heap/sprouts/root-01/dyd/marker" "heap-sprout-marker"
 	SPROUTS_FIRST_CHILD=$(find "$TEMP_DIR/dyd/sprouts" -mindepth 1 -maxdepth 1 -print -quit)
 	if [ -n "$SPROUTS_FIRST_CHILD" ]; then
 		echo "[ERROR] Fail: expected sprouts directory to be empty after wipe" 1>&2

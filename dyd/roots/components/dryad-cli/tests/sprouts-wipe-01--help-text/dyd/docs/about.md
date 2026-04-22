@@ -1,4 +1,4 @@
 
 # sprouts-wipe-01--help-text
 
-This test case tests that `dryad sprouts wipe --help` runs successfully and returns help text.
+This test case verifies that both dryad implementations return help text for `dryad sprouts wipe --help`.

@@ -28,11 +28,22 @@ _setup() {
 _prepare() {
 	# echo "[INFO] creating garden" 1>&2;
 
-	# copy the sample garden to the working directory
-	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR" 
-	chmod -R 755 "$TEMP_DIR"
+	mkdir -p "$TEMP_DIR/dyd/roots/root-01/dyd"
+	mkdir -p "$TEMP_DIR/dyd/heap/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-dir-01"
+	mkdir -p "$TEMP_DIR/dyd/heap/sprouts/stale-root/dyd"
+	mkdir -p "$TEMP_DIR/dyd/sprouts/stale-dir/child/dyd"
 
-	(cd "$TEMP_DIR" && dryad roots build)
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	printf 'root' > "$TEMP_DIR/dyd/roots/root-01/dyd/type"
+	printf 'sprout' > "$TEMP_DIR/dyd/heap/sprouts/root-01/dyd/type"
+	printf 'stale-sprout-marker' > "$TEMP_DIR/dyd/heap/sprouts/stale-root/dyd/marker"
+	printf 'test-file-01' > "$TEMP_DIR/dyd/heap/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-file-01"
+	printf 'test-file-02' > "$TEMP_DIR/dyd/heap/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-dir-01/test-file-02"
+	printf 'stale' > "$TEMP_DIR/dyd/sprouts/stale-dir/child/dyd/type"
+
+	ln -s "$TEMP_DIR/dyd/heap/sprouts/root-01" "$TEMP_DIR/dyd/sprouts/root-01"
+	ln -s "$TEMP_DIR/dyd/heap/sprouts/stale-root" "$TEMP_DIR/dyd/sprouts/stale-root"
+	chmod -R u-w "$TEMP_DIR/dyd/sprouts"
 
 	:;
 }
@@ -50,10 +61,26 @@ _verify() {
 
 	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01"
 	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/type" "sprout"
+	SPROUTS_MODE=$(ls -ld "$TEMP_DIR/dyd/sprouts" | sed 's/ .*//')
+	case "$SPROUTS_MODE" in
+		??w*)
+			echo "[ERROR] Fail: expected sprouts directory owner write bit to stay unset after prune" 1>&2
+			return 1
+			;;
+	esac
 
 	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-file-01" "test-file-01"
 	assert_directory_exists "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-dir-01"
 	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-dir-01/test-file-02" "test-file-02"
+	assert_file_content_equals "$TEMP_DIR/dyd/heap/sprouts/stale-root/dyd/marker" "stale-sprout-marker"
+	if [ -e "$TEMP_DIR/dyd/sprouts/stale-root" ] || [ -L "$TEMP_DIR/dyd/sprouts/stale-root" ]; then
+		echo "[ERROR] Fail: expected stale sprout symlink to be pruned" 1>&2
+		return 1
+	fi
+	if [ -e "$TEMP_DIR/dyd/sprouts/stale-dir" ]; then
+		echo "[ERROR] Fail: expected stale sprout directory to be pruned" 1>&2
+		return 1
+	fi
 	:;
 }
 

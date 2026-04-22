@@ -28,13 +28,11 @@ _setup() {
 _prepare() {
 	# echo "[INFO] creating garden" 1>&2;
 
-	# copy the sample garden to the working directory
-	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR" 
-	chmod -R 755 "$TEMP_DIR"
+	mkdir -p "$TEMP_DIR/dyd/roots/root-01/dyd/assets"
 
-	(cd "$TEMP_DIR" && dryad roots build)
-	chmod u+w "$TEMP_DIR/dyd/sprouts"
-	rm -rf "$TEMP_DIR/dyd/sprouts"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	printf 'root' > "$TEMP_DIR/dyd/roots/root-01/dyd/type"
+	printf 'test-file-01' > "$TEMP_DIR/dyd/roots/root-01/dyd/assets/test-file-01"
 
 	if [ -e "$TEMP_DIR/dyd/sprouts" ]; then
 		echo "[ERROR] Fail: expected sprouts directory to be missing before wipe" 1>&2
@@ -56,6 +54,13 @@ _verify() {
 	assert_file_content_equals "$TEMP_DIR/dyd/type" "garden"
 
 	assert_directory_exists "$TEMP_DIR/dyd/sprouts"
+	SPROUTS_MODE=$(ls -ld "$TEMP_DIR/dyd/sprouts" | sed 's/ .*//')
+	case "$SPROUTS_MODE" in
+		??w*)
+			echo "[ERROR] Fail: expected newly created sprouts directory owner write bit to be unset after wipe" 1>&2
+			return 1
+			;;
+	esac
 
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-01/dyd/type" "root"
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-01/dyd/assets/test-file-01" "test-file-01"
