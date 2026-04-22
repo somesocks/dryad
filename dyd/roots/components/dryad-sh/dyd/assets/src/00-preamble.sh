@@ -38,6 +38,7 @@ Supported commands:
   root secrets list [path]
   root variants list [path]
   roots graph
+  roots owning
   roots path
   roots list
   scopes path

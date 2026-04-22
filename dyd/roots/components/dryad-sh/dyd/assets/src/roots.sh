@@ -1755,6 +1755,323 @@ dryad_roots_list_from_stdin () {
     done
 }
 
+dryad_roots_owning_abs_path () {
+    dryad_roots_owning_abs_input=$1
+    case $dryad_roots_owning_abs_input in
+        /* )
+            printf '%s\n' "$dryad_roots_owning_abs_input"
+            ;;
+        * )
+            printf '%s/%s\n' "$(pwd -P)" "$dryad_roots_owning_abs_input"
+            ;;
+    esac
+}
+
+dryad_roots_owning_root_for_path () {
+    dryad_roots_owning_root_path=$1
+    if [ -d "$dryad_roots_owning_root_path" ]; then
+        dryad_roots_owning_root_candidate=$dryad_roots_owning_root_path
+    else
+        dryad_roots_owning_root_candidate=$(dirname "$dryad_roots_owning_root_path")
+    fi
+
+    while :; do
+        if [ -f "$dryad_roots_owning_root_candidate/dyd/type" ] &&
+            [ "$(cat "$dryad_roots_owning_root_candidate/dyd/type")" = root ]; then
+            printf '%s\n' "$dryad_roots_owning_root_candidate"
+            return 0
+        fi
+
+        dryad_roots_owning_root_next=$(dirname "$dryad_roots_owning_root_candidate")
+        [ "$dryad_roots_owning_root_next" != "$dryad_roots_owning_root_candidate" ] || return 1
+        dryad_roots_owning_root_candidate=$dryad_roots_owning_root_next
+    done
+}
+
+dryad_roots_owning_path_within () {
+    dryad_roots_owning_within_base=$1
+    dryad_roots_owning_within_path=$2
+
+    [ -n "$dryad_roots_owning_within_base" ] || return 1
+
+    case $dryad_roots_owning_within_path in
+        "$dryad_roots_owning_within_base" | "$dryad_roots_owning_within_base"/* )
+            return 0
+            ;;
+        * )
+            return 1
+            ;;
+    esac
+}
+
+dryad_roots_owning_selected_path () {
+    dryad_roots_owning_selected_root=$1
+    dryad_roots_owning_selected_descriptor=$2
+    dryad_roots_owning_selected_kind=$3
+    dryad_roots_owning_selected_match=
+
+    for dryad_roots_owning_selected_candidate in "$dryad_roots_owning_selected_root"/dyd/"$dryad_roots_owning_selected_kind"~*; do
+        [ -d "$dryad_roots_owning_selected_candidate" ] || continue
+        dryad_roots_owning_selected_selector=${dryad_roots_owning_selected_candidate##*/$dryad_roots_owning_selected_kind~}
+        if dryad_selector_matches_descriptor "$dryad_roots_owning_selected_selector" "$dryad_roots_owning_selected_descriptor"; then
+            [ -z "$dryad_roots_owning_selected_match" ] ||
+                dryad_die "multiple $dryad_roots_owning_selected_kind paths match variant: $dryad_roots_owning_selected_descriptor"
+            dryad_roots_owning_selected_match=$dryad_roots_owning_selected_candidate
+        fi
+    done
+
+    if [ -n "$dryad_roots_owning_selected_match" ]; then
+        printf '%s\n' "$dryad_roots_owning_selected_match"
+        return 0
+    fi
+
+    if [ -d "$dryad_roots_owning_selected_root/dyd/$dryad_roots_owning_selected_kind" ]; then
+        printf '%s\n' "$dryad_roots_owning_selected_root/dyd/$dryad_roots_owning_selected_kind"
+    fi
+}
+
+dryad_roots_owning_is_selectable_family () {
+    dryad_roots_owning_family_rel=$1
+
+    case $dryad_roots_owning_family_rel in
+        dyd/* )
+            dryad_roots_owning_family_name=${dryad_roots_owning_family_rel#dyd/}
+            dryad_roots_owning_family_name=${dryad_roots_owning_family_name%%/*}
+            dryad_roots_owning_family_base=${dryad_roots_owning_family_name%%~*}
+            case $dryad_roots_owning_family_base in
+                assets | commands | traits | secrets | docs | requirements )
+                    return 0
+                    ;;
+            esac
+            ;;
+    esac
+
+    return 1
+}
+
+dryad_roots_owning_affects_all_variants () {
+    dryad_roots_owning_all_rel=$1
+
+    case $dryad_roots_owning_all_rel in
+        . | dyd/type | dyd/variants | dyd/variants/* )
+            return 0
+            ;;
+    esac
+
+    if dryad_roots_owning_is_selectable_family "$dryad_roots_owning_all_rel"; then
+        return 1
+    fi
+
+    return 0
+}
+
+dryad_condition_matches_descriptor () {
+    dryad_condition=$1
+    dryad_condition_descriptor=$2
+
+    [ -n "$dryad_condition" ] || return 0
+
+    dryad_condition_old_ifs=$IFS
+    IFS=+
+    set -- $dryad_condition
+    IFS=$dryad_condition_old_ifs
+
+    for dryad_condition_pair do
+        dryad_condition_dim=${dryad_condition_pair%%=*}
+        dryad_condition_options=${dryad_condition_pair#*=}
+        dryad_condition_value=$(dryad_descriptor_value "$dryad_condition_descriptor" "$dryad_condition_dim" || true)
+
+        case $dryad_condition_options in
+            inherit | any )
+                continue
+                ;;
+            host )
+                case $dryad_condition_dim in
+                    os )
+                        dryad_condition_options=$(dryad_host_os)
+                        ;;
+                    arch )
+                        dryad_condition_options=$(dryad_host_arch)
+                        ;;
+                esac
+                ;;
+            none )
+                [ -z "$dryad_condition_value" ] || return 1
+                continue
+                ;;
+        esac
+
+        [ -n "$dryad_condition_value" ] || return 1
+        if ! dryad_option_list_contains "$dryad_condition_options" "$dryad_condition_value"; then
+            return 1
+        fi
+    done
+
+    return 0
+}
+
+dryad_roots_owning_requirements_path_matches_variant () {
+    dryad_roots_owning_req_path=$1
+    dryad_roots_owning_req_changed=$2
+    dryad_roots_owning_req_descriptor=$3
+
+    dryad_roots_owning_path_within "$dryad_roots_owning_req_path" "$dryad_roots_owning_req_changed" || return 1
+
+    if [ "$dryad_roots_owning_req_changed" = "$dryad_roots_owning_req_path" ]; then
+        return 0
+    fi
+
+    dryad_roots_owning_req_rel=${dryad_roots_owning_req_changed#"$dryad_roots_owning_req_path"/}
+    case $dryad_roots_owning_req_rel in
+        */* )
+            return 0
+            ;;
+    esac
+
+    case $dryad_roots_owning_req_rel in
+        *~* )
+            dryad_roots_owning_req_condition=${dryad_roots_owning_req_rel#*~}
+            dryad_condition_matches_descriptor "$dryad_roots_owning_req_condition" "$dryad_roots_owning_req_descriptor"
+            return $?
+            ;;
+        * )
+            return 0
+            ;;
+    esac
+}
+
+dryad_roots_owning_variant_matches_path () {
+    dryad_roots_owning_variant_root=$1
+    dryad_roots_owning_variant_descriptor=$2
+    dryad_roots_owning_variant_changed=$3
+
+    for dryad_roots_owning_variant_kind in assets commands traits secrets docs; do
+        dryad_roots_owning_variant_selected=$(dryad_roots_owning_selected_path "$dryad_roots_owning_variant_root" "$dryad_roots_owning_variant_descriptor" "$dryad_roots_owning_variant_kind")
+        if dryad_roots_owning_path_within "$dryad_roots_owning_variant_selected" "$dryad_roots_owning_variant_changed"; then
+            return 0
+        fi
+    done
+
+    dryad_roots_owning_variant_requirements=$(dryad_roots_owning_selected_path "$dryad_roots_owning_variant_root" "$dryad_roots_owning_variant_descriptor" requirements)
+    dryad_roots_owning_requirements_path_matches_variant \
+        "$dryad_roots_owning_variant_requirements" \
+        "$dryad_roots_owning_variant_changed" \
+        "$dryad_roots_owning_variant_descriptor"
+}
+
+dryad_roots_owning_print_ref () {
+    dryad_roots_owning_ref_root=$1
+    dryad_roots_owning_ref_descriptor=$2
+
+    if [ "$dryad_roots_owning_relative" = 1 ]; then
+        case $dryad_roots_owning_ref_root in
+            "$dryad_roots_owning_garden"/* )
+                dryad_roots_owning_ref_display=${dryad_roots_owning_ref_root#"$dryad_roots_owning_garden"/}
+                ;;
+            * )
+                dryad_roots_owning_ref_display=$dryad_roots_owning_ref_root
+                ;;
+        esac
+    else
+        dryad_roots_owning_ref_display=$dryad_roots_owning_ref_root
+    fi
+
+    if [ -n "$dryad_roots_owning_ref_descriptor" ]; then
+        printf '%s~%s\n' "$dryad_roots_owning_ref_display" "$dryad_roots_owning_ref_descriptor"
+    else
+        printf '%s\n' "$dryad_roots_owning_ref_display"
+    fi
+}
+
+dryad_roots_owning_refs_for_path () {
+    dryad_roots_owning_input_path=$1
+    dryad_roots_owning_changed=$(dryad_roots_owning_abs_path "$dryad_roots_owning_input_path")
+    dryad_roots_owning_root=$(dryad_roots_owning_root_for_path "$dryad_roots_owning_changed" || true)
+
+    [ -n "$dryad_roots_owning_root" ] || return 0
+
+    if [ "$dryad_roots_owning_changed" = "$dryad_roots_owning_root" ]; then
+        dryad_roots_owning_rel=.
+    else
+        dryad_roots_owning_rel=${dryad_roots_owning_changed#"$dryad_roots_owning_root"/}
+    fi
+
+    if dryad_roots_owning_affects_all_variants "$dryad_roots_owning_rel"; then
+        dryad_roots_variant_descriptors "$dryad_roots_owning_root" | while IFS= read -r dryad_roots_owning_descriptor; do
+            dryad_roots_owning_print_ref "$dryad_roots_owning_root" "$dryad_roots_owning_descriptor"
+        done
+        return 0
+    fi
+
+    dryad_roots_variant_descriptors "$dryad_roots_owning_root" | while IFS= read -r dryad_roots_owning_descriptor; do
+        if dryad_roots_owning_variant_matches_path "$dryad_roots_owning_root" "$dryad_roots_owning_descriptor" "$dryad_roots_owning_changed"; then
+            dryad_roots_owning_print_ref "$dryad_roots_owning_root" "$dryad_roots_owning_descriptor"
+        fi
+    done
+}
+
+dryad_cmd_roots_owning () {
+    dryad_roots_owning_relative=1
+
+    while [ "$#" -gt 0 ]; do
+        dryad_roots_owning_arg=$(dryad_strip_option_quotes "$1")
+        case $dryad_roots_owning_arg in
+            --help | -h )
+                cat <<'EOF'
+Usage:
+  dryad roots owning [--relative=<bool>]
+EOF
+                return 0
+                ;;
+            --relative=* )
+                dryad_roots_owning_relative=$(dryad_bool_value "${dryad_roots_owning_arg#--relative=}")
+                shift
+                ;;
+            --relative )
+                if [ "$#" -gt 1 ]; then
+                    case $2 in
+                        true | false | 0 | 1 )
+                            dryad_roots_owning_relative=$(dryad_bool_value "$2")
+                            shift 2
+                            ;;
+                        * )
+                            dryad_roots_owning_relative=1
+                            shift
+                            ;;
+                    esac
+                else
+                    dryad_roots_owning_relative=1
+                    shift
+                fi
+                ;;
+            --scope=* | --log-level=* | --log-format=* | --parallel=* )
+                shift
+                ;;
+            --scope | --log-level | --log-format | --parallel )
+                [ "$#" -gt 1 ] || dryad_die "$1 requires a value"
+                shift 2
+                ;;
+            -- )
+                shift
+                break
+                ;;
+            --* )
+                dryad_die "unsupported roots owning option: $1"
+                ;;
+            * )
+                dryad_die "unsupported roots owning argument: $1"
+                ;;
+        esac
+    done
+
+    dryad_roots_owning_garden=$(dryad_garden_find)
+
+    while IFS= read -r dryad_roots_owning_path; do
+        [ -n "$dryad_roots_owning_path" ] || continue
+        dryad_roots_owning_refs_for_path "$dryad_roots_owning_path"
+    done | sort -u
+}
+
 dryad_roots_graph_all_roots () {
     dryad_roots_graph_dir=$(dryad_roots_path)
     dryad_roots_find_roots "$dryad_roots_graph_dir"
@@ -2389,7 +2706,10 @@ EOF
         graph )
             dryad_cmd_roots_graph "$@"
             ;;
-        affected | build | owning )
+        owning )
+            dryad_cmd_roots_owning "$@"
+            ;;
+        affected | build )
             dryad_roots_next=${1:-}
             case $dryad_roots_next in
                 --help | -h )
