@@ -1755,16 +1755,119 @@ dryad_roots_list_from_stdin () {
     done
 }
 
-dryad_roots_owning_abs_path () {
+dryad_roots_owning_clean_abs_path () {
+    dryad_roots_owning_clean_input=$1
+    awk -v path="$dryad_roots_owning_clean_input" '
+        BEGIN {
+            count = split(path, parts, "/")
+            depth = 0
+            for (i = 1; i <= count; i++) {
+                part = parts[i]
+                if (part == "" || part == ".") {
+                    continue
+                }
+                if (part == "..") {
+                    if (depth > 0) {
+                        depth--
+                    }
+                    continue
+                }
+                stack[++depth] = part
+            }
+
+            if (depth == 0) {
+                print "/"
+                exit
+            }
+
+            out = ""
+            for (i = 1; i <= depth; i++) {
+                out = out "/" stack[i]
+            }
+            print out
+        }
+    '
+}
+
+dryad_roots_owning_abs_lexical_path () {
     dryad_roots_owning_abs_input=$1
     case $dryad_roots_owning_abs_input in
         /* )
-            printf '%s\n' "$dryad_roots_owning_abs_input"
+            dryad_roots_owning_abs_raw=$dryad_roots_owning_abs_input
             ;;
         * )
-            printf '%s/%s\n' "$(pwd -P)" "$dryad_roots_owning_abs_input"
+            dryad_roots_owning_abs_raw=$(pwd -P)/$dryad_roots_owning_abs_input
             ;;
     esac
+    dryad_roots_owning_clean_abs_path "$dryad_roots_owning_abs_raw"
+}
+
+dryad_roots_owning_dependency_correction () {
+    dryad_roots_owning_correction_path=$1
+    dryad_roots_owning_correction_parent=$(dirname "$dryad_roots_owning_correction_path")
+    dryad_roots_owning_correction_parent_name=$(basename "$dryad_roots_owning_correction_parent")
+    dryad_roots_owning_correction_dyd=$(dirname "$dryad_roots_owning_correction_parent")
+    dryad_roots_owning_correction_dyd_name=$(basename "$dryad_roots_owning_correction_dyd")
+
+    case $dryad_roots_owning_correction_dyd_name/$dryad_roots_owning_correction_parent_name in
+        dyd/requirements | dyd/requirements~* )
+            dirname "$dryad_roots_owning_correction_dyd"
+            ;;
+        * )
+            printf '%s\n' "$dryad_roots_owning_correction_path"
+            ;;
+    esac
+}
+
+dryad_roots_owning_eval_existing_prefix () {
+    dryad_roots_owning_eval_path=$1
+
+    if [ -d "$dryad_roots_owning_eval_path" ]; then
+        dryad_clean_cd "$dryad_roots_owning_eval_path"
+        return 0
+    fi
+
+    dryad_roots_owning_eval_dir=$(dirname "$dryad_roots_owning_eval_path")
+    dryad_roots_owning_eval_suffix=$(basename "$dryad_roots_owning_eval_path")
+
+    while [ ! -d "$dryad_roots_owning_eval_dir" ] &&
+        [ "$dryad_roots_owning_eval_dir" != / ]; do
+        dryad_roots_owning_eval_suffix=$(basename "$dryad_roots_owning_eval_dir")/$dryad_roots_owning_eval_suffix
+        dryad_roots_owning_eval_dir=$(dirname "$dryad_roots_owning_eval_dir")
+    done
+
+    if [ -d "$dryad_roots_owning_eval_dir" ]; then
+        dryad_roots_owning_eval_real_dir=$(dryad_clean_cd "$dryad_roots_owning_eval_dir")
+        case $dryad_roots_owning_eval_real_dir in
+            / )
+                printf '/%s\n' "$dryad_roots_owning_eval_suffix"
+                ;;
+            * )
+                printf '%s/%s\n' "$dryad_roots_owning_eval_real_dir" "$dryad_roots_owning_eval_suffix"
+                ;;
+        esac
+        return 0
+    fi
+
+    printf '%s\n' "$dryad_roots_owning_eval_path"
+}
+
+dryad_roots_owning_paths_for_input () {
+    dryad_roots_owning_paths_input=$1
+    dryad_roots_owning_paths_raw=$(dryad_roots_owning_abs_lexical_path "$dryad_roots_owning_paths_input")
+    dryad_roots_owning_paths_corrected=$(dryad_roots_owning_dependency_correction "$dryad_roots_owning_paths_raw")
+    dryad_roots_owning_paths_owning=$(dryad_roots_owning_eval_existing_prefix "$dryad_roots_owning_paths_corrected")
+    dryad_roots_owning_paths_changed=$dryad_roots_owning_paths_owning
+
+    if [ "$dryad_roots_owning_paths_corrected" != "$dryad_roots_owning_paths_raw" ]; then
+        dryad_roots_owning_paths_rel=${dryad_roots_owning_paths_raw#"$dryad_roots_owning_paths_corrected"}
+        dryad_roots_owning_paths_rel=${dryad_roots_owning_paths_rel#/}
+        if [ -n "$dryad_roots_owning_paths_rel" ]; then
+            dryad_roots_owning_paths_changed=$dryad_roots_owning_paths_owning/$dryad_roots_owning_paths_rel
+        fi
+    fi
+
+    printf '%s\n%s\n' "$dryad_roots_owning_paths_owning" "$dryad_roots_owning_paths_changed"
 }
 
 dryad_roots_owning_root_for_path () {
@@ -1985,8 +2088,10 @@ dryad_roots_owning_print_ref () {
 
 dryad_roots_owning_refs_for_path () {
     dryad_roots_owning_input_path=$1
-    dryad_roots_owning_changed=$(dryad_roots_owning_abs_path "$dryad_roots_owning_input_path")
-    dryad_roots_owning_root=$(dryad_roots_owning_root_for_path "$dryad_roots_owning_changed" || true)
+    dryad_roots_owning_paths=$(dryad_roots_owning_paths_for_input "$dryad_roots_owning_input_path")
+    dryad_roots_owning_path=$(printf '%s\n' "$dryad_roots_owning_paths" | sed -n '1p')
+    dryad_roots_owning_changed=$(printf '%s\n' "$dryad_roots_owning_paths" | sed -n '2p')
+    dryad_roots_owning_root=$(dryad_roots_owning_root_for_path "$dryad_roots_owning_path" || true)
 
     [ -n "$dryad_roots_owning_root" ] || return 0
 

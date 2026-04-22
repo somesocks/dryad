@@ -54,6 +54,7 @@ _prepare() {
 	mkdir -p "$TEMP_DIR/dyd/roots/root-plain-user/dyd/requirements"
 	printf 'root' > "$TEMP_DIR/dyd/roots/root-plain-user/dyd/type"
 	printf 'root:../../../root-plain' > "$TEMP_DIR/dyd/roots/root-plain-user/dyd/requirements/plain"
+	ln -s "$TEMP_DIR/dyd/roots/root-base" "$TEMP_DIR/root-base-link"
 	cd "$TEMP_DIR"
 	TEMP_DIR=$(pwd -P)
 }
@@ -131,6 +132,11 @@ EOF
 		'dyd/roots/root-base/dyd/assets~os=linux/main' \
 		| dryad roots affected --log-level="$DYD_LOG_LEVEL")
 	_assert_roots_affected_output "$OUTPUT_UNION" "$EXPECTED_ALL" "expected mixed stdin unions and duplicate paths to dedupe and merge affected variants correctly"
+
+	OUTPUT_CANONICAL=$(printf '%s\n' \
+		"$TEMP_DIR/root-base-link/dyd/assets~os=linux/../assets~os=linux/main" \
+		| dryad roots affected --log-level="$DYD_LOG_LEVEL")
+	_assert_roots_affected_output "$OUTPUT_CANONICAL" "$EXPECTED_LINUX" "expected symlinked and dot-dot paths to resolve before finding affected variants"
 
 	OUTPUT_ABS=$(printf '%s\n' \
 		'dyd/roots/root-base/dyd/assets~os=linux/main' \
