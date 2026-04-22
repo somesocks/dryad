@@ -158,7 +158,10 @@ dryad_sprouts_run_resolve_path () {
         dryad_die "sprout not found: $dryad_sprouts_run_resolve_ref"
     fi
 
-    dryad_clean_cd "$dryad_sprouts_run_resolve_path"
+    dryad_sprouts_run_resolve_dir=$(dirname "$dryad_sprouts_run_resolve_path")
+    dryad_sprouts_run_resolve_base=$(basename "$dryad_sprouts_run_resolve_path")
+    dryad_sprouts_run_resolve_dir=$(dryad_clean_cd "$dryad_sprouts_run_resolve_dir")
+    printf '%s/%s\n' "$dryad_sprouts_run_resolve_dir" "$dryad_sprouts_run_resolve_base"
 }
 
 dryad_sprouts_run_stem_dependency_descriptor () {
@@ -232,7 +235,7 @@ dryad_sprouts_run_available_stems () {
             fi
             dryad_sprouts_run_available_stem=$(dryad_sprouts_run_stem_path "$dryad_sprouts_run_available_dep") ||
                 exit 1
-            printf '%s\t%s\n' "$dryad_sprouts_run_available_descriptor" "$dryad_sprouts_run_available_stem"
+            printf '%s|%s\n' "$dryad_sprouts_run_available_descriptor" "$dryad_sprouts_run_available_stem"
         done |
         sort
 }
@@ -241,7 +244,7 @@ dryad_sprouts_run_selector_matches_any_stem () {
     dryad_sprouts_run_selector_match_selector=$1
     dryad_sprouts_run_selector_match_stems=$2
 
-    while IFS='	' read -r dryad_sprouts_run_selector_match_descriptor dryad_sprouts_run_selector_match_path; do
+    while IFS='|' read -r dryad_sprouts_run_selector_match_descriptor dryad_sprouts_run_selector_match_path; do
         [ -n "$dryad_sprouts_run_selector_match_path" ] || continue
         if dryad_root_variant_selector_matches_descriptor "$dryad_sprouts_run_selector_match_selector" "$dryad_sprouts_run_selector_match_descriptor"; then
             return 0
@@ -257,7 +260,7 @@ dryad_sprouts_run_stems_have_dimension () {
     dryad_sprouts_run_dimension_stems=$1
     dryad_sprouts_run_dimension_name=$2
 
-    while IFS='	' read -r dryad_sprouts_run_dimension_descriptor dryad_sprouts_run_dimension_path; do
+    while IFS='|' read -r dryad_sprouts_run_dimension_descriptor dryad_sprouts_run_dimension_path; do
         [ -n "$dryad_sprouts_run_dimension_path" ] || continue
         if dryad_descriptor_value "$dryad_sprouts_run_dimension_descriptor" "$dryad_sprouts_run_dimension_name" >/dev/null 2>&1; then
             return 0
@@ -332,7 +335,7 @@ dryad_sprouts_run_selector_option_exists () {
     dryad_sprouts_run_option_dim=$2
     dryad_sprouts_run_option_want=$3
 
-    while IFS='	' read -r dryad_sprouts_run_option_descriptor dryad_sprouts_run_option_path; do
+    while IFS='|' read -r dryad_sprouts_run_option_descriptor dryad_sprouts_run_option_path; do
         [ -n "$dryad_sprouts_run_option_path" ] || continue
         dryad_sprouts_run_option_got=$(dryad_descriptor_value "$dryad_sprouts_run_option_descriptor" "$dryad_sprouts_run_option_dim" || true)
 
@@ -424,7 +427,7 @@ dryad_sprouts_run_stems_match_dimension_options () {
     dryad_sprouts_run_dimension_option_dim=$2
     dryad_sprouts_run_dimension_option_options=$3
 
-    while IFS='	' read -r dryad_sprouts_run_dimension_option_descriptor dryad_sprouts_run_dimension_option_path; do
+    while IFS='|' read -r dryad_sprouts_run_dimension_option_descriptor dryad_sprouts_run_dimension_option_path; do
         [ -n "$dryad_sprouts_run_dimension_option_path" ] || continue
         dryad_sprouts_run_dimension_option_value=$(dryad_descriptor_value "$dryad_sprouts_run_dimension_option_descriptor" "$dryad_sprouts_run_dimension_option_dim" || true)
         dryad_sprouts_run_dimension_option_exists=0
@@ -697,6 +700,41 @@ dryad_sprouts_run_env_command () {
     fi
 }
 
+dryad_sprouts_run_resolve_command () {
+    dryad_sprouts_run_resolve_command_stem=$1
+    dryad_sprouts_run_resolve_command_path_env=$2
+
+    if [ -z "${dryad_sprouts_run_command:-}" ]; then
+        printf '%s\n' "$dryad_sprouts_run_resolve_command_stem/dyd/commands/dyd-stem-run"
+        return 0
+    fi
+
+    case $dryad_sprouts_run_command in
+        /* | */* )
+            printf '%s\n' "$dryad_sprouts_run_command"
+            return 0
+            ;;
+    esac
+
+    dryad_sprouts_run_resolve_command_old_ifs=$IFS
+    IFS=:
+    set -- $dryad_sprouts_run_resolve_command_path_env
+    IFS=$dryad_sprouts_run_resolve_command_old_ifs
+
+    for dryad_sprouts_run_resolve_command_dir do
+        [ -n "$dryad_sprouts_run_resolve_command_dir" ] ||
+            dryad_sprouts_run_resolve_command_dir=.
+        dryad_sprouts_run_resolve_command_candidate=$dryad_sprouts_run_resolve_command_dir/$dryad_sprouts_run_command
+        if [ -f "$dryad_sprouts_run_resolve_command_candidate" ]; then
+            printf '%s\n' "$dryad_sprouts_run_resolve_command_candidate"
+            return 0
+        fi
+    done
+
+    printf '%s\n' "dryad-sh: error: missing stem main \"$dryad_sprouts_run_command\"" >&2
+    return 1
+}
+
 dryad_sprouts_run_exec_with_redirs () {
     dryad_sprouts_run_exec_stdout_mode=$1
     dryad_sprouts_run_exec_stdout_file=$2
@@ -743,7 +781,19 @@ dryad_sprouts_run_one_stem () {
     [ -n "$dryad_sprouts_run_one_stem_label" ] ||
         dryad_sprouts_run_one_stem_label=default
 
-    dryad_sprouts_run_one_stem_command=$dryad_sprouts_run_one_stem_path/dyd/commands/dyd-stem-run
+    dryad_sprouts_run_one_stem_cli_bin=$(dryad_sprouts_run_cli_bin)
+    case $dryad_sprouts_run_one_stem_cli_bin in
+        */* )
+            dryad_sprouts_run_one_stem_cli_dir=$(dirname "$dryad_sprouts_run_one_stem_cli_bin")
+            ;;
+        * )
+            dryad_sprouts_run_one_stem_cli_dir=$(pwd -P)
+            ;;
+    esac
+    dryad_sprouts_run_one_stem_path_env=$(dryad_sprouts_run_stem_path_env "$dryad_sprouts_run_one_stem_path" "$dryad_sprouts_run_one_stem_cli_dir")
+    dryad_sprouts_run_one_stem_command=$(dryad_sprouts_run_resolve_command "$dryad_sprouts_run_one_stem_path" "$dryad_sprouts_run_one_stem_path_env") ||
+        return 1
+
     if [ ! -f "$dryad_sprouts_run_one_stem_command" ]; then
         printf '%s\n' "dryad-sh: error: missing stem main \"$dryad_sprouts_run_one_stem_command\"" >&2
         return 1
@@ -758,17 +808,6 @@ dryad_sprouts_run_one_stem () {
         dryad_sprouts_run_one_stem_context_name=default
     dryad_sprouts_run_one_stem_context=$dryad_sprouts_run_one_stem_garden/dyd/heap/contexts/$dryad_sprouts_run_one_stem_context_name
     mkdir -p "$dryad_sprouts_run_one_stem_context"
-
-    dryad_sprouts_run_one_stem_cli_bin=$(dryad_sprouts_run_cli_bin)
-    case $dryad_sprouts_run_one_stem_cli_bin in
-        */* )
-            dryad_sprouts_run_one_stem_cli_dir=$(dirname "$dryad_sprouts_run_one_stem_cli_bin")
-            ;;
-        * )
-            dryad_sprouts_run_one_stem_cli_dir=$(pwd -P)
-            ;;
-    esac
-    dryad_sprouts_run_one_stem_path_env=$(dryad_sprouts_run_stem_path_env "$dryad_sprouts_run_one_stem_path" "$dryad_sprouts_run_one_stem_cli_dir")
 
     dryad_sprouts_run_one_stem_rel=${dryad_sprouts_run_one_stem_sprout#"$dryad_sprouts_run_one_stem_garden"/}
     dryad_sprouts_run_one_stem_stdout_mode=null
@@ -830,11 +869,11 @@ dryad_sprouts_run_one_sprout () {
 
     dryad_sprouts_run_one_selected=
     dryad_sprouts_run_one_selected_count=0
-    while IFS='	' read -r dryad_sprouts_run_one_descriptor dryad_sprouts_run_one_stem; do
+    while IFS='|' read -r dryad_sprouts_run_one_descriptor dryad_sprouts_run_one_stem; do
         [ -n "$dryad_sprouts_run_one_stem" ] || continue
         if dryad_root_variant_selector_matches_descriptor "$dryad_sprouts_run_one_selector" "$dryad_sprouts_run_one_descriptor"; then
             dryad_sprouts_run_one_selected="${dryad_sprouts_run_one_selected}
-$dryad_sprouts_run_one_descriptor	$dryad_sprouts_run_one_stem"
+$dryad_sprouts_run_one_descriptor|$dryad_sprouts_run_one_stem"
             dryad_sprouts_run_one_selected_count=$((dryad_sprouts_run_one_selected_count + 1))
         fi
     done <<EOF
@@ -846,7 +885,7 @@ EOF
         return 1
     fi
 
-    while IFS='	' read -r dryad_sprouts_run_one_descriptor dryad_sprouts_run_one_stem; do
+    while IFS='|' read -r dryad_sprouts_run_one_descriptor dryad_sprouts_run_one_stem; do
         [ -n "$dryad_sprouts_run_one_stem" ] || continue
         dryad_sprouts_run_one_stem "$dryad_sprouts_run_one_garden" "$dryad_sprouts_run_one_sprout" "$dryad_sprouts_run_one_descriptor" "$dryad_sprouts_run_one_stem" "$dryad_sprouts_run_one_selected_count" "$@" ||
             return $?
@@ -892,6 +931,7 @@ dryad_cmd_sprouts_run () {
     dryad_sprouts_run_variant=
     dryad_sprouts_run_context=
     dryad_sprouts_run_inherit=0
+    dryad_sprouts_run_command=
     dryad_sprouts_run_ignore_errors=0
     dryad_sprouts_run_join_stdout=0
     dryad_sprouts_run_join_stderr=0
@@ -1074,6 +1114,236 @@ $2"
                     exit "$dryad_sprouts_run_status"
             fi
         done
+}
+
+dryad_cmd_sprout_run_bool_option () {
+    dryad_sprout_run_bool_arg=$1
+    dryad_sprout_run_bool_name=$2
+    dryad_sprout_run_bool_default=$3
+
+    case $dryad_sprout_run_bool_arg in
+        --*=* )
+            dryad_bool_value "${dryad_sprout_run_bool_arg#--*=}"
+            ;;
+        * )
+            printf '%s\n' "$dryad_sprout_run_bool_default"
+            ;;
+    esac
+}
+
+dryad_cmd_sprout_run () {
+    dryad_roots_include=
+    dryad_roots_exclude=
+    dryad_sprouts_run_variant=
+    dryad_sprouts_run_context=
+    dryad_sprouts_run_inherit=0
+    dryad_sprouts_run_command=
+    dryad_sprouts_run_ignore_errors=0
+    dryad_sprouts_run_join_stdout=1
+    dryad_sprouts_run_join_stderr=1
+    dryad_sprouts_run_log_stdout=
+    dryad_sprouts_run_log_stderr=
+    dryad_sprouts_run_confirm=
+    dryad_sprout_run_ref=
+
+    while [ "$#" -gt 0 ]; do
+        dryad_sprout_run_arg=$(dryad_strip_option_quotes "$1")
+        case $dryad_sprout_run_arg in
+            --help | -h )
+                cat <<'EOF'
+Usage:
+  dryad sprout run [--variant=<descriptor>] [--context=<name>] [--inherit=<bool>] [--command=<name>] [--confirm=<string>] [--join-stdout=<bool>] [--join-stderr=<bool>] [--log-stdout=<dir>] [--log-stderr=<dir>] [--scope=<scope>] <sprout_ref> -- [args...]
+EOF
+                return 0
+                ;;
+            --variant=* )
+                dryad_sprouts_run_variant=$(dryad_fs_descriptor_normalize "${dryad_sprout_run_arg#--variant=}")
+                shift
+                ;;
+            --variant )
+                [ "$#" -gt 1 ] || dryad_die "--variant requires a value"
+                dryad_sprouts_run_variant=$(dryad_fs_descriptor_normalize "$2")
+                shift 2
+                ;;
+            --context=* )
+                dryad_sprouts_run_context=${dryad_sprout_run_arg#--context=}
+                shift
+                ;;
+            --context )
+                [ "$#" -gt 1 ] || dryad_die "--context requires a value"
+                dryad_sprouts_run_context=$2
+                shift 2
+                ;;
+            --inherit=* )
+                dryad_sprouts_run_inherit=$(dryad_cmd_sprout_run_bool_option "$dryad_sprout_run_arg" inherit 1)
+                shift
+                ;;
+            --inherit )
+                if [ "$#" -gt 1 ]; then
+                    case $2 in
+                        true | false | 0 | 1 )
+                            dryad_sprouts_run_inherit=$(dryad_bool_value "$2")
+                            shift 2
+                            ;;
+                        * )
+                            dryad_sprouts_run_inherit=1
+                            shift
+                            ;;
+                    esac
+                else
+                    dryad_sprouts_run_inherit=1
+                    shift
+                fi
+                ;;
+            --command=* )
+                dryad_sprouts_run_command=${dryad_sprout_run_arg#--command=}
+                shift
+                ;;
+            --command )
+                [ "$#" -gt 1 ] || dryad_die "--command requires a value"
+                dryad_sprouts_run_command=$2
+                shift 2
+                ;;
+            --confirm=* )
+                dryad_sprouts_run_confirm=${dryad_sprout_run_arg#--confirm=}
+                shift
+                ;;
+            --confirm )
+                [ "$#" -gt 1 ] || dryad_die "--confirm requires a value"
+                dryad_sprouts_run_confirm=$2
+                shift 2
+                ;;
+            --join-stdout=* )
+                dryad_sprouts_run_join_stdout=$(dryad_cmd_sprout_run_bool_option "$dryad_sprout_run_arg" join-stdout 1)
+                shift
+                ;;
+            --join-stdout )
+                if [ "$#" -gt 1 ]; then
+                    case $2 in
+                        true | false | 0 | 1 )
+                            dryad_sprouts_run_join_stdout=$(dryad_bool_value "$2")
+                            shift 2
+                            ;;
+                        * )
+                            dryad_sprouts_run_join_stdout=1
+                            shift
+                            ;;
+                    esac
+                else
+                    dryad_sprouts_run_join_stdout=1
+                    shift
+                fi
+                ;;
+            --join-stderr=* )
+                dryad_sprouts_run_join_stderr=$(dryad_cmd_sprout_run_bool_option "$dryad_sprout_run_arg" join-stderr 1)
+                shift
+                ;;
+            --join-stderr )
+                if [ "$#" -gt 1 ]; then
+                    case $2 in
+                        true | false | 0 | 1 )
+                            dryad_sprouts_run_join_stderr=$(dryad_bool_value "$2")
+                            shift 2
+                            ;;
+                        * )
+                            dryad_sprouts_run_join_stderr=1
+                            shift
+                            ;;
+                    esac
+                else
+                    dryad_sprouts_run_join_stderr=1
+                    shift
+                fi
+                ;;
+            --log-stdout=* )
+                dryad_sprouts_run_log_stdout=${dryad_sprout_run_arg#--log-stdout=}
+                dryad_sprouts_run_join_stdout=0
+                shift
+                ;;
+            --log-stdout )
+                [ "$#" -gt 1 ] || dryad_die "--log-stdout requires a value"
+                dryad_sprouts_run_log_stdout=$2
+                dryad_sprouts_run_join_stdout=0
+                shift 2
+                ;;
+            --log-stderr=* )
+                dryad_sprouts_run_log_stderr=${dryad_sprout_run_arg#--log-stderr=}
+                dryad_sprouts_run_join_stderr=0
+                shift
+                ;;
+            --log-stderr )
+                [ "$#" -gt 1 ] || dryad_die "--log-stderr requires a value"
+                dryad_sprouts_run_log_stderr=$2
+                dryad_sprouts_run_join_stderr=0
+                shift 2
+                ;;
+            --scope=* | --log-level=* | --log-format=* | --parallel=* )
+                shift
+                ;;
+            --scope | --log-level | --log-format | --parallel )
+                [ "$#" -gt 1 ] || dryad_die "$1 requires a value"
+                shift 2
+                ;;
+            -- )
+                shift
+                break
+                ;;
+            --* )
+                dryad_die "unsupported sprout run option: $1"
+                ;;
+            * )
+                if [ -n "$dryad_sprout_run_ref" ]; then
+                    dryad_die "unsupported sprout run argument: $1"
+                fi
+                dryad_sprout_run_ref=$1
+                shift
+                ;;
+        esac
+    done
+
+    [ -n "$dryad_sprout_run_ref" ] ||
+        dryad_die "sprout run requires sprout_ref"
+
+    dryad_sprouts_run_garden=$(dryad_garden_find)
+    dryad_sprouts_run_ref_parse "$dryad_sprout_run_ref"
+    if [ -n "$dryad_sprouts_run_variant" ] && [ -n "$dryad_sprouts_run_ref_selector" ]; then
+        dryad_die "sprout run selector specified in both sprout_ref and --variant"
+    fi
+
+    dryad_sprout_run_selector=$dryad_sprouts_run_variant
+    [ -z "$dryad_sprouts_run_ref_selector" ] ||
+        dryad_sprout_run_selector=$dryad_sprouts_run_ref_selector
+    dryad_sprout_run_sprout=$(dryad_sprouts_run_resolve_path "$dryad_sprouts_run_garden" "$dryad_sprouts_run_ref_path")
+
+    if [ -n "$dryad_sprouts_run_confirm" ]; then
+        printf '%s\n' "this package will be executed:"
+        printf '%s\n' "$dryad_sprout_run_ref"
+        dryad_sprouts_run_confirm_prompt
+    fi
+
+    dryad_sprouts_run_target "$dryad_sprouts_run_garden" "$dryad_sprout_run_sprout" "$dryad_sprout_run_selector" "$@"
+}
+
+dryad_cmd_sprout () {
+    dryad_sprout_action=${1:-}
+    if [ "$#" -gt 0 ]; then
+        shift
+    fi
+
+    case $dryad_sprout_action in
+        run )
+            dryad_cmd_sprout_run "$@"
+            ;;
+        '' | help | --help | -h )
+            cat <<'EOF'
+Usage:
+  dryad sprout run <sprout_ref>
+EOF
+            ;;
+        * )
+            dryad_die "unsupported sprout action: $dryad_sprout_action"
+            ;;
+    esac
 }
 
 dryad_path_has_owner_write () {

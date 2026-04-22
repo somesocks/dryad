@@ -35,9 +35,23 @@ _prepare() {
 	:;
 }
 
+_materialize_root_01_sprout() {
+	STEM="$TEMP_DIR/dyd/heap/stems/manual-root-01"
+	SPROUT="$TEMP_DIR/dyd/heap/sprouts/manual-root-01"
+
+	mkdir -p "$STEM/dyd/commands" "$SPROUT/dyd/dependencies" "$TEMP_DIR/dyd/sprouts"
+	printf "stem" > "$STEM/dyd/type"
+	cp "$SRC_DIR/dyd/assets/sample-garden/dyd/roots/root-01/dyd/commands/dyd-stem-run" "$STEM/dyd/commands/dyd-stem-run"
+	chmod 755 "$STEM/dyd/commands/dyd-stem-run"
+
+	printf "sprout" > "$SPROUT/dyd/type"
+	ln -s "$STEM" "$SPROUT/dyd/dependencies/stem"
+	ln -s "$SPROUT" "$TEMP_DIR/dyd/sprouts/root-01"
+}
+
 _test() {
 
-	(dryad root build dyd/roots/root-01 --log-level="$DYD_LOG_LEVEL") 1>&2;
+	_materialize_root_01_sprout
 
 	set +e
 	OUTPUT=$(dryad sprout run "dyd/sprouts/root-01" \

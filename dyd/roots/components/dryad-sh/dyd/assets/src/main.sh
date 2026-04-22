@@ -70,6 +70,9 @@ dryad_main () {
         sprouts )
             dryad_cmd_sprouts "$@"
             ;;
+        sprout )
+            dryad_cmd_sprout "$@"
+            ;;
         root )
             dryad_cmd_root "$@"
             ;;
@@ -172,8 +175,31 @@ dryad_scope_rewrite () {
 
     dryad_scope_rewrite_done=1
     set -f
-    dryad_debug "rewriting args to: dryad --scope=none $dryad_rewrite_resource $* $dryad_rewrite_args"
-    dryad_scope_rewrite_run "$dryad_rewrite_resource" "$@" $dryad_rewrite_args
+    case $dryad_rewrite_resource in
+        root )
+            case ${1:-} in
+                requirement | requirements | secrets | variants )
+                    dryad_rewrite_action_arg=$1
+                    dryad_rewrite_subaction_arg=${2:-}
+                    shift 2
+                    dryad_debug "rewriting args to: dryad --scope=none $dryad_rewrite_resource $dryad_rewrite_action_arg $dryad_rewrite_subaction_arg $dryad_rewrite_args $*"
+                    dryad_scope_rewrite_run "$dryad_rewrite_resource" "$dryad_rewrite_action_arg" "$dryad_rewrite_subaction_arg" $dryad_rewrite_args "$@"
+                    ;;
+                * )
+                    dryad_rewrite_action_arg=$1
+                    shift
+                    dryad_debug "rewriting args to: dryad --scope=none $dryad_rewrite_resource $dryad_rewrite_action_arg $dryad_rewrite_args $*"
+                    dryad_scope_rewrite_run "$dryad_rewrite_resource" "$dryad_rewrite_action_arg" $dryad_rewrite_args "$@"
+                    ;;
+            esac
+            ;;
+        * )
+            dryad_rewrite_action_arg=$1
+            shift
+            dryad_debug "rewriting args to: dryad --scope=none $dryad_rewrite_resource $dryad_rewrite_action_arg $dryad_rewrite_args $*"
+            dryad_scope_rewrite_run "$dryad_rewrite_resource" "$dryad_rewrite_action_arg" $dryad_rewrite_args "$@"
+            ;;
+    esac
     dryad_rewrite_status=$?
     set +f
     exit "$dryad_rewrite_status"

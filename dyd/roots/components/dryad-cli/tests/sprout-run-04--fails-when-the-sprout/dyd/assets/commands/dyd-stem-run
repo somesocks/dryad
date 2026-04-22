@@ -34,8 +34,19 @@ _prepare() {
 	:;
 }
 
+_materialize_root_01_sprout_without_main() {
+	STEM="$TEMP_DIR/dyd/heap/stems/manual-root-01"
+	SPROUT="$TEMP_DIR/dyd/heap/sprouts/manual-root-01"
+
+	mkdir -p "$STEM/dyd/commands" "$SPROUT/dyd/dependencies" "$TEMP_DIR/dyd/sprouts"
+	printf "stem" > "$STEM/dyd/type"
+	printf "sprout" > "$SPROUT/dyd/type"
+	ln -s "$STEM" "$SPROUT/dyd/dependencies/stem"
+	ln -s "$SPROUT" "$TEMP_DIR/dyd/sprouts/root-01"
+}
+
 _test() {
-	dryad root build dyd/roots/root-01 --join-stdout=true --join-stderr=true --log-level="$DYD_LOG_LEVEL" 1>&2;
+	_materialize_root_01_sprout_without_main
 
 	echo "[DEBUG] DYD_LOG_LEVEL=$DYD_LOG_LEVEL" 1>&2
 	echo "[DEBUG] sprout dir listing:" 1>&2

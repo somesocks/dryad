@@ -59,8 +59,30 @@ _prepare() {
 	cd "$TEMP_DIR"
 }
 
+_materialize_root_top_sprout() {
+	SPROUT="$TEMP_DIR/dyd/heap/sprouts/manual-root-top"
+	mkdir -p "$SPROUT/dyd/dependencies" "$TEMP_DIR/dyd/sprouts"
+	printf "sprout" > "$SPROUT/dyd/type"
+
+	for arch in amd64 arm64; do
+		for os_name in darwin linux; do
+			descriptor="arch=$arch+os=$os_name"
+			stem="$TEMP_DIR/dyd/heap/stems/manual-root-top--$arch-$os_name"
+			mkdir -p "$stem/dyd/commands" "$stem/dyd/traits"
+			printf "stem" > "$stem/dyd/type"
+			printf "%s" "$arch" > "$stem/dyd/traits/arch"
+			printf "%s" "$os_name" > "$stem/dyd/traits/os"
+			cp "$SRC_DIR/dyd/assets/sample-garden/dyd/roots/root-top/dyd/assets/commands/dyd-stem-run" "$stem/dyd/commands/dyd-stem-run"
+			chmod 755 "$stem/dyd/commands/dyd-stem-run"
+			ln -s "$stem" "$SPROUT/dyd/dependencies/stem~$descriptor"
+		done
+	done
+
+	ln -s "$SPROUT" "$TEMP_DIR/dyd/sprouts/root-top"
+}
+
 _test() {
-	dryad root build "dyd/roots/root-top" --log-level="$DYD_LOG_LEVEL" > /dev/null
+	_materialize_root_top_sprout
 
 	fs_log_path="$TEMP_DIR/sprout-run-filesystem.log"
 	dryad sprout run "dyd/sprouts/root-top~arch=any+os=linux" --log-level="$DYD_LOG_LEVEL" >"$fs_log_path" 2>&1

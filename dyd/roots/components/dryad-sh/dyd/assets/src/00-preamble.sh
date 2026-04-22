@@ -48,6 +48,7 @@ Supported commands:
   sprouts prune
   sprouts run
   sprouts wipe
+  sprout run <sprout_ref>
   scopes path
   scopes list
   scope active
