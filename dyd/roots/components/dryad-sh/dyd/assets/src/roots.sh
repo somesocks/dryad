@@ -2072,6 +2072,111 @@ EOF
     done | sort -u
 }
 
+dryad_cmd_roots_affected () {
+    dryad_roots_affected_relative=1
+
+    while [ "$#" -gt 0 ]; do
+        dryad_roots_affected_arg=$(dryad_strip_option_quotes "$1")
+        case $dryad_roots_affected_arg in
+            --help | -h )
+                cat <<'EOF'
+Usage:
+  dryad roots affected [--relative=<bool>]
+EOF
+                return 0
+                ;;
+            --relative=* )
+                dryad_roots_affected_relative=$(dryad_bool_value "${dryad_roots_affected_arg#--relative=}")
+                shift
+                ;;
+            --relative )
+                if [ "$#" -gt 1 ]; then
+                    case $2 in
+                        true | false | 0 | 1 )
+                            dryad_roots_affected_relative=$(dryad_bool_value "$2")
+                            shift 2
+                            ;;
+                        * )
+                            dryad_roots_affected_relative=1
+                            shift
+                            ;;
+                    esac
+                else
+                    dryad_roots_affected_relative=1
+                    shift
+                fi
+                ;;
+            --scope=* | --log-level=* | --log-format=* | --parallel=* )
+                shift
+                ;;
+            --scope | --log-level | --log-format | --parallel )
+                [ "$#" -gt 1 ] || dryad_die "$1 requires a value"
+                shift 2
+                ;;
+            -- )
+                shift
+                break
+                ;;
+            --* )
+                dryad_die "unsupported roots affected option: $1"
+                ;;
+            * )
+                dryad_die "unsupported roots affected argument: $1"
+                ;;
+        esac
+    done
+
+    dryad_roots_affected_garden=$(dryad_garden_find)
+    dryad_roots_owning_garden=$dryad_roots_affected_garden
+    dryad_roots_owning_relative=$dryad_roots_affected_relative
+
+    dryad_roots_affected_start_nodes=$(
+        while IFS= read -r dryad_roots_affected_path; do
+            [ -n "$dryad_roots_affected_path" ] || continue
+            dryad_roots_owning_refs_for_path "$dryad_roots_affected_path"
+        done | sort -u
+    )
+
+    [ -n "$dryad_roots_affected_start_nodes" ] || return 0
+
+    dryad_roots_graph_garden=$dryad_roots_affected_garden
+    dryad_roots_graph_lines "$dryad_roots_affected_relative" 1 |
+        awk -F '\t' -v starts="$dryad_roots_affected_start_nodes" '
+            BEGIN {
+                start_count = split(starts, start_parts, "\n")
+                for (i = 1; i <= start_count; i++) {
+                    if (start_parts[i] != "") {
+                        seen[start_parts[i]] = 1
+                        queue[++queue_count] = start_parts[i]
+                    }
+                }
+            }
+
+            $2 != "" {
+                edge_count[$1]++
+                edges[$1, edge_count[$1]] = $3
+            }
+
+            END {
+                for (head = 1; head <= queue_count; head++) {
+                    node = queue[head]
+                    for (i = 1; i <= edge_count[node]; i++) {
+                        next_node = edges[node, i]
+                        if (!(next_node in seen)) {
+                            seen[next_node] = 1
+                            queue[++queue_count] = next_node
+                        }
+                    }
+                }
+
+                for (node in seen) {
+                    print node
+                }
+            }
+        ' |
+        sort
+}
+
 dryad_roots_graph_all_roots () {
     dryad_roots_graph_dir=$(dryad_roots_path)
     dryad_roots_find_roots "$dryad_roots_graph_dir"
@@ -2709,7 +2814,10 @@ EOF
         owning )
             dryad_cmd_roots_owning "$@"
             ;;
-        affected | build )
+        affected )
+            dryad_cmd_roots_affected "$@"
+            ;;
+        build )
             dryad_roots_next=${1:-}
             case $dryad_roots_next in
                 --help | -h )

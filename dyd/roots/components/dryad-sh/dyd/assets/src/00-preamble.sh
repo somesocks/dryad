@@ -37,6 +37,7 @@ Supported commands:
   root secrets path [path]
   root secrets list [path]
   root variants list [path]
+  roots affected
   roots graph
   roots owning
   roots path
