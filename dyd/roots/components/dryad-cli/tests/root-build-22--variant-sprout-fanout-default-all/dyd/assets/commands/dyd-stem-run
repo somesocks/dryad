@@ -3,6 +3,7 @@ set -euf -o pipefail
 
 SRC_DIR=$DYD_STEM
 TEMP_DIR=''
+TEST_DRYAD_LOG_LEVEL=info
 
 . "$SRC_DIR/dyd/assets/assertions.sh"
 
@@ -18,7 +19,7 @@ _prepare() {
 
 _test() {
 	log_path="$TEMP_DIR/root-build.log"
-	dryad root build "dyd/roots/root-top" --log-level="$DYD_LOG_LEVEL" >"$log_path" 2>&1
+	dryad root build "dyd/roots/root-top" --log-level="$TEST_DRYAD_LOG_LEVEL" >"$log_path" 2>&1
 }
 
 _verify() {

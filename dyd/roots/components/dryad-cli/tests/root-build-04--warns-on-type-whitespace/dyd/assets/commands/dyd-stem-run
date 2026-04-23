@@ -14,6 +14,7 @@ TEMP_DIR=''
 ROOTS=("root-01" "root-02" "root-03" "root-04" "root-05")
 EXPECTED_ROOT_TYPE_HEX=("726f6f740a" "20726f6f74" "726f6f7420" "0a726f6f74" "09726f6f7409")
 BUILD_LOG_FILE=''
+TEST_DRYAD_LOG_LEVEL=info
 
 # import assertion functions
 . $SRC_DIR/dyd/assets/assertions.sh
@@ -45,7 +46,7 @@ _test() {
 
 	: > "$BUILD_LOG_FILE"
 	for root_name in "${ROOTS[@]}"; do
-		(dryad root build "dyd/roots/$root_name" --log-level="$DYD_LOG_LEVEL") >> "$BUILD_LOG_FILE" 2>&1;
+		(dryad root build "dyd/roots/$root_name" --log-level="$TEST_DRYAD_LOG_LEVEL") >> "$BUILD_LOG_FILE" 2>&1;
 	done
 }
 

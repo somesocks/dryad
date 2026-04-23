@@ -6,6 +6,7 @@ SRC_DIR=$DYD_STEM
 TEMP_DIR=''
 BUILD_LOG_FILE=''
 EXPECTED_REQUIREMENT_HEX='726f6f743a2e2e2f2e2e2f2e2e2f726f6f742d30320a'
+TEST_DRYAD_LOG_LEVEL=info
 
 . "$SRC_DIR/dyd/assets/assertions.sh"
 
@@ -40,7 +41,7 @@ _prepare() {
 
 _test() {
 	: > "$BUILD_LOG_FILE"
-	(dryad root build "dyd/roots/root-01" --log-level="$DYD_LOG_LEVEL") >> "$BUILD_LOG_FILE" 2>&1
+	(dryad root build "dyd/roots/root-01" --log-level="$TEST_DRYAD_LOG_LEVEL") >> "$BUILD_LOG_FILE" 2>&1
 }
 
 _verify() {
