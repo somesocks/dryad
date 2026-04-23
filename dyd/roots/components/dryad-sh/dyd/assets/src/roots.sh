@@ -377,6 +377,43 @@ dryad_relative_path () {
     done
 }
 
+dryad_relative_path_literal () {
+    dryad_relative_from=${1%/}
+    dryad_relative_to=${2%/}
+    dryad_relative_prefix=$dryad_relative_from
+    dryad_relative_ups=
+
+    while :; do
+        case $dryad_relative_to in
+            "$dryad_relative_prefix" )
+                printf '%s\n' "${dryad_relative_ups:-.}"
+                return 0
+                ;;
+            "$dryad_relative_prefix"/* )
+                dryad_relative_tail=${dryad_relative_to#"$dryad_relative_prefix"/}
+                if [ -n "$dryad_relative_ups" ]; then
+                    printf '%s/%s\n' "$dryad_relative_ups" "$dryad_relative_tail"
+                else
+                    printf '%s\n' "$dryad_relative_tail"
+                fi
+                return 0
+                ;;
+        esac
+
+        if [ "$dryad_relative_prefix" = / ]; then
+            printf '%s\n' "$dryad_relative_to"
+            return 0
+        fi
+
+        dryad_relative_prefix=$(dirname "$dryad_relative_prefix")
+        if [ -n "$dryad_relative_ups" ]; then
+            dryad_relative_ups=$dryad_relative_ups/..
+        else
+            dryad_relative_ups=..
+        fi
+    done
+}
+
 dryad_file_abs_path () {
     dryad_file_abs_input=$1
     dryad_file_abs_dir=$(dirname "$dryad_file_abs_input")
@@ -2169,6 +2206,23 @@ dryad_root_build_publish_dir () {
     find "$dryad_root_build_publish_dest" -type d -exec chmod 511 {} \;
 }
 
+dryad_root_build_publish_derivation () {
+    dryad_root_build_derivation_garden=$1
+    dryad_root_build_derivation_source_fingerprint=$2
+    dryad_root_build_derivation_result_fingerprint=$3
+    dryad_root_build_derivation_dest=$(dryad_root_build_heap_fingerprint_path "$dryad_root_build_derivation_garden" derivations/roots "$dryad_root_build_derivation_source_fingerprint")
+
+    mkdir -p "$(dirname "$dryad_root_build_derivation_dest")"
+    dryad_root_build_derivation_tmp=$(dirname "$dryad_root_build_derivation_dest")/.tmp-$(basename "$dryad_root_build_derivation_dest").$$
+    rm -f "$dryad_root_build_derivation_tmp"
+    printf '%s' "$dryad_root_build_derivation_result_fingerprint" > "$dryad_root_build_derivation_tmp"
+    if ! mv "$dryad_root_build_derivation_tmp" "$dryad_root_build_derivation_dest" 2>/dev/null; then
+        rm -f "$dryad_root_build_derivation_tmp"
+        [ -f "$dryad_root_build_derivation_dest" ] ||
+            dryad_die "could not publish root derivation: $dryad_root_build_derivation_dest"
+    fi
+}
+
 dryad_root_build_ensure_sprout_parent () {
     dryad_root_build_parent_garden=$1
     dryad_root_build_parent_rel=$2
@@ -2281,6 +2335,7 @@ dryad_root_build_stem () {
     dryad_root_build_prepare_dependencies "$dryad_root_build_stem_garden" "$dryad_root_build_stem_root" "$dryad_root_build_stem_descriptor" "$dryad_root_build_stem_workspace"
     dryad_root_build_prepare_built_requirements "$dryad_root_build_stem_workspace"
     dryad_root_build_prepare_path "$dryad_root_build_stem_workspace"
+    dryad_root_build_stem_source_fingerprint=$(dryad_root_build_fingerprint "$dryad_root_build_stem_workspace")
 
     dryad_root_build_init_stem "$dryad_root_build_stem_dest"
     dryad_root_build_log "root build - building root path=dyd/roots/$dryad_root_build_stem_rel variant=${dryad_root_build_stem_descriptor:-default}"
@@ -2302,6 +2357,7 @@ dryad_root_build_stem () {
     dryad_root_build_stem_fingerprint=$(dryad_root_build_fingerprint "$dryad_root_build_stem_dest")
     printf '%s' "$dryad_root_build_stem_fingerprint" > "$dryad_root_build_stem_dest/dyd/fingerprint"
     dryad_root_build_publish_dir "$dryad_root_build_stem_garden" stem "$dryad_root_build_stem_dest" "$(dryad_root_build_heap_package_path "$dryad_root_build_stem_garden" stems "$dryad_root_build_stem_fingerprint")"
+    dryad_root_build_publish_derivation "$dryad_root_build_stem_garden" "$dryad_root_build_stem_source_fingerprint" "$dryad_root_build_stem_fingerprint"
 
     rm -rf "$dryad_root_build_stem_workspace" "$dryad_root_build_stem_dest"
     dryad_root_build_log "root build - done building root path=dyd/roots/$dryad_root_build_stem_rel variant=${dryad_root_build_stem_descriptor:-default}"
@@ -2352,7 +2408,7 @@ dryad_root_build_materialize_sprout () {
         rm -rf "$dryad_root_build_sprout_link"
     fi
     dryad_root_build_sprout_ln_status=0
-    dryad_root_build_sprout_target=$(dryad_relative_path "$dryad_root_build_sprout_link_parent" "$dryad_root_build_sprout_heap_path")
+    dryad_root_build_sprout_target=$(dryad_relative_path_literal "$dryad_root_build_sprout_link_parent" "$dryad_root_build_sprout_heap_path")
     ln -s "$dryad_root_build_sprout_target" "$dryad_root_build_sprout_link" ||
         dryad_root_build_sprout_ln_status=$?
     if [ "$dryad_root_build_sprout_restore_parent" = 1 ]; then
