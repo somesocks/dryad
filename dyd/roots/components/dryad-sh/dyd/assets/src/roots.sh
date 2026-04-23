@@ -1427,8 +1427,6 @@ dryad_root_build_target_selector_matches_descriptor () {
     dryad_root_build_target_descriptor=$2
     dryad_root_build_target_parent_descriptor=$3
 
-    [ -n "$dryad_root_build_target_selector" ] || return 0
-
     dryad_root_build_target_old_ifs=$IFS
     IFS=+
     set -- $dryad_root_build_target_selector
@@ -1465,6 +1463,17 @@ dryad_root_build_target_selector_matches_descriptor () {
 
         [ -n "$dryad_root_build_target_got" ] || return 1
         dryad_option_list_contains "$dryad_root_build_target_want" "$dryad_root_build_target_got" || return 1
+    done
+
+    dryad_root_build_target_old_ifs=$IFS
+    IFS=+
+    set -- $dryad_root_build_target_descriptor
+    IFS=$dryad_root_build_target_old_ifs
+
+    for dryad_root_build_target_pair do
+        dryad_root_build_target_dim=${dryad_root_build_target_pair%%=*}
+        dryad_root_build_target_selector_value "$dryad_root_build_target_selector" "$dryad_root_build_target_dim" >/dev/null ||
+            return 1
     done
 
     return 0
@@ -3557,24 +3566,27 @@ dryad_roots_owning_selected_path () {
     dryad_roots_owning_selected_descriptor=$2
     dryad_roots_owning_selected_kind=$3
     dryad_roots_owning_selected_match=
+    dryad_roots_owning_selected_count=0
+
+    dryad_roots_owning_selected_plain=$dryad_roots_owning_selected_root/dyd/$dryad_roots_owning_selected_kind
+    if [ -d "$dryad_roots_owning_selected_plain" ]; then
+        dryad_roots_owning_selected_match=$dryad_roots_owning_selected_plain
+        dryad_roots_owning_selected_count=1
+    fi
 
     for dryad_roots_owning_selected_candidate in "$dryad_roots_owning_selected_root"/dyd/"$dryad_roots_owning_selected_kind"~*; do
         [ -d "$dryad_roots_owning_selected_candidate" ] || continue
         dryad_roots_owning_selected_selector=${dryad_roots_owning_selected_candidate##*/$dryad_roots_owning_selected_kind~}
         if dryad_selector_matches_descriptor "$dryad_roots_owning_selected_selector" "$dryad_roots_owning_selected_descriptor"; then
-            [ -z "$dryad_roots_owning_selected_match" ] ||
-                dryad_die "multiple $dryad_roots_owning_selected_kind paths match variant: $dryad_roots_owning_selected_descriptor"
+            dryad_roots_owning_selected_count=$((dryad_roots_owning_selected_count + 1))
+            [ "$dryad_roots_owning_selected_count" -le 1 ] ||
+                dryad_die "multiple matching dyd/$dryad_roots_owning_selected_kind selectors for variant $dryad_roots_owning_selected_descriptor"
             dryad_roots_owning_selected_match=$dryad_roots_owning_selected_candidate
         fi
     done
 
     if [ -n "$dryad_roots_owning_selected_match" ]; then
         printf '%s\n' "$dryad_roots_owning_selected_match"
-        return 0
-    fi
-
-    if [ -d "$dryad_roots_owning_selected_root/dyd/$dryad_roots_owning_selected_kind" ]; then
-        printf '%s\n' "$dryad_roots_owning_selected_root/dyd/$dryad_roots_owning_selected_kind"
     fi
 }
 
