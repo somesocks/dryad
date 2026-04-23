@@ -57,6 +57,20 @@ dryad_main () {
         dryad_scope_rewrite "$dryad_resource" "$@"
     fi
 
+    dryad_main_memo_owner=0
+    if [ -z "${DRYAD_SH_MEMO_DIR:-}" ]; then
+        dryad_memo_init
+        dryad_main_memo_owner=1
+        trap 'dryad_memo_cleanup' 0
+    fi
+
+    dryad_main_profile_owner=0
+    if [ -z "${DRYAD_SH_PROFILE_FILE:-}" ]; then
+        if dryad_profile_init; then
+            dryad_main_profile_owner=1
+        fi
+    fi
+
     case $dryad_resource in
         '' )
             dryad_usage
@@ -95,6 +109,16 @@ dryad_main () {
             dryad_die "unsupported command resource: $dryad_resource"
             ;;
     esac
+
+    dryad_main_status=$?
+    if [ "$dryad_main_profile_owner" = 1 ]; then
+        dryad_profile_report
+    fi
+    if [ "$dryad_main_memo_owner" = 1 ]; then
+        dryad_memo_cleanup
+        trap - 0
+    fi
+    return "$dryad_main_status"
 }
 
 dryad_find_command_scope () {

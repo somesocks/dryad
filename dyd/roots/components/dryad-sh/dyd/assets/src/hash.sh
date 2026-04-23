@@ -309,7 +309,7 @@ dryad_b2_word_hex_le () {
         $((dryad_b2_hex_3 & 255)) $((dryad_b2_hex_3 >> 8))
 }
 
-dryad_blake2b_128_file_hex () {
+dryad_blake2b_128_file_hex_shell () {
     dryad_b2_file=$1
     dryad_b2_total=$(wc -c < "$dryad_b2_file" | tr -d ' ')
 
@@ -366,8 +366,524 @@ dryad_blake2b_128_file_hex () {
     printf '\n'
 }
 
+dryad_blake2b_128_file_hex () {
+    dryad_b2_file=$1
+    dryad_b2_format=${2:-hex}
+
+    if [ "${DRYAD_SH_HASH_IMPL:-awk}" = shell ]; then
+        dryad_blake2b_128_file_hex_shell "$dryad_b2_file"
+        return 0
+    fi
+
+    if [ "$dryad_b2_format" = files-table ]; then
+        cat
+    elif [ "$dryad_b2_file" = - ]; then
+        od -An -v -tu1
+    else
+        od -An -v -tu1 "$dryad_b2_file"
+    fi | awk -v format="$dryad_b2_format" '
+        function bxor8(a, b,    key, aa, bb, bit, value, place) {
+            key = a SUBSEP b
+            if (key in xor8_cache) {
+                return xor8_cache[key]
+            }
+
+            aa = a
+            bb = b
+            value = 0
+            place = 1
+            for (bit = 0; bit < 8; bit++) {
+                if ((aa % 2) != (bb % 2)) {
+                    value += place
+                }
+                aa = int(aa / 2)
+                bb = int(bb / 2)
+                place *= 2
+            }
+
+            xor8_cache[key] = value
+            return value
+        }
+
+        function xor16(a, b) {
+            return bxor8(a % 256, b % 256) + 256 * bxor8(int(a / 256), int(b / 256))
+        }
+
+        function copy_h_to_v(dst, src,    i) {
+            for (i = 0; i < 4; i++) {
+                v[dst, i] = h[src, i]
+            }
+        }
+
+        function copy_iv_to_v(dst, src,    i) {
+            for (i = 0; i < 4; i++) {
+                v[dst, i] = iv[src, i]
+            }
+        }
+
+        function xor_v_v(dst, src,    i) {
+            for (i = 0; i < 4; i++) {
+                v[dst, i] = xor16(v[dst, i], v[src, i])
+            }
+        }
+
+        function xor_v_t(dst,    i) {
+            for (i = 0; i < 4; i++) {
+                v[dst, i] = xor16(v[dst, i], t[i])
+            }
+        }
+
+        function xor_v_mask(dst,    i) {
+            for (i = 0; i < 4; i++) {
+                v[dst, i] = xor16(v[dst, i], 65535)
+            }
+        }
+
+        function add3_v_v_m(dst, src, msg,    sum, carry) {
+            sum = v[dst, 0] + v[src, 0] + m[msg, 0]
+            v[dst, 0] = sum % 65536
+            carry = int(sum / 65536)
+            sum = v[dst, 1] + v[src, 1] + m[msg, 1] + carry
+            v[dst, 1] = sum % 65536
+            carry = int(sum / 65536)
+            sum = v[dst, 2] + v[src, 2] + m[msg, 2] + carry
+            v[dst, 2] = sum % 65536
+            carry = int(sum / 65536)
+            sum = v[dst, 3] + v[src, 3] + m[msg, 3] + carry
+            v[dst, 3] = sum % 65536
+        }
+
+        function add2_v_v(dst, src,    sum, carry) {
+            sum = v[dst, 0] + v[src, 0]
+            v[dst, 0] = sum % 65536
+            carry = int(sum / 65536)
+            sum = v[dst, 1] + v[src, 1] + carry
+            v[dst, 1] = sum % 65536
+            carry = int(sum / 65536)
+            sum = v[dst, 2] + v[src, 2] + carry
+            v[dst, 2] = sum % 65536
+            carry = int(sum / 65536)
+            sum = v[dst, 3] + v[src, 3] + carry
+            v[dst, 3] = sum % 65536
+        }
+
+        function rotr_v(idx, bits,    a0, a1, a2, a3) {
+            a0 = v[idx, 0]
+            a1 = v[idx, 1]
+            a2 = v[idx, 2]
+            a3 = v[idx, 3]
+            if (bits == 16) {
+                v[idx, 0] = a1
+                v[idx, 1] = a2
+                v[idx, 2] = a3
+                v[idx, 3] = a0
+            } else if (bits == 32) {
+                v[idx, 0] = a2
+                v[idx, 1] = a3
+                v[idx, 2] = a0
+                v[idx, 3] = a1
+            } else if (bits == 24) {
+                v[idx, 0] = int(a1 / 256) + 256 * (a2 % 256)
+                v[idx, 1] = int(a2 / 256) + 256 * (a3 % 256)
+                v[idx, 2] = int(a3 / 256) + 256 * (a0 % 256)
+                v[idx, 3] = int(a0 / 256) + 256 * (a1 % 256)
+            } else if (bits == 63) {
+                v[idx, 0] = (2 * a0) % 65536 + int(a3 / 32768)
+                v[idx, 1] = (2 * a1) % 65536 + int(a0 / 32768)
+                v[idx, 2] = (2 * a2) % 65536 + int(a1 / 32768)
+                v[idx, 3] = (2 * a3) % 65536 + int(a2 / 32768)
+            } else {
+                exit 2
+            }
+        }
+
+        function G(a, b, c, d, x, y) {
+            add3_v_v_m(a, b, x)
+            xor_v_v(d, a)
+            rotr_v(d, 32)
+            add2_v_v(c, d)
+            xor_v_v(b, c)
+            rotr_v(b, 24)
+            add3_v_v_m(a, b, y)
+            xor_v_v(d, a)
+            rotr_v(d, 16)
+            add2_v_v(c, d)
+            xor_v_v(b, c)
+            rotr_v(b, 63)
+        }
+
+        function round(spec,    s) {
+            split(spec, s, " ")
+            G(0, 4, 8, 12, s[1], s[2])
+            G(1, 5, 9, 13, s[3], s[4])
+            G(2, 6, 10, 14, s[5], s[6])
+            G(3, 7, 11, 15, s[7], s[8])
+            G(0, 5, 10, 15, s[9], s[10])
+            G(1, 6, 11, 12, s[11], s[12])
+            G(2, 7, 8, 13, s[13], s[14])
+            G(3, 4, 9, 14, s[15], s[16])
+        }
+
+        function load_block_word(idx,    base) {
+            base = idx * 8
+            m[idx, 0] = byte[base] + 256 * byte[base + 1]
+            m[idx, 1] = byte[base + 2] + 256 * byte[base + 3]
+            m[idx, 2] = byte[base + 4] + 256 * byte[base + 5]
+            m[idx, 3] = byte[base + 6] + 256 * byte[base + 7]
+        }
+
+        function add_counter(n,    sum, carry) {
+            sum = t[0] + n
+            t[0] = sum % 65536
+            carry = int(sum / 65536)
+            sum = t[1] + carry
+            t[1] = sum % 65536
+            carry = int(sum / 65536)
+            sum = t[2] + carry
+            t[2] = sum % 65536
+            carry = int(sum / 65536)
+            t[3] = (t[3] + carry) % 65536
+        }
+
+        function compress(final,    i) {
+            for (i = 0; i < 16; i++) {
+                load_block_word(i)
+            }
+            for (i = 0; i < 8; i++) {
+                copy_h_to_v(i, i)
+                copy_iv_to_v(i + 8, i)
+            }
+            xor_v_t(12)
+            if (final == 1) {
+                xor_v_mask(14)
+            }
+
+            round("0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15")
+            round("14 10 4 8 9 15 13 6 1 12 0 2 11 7 5 3")
+            round("11 8 12 0 5 2 15 13 10 14 3 6 7 1 9 4")
+            round("7 9 3 1 13 12 11 14 2 6 5 10 4 0 15 8")
+            round("9 0 5 7 2 4 10 15 14 1 11 12 6 8 3 13")
+            round("2 12 6 10 0 11 8 3 4 13 7 5 15 14 1 9")
+            round("12 5 1 15 14 13 4 10 0 7 6 3 9 2 8 11")
+            round("13 11 7 14 12 1 3 9 5 0 15 4 8 6 2 10")
+            round("6 15 14 9 11 3 0 8 12 2 13 7 1 4 10 5")
+            round("10 2 8 4 7 6 1 5 15 11 9 14 3 12 13 0")
+            round("0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15")
+            round("14 10 4 8 9 15 13 6 1 12 0 2 11 7 5 3")
+
+            for (i = 0; i < 8; i++) {
+                h[i, 0] = xor16(xor16(h[i, 0], v[i, 0]), v[i + 8, 0])
+                h[i, 1] = xor16(xor16(h[i, 1], v[i, 1]), v[i + 8, 1])
+                h[i, 2] = xor16(xor16(h[i, 2], v[i, 2]), v[i + 8, 2])
+                h[i, 3] = xor16(xor16(h[i, 3], v[i, 3]), v[i + 8, 3])
+            }
+        }
+
+        function hx(b) {
+            return substr(hex, int(b / 16) + 1, 1) substr(hex, (b % 16) + 1, 1)
+        }
+
+        function word_hex(idx) {
+            return hx(h[idx, 0] % 256) hx(int(h[idx, 0] / 256)) \
+                hx(h[idx, 1] % 256) hx(int(h[idx, 1] / 256)) \
+                hx(h[idx, 2] % 256) hx(int(h[idx, 2] / 256)) \
+                hx(h[idx, 3] % 256) hx(int(h[idx, 3] / 256))
+        }
+
+        function hex_value(c) {
+            return index(hex, c) - 1
+        }
+
+        function pow2(n,    value) {
+            value = 1
+            while (n > 0) {
+                value *= 2
+                n--
+            }
+            return value
+        }
+
+        function base32_char(idx) {
+            return substr(base32_alphabet, idx + 1, 1)
+        }
+
+        function base32_hex(digest,    out, value, bits, pos, byte, shift, index_value) {
+            out = ""
+            value = 0
+            bits = 0
+            for (pos = 1; pos <= length(digest); pos += 2) {
+                byte = hex_value(substr(digest, pos, 1)) * 16 + hex_value(substr(digest, pos + 1, 1))
+                value = value * 256 + byte
+                bits += 8
+                while (bits >= 5) {
+                    shift = bits - 5
+                    index_value = int(value / pow2(shift)) % 32
+                    out = out base32_char(index_value)
+                    bits = shift
+                    if (bits > 0) {
+                        value = value % pow2(bits)
+                    } else {
+                        value = 0
+                    }
+                }
+            }
+            if (bits > 0) {
+                index_value = (value * pow2(5 - bits)) % 32
+                out = out base32_char(index_value)
+            }
+            return out
+        }
+
+        function reset_hash(    i) {
+            for (i = 0; i < 8; i++) {
+                h[i, 0] = iv[i, 0]
+                h[i, 1] = iv[i, 1]
+                h[i, 2] = iv[i, 2]
+                h[i, 3] = iv[i, 3]
+            }
+            h[0, 0] = xor16(h[0, 0], 16)
+            h[0, 1] = xor16(h[0, 1], 257)
+
+            block_len = 0
+            processed = 0
+            delete byte
+            for (i = 0; i < 4; i++) {
+                t[i] = 0
+            }
+        }
+
+        function hash_byte(b) {
+            if (block_len == 128) {
+                add_counter(128)
+                compress(0)
+                processed += 128
+                delete byte
+                block_len = 0
+            }
+            byte[block_len] = b + 0
+            block_len++
+        }
+
+        function digest_hex() {
+            add_counter(block_len)
+            compress(1)
+            return word_hex(0) word_hex(1)
+        }
+
+        function shell_quote(s,    q) {
+            q = s
+            gsub(/\047/, sprintf("%c%c%c%c", 39, 92, 39, 39), q)
+            return sprintf("%c%s%c", 39, q, 39)
+        }
+
+        function hash_file_base32(path,    cmd, line, fields, i, close_status) {
+            reset_hash()
+            hash_byte(102)
+            hash_byte(105)
+            hash_byte(108)
+            hash_byte(101)
+            hash_byte(0)
+
+            cmd = "od -An -v -tu1 " shell_quote(path)
+            while ((cmd | getline line) > 0) {
+                split(line, fields, " ")
+                for (i = 1; i <= length(fields); i++) {
+                    if (fields[i] != "") {
+                        hash_byte(fields[i])
+                    }
+                }
+            }
+            close_status = close(cmd)
+            if (close_status != 0) {
+                exit 3
+            }
+
+            return base32_hex(digest_hex())
+        }
+
+        BEGIN {
+            hex = "0123456789abcdef"
+            base32_alphabet = "abcdefghijklmnopqrstuvwxyz234567"
+            FS = "\t"
+
+            iv[0, 0] = 51464; iv[0, 1] = 62396; iv[0, 2] = 58983; iv[0, 3] = 27145
+            iv[1, 0] = 42811; iv[1, 1] = 33994; iv[1, 2] = 44677; iv[1, 3] = 47975
+            iv[2, 0] = 63531; iv[2, 1] = 65172; iv[2, 2] = 62322; iv[2, 3] = 15470
+            iv[3, 0] = 14065; iv[3, 1] = 24349; iv[3, 2] = 62778; iv[3, 3] = 42319
+            iv[4, 0] = 33489; iv[4, 1] = 44518; iv[4, 2] = 21119; iv[4, 3] = 20750
+            iv[5, 0] = 27679; iv[5, 1] = 11070; iv[5, 2] = 26764; iv[5, 3] = 39685
+            iv[6, 0] = 48491; iv[6, 1] = 64321; iv[6, 2] = 55723; iv[6, 3] = 8067
+            iv[7, 0] = 8569;  iv[7, 1] = 4990;  iv[7, 2] = 52505; iv[7, 3] = 23520
+
+            reset_hash()
+        }
+
+        {
+            if (format == "files-table") {
+                if ($1 != "" && $2 != "") {
+                    printf "%s\t%s\n", $1, hash_file_base32($2)
+                }
+                next
+            }
+
+            split($0, fields, " ")
+            for (i = 1; i <= length(fields); i++) {
+                if (fields[i] != "") {
+                    hash_byte(fields[i])
+                }
+            }
+        }
+
+        END {
+            if (format == "files-table") {
+                exit 0
+            }
+
+            digest = digest_hex()
+            if (format == "base32") {
+                printf "%s\n", base32_hex(digest)
+            } else {
+                printf "%s\n", digest
+            }
+        }
+    '
+}
+
+dryad_blake2b_128_file_base32 () {
+    dryad_b2_base32_file=$1
+
+    if [ "${DRYAD_SH_HASH_IMPL:-awk}" = shell ]; then
+        dryad_b2_base32_hex=$(dryad_blake2b_128_file_hex_shell "$dryad_b2_base32_file")
+        dryad_base32_encode_hex "$dryad_b2_base32_hex"
+        return 0
+    fi
+
+    dryad_blake2b_128_file_hex "$dryad_b2_base32_file" base32
+}
+
+dryad_blake2b_128_files_table_base32 () {
+    if [ "${DRYAD_SH_HASH_IMPL:-awk}" = shell ]; then
+        dryad_b2_files_table_sep=$(printf '\t')
+        while IFS=$dryad_b2_files_table_sep read -r dryad_b2_files_table_rel dryad_b2_files_table_path; do
+            [ -n "$dryad_b2_files_table_rel" ] || continue
+            dryad_b2_files_table_hash=$(
+                {
+                    printf 'file\000'
+                    cat "$dryad_b2_files_table_path"
+                } | dryad_blake2b_128_stream_base32
+            )
+            printf '%s\t%s\n' "$dryad_b2_files_table_rel" "$dryad_b2_files_table_hash"
+        done
+        return 0
+    fi
+
+    dryad_blake2b_128_file_hex - files-table
+}
+
+dryad_blake2b_128_stream_base32 () {
+    if [ "${DRYAD_SH_HASH_IMPL:-awk}" = shell ]; then
+        dryad_b2_stream_tmp=$(mktemp "${TMPDIR:-/tmp}/dryad-sh-hash-stream.XXXXXX")
+        cat > "$dryad_b2_stream_tmp"
+        dryad_b2_stream_hex=$(dryad_blake2b_128_file_hex_shell "$dryad_b2_stream_tmp")
+        rm -f "$dryad_b2_stream_tmp"
+        dryad_base32_encode_hex "$dryad_b2_stream_hex"
+        return 0
+    fi
+
+    dryad_blake2b_128_file_hex - base32
+}
+
+dryad_memo_init () {
+    if [ -n "${DRYAD_SH_MEMO_DIR:-}" ]; then
+        mkdir -p "$DRYAD_SH_MEMO_DIR"
+        export DRYAD_SH_MEMO_DIR
+        return 0
+    fi
+
+    DRYAD_SH_MEMO_DIR=$(mktemp -d "${TMPDIR:-/tmp}/dryad-sh-memo.XXXXXX")
+    export DRYAD_SH_MEMO_DIR
+}
+
+dryad_memo_cleanup () {
+    if [ -n "${DRYAD_SH_MEMO_DIR:-}" ]; then
+        rm -rf "$DRYAD_SH_MEMO_DIR"
+        unset DRYAD_SH_MEMO_DIR
+    fi
+}
+
+dryad_memo_key_base32 () {
+    dryad_memo_key_group=$1
+    shift
+
+    {
+        printf 'memo\000'
+        printf '%s' "$dryad_memo_key_group"
+        for dryad_memo_key_arg do
+            printf '\000%s' "$dryad_memo_key_arg"
+        done
+    } | dryad_blake2b_128_stream_base32
+}
+
+dryad_memo_path () {
+    [ -n "${DRYAD_SH_MEMO_DIR:-}" ] || dryad_die "memo dir is not initialized"
+    dryad_memo_path_key=$(dryad_memo_key_base32 "$@")
+    printf '%s/%s\n' "$DRYAD_SH_MEMO_DIR" "$dryad_memo_path_key"
+}
+
+dryad_memo_get () {
+    dryad_memo_init
+    dryad_memo_get_key=$(dryad_memo_key_base32 "$@")
+    dryad_memo_get_path=$DRYAD_SH_MEMO_DIR/$dryad_memo_get_key
+    [ -f "$dryad_memo_get_path" ] || return 1
+    cat "$dryad_memo_get_path"
+}
+
+dryad_memo_put () {
+    dryad_memo_init
+    dryad_memo_put_key=$(dryad_memo_key_base32 "$@")
+    dryad_memo_put_path=$DRYAD_SH_MEMO_DIR/$dryad_memo_put_key
+    dryad_memo_put_tmp=$dryad_memo_put_path.tmp.$$
+
+    rm -f "$dryad_memo_put_tmp"
+    cat > "$dryad_memo_put_tmp"
+
+    if [ -f "$dryad_memo_put_path" ]; then
+        rm -f "$dryad_memo_put_tmp"
+        return 0
+    fi
+
+    if ! mv "$dryad_memo_put_tmp" "$dryad_memo_put_path" 2>/dev/null; then
+        rm -f "$dryad_memo_put_tmp"
+        [ -f "$dryad_memo_put_path" ] || return 1
+    fi
+}
+
+dryad_memo_put_value () {
+    dryad_memo_put_value_group=$1
+    shift
+    dryad_memo_put_value_value=$1
+    shift
+
+    dryad_memo_init
+    dryad_memo_put_value_key=$(dryad_memo_key_base32 "$dryad_memo_put_value_group" "$@")
+    dryad_memo_put_value_path=$DRYAD_SH_MEMO_DIR/$dryad_memo_put_value_key
+    dryad_memo_put_value_tmp=$dryad_memo_put_value_path.tmp.$$
+
+    rm -f "$dryad_memo_put_value_tmp"
+    printf '%s' "$dryad_memo_put_value_value" > "$dryad_memo_put_value_tmp"
+
+    if [ -f "$dryad_memo_put_value_path" ]; then
+        rm -f "$dryad_memo_put_value_tmp"
+        return 0
+    fi
+
+    if ! mv "$dryad_memo_put_value_tmp" "$dryad_memo_put_value_path" 2>/dev/null; then
+        rm -f "$dryad_memo_put_value_tmp"
+        [ -f "$dryad_memo_put_value_path" ] || return 1
+    fi
+}
+
 dryad_blake2b_128_file_fingerprint () {
     dryad_b2_fp_file=$1
-    dryad_b2_fp_hex=$(dryad_blake2b_128_file_hex "$dryad_b2_fp_file")
-    printf 'v2-%s\n' "$(dryad_base32_encode_hex "$dryad_b2_fp_hex")"
+    printf 'v2-%s\n' "$(dryad_blake2b_128_file_base32 "$dryad_b2_fp_file")"
 }

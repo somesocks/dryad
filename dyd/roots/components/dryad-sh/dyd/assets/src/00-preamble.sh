@@ -16,6 +16,68 @@ dryad_debug () {
     esac
 }
 
+dryad_profile_enabled () {
+    case ${DRYAD_SH_PROFILE:-} in
+        '' | 0 | false | no )
+            return 1
+            ;;
+        * )
+            return 0
+            ;;
+    esac
+}
+
+dryad_profile_init () {
+    if [ -n "${DRYAD_SH_PROFILE_FILE:-}" ]; then
+        export DRYAD_SH_PROFILE_FILE
+        return 0
+    fi
+
+    dryad_profile_enabled || return 1
+
+    case $DRYAD_SH_PROFILE in
+        1 )
+            DRYAD_SH_PROFILE_FILE=$(mktemp "${TMPDIR:-/tmp}/dryad-sh-profile.XXXXXX")
+            ;;
+        * )
+            DRYAD_SH_PROFILE_FILE=$DRYAD_SH_PROFILE
+            mkdir -p "$(dirname "$DRYAD_SH_PROFILE_FILE")"
+            : > "$DRYAD_SH_PROFILE_FILE"
+            ;;
+    esac
+
+    export DRYAD_SH_PROFILE_FILE
+}
+
+dryad_profile_count () {
+    dryad_profile_name=$1
+    dryad_profile_delta=${2:-1}
+
+    if [ -z "${DRYAD_SH_PROFILE_FILE:-}" ]; then
+        dryad_profile_init || return 0
+    fi
+
+    printf 'count\t%s\t%s\n' "$dryad_profile_name" "$dryad_profile_delta" >> "$DRYAD_SH_PROFILE_FILE"
+}
+
+dryad_profile_report () {
+    [ -n "${DRYAD_SH_PROFILE_FILE:-}" ] || return 0
+    [ -f "$DRYAD_SH_PROFILE_FILE" ] || return 0
+
+    printf 'dryad-sh: profile file=%s\n' "$DRYAD_SH_PROFILE_FILE" >&2
+    awk -F '\t' '
+        $1 == "count" {
+            counts[$2] += $3
+        }
+
+        END {
+            for (key in counts) {
+                printf "dryad-sh: profile count %s=%s\n", key, counts[key]
+            }
+        }
+    ' "$DRYAD_SH_PROFILE_FILE" >&2
+}
+
 dryad_usage () {
     cat <<'EOF'
 dryad-sh - bootstrap Dryad implementation
