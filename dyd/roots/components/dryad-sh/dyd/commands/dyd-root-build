@@ -29,26 +29,26 @@ _build_single_file () {
         printf '%s\n' '#!/usr/bin/env sh'
         printf '%s\n' '# Generated from components/dryad-sh. Edit dyd/assets/src/* instead.'
         printf '\n'
-        sed '1{/^#!/d;}' "$SRC_DIR"/00-preamble.sh
-        printf '\n'
-        sed '1{/^#!/d;}' "$SRC_DIR"/garden.sh
-        printf '\n'
-        sed '1{/^#!/d;}' "$SRC_DIR"/scopes.sh
-        printf '\n'
-        sed '1{/^#!/d;}' "$SRC_DIR"/hash.sh
-        printf '\n'
-        sed '1{/^#!/d;}' "$SRC_DIR"/roots.sh
-        printf '\n'
-        sed '1{/^#!/d;}' "$SRC_DIR"/sprouts.sh
-        printf '\n'
-        sed '1{/^#!/d;}' "$SRC_DIR"/run.sh
-        printf '\n'
-        sed '1{/^#!/d;}' "$SRC_DIR"/scripts.sh
-        printf '\n'
-        sed '1{/^#!/d;}' "$SRC_DIR"/main.sh
+        _append_source_tree "$SRC_DIR/lib"
+        _append_source_tree "$SRC_DIR/model"
+        _append_source_tree "$SRC_DIR/ops"
+        _append_source_tree "$SRC_DIR/cmd"
+        _append_source_tree "$SRC_DIR/main"
     } > "$DEST_MAIN"
 
     chmod 755 "$DEST_MAIN"
+}
+
+_append_source_tree () {
+    tree=$1
+
+    [ -d "$tree" ] || return 0
+
+    for file in "$tree"/*.sh; do
+        [ -f "$file" ] || continue
+        sed '1{/^#!/d;}' "$file"
+        printf '\n'
+    done
 }
 
 _setup_logging

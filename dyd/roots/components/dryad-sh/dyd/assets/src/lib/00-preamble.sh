@@ -60,6 +60,53 @@ dryad_profile_count () {
     printf 'count\t%s\t%s\n' "$dryad_profile_name" "$dryad_profile_delta" >> "$DRYAD_SH_PROFILE_FILE"
 }
 
+dryad_profile_time_now_ns () {
+    date +%s%N 2>/dev/null || printf '0\n'
+}
+
+dryad_profile_time_record_bounds () {
+    dryad_profile_time_name=$1
+    dryad_profile_time_start=$2
+    dryad_profile_time_end=$3
+
+    if [ -z "${DRYAD_SH_PROFILE_FILE:-}" ]; then
+        dryad_profile_init || return 0
+    fi
+
+    case $dryad_profile_time_start:$dryad_profile_time_end in
+        0:* | *:0 )
+            return 0
+            ;;
+    esac
+
+    printf 'time\t%s\t%s\n' "$dryad_profile_time_name" "$((dryad_profile_time_end - dryad_profile_time_start))" >> "$DRYAD_SH_PROFILE_FILE"
+}
+
+dryad_profile_time_block () {
+    dryad_profile_time_name=$1
+    shift
+
+    if [ -z "${DRYAD_SH_PROFILE_FILE:-}" ]; then
+        "$@"
+        return $?
+    fi
+
+    dryad_profile_time_start=$(dryad_profile_time_now_ns)
+    "$@"
+    dryad_profile_time_status=$?
+    dryad_profile_time_end=$(dryad_profile_time_now_ns)
+
+    case $dryad_profile_time_start:$dryad_profile_time_end in
+        0:* | *:0 )
+            ;;
+        * )
+            dryad_profile_time_record_bounds "$dryad_profile_time_name" "$dryad_profile_time_start" "$dryad_profile_time_end"
+            ;;
+    esac
+
+    return "$dryad_profile_time_status"
+}
+
 dryad_profile_report () {
     [ -n "${DRYAD_SH_PROFILE_FILE:-}" ] || return 0
     [ -f "$DRYAD_SH_PROFILE_FILE" ] || return 0
@@ -70,9 +117,16 @@ dryad_profile_report () {
             counts[$2] += $3
         }
 
+        $1 == "time" {
+            times[$2] += $3
+        }
+
         END {
             for (key in counts) {
                 printf "dryad-sh: profile count %s=%s\n", key, counts[key]
+            }
+            for (key in times) {
+                printf "dryad-sh: profile time_ns %s=%s\n", key, times[key]
             }
         }
     ' "$DRYAD_SH_PROFILE_FILE" >&2
