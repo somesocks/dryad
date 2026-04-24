@@ -13,6 +13,10 @@ SRC_DIR=$DYD_STEM
 TEMP_DIR=''
 BUILD_OUTPUT=''
 SPROUT_FINGERPRINT=''
+STEM_FINGERPRINT=''
+
+EXPECTED_SPROUT_FINGERPRINT='v2-yohxqsfhuctw7b4okqahhucdpa'
+EXPECTED_STEM_FINGERPRINT='v2-ihy4kwkztd32mpsofyhx6ncina'
 
 # import assertion functions
 . $SRC_DIR/dyd/assets/assertions.sh
@@ -32,7 +36,7 @@ _prepare() {
 	# echo "[INFO] creating garden" 1>&2;
 
 	# copy the sample garden to the working directory
-	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR" 
+	cp -R "$SRC_DIR/dyd/assets/sample-garden/." "$TEMP_DIR"
 	chmod -R 755 "$TEMP_DIR"
 
 	cd "$TEMP_DIR"
@@ -55,6 +59,7 @@ _verify() {
 	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/assets/test-dir-01/test-file-02" "test-file-02"
 
 	SPROUT_FINGERPRINT=$(cat "$TEMP_DIR/dyd/sprouts/root-01/dyd/fingerprint")
+	STEM_FINGERPRINT=$(cat "$TEMP_DIR/dyd/sprouts/root-01/dyd/dependencies/stem/dyd/fingerprint")
 	if [ -z "$BUILD_OUTPUT" ]; then
 		echo "[ERROR] Fail: dryad root build should print a fingerprint" 1>&2
 		return 1
@@ -63,6 +68,18 @@ _verify() {
 		echo "[ERROR] Fail: dryad root build output should match sprout fingerprint" 1>&2
 		echo "[ERROR] expected: $SPROUT_FINGERPRINT" 1>&2
 		echo "[ERROR] got: $BUILD_OUTPUT" 1>&2
+		return 1
+	fi
+	if [ "$STEM_FINGERPRINT" != "$EXPECTED_STEM_FINGERPRINT" ]; then
+		echo "[ERROR] Fail: stem fingerprint should match expected hash" 1>&2
+		echo "[ERROR] expected: $EXPECTED_STEM_FINGERPRINT" 1>&2
+		echo "[ERROR] got: $STEM_FINGERPRINT" 1>&2
+		return 1
+	fi
+	if [ "$SPROUT_FINGERPRINT" != "$EXPECTED_SPROUT_FINGERPRINT" ]; then
+		echo "[ERROR] Fail: sprout fingerprint should match expected hash" 1>&2
+		echo "[ERROR] expected: $EXPECTED_SPROUT_FINGERPRINT" 1>&2
+		echo "[ERROR] got: $SPROUT_FINGERPRINT" 1>&2
 		return 1
 	fi
 	:;
