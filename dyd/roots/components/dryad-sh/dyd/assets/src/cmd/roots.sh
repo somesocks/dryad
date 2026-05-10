@@ -2146,14 +2146,19 @@ dryad_root_build_provenance_stem () {
 
     dryad_root_build_prepare_built_requirements "$dryad_root_build_provenance_tmp"
     printf '%s' stem > "$dryad_root_build_provenance_tmp/dyd/type"
-    dryad_root_build_provenance_fingerprint=$(dryad_root_build_fingerprint "$dryad_root_build_provenance_tmp")
+    dryad_root_build_provenance_file_hashes=$(mktemp "${TMPDIR:-/tmp}/dryad-sh-provenance-file-hashes.XXXXXX")
+    dryad_root_build_provenance_fingerprint=$(dryad_profile_time_block root-build.fingerprint.provenance \
+        dryad_root_build_fingerprint "$dryad_root_build_provenance_tmp" "$dryad_root_build_provenance_file_hashes")
     printf '%s' "$dryad_root_build_provenance_fingerprint" > "$dryad_root_build_provenance_tmp/dyd/fingerprint"
-    dryad_root_build_publish_dir \
+    dryad_profile_time_block root-build.publish-dir.provenance \
+        dryad_root_build_publish_dir \
         "$dryad_root_build_provenance_garden" \
         stem \
         "$dryad_root_build_provenance_tmp" \
-        "$(dryad_root_build_heap_package_path "$dryad_root_build_provenance_garden" stems "$dryad_root_build_provenance_fingerprint")"
+        "$(dryad_root_build_heap_package_path "$dryad_root_build_provenance_garden" stems "$dryad_root_build_provenance_fingerprint")" \
+        "$dryad_root_build_provenance_file_hashes"
 
+    rm -f "$dryad_root_build_provenance_file_hashes"
     rm -rf "$dryad_root_build_provenance_tmp" "$dryad_root_build_provenance_sources_dir" "$dryad_root_build_provenance_results_dir"
     printf '%s\n' "$dryad_root_build_provenance_fingerprint"
 }
@@ -2322,7 +2327,8 @@ dryad_root_build_stem_uncached () {
     dryad_root_build_stem_source_fingerprint=$(dryad_profile_time_block root-build.source-fingerprint \
         dryad_root_build_source_fingerprint "$dryad_root_build_stem_source" "$dryad_root_build_source_file_hashes")
     dryad_memo_put_value root-build-source-fingerprint "$dryad_root_build_stem_source_fingerprint" "$dryad_root_build_stem_garden" "$dryad_root_build_stem_root" "$dryad_root_build_stem_descriptor"
-    dryad_root_build_publish_dir \
+    dryad_profile_time_block root-build.publish-dir.source-stem \
+        dryad_root_build_publish_dir \
         "$dryad_root_build_stem_garden" \
         stem \
         "$dryad_root_build_stem_source" \

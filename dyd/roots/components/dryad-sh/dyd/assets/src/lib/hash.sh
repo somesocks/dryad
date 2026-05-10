@@ -409,89 +409,94 @@ dryad_blake2b_128_file_hex () {
             return bxor8(a % 256, b % 256) + 256 * bxor8(int(a / 256), int(b / 256))
         }
 
-        function copy_h_to_v(dst, src,    i) {
-            for (i = 0; i < 4; i++) {
-                v[dst, i] = h[src, i]
-            }
+        function copy_h_to_v(dst, src) {
+            v0[dst] = h0[src]
+            v1[dst] = h1[src]
+            v2[dst] = h2[src]
+            v3[dst] = h3[src]
         }
 
-        function copy_iv_to_v(dst, src,    i) {
-            for (i = 0; i < 4; i++) {
-                v[dst, i] = iv[src, i]
-            }
+        function copy_iv_to_v(dst, src) {
+            v0[dst] = iv0[src]
+            v1[dst] = iv1[src]
+            v2[dst] = iv2[src]
+            v3[dst] = iv3[src]
         }
 
-        function xor_v_v(dst, src,    i) {
-            for (i = 0; i < 4; i++) {
-                v[dst, i] = xor16(v[dst, i], v[src, i])
-            }
+        function xor_v_v(dst, src) {
+            v0[dst] = xor16(v0[dst], v0[src])
+            v1[dst] = xor16(v1[dst], v1[src])
+            v2[dst] = xor16(v2[dst], v2[src])
+            v3[dst] = xor16(v3[dst], v3[src])
         }
 
-        function xor_v_t(dst,    i) {
-            for (i = 0; i < 4; i++) {
-                v[dst, i] = xor16(v[dst, i], t[i])
-            }
+        function xor_v_t(dst) {
+            v0[dst] = xor16(v0[dst], t[0])
+            v1[dst] = xor16(v1[dst], t[1])
+            v2[dst] = xor16(v2[dst], t[2])
+            v3[dst] = xor16(v3[dst], t[3])
         }
 
-        function xor_v_mask(dst,    i) {
-            for (i = 0; i < 4; i++) {
-                v[dst, i] = xor16(v[dst, i], 65535)
-            }
+        function xor_v_mask(dst) {
+            v0[dst] = xor16(v0[dst], 65535)
+            v1[dst] = xor16(v1[dst], 65535)
+            v2[dst] = xor16(v2[dst], 65535)
+            v3[dst] = xor16(v3[dst], 65535)
         }
 
         function add3_v_v_m(dst, src, msg,    sum, carry) {
-            sum = v[dst, 0] + v[src, 0] + m[msg, 0]
-            v[dst, 0] = sum % 65536
+            sum = v0[dst] + v0[src] + m0[msg]
+            v0[dst] = sum % 65536
             carry = int(sum / 65536)
-            sum = v[dst, 1] + v[src, 1] + m[msg, 1] + carry
-            v[dst, 1] = sum % 65536
+            sum = v1[dst] + v1[src] + m1[msg] + carry
+            v1[dst] = sum % 65536
             carry = int(sum / 65536)
-            sum = v[dst, 2] + v[src, 2] + m[msg, 2] + carry
-            v[dst, 2] = sum % 65536
+            sum = v2[dst] + v2[src] + m2[msg] + carry
+            v2[dst] = sum % 65536
             carry = int(sum / 65536)
-            sum = v[dst, 3] + v[src, 3] + m[msg, 3] + carry
-            v[dst, 3] = sum % 65536
+            sum = v3[dst] + v3[src] + m3[msg] + carry
+            v3[dst] = sum % 65536
         }
 
         function add2_v_v(dst, src,    sum, carry) {
-            sum = v[dst, 0] + v[src, 0]
-            v[dst, 0] = sum % 65536
+            sum = v0[dst] + v0[src]
+            v0[dst] = sum % 65536
             carry = int(sum / 65536)
-            sum = v[dst, 1] + v[src, 1] + carry
-            v[dst, 1] = sum % 65536
+            sum = v1[dst] + v1[src] + carry
+            v1[dst] = sum % 65536
             carry = int(sum / 65536)
-            sum = v[dst, 2] + v[src, 2] + carry
-            v[dst, 2] = sum % 65536
+            sum = v2[dst] + v2[src] + carry
+            v2[dst] = sum % 65536
             carry = int(sum / 65536)
-            sum = v[dst, 3] + v[src, 3] + carry
-            v[dst, 3] = sum % 65536
+            sum = v3[dst] + v3[src] + carry
+            v3[dst] = sum % 65536
         }
 
         function rotr_v(idx, bits,    a0, a1, a2, a3) {
-            a0 = v[idx, 0]
-            a1 = v[idx, 1]
-            a2 = v[idx, 2]
-            a3 = v[idx, 3]
+            a0 = v0[idx]
+            a1 = v1[idx]
+            a2 = v2[idx]
+            a3 = v3[idx]
             if (bits == 16) {
-                v[idx, 0] = a1
-                v[idx, 1] = a2
-                v[idx, 2] = a3
-                v[idx, 3] = a0
+                v0[idx] = a1
+                v1[idx] = a2
+                v2[idx] = a3
+                v3[idx] = a0
             } else if (bits == 32) {
-                v[idx, 0] = a2
-                v[idx, 1] = a3
-                v[idx, 2] = a0
-                v[idx, 3] = a1
+                v0[idx] = a2
+                v1[idx] = a3
+                v2[idx] = a0
+                v3[idx] = a1
             } else if (bits == 24) {
-                v[idx, 0] = int(a1 / 256) + 256 * (a2 % 256)
-                v[idx, 1] = int(a2 / 256) + 256 * (a3 % 256)
-                v[idx, 2] = int(a3 / 256) + 256 * (a0 % 256)
-                v[idx, 3] = int(a0 / 256) + 256 * (a1 % 256)
+                v0[idx] = int(a1 / 256) + 256 * (a2 % 256)
+                v1[idx] = int(a2 / 256) + 256 * (a3 % 256)
+                v2[idx] = int(a3 / 256) + 256 * (a0 % 256)
+                v3[idx] = int(a0 / 256) + 256 * (a1 % 256)
             } else if (bits == 63) {
-                v[idx, 0] = (2 * a0) % 65536 + int(a3 / 32768)
-                v[idx, 1] = (2 * a1) % 65536 + int(a0 / 32768)
-                v[idx, 2] = (2 * a2) % 65536 + int(a1 / 32768)
-                v[idx, 3] = (2 * a3) % 65536 + int(a2 / 32768)
+                v0[idx] = (2 * a0) % 65536 + int(a3 / 32768)
+                v1[idx] = (2 * a1) % 65536 + int(a0 / 32768)
+                v2[idx] = (2 * a2) % 65536 + int(a1 / 32768)
+                v3[idx] = (2 * a3) % 65536 + int(a2 / 32768)
             } else {
                 exit 2
             }
@@ -526,10 +531,10 @@ dryad_blake2b_128_file_hex () {
 
         function load_block_word(idx,    base) {
             base = idx * 8
-            m[idx, 0] = byte[base] + 256 * byte[base + 1]
-            m[idx, 1] = byte[base + 2] + 256 * byte[base + 3]
-            m[idx, 2] = byte[base + 4] + 256 * byte[base + 5]
-            m[idx, 3] = byte[base + 6] + 256 * byte[base + 7]
+            m0[idx] = byte[base] + 256 * byte[base + 1]
+            m1[idx] = byte[base + 2] + 256 * byte[base + 3]
+            m2[idx] = byte[base + 4] + 256 * byte[base + 5]
+            m3[idx] = byte[base + 6] + 256 * byte[base + 7]
         }
 
         function add_counter(n,    sum, carry) {
@@ -572,10 +577,10 @@ dryad_blake2b_128_file_hex () {
             round("14 10 4 8 9 15 13 6 1 12 0 2 11 7 5 3")
 
             for (i = 0; i < 8; i++) {
-                h[i, 0] = xor16(xor16(h[i, 0], v[i, 0]), v[i + 8, 0])
-                h[i, 1] = xor16(xor16(h[i, 1], v[i, 1]), v[i + 8, 1])
-                h[i, 2] = xor16(xor16(h[i, 2], v[i, 2]), v[i + 8, 2])
-                h[i, 3] = xor16(xor16(h[i, 3], v[i, 3]), v[i + 8, 3])
+                h0[i] = xor16(xor16(h0[i], v0[i]), v0[i + 8])
+                h1[i] = xor16(xor16(h1[i], v1[i]), v1[i + 8])
+                h2[i] = xor16(xor16(h2[i], v2[i]), v2[i + 8])
+                h3[i] = xor16(xor16(h3[i], v3[i]), v3[i + 8])
             }
         }
 
@@ -584,10 +589,10 @@ dryad_blake2b_128_file_hex () {
         }
 
         function word_hex(idx) {
-            return hx(h[idx, 0] % 256) hx(int(h[idx, 0] / 256)) \
-                hx(h[idx, 1] % 256) hx(int(h[idx, 1] / 256)) \
-                hx(h[idx, 2] % 256) hx(int(h[idx, 2] / 256)) \
-                hx(h[idx, 3] % 256) hx(int(h[idx, 3] / 256))
+            return hx(h0[idx] % 256) hx(int(h0[idx] / 256)) \
+                hx(h1[idx] % 256) hx(int(h1[idx] / 256)) \
+                hx(h2[idx] % 256) hx(int(h2[idx] / 256)) \
+                hx(h3[idx] % 256) hx(int(h3[idx] / 256))
         }
 
         function hex_value(c) {
@@ -636,13 +641,13 @@ dryad_blake2b_128_file_hex () {
 
         function reset_hash(    i) {
             for (i = 0; i < 8; i++) {
-                h[i, 0] = iv[i, 0]
-                h[i, 1] = iv[i, 1]
-                h[i, 2] = iv[i, 2]
-                h[i, 3] = iv[i, 3]
+                h0[i] = iv0[i]
+                h1[i] = iv1[i]
+                h2[i] = iv2[i]
+                h3[i] = iv3[i]
             }
-            h[0, 0] = xor16(h[0, 0], 16)
-            h[0, 1] = xor16(h[0, 1], 257)
+            h0[0] = xor16(h0[0], 16)
+            h1[0] = xor16(h1[0], 257)
 
             block_len = 0
             processed = 0
@@ -706,14 +711,14 @@ dryad_blake2b_128_file_hex () {
             base32_alphabet = "abcdefghijklmnopqrstuvwxyz234567"
             FS = "\t"
 
-            iv[0, 0] = 51464; iv[0, 1] = 62396; iv[0, 2] = 58983; iv[0, 3] = 27145
-            iv[1, 0] = 42811; iv[1, 1] = 33994; iv[1, 2] = 44677; iv[1, 3] = 47975
-            iv[2, 0] = 63531; iv[2, 1] = 65172; iv[2, 2] = 62322; iv[2, 3] = 15470
-            iv[3, 0] = 14065; iv[3, 1] = 24349; iv[3, 2] = 62778; iv[3, 3] = 42319
-            iv[4, 0] = 33489; iv[4, 1] = 44518; iv[4, 2] = 21119; iv[4, 3] = 20750
-            iv[5, 0] = 27679; iv[5, 1] = 11070; iv[5, 2] = 26764; iv[5, 3] = 39685
-            iv[6, 0] = 48491; iv[6, 1] = 64321; iv[6, 2] = 55723; iv[6, 3] = 8067
-            iv[7, 0] = 8569;  iv[7, 1] = 4990;  iv[7, 2] = 52505; iv[7, 3] = 23520
+            iv0[0] = 51464; iv1[0] = 62396; iv2[0] = 58983; iv3[0] = 27145
+            iv0[1] = 42811; iv1[1] = 33994; iv2[1] = 44677; iv3[1] = 47975
+            iv0[2] = 63531; iv1[2] = 65172; iv2[2] = 62322; iv3[2] = 15470
+            iv0[3] = 14065; iv1[3] = 24349; iv2[3] = 62778; iv3[3] = 42319
+            iv0[4] = 33489; iv1[4] = 44518; iv2[4] = 21119; iv3[4] = 20750
+            iv0[5] = 27679; iv1[5] = 11070; iv2[5] = 26764; iv3[5] = 39685
+            iv0[6] = 48491; iv1[6] = 64321; iv2[6] = 55723; iv3[6] = 8067
+            iv0[7] = 8569;  iv1[7] = 4990;  iv2[7] = 52505; iv3[7] = 23520
 
             reset_hash()
         }

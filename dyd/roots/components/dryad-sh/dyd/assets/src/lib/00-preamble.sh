@@ -91,10 +91,21 @@ dryad_profile_time_block () {
         return $?
     fi
 
-    dryad_profile_time_start=$(dryad_profile_time_now_ns)
+    dryad_profile_time_frame=${DRYAD_SH_PROFILE_TIME_NEXT:-0}
+    DRYAD_SH_PROFILE_TIME_NEXT=$((dryad_profile_time_frame + 1))
+    DRYAD_SH_PROFILE_TIME_STACK="$dryad_profile_time_frame ${DRYAD_SH_PROFILE_TIME_STACK:-}"
+    eval "dryad_profile_time_name_$dryad_profile_time_frame=\$dryad_profile_time_name"
+    eval "dryad_profile_time_start_$dryad_profile_time_frame=\$(dryad_profile_time_now_ns)"
+
     "$@"
     dryad_profile_time_status=$?
     dryad_profile_time_end=$(dryad_profile_time_now_ns)
+
+    dryad_profile_time_frame=${DRYAD_SH_PROFILE_TIME_STACK%% *}
+    eval "dryad_profile_time_name=\$dryad_profile_time_name_$dryad_profile_time_frame"
+    eval "dryad_profile_time_start=\$dryad_profile_time_start_$dryad_profile_time_frame"
+    DRYAD_SH_PROFILE_TIME_STACK=${DRYAD_SH_PROFILE_TIME_STACK#* }
+    eval "unset dryad_profile_time_name_$dryad_profile_time_frame dryad_profile_time_start_$dryad_profile_time_frame"
 
     case $dryad_profile_time_start:$dryad_profile_time_end in
         0:* | *:0 )
