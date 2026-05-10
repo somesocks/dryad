@@ -383,7 +383,7 @@ dryad_blake2b_128_file_hex () {
         od -An -v -tu1 "$dryad_b2_file"
     fi | awk -v format="$dryad_b2_format" '
         function bxor8(a, b,    key, aa, bb, bit, value, place) {
-            key = a SUBSEP b
+            key = a * 256 + b
             if (key in xor8_cache) {
                 return xor8_cache[key]
             }
