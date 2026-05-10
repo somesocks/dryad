@@ -681,7 +681,7 @@ dryad_blake2b_128_file_hex () {
             return sprintf("%c%s%c", 39, q, 39)
         }
 
-        function hash_file_base32(path,    cmd, line, fields, i, close_status) {
+        function hash_file_base32(path,    cmd, line, fields, fields_len, i, close_status) {
             reset_hash()
             hash_byte(102)
             hash_byte(105)
@@ -691,8 +691,8 @@ dryad_blake2b_128_file_hex () {
 
             cmd = "od -An -v -tu1 " shell_quote(path)
             while ((cmd | getline line) > 0) {
-                split(line, fields, " ")
-                for (i = 1; i <= length(fields); i++) {
+                fields_len = split(line, fields, " ")
+                for (i = 1; i <= fields_len; i++) {
                     if (fields[i] != "") {
                         hash_byte(fields[i])
                     }
@@ -731,8 +731,8 @@ dryad_blake2b_128_file_hex () {
                 next
             }
 
-            split($0, fields, " ")
-            for (i = 1; i <= length(fields); i++) {
+            fields_len = split($0, fields, " ")
+            for (i = 1; i <= fields_len; i++) {
                 if (fields[i] != "") {
                     hash_byte(fields[i])
                 }
