@@ -74,7 +74,8 @@ dryad_root_build_materialize_traits () {
     dryad_root_build_traits_root=$1
     dryad_root_build_traits_descriptor=$2
     dryad_root_build_traits_workspace=$3
-    dryad_roots_owning_selected_path_into dryad_root_build_traits_selected "$dryad_root_build_traits_root" "$dryad_root_build_traits_descriptor" traits
+    dryad_roots_owning_selected_path_load "$dryad_root_build_traits_root" "$dryad_root_build_traits_descriptor" traits
+    dryad_root_build_traits_selected=$dyd_ret0
     dryad_root_build_traits_dest=$dryad_root_build_traits_workspace/dyd/traits
     dryad_root_build_traits_garden=$(dryad_garden_find)
     dryad_root_build_traits_rel=${dryad_root_build_traits_root#"$dryad_root_build_traits_garden"/dyd/roots/}
@@ -98,13 +99,15 @@ dryad_root_build_prepare_source () {
         dryad_root_build_materialize_traits "$dryad_root_build_prepare_root" "$dryad_root_build_prepare_descriptor" "$dryad_root_build_prepare_workspace"
 
     for dryad_root_build_prepare_kind in assets commands secrets docs; do
-        dryad_roots_owning_selected_path_into dryad_root_build_prepare_selected "$dryad_root_build_prepare_root" "$dryad_root_build_prepare_descriptor" "$dryad_root_build_prepare_kind"
+        dryad_roots_owning_selected_path_load "$dryad_root_build_prepare_root" "$dryad_root_build_prepare_descriptor" "$dryad_root_build_prepare_kind"
+        dryad_root_build_prepare_selected=$dyd_ret0
         if [ -n "$dryad_root_build_prepare_selected" ]; then
             ln -s "$dryad_root_build_prepare_selected" "$dryad_root_build_prepare_workspace/dyd/$dryad_root_build_prepare_kind"
         fi
     done
 
-    dryad_roots_owning_selected_path_into dryad_root_build_prepare_requirements "$dryad_root_build_prepare_root" "$dryad_root_build_prepare_descriptor" requirements
+    dryad_roots_owning_selected_path_load "$dryad_root_build_prepare_root" "$dryad_root_build_prepare_descriptor" requirements
+    dryad_root_build_prepare_requirements=$dyd_ret0
     if [ -n "$dryad_root_build_prepare_requirements" ]; then
         ln -s "$dryad_root_build_prepare_requirements" "$dryad_root_build_prepare_workspace/dyd/~requirements"
         ln -s "$dryad_root_build_prepare_requirements" "$dryad_root_build_prepare_workspace/dyd/requirements"

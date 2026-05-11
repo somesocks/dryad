@@ -1939,10 +1939,11 @@ dryad_roots_owning_path_within () {
     esac
 }
 
-dryad_roots_owning_selected_path_uncached () {
+dryad_roots_owning_selected_path_compute_load () {
     dryad_roots_owning_selected_root=$1
     dryad_roots_owning_selected_descriptor=$2
     dryad_roots_owning_selected_kind=$3
+    dyd_ret0=
     dryad_roots_owning_selected_match=
     dryad_roots_owning_selected_count=0
 
@@ -1963,67 +1964,28 @@ dryad_roots_owning_selected_path_uncached () {
         fi
     done
 
-    if [ -n "$dryad_roots_owning_selected_match" ]; then
-        printf '%s\n' "$dryad_roots_owning_selected_match"
-    fi
+    dyd_ret0=$dryad_roots_owning_selected_match
 }
 
-dryad_roots_owning_selected_path_compute_into () {
-    dryad_roots_owning_selected_into_var=$1
-    dryad_roots_owning_selected_root=$2
-    dryad_roots_owning_selected_descriptor=$3
-    dryad_roots_owning_selected_kind=$4
-    dryad_roots_owning_selected_match=
-    dryad_roots_owning_selected_count=0
-
-    dryad_roots_owning_selected_plain=$dryad_roots_owning_selected_root/dyd/$dryad_roots_owning_selected_kind
-    if [ -d "$dryad_roots_owning_selected_plain" ]; then
-        dryad_roots_owning_selected_match=$dryad_roots_owning_selected_plain
-        dryad_roots_owning_selected_count=1
-    fi
-
-    for dryad_roots_owning_selected_candidate in "$dryad_roots_owning_selected_root"/dyd/"$dryad_roots_owning_selected_kind"~*; do
-        [ -d "$dryad_roots_owning_selected_candidate" ] || continue
-        dryad_roots_owning_selected_selector=${dryad_roots_owning_selected_candidate##*/$dryad_roots_owning_selected_kind~}
-        if dryad_selector_matches_descriptor "$dryad_roots_owning_selected_selector" "$dryad_roots_owning_selected_descriptor"; then
-            dryad_roots_owning_selected_count=$((dryad_roots_owning_selected_count + 1))
-            [ "$dryad_roots_owning_selected_count" -le 1 ] ||
-                dryad_die "multiple matching dyd/$dryad_roots_owning_selected_kind selectors for variant $dryad_roots_owning_selected_descriptor"
-            dryad_roots_owning_selected_match=$dryad_roots_owning_selected_candidate
-        fi
-    done
-
-    eval "$dryad_roots_owning_selected_into_var=\$dryad_roots_owning_selected_match"
-}
-
-dryad_roots_owning_selected_path_into () {
-    dryad_roots_owning_selected_into_var=$1
-    dryad_roots_owning_selected_root=$2
-    dryad_roots_owning_selected_descriptor=$3
-    dryad_roots_owning_selected_kind=$4
+dryad_roots_owning_selected_path_load () {
+    dryad_roots_owning_selected_root=$1
+    dryad_roots_owning_selected_descriptor=$2
+    dryad_roots_owning_selected_kind=$3
 
     if dryad_memo_get_line_load roots-owning-selected-path "$dryad_roots_owning_selected_root" "$dryad_roots_owning_selected_descriptor" "$dryad_roots_owning_selected_kind"; then
-        eval "$dryad_roots_owning_selected_into_var=\$dyd_ret0"
+        dryad_roots_owning_selected_value=$dyd_ret0
         dryad_profile_count memo.hit.roots-owning-selected-path
+        dyd_ret0=$dryad_roots_owning_selected_value
         return 0
     fi
 
     dryad_profile_count memo.miss.roots-owning-selected-path
     dryad_profile_count call.roots-owning-selected-path.uncached
-    dryad_roots_owning_selected_path_compute_into "$dryad_roots_owning_selected_into_var" "$dryad_roots_owning_selected_root" "$dryad_roots_owning_selected_descriptor" "$dryad_roots_owning_selected_kind" ||
+    dryad_roots_owning_selected_path_compute_load "$dryad_roots_owning_selected_root" "$dryad_roots_owning_selected_descriptor" "$dryad_roots_owning_selected_kind" ||
         return $?
-    eval "dryad_roots_owning_selected_into_value=\${$dryad_roots_owning_selected_into_var}"
-    dryad_memo_put_value roots-owning-selected-path "$dryad_roots_owning_selected_into_value" "$dryad_roots_owning_selected_root" "$dryad_roots_owning_selected_descriptor" "$dryad_roots_owning_selected_kind"
-}
-
-dryad_roots_owning_selected_path () {
-    dryad_roots_owning_selected_root=$1
-    dryad_roots_owning_selected_descriptor=$2
-    dryad_roots_owning_selected_kind=$3
-
-    dryad_roots_owning_selected_path_into dryad_roots_owning_selected_result "$dryad_roots_owning_selected_root" "$dryad_roots_owning_selected_descriptor" "$dryad_roots_owning_selected_kind" ||
-        return $?
-    printf '%s\n' "$dryad_roots_owning_selected_result"
+    dryad_roots_owning_selected_value=$dyd_ret0
+    dryad_memo_put_value roots-owning-selected-path "$dryad_roots_owning_selected_value" "$dryad_roots_owning_selected_root" "$dryad_roots_owning_selected_descriptor" "$dryad_roots_owning_selected_kind"
+    dyd_ret0=$dryad_roots_owning_selected_value
 }
 
 dryad_roots_owning_is_selectable_family () {
@@ -2146,13 +2108,15 @@ dryad_roots_owning_variant_matches_path () {
     dryad_roots_owning_variant_changed=$3
 
     for dryad_roots_owning_variant_kind in assets commands traits secrets docs; do
-        dryad_roots_owning_variant_selected=$(dryad_roots_owning_selected_path "$dryad_roots_owning_variant_root" "$dryad_roots_owning_variant_descriptor" "$dryad_roots_owning_variant_kind")
+        dryad_roots_owning_selected_path_load "$dryad_roots_owning_variant_root" "$dryad_roots_owning_variant_descriptor" "$dryad_roots_owning_variant_kind"
+        dryad_roots_owning_variant_selected=$dyd_ret0
         if dryad_roots_owning_path_within "$dryad_roots_owning_variant_selected" "$dryad_roots_owning_variant_changed"; then
             return 0
         fi
     done
 
-    dryad_roots_owning_variant_requirements=$(dryad_roots_owning_selected_path "$dryad_roots_owning_variant_root" "$dryad_roots_owning_variant_descriptor" requirements)
+    dryad_roots_owning_selected_path_load "$dryad_roots_owning_variant_root" "$dryad_roots_owning_variant_descriptor" requirements
+    dryad_roots_owning_variant_requirements=$dyd_ret0
     dryad_roots_owning_requirements_path_matches_variant \
         "$dryad_roots_owning_variant_requirements" \
         "$dryad_roots_owning_variant_changed" \
