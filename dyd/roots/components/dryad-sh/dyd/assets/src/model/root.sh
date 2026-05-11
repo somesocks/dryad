@@ -23,7 +23,8 @@ dryad_root_sentinel_is_root () {
 
 dryad_root_path_resolve_start () {
     dryad_root_path_input=${1:-.}
-    dryad_root_path_abs=$(dryad_join_path "$(pwd -P)" "$dryad_root_path_input")
+    dryad_join_path_load "$(pwd -P)" "$dryad_root_path_input"
+    dryad_root_path_abs=$dyd_ret0
 
     if [ -d "$dryad_root_path_abs" ]; then
         dryad_clean_cd "$dryad_root_path_abs"
@@ -85,7 +86,8 @@ dryad_root_path_find () {
 
 dryad_package_path_resolve_start () {
     dryad_package_path_input=${1:-.}
-    dryad_package_path_abs=$(dryad_join_path "$(pwd -P)" "$dryad_package_path_input")
+    dryad_join_path_load "$(pwd -P)" "$dryad_package_path_input"
+    dryad_package_path_abs=$dyd_ret0
 
     if [ -d "$dryad_package_path_abs" ]; then
         dryad_clean_cd "$dryad_package_path_abs"

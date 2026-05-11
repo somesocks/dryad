@@ -231,11 +231,11 @@ dryad_path_is_abs () {
     esac
 }
 
-dryad_join_path () {
+dryad_join_path_load () {
     case $2 in
-        '' ) printf '%s\n' "$1" ;;
-        /* ) printf '%s\n' "$2" ;;
-        * ) printf '%s/%s\n' "$1" "$2" ;;
+        '' ) dyd_ret0=$1 ;;
+        /* ) dyd_ret0=$2 ;;
+        * ) dyd_ret0=$1/$2 ;;
     esac
 }
 

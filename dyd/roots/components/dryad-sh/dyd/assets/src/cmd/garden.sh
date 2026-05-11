@@ -25,7 +25,8 @@ dryad_garden_find () {
 
 dryad_garden_create () {
     dryad_garden_create_target=${1:-.}
-    dryad_garden_create_abs=$(dryad_join_path "$(pwd -P)" "$dryad_garden_create_target")
+    dryad_join_path_load "$(pwd -P)" "$dryad_garden_create_target"
+    dryad_garden_create_abs=$dyd_ret0
     dryad_garden_create_parent=$(dirname "$dryad_garden_create_abs")
     dryad_garden_create_name=$(basename "$dryad_garden_create_abs")
     dryad_garden_create_parent=$(dryad_clean_cd "$dryad_garden_create_parent")

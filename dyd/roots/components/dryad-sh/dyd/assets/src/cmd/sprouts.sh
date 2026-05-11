@@ -150,7 +150,8 @@ dryad_sprouts_run_resolve_path () {
             dryad_sprouts_run_resolve_path=$dryad_sprouts_run_resolve_ref
             ;;
         * )
-            dryad_sprouts_run_resolve_path=$(dryad_join_path "$dryad_sprouts_run_resolve_garden" "$dryad_sprouts_run_resolve_ref")
+            dryad_join_path_load "$dryad_sprouts_run_resolve_garden" "$dryad_sprouts_run_resolve_ref"
+            dryad_sprouts_run_resolve_path=$dyd_ret0
             ;;
     esac
 
