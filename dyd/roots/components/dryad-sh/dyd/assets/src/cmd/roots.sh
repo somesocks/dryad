@@ -1066,16 +1066,43 @@ dryad_roots_build_run_entries () {
     dryad_roots_build_run_entries=$1
     dryad_roots_build_run_garden=$2
     dryad_roots_build_run_roots=$(mktemp "${TMPDIR:-/tmp}/dryad-sh-roots-build.XXXXXX")
+    dryad_roots_build_run_tab=$(printf '\t')
 
     printf '%s\n' "$dryad_roots_build_run_entries" |
-        awk -F '\t' '$1 != "" { print $1 }' |
+        while IFS= read -r dryad_roots_build_run_entry; do
+            case $dryad_roots_build_run_entry in
+                *"$dryad_roots_build_run_tab"* )
+                    dryad_roots_build_run_entry_root=${dryad_roots_build_run_entry%%"$dryad_roots_build_run_tab"*}
+                    ;;
+                * )
+                    dryad_roots_build_run_entry_root=$dryad_roots_build_run_entry
+                    ;;
+            esac
+            [ -n "$dryad_roots_build_run_entry_root" ] || continue
+            printf '%s\n' "$dryad_roots_build_run_entry_root"
+        done |
         sort -u > "$dryad_roots_build_run_roots"
 
     while IFS= read -r dryad_roots_build_run_root; do
         [ -n "$dryad_roots_build_run_root" ] || continue
         dryad_roots_build_run_descriptors=$(mktemp "${TMPDIR:-/tmp}/dryad-sh-root-descriptors.XXXXXX")
         printf '%s\n' "$dryad_roots_build_run_entries" |
-            awk -F '\t' -v root="$dryad_roots_build_run_root" '$1 == root { print $2 }' > "$dryad_roots_build_run_descriptors"
+            while IFS= read -r dryad_roots_build_run_entry; do
+                case $dryad_roots_build_run_entry in
+                    *"$dryad_roots_build_run_tab"* )
+                        dryad_roots_build_run_entry_root=${dryad_roots_build_run_entry%%"$dryad_roots_build_run_tab"*}
+                        dryad_roots_build_run_entry_descriptor=${dryad_roots_build_run_entry#*"$dryad_roots_build_run_tab"}
+                        dryad_roots_build_run_entry_descriptor=${dryad_roots_build_run_entry_descriptor%%"$dryad_roots_build_run_tab"*}
+                        ;;
+                    * )
+                        dryad_roots_build_run_entry_root=$dryad_roots_build_run_entry
+                        dryad_roots_build_run_entry_descriptor=
+                        ;;
+                esac
+                if [ "$dryad_roots_build_run_entry_root" = "$dryad_roots_build_run_root" ]; then
+                    printf '%s\n' "$dryad_roots_build_run_entry_descriptor"
+                fi
+            done > "$dryad_roots_build_run_descriptors"
         dryad_root_build_materialize_sprout "$dryad_roots_build_run_garden" "$dryad_roots_build_run_root" "$dryad_roots_build_run_descriptors" >/dev/null
         rm -f "$dryad_roots_build_run_descriptors"
     done < "$dryad_roots_build_run_roots"
