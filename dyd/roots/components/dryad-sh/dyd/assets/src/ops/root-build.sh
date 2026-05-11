@@ -836,31 +836,19 @@ dryad_root_build_file_fingerprint () {
     }
 }
 
-dryad_root_build_heap_ensure_file () {
+dryad_root_build_heap_ensure_file_load () {
     dryad_root_build_add_file_garden=$1
     dryad_root_build_add_file_kind=$2
     dryad_root_build_add_file_src=$3
     dryad_root_build_add_file_fingerprint=$4
-    dryad_root_build_heap_ensure_file_into dryad_root_build_heap_ensure_file_fp dryad_root_build_heap_ensure_file_path \
-        "$dryad_root_build_add_file_garden" "$dryad_root_build_add_file_kind" "$dryad_root_build_add_file_src" "$dryad_root_build_add_file_fingerprint"
-    printf '%s\n' "$dryad_root_build_heap_ensure_file_fp"
-}
-
-dryad_root_build_heap_ensure_file_into () {
-    dryad_root_build_add_file_fingerprint_var=$1
-    dryad_root_build_add_file_path_var=$2
-    dryad_root_build_add_file_garden=$3
-    dryad_root_build_add_file_kind=$4
-    dryad_root_build_add_file_src=$5
-    dryad_root_build_add_file_fingerprint=$6
     dryad_profile_count call.root-build.heap-add-file
     dryad_root_build_heap_fingerprint_path_load "$dryad_root_build_add_file_garden" "$dryad_root_build_add_file_kind" "$dryad_root_build_add_file_fingerprint"
     dryad_root_build_add_file_dest=$dyd_ret0
 
     if [ -f "$dryad_root_build_add_file_dest" ]; then
         dryad_profile_count hit.root-build.heap-add-file
-        eval "$dryad_root_build_add_file_fingerprint_var=\$dryad_root_build_add_file_fingerprint"
-        eval "$dryad_root_build_add_file_path_var=\$dryad_root_build_add_file_dest"
+        dyd_ret0=$dryad_root_build_add_file_fingerprint
+        dyd_ret1=$dryad_root_build_add_file_dest
         return 0
     fi
 
@@ -879,27 +867,16 @@ dryad_root_build_heap_ensure_file_into () {
         fi
     fi
     rm -f "$dryad_root_build_add_file_tmp"
-    eval "$dryad_root_build_add_file_fingerprint_var=\$dryad_root_build_add_file_fingerprint"
-    eval "$dryad_root_build_add_file_path_var=\$dryad_root_build_add_file_dest"
+    dyd_ret0=$dryad_root_build_add_file_fingerprint
+    dyd_ret1=$dryad_root_build_add_file_dest
 }
 
-dryad_root_build_heap_add_file () {
+dryad_root_build_heap_add_file_load () {
     dryad_root_build_add_file_garden=$1
     dryad_root_build_add_file_kind=$2
     dryad_root_build_add_file_src=$3
-    dryad_root_build_heap_add_file_into dryad_root_build_heap_add_file_fp dryad_root_build_heap_add_file_path \
-        "$dryad_root_build_add_file_garden" "$dryad_root_build_add_file_kind" "$dryad_root_build_add_file_src"
-    printf '%s\n' "$dryad_root_build_heap_add_file_fp"
-}
-
-dryad_root_build_heap_add_file_into () {
-    dryad_root_build_add_file_fingerprint_var=$1
-    dryad_root_build_add_file_path_var=$2
-    dryad_root_build_add_file_garden=$3
-    dryad_root_build_add_file_kind=$4
-    dryad_root_build_add_file_src=$5
     dryad_root_build_add_file_fingerprint=$(dryad_root_build_file_fingerprint "$dryad_root_build_add_file_src")
-    dryad_root_build_heap_ensure_file_into "$dryad_root_build_add_file_fingerprint_var" "$dryad_root_build_add_file_path_var" \
+    dryad_root_build_heap_ensure_file_load \
         "$dryad_root_build_add_file_garden" "$dryad_root_build_add_file_kind" "$dryad_root_build_add_file_src" "$dryad_root_build_add_file_fingerprint"
 }
 
@@ -1020,19 +997,23 @@ dryad_root_build_publish_tree_process_entries () {
                     [ "$dryad_root_build_publish_tree_hash_rel" = "$dryad_root_build_publish_tree_rel" ]; then
                     dryad_profile_count root-build.publish-tree.prehashed-file
                     dryad_profile_time_block root-build.publish-tree.heap-ensure \
-                        dryad_root_build_heap_ensure_file_into dryad_root_build_publish_tree_file_fp dryad_root_build_publish_tree_file_heap \
+                        dryad_root_build_heap_ensure_file_load \
                         "$dryad_root_build_publish_tree_garden" \
                         "$dryad_root_build_publish_tree_file_kind" \
                         "$dryad_root_build_publish_tree_entry" \
                         "$dryad_root_build_publish_tree_hash_fp"
+                    dryad_root_build_publish_tree_file_fp=$dyd_ret0
+                    dryad_root_build_publish_tree_file_heap=$dyd_ret1
                     dryad_root_build_publish_tree_hashes_loaded=0
                 fi
             fi
             if [ -z "$dryad_root_build_publish_tree_file_fp" ]; then
                 dryad_profile_count root-build.publish-tree.hash-file
                 dryad_profile_time_block root-build.publish-tree.heap-add \
-                    dryad_root_build_heap_add_file_into dryad_root_build_publish_tree_file_fp dryad_root_build_publish_tree_file_heap \
+                    dryad_root_build_heap_add_file_load \
                     "$dryad_root_build_publish_tree_garden" "$dryad_root_build_publish_tree_file_kind" "$dryad_root_build_publish_tree_entry"
+                dryad_root_build_publish_tree_file_fp=$dyd_ret0
+                dryad_root_build_publish_tree_file_heap=$dyd_ret1
             fi
             dryad_profile_time_block root-build.publish-tree.file.link \
                 dryad_root_build_publish_file_link "$dryad_root_build_publish_tree_file_heap" "$dryad_root_build_publish_tree_dest"
