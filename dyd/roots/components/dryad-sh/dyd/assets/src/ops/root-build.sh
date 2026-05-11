@@ -635,13 +635,14 @@ dryad_root_build_file_hash () {
     } | dryad_blake2b_128_stream_base32
 }
 
-dryad_root_build_link_hash () {
+dryad_root_build_link_hash_load () {
     dryad_root_build_hash_link=$1
     dryad_root_build_hash_link_target=$(readlink "$dryad_root_build_hash_link")
-    {
+    dryad_root_build_hash_link_value=$({
         printf 'link\000'
         printf '%s' "$dryad_root_build_hash_link_target"
-    } | dryad_blake2b_128_stream_base32
+    } | dryad_blake2b_128_stream_base32)
+    dyd_ret0=$dryad_root_build_hash_link_value
 }
 
 dryad_root_build_fingerprint () {
@@ -667,7 +668,9 @@ dryad_root_build_fingerprint () {
                     ;;
             esac
             if [ -L "$dryad_root_build_fingerprint_entry" ]; then
-                printf '%s\t%s\n' "$dryad_root_build_fingerprint_rel" "$(dryad_root_build_link_hash "$dryad_root_build_fingerprint_entry")" >> "$dryad_root_build_fingerprint_hashes"
+                dryad_root_build_link_hash_load "$dryad_root_build_fingerprint_entry"
+                dryad_root_build_fingerprint_link_hash=$dyd_ret0
+                printf '%s\t%s\n' "$dryad_root_build_fingerprint_rel" "$dryad_root_build_fingerprint_link_hash" >> "$dryad_root_build_fingerprint_hashes"
             elif [ -f "$dryad_root_build_fingerprint_entry" ]; then
                 printf '%s\t%s\n' "$dryad_root_build_fingerprint_rel" "$dryad_root_build_fingerprint_entry" >> "$dryad_root_build_fingerprint_file_manifest"
             fi
