@@ -84,9 +84,10 @@ dryad_fs_descriptor_normalize () {
         } || dryad_die "malformed variant descriptor: $dryad_fs_descriptor_raw"
 }
 
-dryad_descriptor_value () {
+dryad_descriptor_value_load () {
     dryad_descriptor=$1
     dryad_descriptor_dim=$2
+    dyd_ret0=
 
     dryad_descriptor_old_ifs=$IFS
     IFS=+
@@ -96,7 +97,7 @@ dryad_descriptor_value () {
     for dryad_descriptor_pair do
         case $dryad_descriptor_pair in
             "$dryad_descriptor_dim="* )
-                printf '%s\n' "${dryad_descriptor_pair#*=}"
+                dyd_ret0=${dryad_descriptor_pair#*=}
                 return 0
                 ;;
         esac
@@ -135,7 +136,11 @@ dryad_selector_matches_descriptor () {
     for dryad_selector_pair do
         dryad_selector_dim=${dryad_selector_pair%%=*}
         dryad_selector_options=${dryad_selector_pair#*=}
-        dryad_selector_value=$(dryad_descriptor_value "$dryad_descriptor" "$dryad_selector_dim" || true)
+        if dryad_descriptor_value_load "$dryad_descriptor" "$dryad_selector_dim"; then
+            dryad_selector_value=$dyd_ret0
+        else
+            dryad_selector_value=
+        fi
 
         if [ "$dryad_selector_options" = any ]; then
             [ -n "$dryad_selector_value" ] || return 1

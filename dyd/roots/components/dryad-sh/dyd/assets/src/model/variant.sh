@@ -12,7 +12,11 @@ dryad_root_variant_selector_matches_descriptor () {
     for dryad_root_variant_pair do
         dryad_root_variant_dim=${dryad_root_variant_pair%%=*}
         dryad_root_variant_want=${dryad_root_variant_pair#*=}
-        dryad_root_variant_got=$(dryad_descriptor_value "$dryad_root_variant_descriptor" "$dryad_root_variant_dim" || true)
+        if dryad_descriptor_value_load "$dryad_root_variant_descriptor" "$dryad_root_variant_dim"; then
+            dryad_root_variant_got=$dyd_ret0
+        else
+            dryad_root_variant_got=
+        fi
 
         case $dryad_root_variant_want in
             inherit )
@@ -133,7 +137,11 @@ dryad_roots_variant_rule_matches () {
     for dryad_roots_variant_rule_pair do
         dryad_roots_variant_rule_dim=${dryad_roots_variant_rule_pair%%=*}
         dryad_roots_variant_rule_want=${dryad_roots_variant_rule_pair#*=}
-        dryad_roots_variant_rule_got=$(dryad_descriptor_value "$dryad_roots_variant_rule_descriptor" "$dryad_roots_variant_rule_dim" || true)
+        if dryad_descriptor_value_load "$dryad_roots_variant_rule_descriptor" "$dryad_roots_variant_rule_dim"; then
+            dryad_roots_variant_rule_got=$dyd_ret0
+        else
+            dryad_roots_variant_rule_got=
+        fi
 
         if [ "$dryad_roots_variant_rule_want" = none ]; then
             [ -z "$dryad_roots_variant_rule_got" ] || return 1

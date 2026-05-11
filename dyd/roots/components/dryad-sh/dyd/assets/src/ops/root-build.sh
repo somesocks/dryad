@@ -124,11 +124,19 @@ dryad_root_build_target_selector_matches_descriptor () {
     for dryad_root_build_target_pair do
         dryad_root_build_target_dim=${dryad_root_build_target_pair%%=*}
         dryad_root_build_target_want=${dryad_root_build_target_pair#*=}
-        dryad_root_build_target_got=$(dryad_descriptor_value "$dryad_root_build_target_descriptor" "$dryad_root_build_target_dim" || true)
+        if dryad_descriptor_value_load "$dryad_root_build_target_descriptor" "$dryad_root_build_target_dim"; then
+            dryad_root_build_target_got=$dyd_ret0
+        else
+            dryad_root_build_target_got=
+        fi
 
         case $dryad_root_build_target_want in
             inherit )
-                dryad_root_build_target_want=$(dryad_descriptor_value "$dryad_root_build_target_parent_descriptor" "$dryad_root_build_target_dim" || true)
+                if dryad_descriptor_value_load "$dryad_root_build_target_parent_descriptor" "$dryad_root_build_target_dim"; then
+                    dryad_root_build_target_want=$dyd_ret0
+                else
+                    dryad_root_build_target_want=
+                fi
                 [ -n "$dryad_root_build_target_want" ] || dryad_root_build_target_want=none
                 ;;
             host )
@@ -284,7 +292,11 @@ dryad_root_build_validate_target_selector () {
             for dryad_root_build_validate_option do
                 case $dryad_root_build_validate_option in
                     inherit )
-                        dryad_root_build_validate_inherited=$(dryad_descriptor_value "$dryad_root_build_validate_parent_descriptor" "$dryad_root_build_validate_dim" || true)
+                        if dryad_descriptor_value_load "$dryad_root_build_validate_parent_descriptor" "$dryad_root_build_validate_dim"; then
+                            dryad_root_build_validate_inherited=$dyd_ret0
+                        else
+                            dryad_root_build_validate_inherited=
+                        fi
                         [ -n "$dryad_root_build_validate_inherited" ] || dryad_root_build_validate_inherited=none
                         dryad_root_build_validate_target_option "$dryad_root_build_validate_garden" "$dryad_root_build_validate_source_root" "$dryad_root_build_validate_target_root" "$dryad_root_build_validate_dim" "$dryad_root_build_validate_inherited"
                         ;;

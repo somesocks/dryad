@@ -262,7 +262,7 @@ dryad_sprouts_run_stems_have_dimension () {
 
     while IFS='|' read -r dryad_sprouts_run_dimension_descriptor dryad_sprouts_run_dimension_path; do
         [ -n "$dryad_sprouts_run_dimension_path" ] || continue
-        if dryad_descriptor_value "$dryad_sprouts_run_dimension_descriptor" "$dryad_sprouts_run_dimension_name" >/dev/null 2>&1; then
+        if dryad_descriptor_value_load "$dryad_sprouts_run_dimension_descriptor" "$dryad_sprouts_run_dimension_name"; then
             return 0
         fi
     done <<EOF
@@ -337,7 +337,11 @@ dryad_sprouts_run_selector_option_exists () {
 
     while IFS='|' read -r dryad_sprouts_run_option_descriptor dryad_sprouts_run_option_path; do
         [ -n "$dryad_sprouts_run_option_path" ] || continue
-        dryad_sprouts_run_option_got=$(dryad_descriptor_value "$dryad_sprouts_run_option_descriptor" "$dryad_sprouts_run_option_dim" || true)
+        if dryad_descriptor_value_load "$dryad_sprouts_run_option_descriptor" "$dryad_sprouts_run_option_dim"; then
+            dryad_sprouts_run_option_got=$dyd_ret0
+        else
+            dryad_sprouts_run_option_got=
+        fi
 
         case $dryad_sprouts_run_option_want in
             any )
@@ -429,7 +433,11 @@ dryad_sprouts_run_stems_match_dimension_options () {
 
     while IFS='|' read -r dryad_sprouts_run_dimension_option_descriptor dryad_sprouts_run_dimension_option_path; do
         [ -n "$dryad_sprouts_run_dimension_option_path" ] || continue
-        dryad_sprouts_run_dimension_option_value=$(dryad_descriptor_value "$dryad_sprouts_run_dimension_option_descriptor" "$dryad_sprouts_run_dimension_option_dim" || true)
+        if dryad_descriptor_value_load "$dryad_sprouts_run_dimension_option_descriptor" "$dryad_sprouts_run_dimension_option_dim"; then
+            dryad_sprouts_run_dimension_option_value=$dyd_ret0
+        else
+            dryad_sprouts_run_dimension_option_value=
+        fi
         dryad_sprouts_run_dimension_option_exists=0
         [ -n "$dryad_sprouts_run_dimension_option_value" ] &&
             dryad_sprouts_run_dimension_option_exists=1

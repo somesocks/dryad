@@ -2075,7 +2075,11 @@ dryad_condition_matches_descriptor () {
     for dryad_condition_pair do
         dryad_condition_dim=${dryad_condition_pair%%=*}
         dryad_condition_options=${dryad_condition_pair#*=}
-        dryad_condition_value=$(dryad_descriptor_value "$dryad_condition_descriptor" "$dryad_condition_dim" || true)
+        if dryad_descriptor_value_load "$dryad_condition_descriptor" "$dryad_condition_dim"; then
+            dryad_condition_value=$dyd_ret0
+        else
+            dryad_condition_value=
+        fi
 
         case $dryad_condition_options in
             inherit | any )
