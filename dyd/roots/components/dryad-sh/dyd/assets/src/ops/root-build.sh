@@ -172,7 +172,7 @@ dryad_root_build_target_selector_matches_descriptor () {
 
     for dryad_root_build_target_pair do
         dryad_root_build_target_dim=${dryad_root_build_target_pair%%=*}
-        dryad_root_build_target_selector_value "$dryad_root_build_target_selector" "$dryad_root_build_target_dim" >/dev/null ||
+        dryad_root_build_target_selector_value_load "$dryad_root_build_target_selector" "$dryad_root_build_target_dim" ||
             return 1
     done
 
@@ -215,9 +215,10 @@ dryad_root_build_validate_target_option () {
     fi
 }
 
-dryad_root_build_target_selector_value () {
+dryad_root_build_target_selector_value_load () {
     dryad_root_build_target_selector_value_selector=$1
     dryad_root_build_target_selector_value_dim=$2
+    dyd_ret0=
 
     dryad_root_build_target_selector_value_old_ifs=$IFS
     IFS=+
@@ -227,7 +228,7 @@ dryad_root_build_target_selector_value () {
     for dryad_root_build_target_selector_value_pair do
         case $dryad_root_build_target_selector_value_pair in
             "$dryad_root_build_target_selector_value_dim="* )
-                printf '%s\n' "${dryad_root_build_target_selector_value_pair#*=}"
+                dyd_ret0=${dryad_root_build_target_selector_value_pair#*=}
                 return 0
                 ;;
         esac
@@ -279,7 +280,11 @@ dryad_root_build_validate_target_selector () {
                 _include | _exclude ) continue ;;
             esac
 
-            dryad_root_build_validate_requested=$(dryad_root_build_target_selector_value "$dryad_root_build_validate_selector" "$dryad_root_build_validate_dim" || true)
+            if dryad_root_build_target_selector_value_load "$dryad_root_build_validate_selector" "$dryad_root_build_validate_dim"; then
+                dryad_root_build_validate_requested=$dyd_ret0
+            else
+                dryad_root_build_validate_requested=
+            fi
             if [ -z "$dryad_root_build_validate_requested" ]; then
                 if ! dryad_root_build_variant_option_enabled "$dryad_root_build_validate_target_root" "$dryad_root_build_validate_dim" none; then
                     dryad_root_build_dependency_die "$dryad_root_build_validate_garden" "$dryad_root_build_validate_source_root" "under-specified requirement variant dimension: $dryad_root_build_validate_dim"
