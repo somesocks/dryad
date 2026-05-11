@@ -19,11 +19,43 @@ dryad_base32_char () {
     esac
 }
 
+dryad_hash_impl_resolve () {
+    dryad_hash_impl_request=${DRYAD_SH_HASH_IMPL:-auto}
+    if [ "${dryad_hash_impl_resolved_request+x}" = x ] \
+        && [ "$dryad_hash_impl_resolved_request" = "$dryad_hash_impl_request" ]; then
+        return 0
+    fi
+
+    case $dryad_hash_impl_request in
+        auto )
+            if command -v awk >/dev/null 2>&1; then
+                dryad_hash_impl=awk
+            else
+                dryad_hash_impl=shell
+            fi
+            ;;
+        awk )
+            command -v awk >/dev/null 2>&1 \
+                || dryad_die "DRYAD_SH_HASH_IMPL=awk requested, but awk was not found"
+            dryad_hash_impl=awk
+            ;;
+        shell )
+            dryad_hash_impl=shell
+            ;;
+        * )
+            dryad_die "invalid DRYAD_SH_HASH_IMPL: $dryad_hash_impl_request"
+            ;;
+    esac
+
+    dryad_hash_impl_resolved_request=$dryad_hash_impl_request
+}
+
 dryad_blake2b_128_file_hex () {
     dryad_b2_file=$1
     dryad_b2_format=${2:-hex}
 
-    if [ "${DRYAD_SH_HASH_IMPL:-awk}" = shell ]; then
+    dryad_hash_impl_resolve
+    if [ "$dryad_hash_impl" = shell ]; then
         [ "$dryad_b2_format" = hex ] || dryad_die "unsupported shell hash format: $dryad_b2_format"
         dryad_blake2b_128_file_hex_shell "$dryad_b2_file"
         return 0
@@ -35,7 +67,8 @@ dryad_blake2b_128_file_hex () {
 dryad_blake2b_128_file_base32 () {
     dryad_b2_base32_file=$1
 
-    if [ "${DRYAD_SH_HASH_IMPL:-awk}" = shell ]; then
+    dryad_hash_impl_resolve
+    if [ "$dryad_hash_impl" = shell ]; then
         dryad_blake2b_128_file_base32_shell "$dryad_b2_base32_file"
         return 0
     fi
@@ -44,7 +77,8 @@ dryad_blake2b_128_file_base32 () {
 }
 
 dryad_blake2b_128_files_table_base32 () {
-    if [ "${DRYAD_SH_HASH_IMPL:-awk}" = shell ]; then
+    dryad_hash_impl_resolve
+    if [ "$dryad_hash_impl" = shell ]; then
         while IFS='	' read -r dryad_b2_files_table_rel dryad_b2_files_table_path; do
             [ -n "$dryad_b2_files_table_rel" ] || continue
             printf '%s\t' "$dryad_b2_files_table_rel"
@@ -57,7 +91,8 @@ dryad_blake2b_128_files_table_base32 () {
 }
 
 dryad_blake2b_128_stream_base32 () {
-    if [ "${DRYAD_SH_HASH_IMPL:-awk}" = shell ]; then
+    dryad_hash_impl_resolve
+    if [ "$dryad_hash_impl" = shell ]; then
         dryad_b2_stream_tmp=${TMPDIR:-/tmp}/dryad-sh-hash-stream.$$
         rm -f "$dryad_b2_stream_tmp"
         cat > "$dryad_b2_stream_tmp"
