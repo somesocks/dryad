@@ -1780,36 +1780,45 @@ $2"
 
 dryad_roots_owning_clean_abs_path () {
     dryad_roots_owning_clean_input=$1
-    awk -v path="$dryad_roots_owning_clean_input" '
-        BEGIN {
-            count = split(path, parts, "/")
-            depth = 0
-            for (i = 1; i <= count; i++) {
-                part = parts[i]
-                if (part == "" || part == ".") {
-                    continue
-                }
-                if (part == "..") {
-                    if (depth > 0) {
-                        depth--
-                    }
-                    continue
-                }
-                stack[++depth] = part
-            }
+    dryad_roots_owning_clean_rest=${dryad_roots_owning_clean_input#/}
+    dryad_roots_owning_clean_out=
 
-            if (depth == 0) {
-                print "/"
-                exit
-            }
+    while [ -n "$dryad_roots_owning_clean_rest" ]; do
+        case $dryad_roots_owning_clean_rest in
+            */* )
+                dryad_roots_owning_clean_part=${dryad_roots_owning_clean_rest%%/*}
+                dryad_roots_owning_clean_rest=${dryad_roots_owning_clean_rest#*/}
+                ;;
+            * )
+                dryad_roots_owning_clean_part=$dryad_roots_owning_clean_rest
+                dryad_roots_owning_clean_rest=
+                ;;
+        esac
 
-            out = ""
-            for (i = 1; i <= depth; i++) {
-                out = out "/" stack[i]
-            }
-            print out
-        }
-    '
+        case $dryad_roots_owning_clean_part in
+            '' | . )
+                ;;
+            .. )
+                case $dryad_roots_owning_clean_out in
+                    */* ) dryad_roots_owning_clean_out=${dryad_roots_owning_clean_out%/*} ;;
+                    * ) dryad_roots_owning_clean_out= ;;
+                esac
+                ;;
+            * )
+                if [ -n "$dryad_roots_owning_clean_out" ]; then
+                    dryad_roots_owning_clean_out=$dryad_roots_owning_clean_out/$dryad_roots_owning_clean_part
+                else
+                    dryad_roots_owning_clean_out=$dryad_roots_owning_clean_part
+                fi
+                ;;
+        esac
+    done
+
+    if [ -n "$dryad_roots_owning_clean_out" ]; then
+        printf '/%s\n' "$dryad_roots_owning_clean_out"
+    else
+        printf '/\n'
+    fi
 }
 
 dryad_roots_owning_abs_lexical_path () {
