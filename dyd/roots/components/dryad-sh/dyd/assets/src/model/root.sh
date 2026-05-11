@@ -68,20 +68,21 @@ dryad_root_path_find_uncached () {
     done
 }
 
-dryad_root_path_find () {
+dryad_root_path_find_load () {
     dryad_root_path_start=${1:-.}
     dryad_root_path_key_pwd=$(pwd -P)
 
-    if dryad_root_path_result=$(dryad_memo_get root-path-find "$dryad_root_path_key_pwd" "$dryad_root_path_start"); then
+    if dryad_memo_get_line_load root-path-find "$dryad_root_path_key_pwd" "$dryad_root_path_start"; then
         dryad_profile_count memo.hit.root-path-find
-        printf '%s\n' "$dryad_root_path_result"
+        dryad_root_path_result=$dyd_ret0
+        dyd_ret0=$dryad_root_path_result
         return 0
     fi
 
     dryad_profile_count memo.miss.root-path-find
     dryad_root_path_result=$(dryad_root_path_find_uncached "$dryad_root_path_start") || return $?
     dryad_memo_put_value root-path-find "$dryad_root_path_result" "$dryad_root_path_key_pwd" "$dryad_root_path_start"
-    printf '%s\n' "$dryad_root_path_result"
+    dyd_ret0=$dryad_root_path_result
 }
 
 dryad_package_path_resolve_start () {

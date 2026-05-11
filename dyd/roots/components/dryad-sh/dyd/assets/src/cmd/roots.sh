@@ -43,7 +43,8 @@ EOF
         esac
     done
 
-    dryad_root_path_find "${dryad_root_path_target:-.}"
+    dryad_root_path_find_load "${dryad_root_path_target:-.}"
+    printf '%s\n' "$dyd_ret0"
 }
 
 dryad_root_create_resolve_target () {
@@ -396,14 +397,16 @@ EOF
     [ -n "$dryad_root_requirement_add_target" ] ||
         dryad_die "root requirement add requires a target"
 
-    dryad_root_requirement_add_root=$(dryad_root_path_find .)
+    dryad_root_path_find_load .
+    dryad_root_requirement_add_root=$dyd_ret0
     dryad_root_requirement_add_variant=$(dryad_root_selected_variant_descriptor "$dryad_root_requirement_add_root" "$dryad_root_requirement_add_variant")
     dryad_root_requirement_add_dir=$(dryad_root_requirements_path_for_variant "$dryad_root_requirement_add_root" "$dryad_root_requirement_add_variant")
 
     dryad_root_requirement_add_parsed=$(dryad_root_requirement_parse_target "$dryad_root_requirement_add_target")
     dryad_root_requirement_add_dep_path=$(printf '%s\n' "$dryad_root_requirement_add_parsed" | sed -n '1p')
     dryad_root_requirement_add_dep_query=$(printf '%s\n' "$dryad_root_requirement_add_parsed" | sed -n '2p')
-    dryad_root_requirement_add_dep_root=$(dryad_root_path_find "$dryad_root_requirement_add_dep_path")
+    dryad_root_path_find_load "$dryad_root_requirement_add_dep_path"
+    dryad_root_requirement_add_dep_root=$dyd_ret0
 
     if [ -z "$dryad_root_requirement_add_alias" ]; then
         dryad_root_requirement_add_alias=$(basename "$dryad_root_requirement_add_dep_root")
@@ -475,7 +478,8 @@ EOF
         dryad_die "root requirement remove requires a requirement name"
 
     dryad_root_requirement_remove_name=$(dryad_requirement_name_normalize "$dryad_root_requirement_remove_name")
-    dryad_root_requirement_remove_root=$(dryad_root_path_find .)
+    dryad_root_path_find_load .
+    dryad_root_requirement_remove_root=$dyd_ret0
     dryad_root_requirement_remove_variant=$(dryad_root_selected_variant_descriptor "$dryad_root_requirement_remove_root" "$dryad_root_requirement_remove_variant")
     dryad_root_requirement_remove_dir=$(dryad_root_requirements_path_for_variant "$dryad_root_requirement_remove_root" "$dryad_root_requirement_remove_variant")
     dryad_root_requirement_remove_path=$dryad_root_requirement_remove_dir/$dryad_root_requirement_remove_name
@@ -526,7 +530,8 @@ dryad_requirement_target_spec () {
                 dryad_requirement_dir=$(dirname "$dryad_requirement_file")
                 dryad_join_path_load "$dryad_requirement_dir" "$dryad_requirement_link"
                 dryad_requirement_target=$dyd_ret0
-                dryad_requirement_root=$(dryad_root_path_find "$dryad_requirement_target")
+                dryad_root_path_find_load "$dryad_requirement_target"
+                dryad_requirement_root=$dyd_ret0
                 dryad_requirement_rel=$(dryad_relative_path "$dryad_requirement_dir" "$dryad_requirement_root")
                 printf 'root:%s\n' "$dryad_requirement_rel"
                 ;;
@@ -580,7 +585,8 @@ dryad_requirement_target_url () {
 
     dryad_join_path_load "$dryad_requirement_dir" "$dryad_requirement_target_ref"
     dryad_requirement_target_path=$dyd_ret0
-    dryad_requirement_target_root=$(dryad_root_path_find "$dryad_requirement_target_path")
+    dryad_root_path_find_load "$dryad_requirement_target_path"
+    dryad_requirement_target_root=$dyd_ret0
     dryad_requirement_target_rel=$(dryad_relative_path "$dryad_requirement_dir" "$dryad_requirement_target_root")
     dryad_requirement_target_query=$(dryad_url_query_normalize "$dryad_requirement_query")
     printf 'root:%s%s\n' "$dryad_requirement_target_rel" "$dryad_requirement_target_query"
@@ -705,7 +711,8 @@ EOF
             ;;
     esac
 
-    dryad_root_requirements_root=$(dryad_root_path_find "$dryad_root_requirements_path")
+    dryad_root_path_find_load "$dryad_root_requirements_path"
+    dryad_root_requirements_root=$dyd_ret0
     dryad_root_requirements_dir=$(dryad_root_requirements_selected_path "$dryad_root_requirements_root" "$dryad_root_requirements_variant")
     [ -n "$dryad_root_requirements_dir" ] || return 0
 
@@ -779,7 +786,8 @@ EOF
         esac
     done
 
-    dryad_root_variants_root=$(dryad_root_path_find "${dryad_root_variants_target:-.}")
+    dryad_root_path_find_load "${dryad_root_variants_target:-.}"
+    dryad_root_variants_root=$dyd_ret0
     dryad_roots_variant_descriptors "$dryad_root_variants_root" | while IFS= read -r dryad_root_variants_descriptor; do
         if [ -n "$dryad_root_variants_descriptor" ]; then
             printf '%s\n' "$dryad_root_variants_descriptor"
@@ -966,7 +974,8 @@ EOF
 
     dryad_root_walk_garden=$(dryad_garden_find)
     dryad_roots_graph_garden=$dryad_root_walk_garden
-    dryad_root_walk_root=$(dryad_root_path_find "$dryad_root_walk_path")
+    dryad_root_path_find_load "$dryad_root_walk_path"
+    dryad_root_walk_root=$dyd_ret0
     dryad_root_walk_start=$(dryad_root_selected_refs "$dryad_root_walk_root" "$dryad_root_walk_variant" "$dryad_root_walk_relative" "$dryad_root_walk_garden")
     [ -n "$dryad_root_walk_start" ] ||
         dryad_die "resolved root ${dryad_root_walk_kind%?} variants are empty"
@@ -1057,7 +1066,8 @@ dryad_roots_build_entries_from_stdin () {
         dryad_roots_build_stdin_parsed=$(dryad_root_ref_parse "$dryad_roots_build_stdin_ref")
         dryad_roots_build_stdin_path=$(printf '%s\n' "$dryad_roots_build_stdin_parsed" | sed -n '1p')
         dryad_roots_build_stdin_selector=$(printf '%s\n' "$dryad_roots_build_stdin_parsed" | sed -n '2p')
-        dryad_roots_build_stdin_root=$(dryad_root_path_find "$dryad_roots_build_stdin_path")
+        dryad_root_path_find_load "$dryad_roots_build_stdin_path"
+        dryad_roots_build_stdin_root=$dyd_ret0
 
         dryad_roots_variant_descriptors "$dryad_roots_build_stdin_root" | while IFS= read -r dryad_roots_build_stdin_descriptor; do
             if dryad_root_variant_selector_matches_descriptor "$dryad_roots_build_stdin_selector" "$dryad_roots_build_stdin_descriptor"; then
@@ -1352,7 +1362,8 @@ EOF
     fi
 
     dryad_root_build_garden=$(dryad_garden_find)
-    dryad_root_build_root=$(dryad_root_path_find "$dryad_root_build_path")
+    dryad_root_path_find_load "$dryad_root_build_path"
+    dryad_root_build_root=$dyd_ret0
     dryad_root_build_sprout "$dryad_root_build_root" "$dryad_root_build_variant" "$dryad_root_build_garden"
 }
 
@@ -1622,7 +1633,8 @@ dryad_roots_each_entries_from_stdin () {
         dryad_roots_each_stdin_parsed=$(dryad_root_ref_parse "$dryad_roots_each_stdin_ref")
         dryad_roots_each_stdin_path=$(printf '%s\n' "$dryad_roots_each_stdin_parsed" | sed -n '1p')
         dryad_roots_each_stdin_selector=$(printf '%s\n' "$dryad_roots_each_stdin_parsed" | sed -n '2p')
-        dryad_roots_each_stdin_root=$(dryad_root_path_find "$dryad_roots_each_stdin_path")
+        dryad_root_path_find_load "$dryad_roots_each_stdin_path"
+        dryad_roots_each_stdin_root=$dyd_ret0
 
         dryad_roots_variant_descriptors "$dryad_roots_each_stdin_root" | while IFS= read -r dryad_roots_each_stdin_descriptor; do
             if dryad_root_variant_selector_matches_descriptor "$dryad_roots_each_stdin_selector" "$dryad_roots_each_stdin_descriptor"; then

@@ -488,7 +488,8 @@ dryad_root_build_prepare_dependencies () {
         dryad_root_build_deps_file_dir=$(dryad_clean_cd "$(dirname "$dryad_root_build_deps_file")")
         dryad_join_path_load "$dryad_root_build_deps_file_dir" "$dryad_root_build_deps_target_rel"
         dryad_root_build_deps_target_path=$dyd_ret0
-        dryad_root_build_deps_target_root=$(dryad_root_path_find "$dryad_root_build_deps_target_path")
+        dryad_root_path_find_load "$dryad_root_build_deps_target_path"
+        dryad_root_build_deps_target_root=$dyd_ret0
         dryad_root_build_validate_target_selector "$dryad_root_build_deps_garden" "$dryad_root_build_deps_root" "$dryad_root_build_deps_target_root" "$dryad_root_build_deps_selector" "$dryad_root_build_deps_descriptor"
         dryad_root_build_deps_matches_file=$(mktemp "${TMPDIR:-/tmp}/dryad-sh-root-deps.XXXXXX")
         dryad_root_build_selected_descriptors "$dryad_root_build_deps_target_root" "" |
