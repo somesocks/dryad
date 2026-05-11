@@ -83,7 +83,7 @@ dryad_memo_get_line_into () {
     [ -f "$dryad_memo_get_line_path" ] || return 1
 
     dryad_memo_get_line_value=
-    IFS= read -r dryad_memo_get_line_value < "$dryad_memo_get_line_path" || dryad_memo_get_line_value=
+    IFS= read -r dryad_memo_get_line_value < "$dryad_memo_get_line_path" || [ -n "$dryad_memo_get_line_value" ] || dryad_memo_get_line_value=
     eval "$dryad_memo_get_line_var=\$dryad_memo_get_line_value"
 }
 

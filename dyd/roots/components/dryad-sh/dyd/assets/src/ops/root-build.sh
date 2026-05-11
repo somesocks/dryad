@@ -726,7 +726,7 @@ dryad_root_build_heap_depth () {
     dryad_root_build_heap_depth_kind=$2
     dryad_root_build_heap_depth_file=$dryad_root_build_heap_depth_garden/dyd/shed/heap/$dryad_root_build_heap_depth_kind/depth
 
-    if dryad_root_build_heap_depth_cached=$(dryad_memo_get heap-depth "$dryad_root_build_heap_depth_garden" "$dryad_root_build_heap_depth_kind"); then
+    if dryad_memo_get_line_into dryad_root_build_heap_depth_cached heap-depth "$dryad_root_build_heap_depth_garden" "$dryad_root_build_heap_depth_kind"; then
         printf '%s\n' "$dryad_root_build_heap_depth_cached"
         return 0
     fi
@@ -825,8 +825,10 @@ dryad_root_build_heap_ensure_file_into () {
     fi
 
     dryad_profile_count miss.root-build.heap-add-file
-    mkdir -p "$(dirname "$dryad_root_build_add_file_dest")"
-    dryad_root_build_add_file_tmp=$(dirname "$dryad_root_build_add_file_dest")/.tmp-$(basename "$dryad_root_build_add_file_dest").$$
+    dryad_root_build_add_file_dest_dir=${dryad_root_build_add_file_dest%/*}
+    dryad_root_build_add_file_dest_base=${dryad_root_build_add_file_dest##*/}
+    mkdir -p "$dryad_root_build_add_file_dest_dir"
+    dryad_root_build_add_file_tmp=$dryad_root_build_add_file_dest_dir/.tmp-$dryad_root_build_add_file_dest_base.$$
     rm -f "$dryad_root_build_add_file_tmp"
     cp "$dryad_root_build_add_file_src" "$dryad_root_build_add_file_tmp"
     chmod 511 "$dryad_root_build_add_file_tmp"
