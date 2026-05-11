@@ -92,7 +92,7 @@ dryad_memo_put () {
     dryad_memo_put_path=$(dryad_memo_path "$@")
     dryad_memo_put_tmp=$dryad_memo_put_path.tmp.$$
 
-    mkdir -p "$(dirname "$dryad_memo_put_path")"
+    mkdir -p "${dryad_memo_put_path%/*}"
     rm -f "$dryad_memo_put_tmp"
     cat > "$dryad_memo_put_tmp"
 
@@ -117,7 +117,7 @@ dryad_memo_put_value () {
     dryad_memo_put_value_path=$(dryad_memo_path "$dryad_memo_put_value_group" "$@")
     dryad_memo_put_value_tmp=$dryad_memo_put_value_path.tmp.$$
 
-    mkdir -p "$(dirname "$dryad_memo_put_value_path")"
+    mkdir -p "${dryad_memo_put_value_path%/*}"
     rm -f "$dryad_memo_put_value_tmp"
     printf '%s' "$dryad_memo_put_value_value" > "$dryad_memo_put_value_tmp"
 

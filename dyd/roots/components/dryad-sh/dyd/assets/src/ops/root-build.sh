@@ -1047,7 +1047,7 @@ dryad_root_build_publish_dependency_links () {
 
     for dryad_root_build_publish_deps_link in "$dryad_root_build_publish_deps_src_dir"/*; do
         [ -e "$dryad_root_build_publish_deps_link" ] || [ -L "$dryad_root_build_publish_deps_link" ] || continue
-        dryad_root_build_publish_deps_name=$(basename "$dryad_root_build_publish_deps_link")
+        dryad_root_build_publish_deps_name=${dryad_root_build_publish_deps_link##*/}
         dryad_root_build_publish_deps_target=$(dryad_clean_cd "$dryad_root_build_publish_deps_link")
         [ -f "$dryad_root_build_publish_deps_target/dyd/fingerprint" ] ||
             dryad_die "dependency missing fingerprint: $dryad_root_build_publish_deps_link"
@@ -1095,8 +1095,10 @@ dryad_root_build_publish_derivation () {
     dryad_root_build_derivation_result_fingerprint=$3
     dryad_root_build_derivation_dest=$(dryad_root_build_heap_fingerprint_path "$dryad_root_build_derivation_garden" derivations/roots "$dryad_root_build_derivation_source_fingerprint")
 
-    mkdir -p "$(dirname "$dryad_root_build_derivation_dest")"
-    dryad_root_build_derivation_tmp=$(dirname "$dryad_root_build_derivation_dest")/.tmp-$(basename "$dryad_root_build_derivation_dest").$$
+    dryad_root_build_derivation_dir=${dryad_root_build_derivation_dest%/*}
+    dryad_root_build_derivation_name=${dryad_root_build_derivation_dest##*/}
+    mkdir -p "$dryad_root_build_derivation_dir"
+    dryad_root_build_derivation_tmp=$dryad_root_build_derivation_dir/.tmp-$dryad_root_build_derivation_name.$$
     rm -f "$dryad_root_build_derivation_tmp"
     printf '%s' "$dryad_root_build_derivation_result_fingerprint" > "$dryad_root_build_derivation_tmp"
     if ! mv "$dryad_root_build_derivation_tmp" "$dryad_root_build_derivation_dest" 2>/dev/null; then
@@ -1182,18 +1184,19 @@ dryad_root_build_provenance_stem () {
 
     for dryad_root_build_provenance_source_path in "$dryad_root_build_provenance_sources_dir"/*; do
         [ -e "$dryad_root_build_provenance_source_path" ] || continue
-        dryad_root_build_provenance_source_name=$(basename "$dryad_root_build_provenance_source_path")
+        dryad_root_build_provenance_source_name=${dryad_root_build_provenance_source_path##*/}
         ln -s "$(dryad_root_build_heap_package_path "$dryad_root_build_provenance_garden" stems "$dryad_root_build_provenance_source_name")" \
             "$dryad_root_build_provenance_tmp/dyd/dependencies/$dryad_root_build_provenance_source_name"
     done
 
     for dryad_root_build_provenance_result_dir in "$dryad_root_build_provenance_results_dir"/*; do
         [ -d "$dryad_root_build_provenance_result_dir" ] || continue
-        dryad_root_build_provenance_result_name=$(basename "$dryad_root_build_provenance_result_dir")
+        dryad_root_build_provenance_result_name=${dryad_root_build_provenance_result_dir##*/}
         mkdir -p "$dryad_root_build_provenance_tmp/dyd/assets/results/$dryad_root_build_provenance_result_name"
         for dryad_root_build_provenance_source_path in "$dryad_root_build_provenance_result_dir"/*; do
             [ -e "$dryad_root_build_provenance_source_path" ] || continue
-            : > "$dryad_root_build_provenance_tmp/dyd/assets/results/$dryad_root_build_provenance_result_name/$(basename "$dryad_root_build_provenance_source_path")"
+            dryad_root_build_provenance_source_name=${dryad_root_build_provenance_source_path##*/}
+            : > "$dryad_root_build_provenance_tmp/dyd/assets/results/$dryad_root_build_provenance_result_name/$dryad_root_build_provenance_source_name"
         done
     done
 
