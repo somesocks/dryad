@@ -745,8 +745,8 @@ EOF
 
     dryad_root_build_heap_depth_file=$dryad_root_build_heap_depth_garden/dyd/shed/heap/$dryad_root_build_heap_depth_kind/depth
 
-    if dryad_memo_get_line_into dryad_root_build_heap_depth_cached heap-depth "$dryad_root_build_heap_depth_garden" "$dryad_root_build_heap_depth_kind"; then
-        dryad_root_build_heap_depth_value=$dryad_root_build_heap_depth_cached
+    if dryad_memo_get_line_load heap-depth "$dryad_root_build_heap_depth_garden" "$dryad_root_build_heap_depth_kind"; then
+        dryad_root_build_heap_depth_value=$dyd_ret0
     elif [ ! -f "$dryad_root_build_heap_depth_file" ]; then
         dryad_memo_put_value heap-depth 1 "$dryad_root_build_heap_depth_garden" "$dryad_root_build_heap_depth_kind"
         dryad_root_build_heap_depth_value=1

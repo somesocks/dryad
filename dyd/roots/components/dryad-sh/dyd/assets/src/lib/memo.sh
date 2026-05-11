@@ -16,11 +16,11 @@ dryad_memo_cleanup () {
     fi
 }
 
-dryad_memo_escape_arg () {
+dryad_memo_escape_arg_load () {
     dryad_memo_escape_in=$1
 
     if [ -z "$dryad_memo_escape_in" ]; then
-        printf '~e\n'
+        dyd_ret0='~e'
         return 0
     fi
 
@@ -44,10 +44,10 @@ dryad_memo_escape_arg () {
         esac
     done
 
-    printf '%s\n' "$dryad_memo_escape_out"
+    dyd_ret0=$dryad_memo_escape_out
 }
 
-dryad_memo_path () {
+dryad_memo_path_load () {
     [ -n "${DRYAD_SH_MEMO_DIR:-}" ] || dryad_die "memo dir is not initialized"
     dryad_memo_path_group=$1
     shift
@@ -59,37 +59,38 @@ dryad_memo_path () {
         dryad_memo_path_key=~k
     else
         for dryad_memo_path_arg do
-            dryad_memo_path_escaped=$(dryad_memo_escape_arg "$dryad_memo_path_arg")
+            dryad_memo_escape_arg_load "$dryad_memo_path_arg"
+            dryad_memo_path_escaped=$dyd_ret0
             dryad_memo_path_key=$dryad_memo_path_key$dryad_memo_path_sep$dryad_memo_path_escaped
             dryad_memo_path_sep='^'
         done
     fi
-    printf '%s/%s\n' "$dryad_memo_path_dir" "$dryad_memo_path_key"
+    dyd_ret0=$dryad_memo_path_dir/$dryad_memo_path_key
 }
 
 dryad_memo_get () {
     dryad_memo_init
-    dryad_memo_get_path=$(dryad_memo_path "$@")
+    dryad_memo_path_load "$@"
+    dryad_memo_get_path=$dyd_ret0
     [ -f "$dryad_memo_get_path" ] || return 1
     cat "$dryad_memo_get_path"
 }
 
-dryad_memo_get_line_into () {
-    dryad_memo_get_line_var=$1
-    shift
-
+dryad_memo_get_line_load () {
     dryad_memo_init
-    dryad_memo_get_line_path=$(dryad_memo_path "$@")
+    dryad_memo_path_load "$@"
+    dryad_memo_get_line_path=$dyd_ret0
     [ -f "$dryad_memo_get_line_path" ] || return 1
 
     dryad_memo_get_line_value=
     IFS= read -r dryad_memo_get_line_value < "$dryad_memo_get_line_path" || [ -n "$dryad_memo_get_line_value" ] || dryad_memo_get_line_value=
-    eval "$dryad_memo_get_line_var=\$dryad_memo_get_line_value"
+    dyd_ret0=$dryad_memo_get_line_value
 }
 
 dryad_memo_put () {
     dryad_memo_init
-    dryad_memo_put_path=$(dryad_memo_path "$@")
+    dryad_memo_path_load "$@"
+    dryad_memo_put_path=$dyd_ret0
     dryad_memo_put_tmp=$dryad_memo_put_path.tmp.$$
 
     mkdir -p "${dryad_memo_put_path%/*}"
@@ -114,7 +115,8 @@ dryad_memo_put_value () {
     shift
 
     dryad_memo_init
-    dryad_memo_put_value_path=$(dryad_memo_path "$dryad_memo_put_value_group" "$@")
+    dryad_memo_path_load "$dryad_memo_put_value_group" "$@"
+    dryad_memo_put_value_path=$dyd_ret0
     dryad_memo_put_value_tmp=$dryad_memo_put_value_path.tmp.$$
 
     mkdir -p "${dryad_memo_put_value_path%/*}"

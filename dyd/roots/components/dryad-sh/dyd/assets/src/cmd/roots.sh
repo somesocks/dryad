@@ -2002,7 +2002,8 @@ dryad_roots_owning_selected_path_into () {
     dryad_roots_owning_selected_descriptor=$3
     dryad_roots_owning_selected_kind=$4
 
-    if dryad_memo_get_line_into "$dryad_roots_owning_selected_into_var" roots-owning-selected-path "$dryad_roots_owning_selected_root" "$dryad_roots_owning_selected_descriptor" "$dryad_roots_owning_selected_kind"; then
+    if dryad_memo_get_line_load roots-owning-selected-path "$dryad_roots_owning_selected_root" "$dryad_roots_owning_selected_descriptor" "$dryad_roots_owning_selected_kind"; then
+        eval "$dryad_roots_owning_selected_into_var=\$dyd_ret0"
         dryad_profile_count memo.hit.roots-owning-selected-path
         return 0
     fi
