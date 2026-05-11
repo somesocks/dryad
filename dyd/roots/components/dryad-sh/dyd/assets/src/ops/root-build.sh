@@ -1070,8 +1070,10 @@ dryad_root_build_publish_dir () {
         return 0
     fi
 
-    mkdir -p "$(dirname "$dryad_root_build_publish_dest")"
-    dryad_root_build_publish_tmp=$(dirname "$dryad_root_build_publish_dest")/.tmp-$(basename "$dryad_root_build_publish_dest").$$
+    dryad_root_build_publish_parent=${dryad_root_build_publish_dest%/*}
+    dryad_root_build_publish_name=${dryad_root_build_publish_dest##*/}
+    mkdir -p "$dryad_root_build_publish_parent"
+    dryad_root_build_publish_tmp=$dryad_root_build_publish_parent/.tmp-$dryad_root_build_publish_name.$$
     rm -rf "$dryad_root_build_publish_tmp"
     mkdir -p "$dryad_root_build_publish_tmp"
     dryad_profile_time_block root-build.publish-dir.tree \
