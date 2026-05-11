@@ -819,7 +819,6 @@ dryad_root_build_heap_ensure_file_into () {
 
     if [ -f "$dryad_root_build_add_file_dest" ]; then
         dryad_profile_count hit.root-build.heap-add-file
-        touch "$dryad_root_build_add_file_dest" 2>/dev/null || true
         eval "$dryad_root_build_add_file_fingerprint_var=\$dryad_root_build_add_file_fingerprint"
         eval "$dryad_root_build_add_file_path_var=\$dryad_root_build_add_file_dest"
         return 0
@@ -928,6 +927,14 @@ dryad_root_build_publish_file_link () {
     }
 }
 
+dryad_root_build_publish_dir_mkdir () {
+    dryad_root_build_publish_dir_mkdir_dest=$1
+
+    mkdir "$dryad_root_build_publish_dir_mkdir_dest" 2>/dev/null || {
+        [ -d "$dryad_root_build_publish_dir_mkdir_dest" ] || mkdir -p "$dryad_root_build_publish_dir_mkdir_dest"
+    }
+}
+
 dryad_root_build_publish_tree_process_entries () {
     while IFS= read -r dryad_root_build_publish_tree_entry; do
         dryad_root_build_publish_tree_rel=${dryad_root_build_publish_tree_entry#./}
@@ -947,7 +954,7 @@ dryad_root_build_publish_tree_process_entries () {
         elif [ -d "$dryad_root_build_publish_tree_entry" ]; then
             dryad_profile_count root-build.publish-tree.dir
             dryad_profile_time_block root-build.publish-tree.dir.mkdir \
-                mkdir -p "$dryad_root_build_publish_tree_dest"
+                dryad_root_build_publish_dir_mkdir "$dryad_root_build_publish_tree_dest"
         elif [ -f "$dryad_root_build_publish_tree_entry" ]; then
             dryad_profile_count root-build.publish-tree.file
             dryad_root_build_publish_tree_file_kind=files
@@ -1075,7 +1082,7 @@ dryad_root_build_publish_dir () {
         [ -e "$dryad_root_build_publish_dest" ] || return 1
     fi
     dryad_profile_time_block root-build.publish-dir.final-chmod \
-        find "$dryad_root_build_publish_dest" -type d -exec chmod 511 {} \;
+        find "$dryad_root_build_publish_dest" -type d -exec chmod 511 {} +
 }
 
 dryad_root_build_publish_derivation () {
@@ -1535,4 +1542,3 @@ dryad_root_build_sprout () {
     dryad_root_build_materialize_sprout "$dryad_root_build_sprout_garden" "$dryad_root_build_sprout_root" "$dryad_root_build_sprout_descriptors"
     rm -f "$dryad_root_build_sprout_descriptors"
 }
-
