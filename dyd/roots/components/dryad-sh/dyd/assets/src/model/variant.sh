@@ -84,6 +84,128 @@ dryad_roots_validate_filter_rules () {
     done
 }
 
+dryad_roots_variant_file_enabled () {
+    dryad_roots_variant_enabled_file=$1
+    dryad_roots_variant_enabled_raw=
+    if ! IFS= read -r dryad_roots_variant_enabled_raw < "$dryad_roots_variant_enabled_file"; then
+        [ -n "$dryad_roots_variant_enabled_raw" ] || return 1
+    fi
+    dryad_roots_variant_enabled_value=$(printf '%s\n' "$dryad_roots_variant_enabled_raw" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    [ "$dryad_roots_variant_enabled_value" = true ]
+}
+
+dryad_roots_variant_dim_seen () {
+    dryad_roots_variant_dim_seen_target=$1
+
+    while IFS= read -r dryad_roots_variant_dim_seen_dim; do
+        [ -n "$dryad_roots_variant_dim_seen_dim" ] || continue
+        [ "$dryad_roots_variant_dim_seen_dim" = "$dryad_roots_variant_dim_seen_target" ] && return 0
+    done <<EOF
+$dryad_roots_variant_dims
+EOF
+
+    return 1
+}
+
+dryad_roots_variant_append_option () {
+    dryad_roots_variant_append_dim=$1
+    dryad_roots_variant_append_option=$2
+
+    if ! dryad_roots_variant_dim_seen "$dryad_roots_variant_append_dim"; then
+        dryad_roots_variant_dims="${dryad_roots_variant_dims}${dryad_roots_variant_append_dim}
+"
+    fi
+    dryad_roots_variant_options="${dryad_roots_variant_options}${dryad_roots_variant_append_dim}	${dryad_roots_variant_append_option}
+"
+}
+
+dryad_roots_variant_rule_matches () {
+    dryad_roots_variant_rule_descriptor=$1
+    dryad_roots_variant_rule=$2
+
+    [ -n "$dryad_roots_variant_rule" ] || return 0
+
+    dryad_roots_variant_rule_old_ifs=$IFS
+    IFS=+
+    set -- $dryad_roots_variant_rule
+    IFS=$dryad_roots_variant_rule_old_ifs
+
+    for dryad_roots_variant_rule_pair do
+        dryad_roots_variant_rule_dim=${dryad_roots_variant_rule_pair%%=*}
+        dryad_roots_variant_rule_want=${dryad_roots_variant_rule_pair#*=}
+        dryad_roots_variant_rule_got=$(dryad_descriptor_value "$dryad_roots_variant_rule_descriptor" "$dryad_roots_variant_rule_dim" || true)
+
+        if [ "$dryad_roots_variant_rule_want" = none ]; then
+            [ -z "$dryad_roots_variant_rule_got" ] || return 1
+            continue
+        fi
+        if [ "$dryad_roots_variant_rule_want" = any ]; then
+            [ -n "$dryad_roots_variant_rule_got" ] || return 1
+            continue
+        fi
+        dryad_option_list_contains "$dryad_roots_variant_rule_want" "$dryad_roots_variant_rule_got" || return 1
+    done
+
+    return 0
+}
+
+dryad_roots_variant_included () {
+    dryad_roots_variant_included_descriptor=$1
+
+    [ -n "$dryad_roots_variant_include_rules" ] || return 0
+
+    while IFS= read -r dryad_roots_variant_include_rule; do
+        [ -n "$dryad_roots_variant_include_rule" ] || continue
+        if dryad_roots_variant_rule_matches "$dryad_roots_variant_included_descriptor" "$dryad_roots_variant_include_rule"; then
+            return 0
+        fi
+    done <<EOF
+$dryad_roots_variant_include_rules
+EOF
+
+    return 1
+}
+
+dryad_roots_variant_excluded () {
+    dryad_roots_variant_excluded_descriptor=$1
+
+    while IFS= read -r dryad_roots_variant_exclude_rule; do
+        [ -n "$dryad_roots_variant_exclude_rule" ] || continue
+        if dryad_roots_variant_rule_matches "$dryad_roots_variant_excluded_descriptor" "$dryad_roots_variant_exclude_rule"; then
+            return 0
+        fi
+    done <<EOF
+$dryad_roots_variant_exclude_rules
+EOF
+
+    return 1
+}
+
+dryad_roots_variant_emitted () {
+    dryad_roots_variant_emitted_target=D$1
+
+    while IFS= read -r dryad_roots_variant_emitted_record; do
+        [ -n "$dryad_roots_variant_emitted_record" ] || continue
+        [ "$dryad_roots_variant_emitted_record" = "$dryad_roots_variant_emitted_target" ] && return 0
+    done <<EOF
+$dryad_roots_variant_emitted_records
+EOF
+
+    return 1
+}
+
+dryad_roots_variant_emit () {
+    dryad_roots_variant_emit_descriptor=$1
+
+    dryad_roots_variant_included "$dryad_roots_variant_emit_descriptor" || return 0
+    dryad_roots_variant_excluded "$dryad_roots_variant_emit_descriptor" && return 0
+    dryad_roots_variant_emitted "$dryad_roots_variant_emit_descriptor" && return 0
+
+    dryad_roots_variant_emitted_records="${dryad_roots_variant_emitted_records}D${dryad_roots_variant_emit_descriptor}
+"
+    printf '%s\n' "$dryad_roots_variant_emit_descriptor"
+}
+
 dryad_roots_variant_descriptors_uncached () {
     dryad_roots_variant_root=$1
     dryad_roots_variant_dir=$dryad_roots_variant_root/dyd/variants
@@ -95,168 +217,74 @@ dryad_roots_variant_descriptors_uncached () {
 
     dryad_roots_validate_filter_rules "$dryad_roots_variant_root"
 
-    find "$dryad_roots_variant_dir" -mindepth 2 -maxdepth 2 -type f |
+    dryad_roots_variant_dims=
+    dryad_roots_variant_options=
+    dryad_roots_variant_include_rules=
+    dryad_roots_variant_exclude_rules=
+    dryad_roots_variant_records=$(find "$dryad_roots_variant_dir" -mindepth 2 -maxdepth 2 -type f |
         sed "s|^$dryad_roots_variant_dir/||" |
-        sort |
-        awk -F/ -v base="$dryad_roots_variant_dir" '
-            function trim(value) {
-                sub(/^[[:space:]]+/, "", value)
-                sub(/[[:space:]]+$/, "", value)
-                return value
-            }
+        sort)
 
-            function read_enabled(rel,    raw, path) {
-                path = base "/" rel
-                if ((getline raw < path) < 0) {
-                    return 0
-                }
-                close(path)
-                raw = trim(raw)
-                return raw == "true"
-            }
+    while IFS=/ read -r dryad_roots_variant_record_kind dryad_roots_variant_record_name; do
+        [ -n "$dryad_roots_variant_record_kind" ] || continue
+        [ -n "$dryad_roots_variant_record_name" ] || continue
+        dryad_roots_variant_record_rel=$dryad_roots_variant_record_kind/$dryad_roots_variant_record_name
+        dryad_roots_variant_file_enabled "$dryad_roots_variant_dir/$dryad_roots_variant_record_rel" || continue
 
-            function append_option(dim, option) {
-                if (!(dim in dim_seen)) {
-                    dims[++dim_count] = dim
-                    dim_seen[dim] = 1
-                }
-                options[dim] = options[dim] "\034" option
-            }
+        case $dryad_roots_variant_record_kind in
+            _include )
+                dryad_roots_variant_include_rules="${dryad_roots_variant_include_rules}${dryad_roots_variant_record_name}
+"
+                ;;
+            _exclude )
+                dryad_roots_variant_exclude_rules="${dryad_roots_variant_exclude_rules}${dryad_roots_variant_record_name}
+"
+                ;;
+            * )
+                dryad_roots_variant_append_option "$dryad_roots_variant_record_kind" "$dryad_roots_variant_record_name"
+                ;;
+        esac
+    done <<EOF
+$dryad_roots_variant_records
+EOF
 
-            function descriptor_value(descriptor, dim,    parts, count, i, pair) {
-                count = split(descriptor, parts, "+")
-                for (i = 1; i <= count; i++) {
-                    pair = parts[i]
-                    if (pair ~ "^" dim "=") {
-                        sub("^[^=]+=", "", pair)
-                        return pair
-                    }
-                }
-                return ""
-            }
+    dryad_roots_variant_current='D
+'
+    while IFS= read -r dryad_roots_variant_dim; do
+        [ -n "$dryad_roots_variant_dim" ] || continue
+        dryad_roots_variant_next=
+        while IFS= read -r dryad_roots_variant_descriptor_record; do
+            [ -n "$dryad_roots_variant_descriptor_record" ] || continue
+            dryad_roots_variant_descriptor=${dryad_roots_variant_descriptor_record#D}
+            while IFS='	' read -r dryad_roots_variant_option_dim dryad_roots_variant_option; do
+                [ "$dryad_roots_variant_option_dim" = "$dryad_roots_variant_dim" ] || continue
+                if [ "$dryad_roots_variant_option" = none ]; then
+                    dryad_roots_variant_next_descriptor=$dryad_roots_variant_descriptor
+                elif [ -n "$dryad_roots_variant_descriptor" ]; then
+                    dryad_roots_variant_next_descriptor=$dryad_roots_variant_descriptor+$dryad_roots_variant_dim=$dryad_roots_variant_option
+                else
+                    dryad_roots_variant_next_descriptor=$dryad_roots_variant_dim=$dryad_roots_variant_option
+                fi
+                dryad_roots_variant_next="${dryad_roots_variant_next}D${dryad_roots_variant_next_descriptor}
+"
+            done <<EOF
+$dryad_roots_variant_options
+EOF
+        done <<EOF
+$dryad_roots_variant_current
+EOF
+        dryad_roots_variant_current=$dryad_roots_variant_next
+    done <<EOF
+$dryad_roots_variant_dims
+EOF
 
-            function option_list_contains(list, target,    parts, count, i) {
-                count = split(list, parts, ",")
-                for (i = 1; i <= count; i++) {
-                    if (parts[i] == target) {
-                        return 1
-                    }
-                }
-                return 0
-            }
-
-            function rule_matches(descriptor, rule,    parts, count, i, pair, dim, want, got) {
-                if (rule == "") {
-                    return 1
-                }
-
-                count = split(rule, parts, "+")
-                for (i = 1; i <= count; i++) {
-                    pair = parts[i]
-                    dim = pair
-                    sub("=.*$", "", dim)
-                    want = pair
-                    sub("^[^=]+=", "", want)
-                    got = descriptor_value(descriptor, dim)
-
-                    if (want == "none") {
-                        if (got != "") {
-                            return 0
-                        }
-                    } else if (want == "any") {
-                        if (got == "") {
-                            return 0
-                        }
-                    } else if (!option_list_contains(want, got)) {
-                        return 0
-                    }
-                }
-                return 1
-            }
-
-            function included(descriptor,    i) {
-                if (include_count == 0) {
-                    return 1
-                }
-                for (i = 1; i <= include_count; i++) {
-                    if (rule_matches(descriptor, include_rules[i])) {
-                        return 1
-                    }
-                }
-                return 0
-            }
-
-            function excluded(descriptor,    i) {
-                for (i = 1; i <= exclude_count; i++) {
-                    if (rule_matches(descriptor, exclude_rules[i])) {
-                        return 1
-                    }
-                }
-                return 0
-            }
-
-            function emit_variant(descriptor) {
-                if (!included(descriptor) || excluded(descriptor)) {
-                    return
-                }
-                if (!(descriptor in emitted)) {
-                    emitted[descriptor] = 1
-                    output[++output_count] = descriptor
-                }
-            }
-
-            function walk(dim_index, prefix,    dim, parts, count, i, option, next_prefix) {
-                if (dim_index > dim_count) {
-                    emit_variant(prefix)
-                    return
-                }
-
-                dim = dims[dim_index]
-                count = split(options[dim], parts, "\034")
-                for (i = 2; i <= count; i++) {
-                    option = parts[i]
-                    if (option == "none") {
-                        next_prefix = prefix
-                    } else if (prefix == "") {
-                        next_prefix = dim "=" option
-                    } else {
-                        next_prefix = prefix "+" dim "=" option
-                    }
-                    walk(dim_index + 1, next_prefix)
-                }
-            }
-
-            {
-                rel = $0
-                if ($1 == "_include") {
-                    if (read_enabled(rel)) {
-                        include_rules[++include_count] = $2
-                    }
-                    next
-                }
-                if ($1 == "_exclude") {
-                    if (read_enabled(rel)) {
-                        exclude_rules[++exclude_count] = $2
-                    }
-                    next
-                }
-                if (read_enabled(rel)) {
-                    append_option($1, $2)
-                }
-            }
-
-            END {
-                if (dim_count == 0) {
-                    emit_variant("")
-                } else {
-                    walk(1, "")
-                }
-
-                for (i = 1; i <= output_count; i++) {
-                    print output[i]
-                }
-            }
-        '
+    dryad_roots_variant_emitted_records=
+    while IFS= read -r dryad_roots_variant_descriptor_record; do
+        [ -n "$dryad_roots_variant_descriptor_record" ] || continue
+        dryad_roots_variant_emit "${dryad_roots_variant_descriptor_record#D}"
+    done <<EOF
+$dryad_roots_variant_current
+EOF
 }
 
 dryad_roots_variant_descriptors () {
