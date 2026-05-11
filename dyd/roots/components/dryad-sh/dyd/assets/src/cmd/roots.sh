@@ -2802,100 +2802,146 @@ dryad_roots_graph_lines () {
         '
 }
 
+dryad_roots_graph_json_escape () {
+    printf '%s\n' "$1" | sed 's/\\/\\\\/g;s/"/\\"/g'
+}
+
+dryad_roots_graph_print_json_flush () {
+    [ -n "$dryad_roots_graph_print_current" ] || return 0
+
+    if [ "$dryad_roots_graph_print_printed" = 1 ]; then
+        printf ','
+    fi
+    printf '"%s":' "$(dryad_roots_graph_json_escape "$dryad_roots_graph_print_current")"
+
+    dryad_roots_graph_print_edge_printed=0
+    printf '{'
+    while IFS= read -r dryad_roots_graph_print_edge; do
+        [ -n "$dryad_roots_graph_print_edge" ] || continue
+        dryad_roots_graph_print_edge_label=${dryad_roots_graph_print_edge%%"$dryad_roots_graph_print_tab"*}
+        dryad_roots_graph_print_edge_target=${dryad_roots_graph_print_edge#*"$dryad_roots_graph_print_tab"}
+        if [ "$dryad_roots_graph_print_edge_printed" = 1 ]; then
+            printf ','
+        fi
+        printf '"%s":"%s"' \
+            "$(dryad_roots_graph_json_escape "$dryad_roots_graph_print_edge_label")" \
+            "$(dryad_roots_graph_json_escape "$dryad_roots_graph_print_edge_target")"
+        dryad_roots_graph_print_edge_printed=1
+    done <<EOF
+$dryad_roots_graph_print_edges
+EOF
+    printf '}'
+    dryad_roots_graph_print_printed=1
+}
+
+dryad_roots_graph_print_yaml_flush () {
+    [ -n "$dryad_roots_graph_print_current" ] || return 0
+
+    if [ -z "$dryad_roots_graph_print_edges" ]; then
+        printf '%s: {}\n' "$dryad_roots_graph_print_current"
+        return 0
+    fi
+
+    printf '%s:\n' "$dryad_roots_graph_print_current"
+    while IFS= read -r dryad_roots_graph_print_edge; do
+        [ -n "$dryad_roots_graph_print_edge" ] || continue
+        dryad_roots_graph_print_edge_label=${dryad_roots_graph_print_edge%%"$dryad_roots_graph_print_tab"*}
+        dryad_roots_graph_print_edge_target=${dryad_roots_graph_print_edge#*"$dryad_roots_graph_print_tab"}
+        printf '  %s: %s\n' "$dryad_roots_graph_print_edge_label" "$dryad_roots_graph_print_edge_target"
+    done <<EOF
+$dryad_roots_graph_print_edges
+EOF
+}
+
 dryad_roots_graph_print_json_compact () {
-    sort -t "$(printf '\t')" -k1,1 -k2,2 -k3,3 |
-        awk -F '\t' '
-            function json_escape(value) {
-                gsub(/\\/, "\\\\", value)
-                gsub(/"/, "\\\"", value)
-                return value
-            }
+    dryad_roots_graph_print_tab=$(printf '\t')
+    printf '{'
+    sort -t "$dryad_roots_graph_print_tab" -k1,1 -k2,2 -k3,3 |
+        {
+            dryad_roots_graph_print_current=
+            dryad_roots_graph_print_edges=
+            dryad_roots_graph_print_printed=0
+            while IFS= read -r dryad_roots_graph_print_line; do
+                case $dryad_roots_graph_print_line in
+                    *"$dryad_roots_graph_print_tab"* )
+                        dryad_roots_graph_print_node=${dryad_roots_graph_print_line%%"$dryad_roots_graph_print_tab"*}
+                        dryad_roots_graph_print_rest=${dryad_roots_graph_print_line#*"$dryad_roots_graph_print_tab"}
+                        case $dryad_roots_graph_print_rest in
+                            *"$dryad_roots_graph_print_tab"* )
+                                dryad_roots_graph_print_label=${dryad_roots_graph_print_rest%%"$dryad_roots_graph_print_tab"*}
+                                dryad_roots_graph_print_target=${dryad_roots_graph_print_rest#*"$dryad_roots_graph_print_tab"}
+                                dryad_roots_graph_print_target=${dryad_roots_graph_print_target%%"$dryad_roots_graph_print_tab"*}
+                                ;;
+                            * )
+                                dryad_roots_graph_print_label=$dryad_roots_graph_print_rest
+                                dryad_roots_graph_print_target=
+                                ;;
+                        esac
+                        ;;
+                    * )
+                        dryad_roots_graph_print_node=$dryad_roots_graph_print_line
+                        dryad_roots_graph_print_label=
+                        dryad_roots_graph_print_target=
+                        ;;
+                esac
 
-            function flush_node(    edge_count, i, pair_count, pair) {
-                if (current == "") {
-                    return
-                }
-
-                if (printed_node) {
-                    printf ","
-                }
-                printf "\"%s\":", json_escape(current)
-
-                edge_count = split(edges, edge_parts, "\034")
-                if (edge_count < 2) {
-                    printf "{}"
-                } else {
-                    printf "{"
-                    for (i = 2; i <= edge_count; i++) {
-                        pair_count = split(edge_parts[i], pair, "\035")
-                        if (i > 2) {
-                            printf ","
-                        }
-                        printf "\"%s\":\"%s\"", json_escape(pair[1]), json_escape(pair[2])
-                    }
-                    printf "}"
-                }
-
-                printed_node = 1
-            }
-
-            BEGIN {
-                printf "{"
-            }
-
-            {
-                if ($1 != current) {
-                    flush_node()
-                    current = $1
-                    edges = ""
-                }
-                if ($2 != "") {
-                    edges = edges "\034" $2 "\035" $3
-                }
-            }
-
-            END {
-                flush_node()
-                printf "}\n"
-            }
-        '
+                if [ "$dryad_roots_graph_print_node" != "$dryad_roots_graph_print_current" ]; then
+                    dryad_roots_graph_print_json_flush
+                    dryad_roots_graph_print_current=$dryad_roots_graph_print_node
+                    dryad_roots_graph_print_edges=
+                fi
+                if [ -n "$dryad_roots_graph_print_label" ]; then
+                    dryad_roots_graph_print_edges="${dryad_roots_graph_print_edges}${dryad_roots_graph_print_label}	${dryad_roots_graph_print_target}
+"
+                fi
+            done
+            dryad_roots_graph_print_json_flush
+        }
+    printf '}\n'
 }
 
 dryad_roots_graph_print_yaml () {
-    sort -t "$(printf '\t')" -k1,1 -k2,2 -k3,3 |
-        awk -F '\t' '
-            function flush_node(    edge_count, i, pair_count, pair) {
-                if (current == "") {
-                    return
-                }
+    dryad_roots_graph_print_tab=$(printf '\t')
+    sort -t "$dryad_roots_graph_print_tab" -k1,1 -k2,2 -k3,3 |
+        {
+            dryad_roots_graph_print_current=
+            dryad_roots_graph_print_edges=
+            while IFS= read -r dryad_roots_graph_print_line; do
+                case $dryad_roots_graph_print_line in
+                    *"$dryad_roots_graph_print_tab"* )
+                        dryad_roots_graph_print_node=${dryad_roots_graph_print_line%%"$dryad_roots_graph_print_tab"*}
+                        dryad_roots_graph_print_rest=${dryad_roots_graph_print_line#*"$dryad_roots_graph_print_tab"}
+                        case $dryad_roots_graph_print_rest in
+                            *"$dryad_roots_graph_print_tab"* )
+                                dryad_roots_graph_print_label=${dryad_roots_graph_print_rest%%"$dryad_roots_graph_print_tab"*}
+                                dryad_roots_graph_print_target=${dryad_roots_graph_print_rest#*"$dryad_roots_graph_print_tab"}
+                                dryad_roots_graph_print_target=${dryad_roots_graph_print_target%%"$dryad_roots_graph_print_tab"*}
+                                ;;
+                            * )
+                                dryad_roots_graph_print_label=$dryad_roots_graph_print_rest
+                                dryad_roots_graph_print_target=
+                                ;;
+                        esac
+                        ;;
+                    * )
+                        dryad_roots_graph_print_node=$dryad_roots_graph_print_line
+                        dryad_roots_graph_print_label=
+                        dryad_roots_graph_print_target=
+                        ;;
+                esac
 
-                edge_count = split(edges, edge_parts, "\034")
-                if (edge_count < 2) {
-                    printf "%s: {}\n", current
-                } else {
-                    printf "%s:\n", current
-                    for (i = 2; i <= edge_count; i++) {
-                        pair_count = split(edge_parts[i], pair, "\035")
-                        printf "  %s: %s\n", pair[1], pair[2]
-                    }
-                }
-            }
-
-            {
-                if ($1 != current) {
-                    flush_node()
-                    current = $1
-                    edges = ""
-                }
-                if ($2 != "") {
-                    edges = edges "\034" $2 "\035" $3
-                }
-            }
-
-            END {
-                flush_node()
-            }
-        '
+                if [ "$dryad_roots_graph_print_node" != "$dryad_roots_graph_print_current" ]; then
+                    dryad_roots_graph_print_yaml_flush
+                    dryad_roots_graph_print_current=$dryad_roots_graph_print_node
+                    dryad_roots_graph_print_edges=
+                fi
+                if [ -n "$dryad_roots_graph_print_label" ]; then
+                    dryad_roots_graph_print_edges="${dryad_roots_graph_print_edges}${dryad_roots_graph_print_label}	${dryad_roots_graph_print_target}
+"
+                fi
+            done
+            dryad_roots_graph_print_yaml_flush
+        }
 }
 
 dryad_cmd_roots_graph () {
