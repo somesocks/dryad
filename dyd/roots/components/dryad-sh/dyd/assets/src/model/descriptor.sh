@@ -9,20 +9,19 @@ dryad_url_query_join () {
         tr '&' '\n' |
         sed '/^$/d' |
         sort |
-        awk -v sep="$dryad_url_query_join_sep" '
-            {
-                if (seen) {
-                    printf "%s", sep
-                }
-                printf "%s", $0
-                seen = 1
-            }
-            END {
-                if (seen) {
-                    printf "\n"
-                }
-            }
-        '
+        {
+            dryad_url_query_join_seen=0
+            while IFS= read -r dryad_url_query_join_part; do
+                if [ "$dryad_url_query_join_seen" = 1 ]; then
+                    printf '%s' "$dryad_url_query_join_sep"
+                fi
+                printf '%s' "$dryad_url_query_join_part"
+                dryad_url_query_join_seen=1
+            done
+            if [ "$dryad_url_query_join_seen" = 1 ]; then
+                printf '\n'
+            fi
+        }
 }
 
 dryad_url_query_to_descriptor () {
@@ -56,23 +55,33 @@ dryad_fs_descriptor_normalize () {
         tr '+' '\n' |
         sed '/^$/d' |
         sort |
-        awk '
-            {
-                if ($0 !~ /^[A-Za-z0-9._-]+=.+$/) {
-                    exit 2
-                }
-                if (seen) {
-                    printf "+"
-                }
-                printf "%s", $0
-                seen = 1
-            }
-            END {
-                if (seen) {
-                    printf "\n"
-                }
-            }
-        ' || dryad_die "malformed variant descriptor: $dryad_fs_descriptor_raw"
+        {
+            dryad_fs_descriptor_seen=0
+            while IFS= read -r dryad_fs_descriptor_part; do
+                case $dryad_fs_descriptor_part in
+                    *=?* )
+                        dryad_fs_descriptor_dim=${dryad_fs_descriptor_part%%=*}
+                        case $dryad_fs_descriptor_dim in
+                            '' | *[!ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-]* )
+                                return 2
+                                ;;
+                        esac
+                        ;;
+                    * )
+                        return 2
+                        ;;
+                esac
+
+                if [ "$dryad_fs_descriptor_seen" = 1 ]; then
+                    printf '+'
+                fi
+                printf '%s' "$dryad_fs_descriptor_part"
+                dryad_fs_descriptor_seen=1
+            done
+            if [ "$dryad_fs_descriptor_seen" = 1 ]; then
+                printf '\n'
+            fi
+        } || dryad_die "malformed variant descriptor: $dryad_fs_descriptor_raw"
 }
 
 dryad_descriptor_value () {
