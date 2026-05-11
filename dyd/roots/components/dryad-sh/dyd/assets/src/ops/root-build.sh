@@ -1048,12 +1048,14 @@ dryad_root_build_publish_dependency_links () {
     for dryad_root_build_publish_deps_link in "$dryad_root_build_publish_deps_src_dir"/*; do
         [ -e "$dryad_root_build_publish_deps_link" ] || [ -L "$dryad_root_build_publish_deps_link" ] || continue
         dryad_root_build_publish_deps_name=${dryad_root_build_publish_deps_link##*/}
-        dryad_root_build_publish_deps_target=$(dryad_clean_cd "$dryad_root_build_publish_deps_link")
-        [ -f "$dryad_root_build_publish_deps_target/dyd/fingerprint" ] ||
+        dryad_root_build_publish_deps_fingerprint_file=$dryad_root_build_publish_deps_link/dyd/fingerprint
+        [ -f "$dryad_root_build_publish_deps_fingerprint_file" ] ||
             dryad_die "dependency missing fingerprint: $dryad_root_build_publish_deps_link"
-        dryad_root_build_publish_deps_fingerprint=$(cat "$dryad_root_build_publish_deps_target/dyd/fingerprint")
-        dryad_root_build_publish_deps_heap_path=$(dryad_root_build_heap_package_path "$dryad_root_build_publish_deps_garden" stems "$dryad_root_build_publish_deps_fingerprint")
-        dryad_root_build_publish_deps_rel=$(dryad_relative_path "$dryad_root_build_publish_deps_tmp_dir" "$dryad_root_build_publish_deps_heap_path")
+        dryad_root_build_publish_deps_fingerprint=
+        IFS= read -r dryad_root_build_publish_deps_fingerprint < "$dryad_root_build_publish_deps_fingerprint_file" || [ -n "$dryad_root_build_publish_deps_fingerprint" ] || dryad_root_build_publish_deps_fingerprint=
+        dryad_root_build_heap_fingerprint_path_into dryad_root_build_publish_deps_heap_path \
+            "$dryad_root_build_publish_deps_garden" stems "$dryad_root_build_publish_deps_fingerprint"
+        dryad_root_build_publish_deps_rel=$(dryad_relative_path_literal "$dryad_root_build_publish_deps_tmp_dir" "$dryad_root_build_publish_deps_heap_path")
         ln -s "$dryad_root_build_publish_deps_rel" "$dryad_root_build_publish_deps_tmp_dir/$dryad_root_build_publish_deps_name"
     done
 }
