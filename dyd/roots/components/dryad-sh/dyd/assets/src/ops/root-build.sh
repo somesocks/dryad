@@ -916,7 +916,8 @@ dryad_root_build_link_is_internal () {
 
     dryad_root_build_link_target_dir=$(dirname "$dryad_root_build_link_target_abs")
     if [ -d "$dryad_root_build_link_target_dir" ]; then
-        dryad_root_build_link_target_abs=$(dryad_file_abs_path "$dryad_root_build_link_target_abs")
+        dryad_file_abs_path_load "$dryad_root_build_link_target_abs"
+        dryad_root_build_link_target_abs=$dyd_ret0
     fi
 
     case $dryad_root_build_link_target_abs in
@@ -1086,7 +1087,8 @@ dryad_root_build_publish_dependency_links () {
         IFS= read -r dryad_root_build_publish_deps_fingerprint < "$dryad_root_build_publish_deps_fingerprint_file" || [ -n "$dryad_root_build_publish_deps_fingerprint" ] || dryad_root_build_publish_deps_fingerprint=
         dryad_root_build_heap_fingerprint_path_load "$dryad_root_build_publish_deps_garden" stems "$dryad_root_build_publish_deps_fingerprint"
         dryad_root_build_publish_deps_heap_path=$dyd_ret0
-        dryad_root_build_publish_deps_rel=$(dryad_relative_path_literal "$dryad_root_build_publish_deps_tmp_dir" "$dryad_root_build_publish_deps_heap_path")
+        dryad_relative_path_literal_load "$dryad_root_build_publish_deps_tmp_dir" "$dryad_root_build_publish_deps_heap_path"
+        dryad_root_build_publish_deps_rel=$dyd_ret0
         ln -s "$dryad_root_build_publish_deps_rel" "$dryad_root_build_publish_deps_tmp_dir/$dryad_root_build_publish_deps_name"
     done
 }
@@ -1568,7 +1570,8 @@ dryad_root_build_materialize_sprout () {
         rm -rf "$dryad_root_build_sprout_link"
     fi
     dryad_root_build_sprout_ln_status=0
-    dryad_root_build_sprout_target=$(dryad_relative_path_literal "$dryad_root_build_sprout_link_parent" "$dryad_root_build_sprout_heap_path")
+    dryad_relative_path_literal_load "$dryad_root_build_sprout_link_parent" "$dryad_root_build_sprout_heap_path"
+    dryad_root_build_sprout_target=$dyd_ret0
     ln -s "$dryad_root_build_sprout_target" "$dryad_root_build_sprout_link" ||
         dryad_root_build_sprout_ln_status=$?
     if [ "$dryad_root_build_sprout_restore_parent" = 1 ]; then

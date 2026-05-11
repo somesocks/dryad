@@ -536,7 +536,8 @@ dryad_requirement_target_spec () {
     dryad_requirement_size=$(wc -c < "$dryad_requirement_file" | tr -d ' ')
     dryad_requirement_trimmed_size=$(printf '%s' "$dryad_requirement_spec" | wc -c | tr -d ' ')
     if [ "$dryad_requirement_size" != "$dryad_requirement_trimmed_size" ]; then
-        dryad_requirement_abs=$(dryad_file_abs_path "$dryad_requirement_file")
+        dryad_file_abs_path_load "$dryad_requirement_file"
+        dryad_requirement_abs=$dyd_ret0
         dryad_requirement_garden=$(dryad_garden_find)
         dryad_requirement_display=${dryad_requirement_abs#"$dryad_requirement_garden"/}
         printf '%s\n' "dryad-sh: malformed requirement file path=$dryad_requirement_display expected=\"$dryad_requirement_spec\"" >&2
@@ -591,7 +592,8 @@ dryad_root_requirements_list_entries () {
         [ -e "$dryad_root_requirement_entry" ] || [ -L "$dryad_root_requirement_entry" ] || continue
         [ -f "$dryad_root_requirement_entry" ] || [ -L "$dryad_root_requirement_entry" ] || continue
 
-        dryad_root_requirement_abs=$(dryad_file_abs_path "$dryad_root_requirement_entry")
+        dryad_file_abs_path_load "$dryad_root_requirement_entry"
+        dryad_root_requirement_abs=$dyd_ret0
         if [ "$dryad_root_requirements_relative" = 1 ]; then
             case $dryad_root_requirement_abs in
                 "$dryad_root_requirements_garden"/* )
