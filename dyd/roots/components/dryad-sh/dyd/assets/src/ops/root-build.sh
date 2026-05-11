@@ -489,7 +489,9 @@ dryad_root_build_prepare_dependencies () {
                 [ -n "$dryad_root_build_deps_target_descriptor" ]; then
                 dryad_root_build_deps_dep_name=$dryad_root_build_deps_alias~$dryad_root_build_deps_target_descriptor
             fi
-            ln -s "$(dryad_root_build_heap_package_path "$dryad_root_build_deps_garden" stems "$dryad_root_build_deps_fingerprint")" "$dryad_root_build_deps_workspace/dyd/dependencies/$dryad_root_build_deps_dep_name"
+            dryad_root_build_heap_fingerprint_path_load "$dryad_root_build_deps_garden" stems "$dryad_root_build_deps_fingerprint"
+            dryad_root_build_deps_heap_path=$dyd_ret0
+            ln -s "$dryad_root_build_deps_heap_path" "$dryad_root_build_deps_workspace/dyd/dependencies/$dryad_root_build_deps_dep_name"
             if [ -n "$dryad_root_build_deps_sources_out" ]; then
                 printf '%s\n' "$dryad_root_build_deps_source_fingerprint" >> "$dryad_root_build_deps_sources_out"
             fi
@@ -718,40 +720,62 @@ dryad_root_build_source_fingerprint () {
 }
 
 dryad_root_build_heap_package_path () {
-    dryad_root_build_heap_fingerprint_path "$1" "$2" "$3"
+    dryad_root_build_heap_fingerprint_path_load "$1" "$2" "$3"
+    printf '%s\n' "$dyd_ret0"
 }
 
-dryad_root_build_heap_depth () {
+# Returns:
+#   dyd_ret0 = heap depth
+dryad_root_build_heap_depth_load () {
     dryad_root_build_heap_depth_garden=$1
     dryad_root_build_heap_depth_kind=$2
+
+    if [ "${dryad_root_build_heap_depth_cache+x}" = x ]; then
+        while IFS='	' read -r dryad_root_build_heap_depth_cache_garden dryad_root_build_heap_depth_cache_kind dryad_root_build_heap_depth_cache_value; do
+            [ -n "$dryad_root_build_heap_depth_cache_garden" ] || continue
+            if [ "$dryad_root_build_heap_depth_cache_garden" = "$dryad_root_build_heap_depth_garden" ] &&
+                [ "$dryad_root_build_heap_depth_cache_kind" = "$dryad_root_build_heap_depth_kind" ]; then
+                dyd_ret0=$dryad_root_build_heap_depth_cache_value
+                return 0
+            fi
+        done <<EOF
+$dryad_root_build_heap_depth_cache
+EOF
+    fi
+
     dryad_root_build_heap_depth_file=$dryad_root_build_heap_depth_garden/dyd/shed/heap/$dryad_root_build_heap_depth_kind/depth
 
     if dryad_memo_get_line_into dryad_root_build_heap_depth_cached heap-depth "$dryad_root_build_heap_depth_garden" "$dryad_root_build_heap_depth_kind"; then
-        printf '%s\n' "$dryad_root_build_heap_depth_cached"
-        return 0
-    fi
-
-    if [ ! -f "$dryad_root_build_heap_depth_file" ]; then
+        dryad_root_build_heap_depth_value=$dryad_root_build_heap_depth_cached
+    elif [ ! -f "$dryad_root_build_heap_depth_file" ]; then
         dryad_memo_put_value heap-depth 1 "$dryad_root_build_heap_depth_garden" "$dryad_root_build_heap_depth_kind"
-        printf '1\n'
-        return 0
+        dryad_root_build_heap_depth_value=1
+    else
+        dryad_root_build_heap_depth_value=$(tr -d '[:space:]' < "$dryad_root_build_heap_depth_file")
+        case $dryad_root_build_heap_depth_value in
+            '' | *[!0-9]* )
+                dryad_die "invalid shed heap depth in $dryad_root_build_heap_depth_file"
+                ;;
+        esac
+        dryad_memo_put_value heap-depth "$dryad_root_build_heap_depth_value" "$dryad_root_build_heap_depth_garden" "$dryad_root_build_heap_depth_kind"
     fi
 
-    dryad_root_build_heap_depth_value=$(tr -d '[:space:]' < "$dryad_root_build_heap_depth_file")
-    case $dryad_root_build_heap_depth_value in
-        '' | *[!0-9]* )
-            dryad_die "invalid shed heap depth in $dryad_root_build_heap_depth_file"
-            ;;
-    esac
-    dryad_memo_put_value heap-depth "$dryad_root_build_heap_depth_value" "$dryad_root_build_heap_depth_garden" "$dryad_root_build_heap_depth_kind"
-    printf '%s\n' "$dryad_root_build_heap_depth_value"
+    dryad_root_build_heap_depth_cache="${dryad_root_build_heap_depth_cache:-}${dryad_root_build_heap_depth_garden}	${dryad_root_build_heap_depth_kind}	${dryad_root_build_heap_depth_value}
+"
+    dyd_ret0=$dryad_root_build_heap_depth_value
 }
 
-dryad_root_build_heap_fingerprint_path_into () {
-    dryad_root_build_heap_path_var=$1
-    dryad_root_build_heap_garden=$2
-    dryad_root_build_heap_kind=$3
-    dryad_root_build_heap_fingerprint=$4
+dryad_root_build_heap_depth () {
+    dryad_root_build_heap_depth_load "$1" "$2"
+    printf '%s\n' "$dyd_ret0"
+}
+
+# Returns:
+#   dyd_ret0 = heap path for fingerprint
+dryad_root_build_heap_fingerprint_path_load () {
+    dryad_root_build_heap_garden=$1
+    dryad_root_build_heap_kind=$2
+    dryad_root_build_heap_fingerprint=$3
     dryad_root_build_heap_encoded=${dryad_root_build_heap_fingerprint#v2-}
 
     case $dryad_root_build_heap_encoded in
@@ -760,7 +784,8 @@ dryad_root_build_heap_fingerprint_path_into () {
             ;;
     esac
 
-    dryad_root_build_heap_depth_value=$(dryad_root_build_heap_depth "$dryad_root_build_heap_garden" "$dryad_root_build_heap_kind")
+    dryad_root_build_heap_depth_load "$dryad_root_build_heap_garden" "$dryad_root_build_heap_kind"
+    dryad_root_build_heap_depth_value=$dyd_ret0
     dryad_root_build_heap_remaining=$dryad_root_build_heap_encoded
     dryad_root_build_heap_path=$dryad_root_build_heap_garden/dyd/heap/$dryad_root_build_heap_kind/v2
     dryad_root_build_heap_i=0
@@ -769,7 +794,7 @@ dryad_root_build_heap_fingerprint_path_into () {
             ??* )
                 ;;
             * )
-            dryad_die "invalid shed heap depth $dryad_root_build_heap_depth_value for fingerprint $dryad_root_build_heap_fingerprint"
+                dryad_die "invalid shed heap depth $dryad_root_build_heap_depth_value for fingerprint $dryad_root_build_heap_fingerprint"
                 ;;
         esac
         dryad_root_build_heap_segment=${dryad_root_build_heap_remaining%"${dryad_root_build_heap_remaining#??}"}
@@ -777,12 +802,12 @@ dryad_root_build_heap_fingerprint_path_into () {
         dryad_root_build_heap_path=$dryad_root_build_heap_path/$dryad_root_build_heap_segment
         dryad_root_build_heap_i=$((dryad_root_build_heap_i + 1))
     done
-    eval "$dryad_root_build_heap_path_var=\$dryad_root_build_heap_path/\$dryad_root_build_heap_remaining"
+    dyd_ret0=$dryad_root_build_heap_path/$dryad_root_build_heap_remaining
 }
 
 dryad_root_build_heap_fingerprint_path () {
-    dryad_root_build_heap_fingerprint_path_into dryad_root_build_heap_path_result "$1" "$2" "$3"
-    printf '%s\n' "$dryad_root_build_heap_path_result"
+    dryad_root_build_heap_fingerprint_path_load "$1" "$2" "$3"
+    printf '%s\n' "$dyd_ret0"
 }
 
 dryad_root_build_file_fingerprint () {
@@ -814,8 +839,8 @@ dryad_root_build_heap_ensure_file_into () {
     dryad_root_build_add_file_src=$5
     dryad_root_build_add_file_fingerprint=$6
     dryad_profile_count call.root-build.heap-add-file
-    dryad_root_build_heap_fingerprint_path_into dryad_root_build_add_file_dest \
-        "$dryad_root_build_add_file_garden" "$dryad_root_build_add_file_kind" "$dryad_root_build_add_file_fingerprint"
+    dryad_root_build_heap_fingerprint_path_load "$dryad_root_build_add_file_garden" "$dryad_root_build_add_file_kind" "$dryad_root_build_add_file_fingerprint"
+    dryad_root_build_add_file_dest=$dyd_ret0
 
     if [ -f "$dryad_root_build_add_file_dest" ]; then
         dryad_profile_count hit.root-build.heap-add-file
@@ -1055,8 +1080,8 @@ dryad_root_build_publish_dependency_links () {
             dryad_die "dependency missing fingerprint: $dryad_root_build_publish_deps_link"
         dryad_root_build_publish_deps_fingerprint=
         IFS= read -r dryad_root_build_publish_deps_fingerprint < "$dryad_root_build_publish_deps_fingerprint_file" || [ -n "$dryad_root_build_publish_deps_fingerprint" ] || dryad_root_build_publish_deps_fingerprint=
-        dryad_root_build_heap_fingerprint_path_into dryad_root_build_publish_deps_heap_path \
-            "$dryad_root_build_publish_deps_garden" stems "$dryad_root_build_publish_deps_fingerprint"
+        dryad_root_build_heap_fingerprint_path_load "$dryad_root_build_publish_deps_garden" stems "$dryad_root_build_publish_deps_fingerprint"
+        dryad_root_build_publish_deps_heap_path=$dyd_ret0
         dryad_root_build_publish_deps_rel=$(dryad_relative_path_literal "$dryad_root_build_publish_deps_tmp_dir" "$dryad_root_build_publish_deps_heap_path")
         ln -s "$dryad_root_build_publish_deps_rel" "$dryad_root_build_publish_deps_tmp_dir/$dryad_root_build_publish_deps_name"
     done
@@ -1097,7 +1122,8 @@ dryad_root_build_publish_derivation () {
     dryad_root_build_derivation_garden=$1
     dryad_root_build_derivation_source_fingerprint=$2
     dryad_root_build_derivation_result_fingerprint=$3
-    dryad_root_build_derivation_dest=$(dryad_root_build_heap_fingerprint_path "$dryad_root_build_derivation_garden" derivations/roots "$dryad_root_build_derivation_source_fingerprint")
+    dryad_root_build_heap_fingerprint_path_load "$dryad_root_build_derivation_garden" derivations/roots "$dryad_root_build_derivation_source_fingerprint"
+    dryad_root_build_derivation_dest=$dyd_ret0
 
     dryad_root_build_derivation_dir=${dryad_root_build_derivation_dest%/*}
     dryad_root_build_derivation_name=${dryad_root_build_derivation_dest##*/}
@@ -1189,7 +1215,9 @@ dryad_root_build_provenance_stem () {
     for dryad_root_build_provenance_source_path in "$dryad_root_build_provenance_sources_dir"/*; do
         [ -e "$dryad_root_build_provenance_source_path" ] || continue
         dryad_root_build_provenance_source_name=${dryad_root_build_provenance_source_path##*/}
-        ln -s "$(dryad_root_build_heap_package_path "$dryad_root_build_provenance_garden" stems "$dryad_root_build_provenance_source_name")" \
+        dryad_root_build_heap_fingerprint_path_load "$dryad_root_build_provenance_garden" stems "$dryad_root_build_provenance_source_name"
+        dryad_root_build_provenance_source_heap_path=$dyd_ret0
+        ln -s "$dryad_root_build_provenance_source_heap_path" \
             "$dryad_root_build_provenance_tmp/dyd/dependencies/$dryad_root_build_provenance_source_name"
     done
 
@@ -1210,12 +1238,14 @@ dryad_root_build_provenance_stem () {
     dryad_root_build_provenance_fingerprint=$(dryad_profile_time_block root-build.fingerprint.provenance \
         dryad_root_build_fingerprint "$dryad_root_build_provenance_tmp" "$dryad_root_build_provenance_file_hashes")
     printf '%s' "$dryad_root_build_provenance_fingerprint" > "$dryad_root_build_provenance_tmp/dyd/fingerprint"
+    dryad_root_build_heap_fingerprint_path_load "$dryad_root_build_provenance_garden" stems "$dryad_root_build_provenance_fingerprint"
+    dryad_root_build_provenance_heap_path=$dyd_ret0
     dryad_profile_time_block root-build.publish-dir.provenance \
         dryad_root_build_publish_dir \
         "$dryad_root_build_provenance_garden" \
         stem \
         "$dryad_root_build_provenance_tmp" \
-        "$(dryad_root_build_heap_package_path "$dryad_root_build_provenance_garden" stems "$dryad_root_build_provenance_fingerprint")" \
+        "$dryad_root_build_provenance_heap_path" \
         "$dryad_root_build_provenance_file_hashes"
 
     rm -f "$dryad_root_build_provenance_file_hashes"
@@ -1227,7 +1257,8 @@ dryad_root_build_lookup_derivation () {
     dryad_root_build_lookup_garden=$1
     dryad_root_build_lookup_source_fingerprint=$2
     dryad_profile_count call.root-build.lookup-derivation
-    dryad_root_build_lookup_path=$(dryad_root_build_heap_fingerprint_path "$dryad_root_build_lookup_garden" derivations/roots "$dryad_root_build_lookup_source_fingerprint")
+    dryad_root_build_heap_fingerprint_path_load "$dryad_root_build_lookup_garden" derivations/roots "$dryad_root_build_lookup_source_fingerprint"
+    dryad_root_build_lookup_path=$dyd_ret0
 
     [ -f "$dryad_root_build_lookup_path" ] || {
         dryad_profile_count miss.root-build.lookup-derivation
@@ -1244,7 +1275,8 @@ dryad_root_build_lookup_derivation () {
             ;;
     esac
 
-    dryad_root_build_lookup_stem=$(dryad_root_build_heap_package_path "$dryad_root_build_lookup_garden" stems "$dryad_root_build_lookup_result")
+    dryad_root_build_heap_fingerprint_path_load "$dryad_root_build_lookup_garden" stems "$dryad_root_build_lookup_result"
+    dryad_root_build_lookup_stem=$dyd_ret0
     [ -d "$dryad_root_build_lookup_stem" ] || {
         dryad_profile_count miss.root-build.lookup-derivation
         return 1
@@ -1388,12 +1420,14 @@ dryad_root_build_stem_uncached () {
     dryad_root_build_stem_source_fingerprint=$(dryad_profile_time_block root-build.source-fingerprint \
         dryad_root_build_source_fingerprint "$dryad_root_build_stem_source" "$dryad_root_build_source_file_hashes")
     dryad_memo_put_value root-build-source-fingerprint "$dryad_root_build_stem_source_fingerprint" "$dryad_root_build_stem_garden" "$dryad_root_build_stem_root" "$dryad_root_build_stem_descriptor"
+    dryad_root_build_heap_fingerprint_path_load "$dryad_root_build_stem_garden" stems "$dryad_root_build_stem_source_fingerprint"
+    dryad_root_build_stem_source_heap_path=$dyd_ret0
     dryad_profile_time_block root-build.publish-dir.source-stem \
         dryad_root_build_publish_dir \
         "$dryad_root_build_stem_garden" \
         stem \
         "$dryad_root_build_stem_source" \
-        "$(dryad_root_build_heap_package_path "$dryad_root_build_stem_garden" stems "$dryad_root_build_stem_source_fingerprint")" \
+        "$dryad_root_build_stem_source_heap_path" \
         "$dryad_root_build_source_file_hashes"
 
     dryad_root_build_stem_cached_fingerprint=$(dryad_root_build_lookup_derivation "$dryad_root_build_stem_garden" "$dryad_root_build_stem_source_fingerprint" || true)
@@ -1432,8 +1466,10 @@ dryad_root_build_stem_uncached () {
     dryad_root_build_stem_fingerprint=$(dryad_profile_time_block root-build.fingerprint.stem \
         dryad_root_build_fingerprint "$dryad_root_build_stem_dest" "$dryad_root_build_stem_file_hashes")
     printf '%s' "$dryad_root_build_stem_fingerprint" > "$dryad_root_build_stem_dest/dyd/fingerprint"
+    dryad_root_build_heap_fingerprint_path_load "$dryad_root_build_stem_garden" stems "$dryad_root_build_stem_fingerprint"
+    dryad_root_build_stem_heap_path=$dyd_ret0
     dryad_profile_time_block root-build.publish-dir.stem \
-        dryad_root_build_publish_dir "$dryad_root_build_stem_garden" stem "$dryad_root_build_stem_dest" "$(dryad_root_build_heap_package_path "$dryad_root_build_stem_garden" stems "$dryad_root_build_stem_fingerprint")" "$dryad_root_build_stem_file_hashes"
+        dryad_root_build_publish_dir "$dryad_root_build_stem_garden" stem "$dryad_root_build_stem_dest" "$dryad_root_build_stem_heap_path" "$dryad_root_build_stem_file_hashes"
     dryad_root_build_publish_derivation "$dryad_root_build_stem_garden" "$dryad_root_build_stem_source_fingerprint" "$dryad_root_build_stem_fingerprint"
     dryad_root_build_provenance_node_store "$dryad_root_build_stem_source_fingerprint" "$dryad_root_build_stem_fingerprint" "$dryad_root_build_stem_dependency_sources"
 
@@ -1495,8 +1531,12 @@ dryad_root_build_materialize_sprout () {
             dryad_root_build_sprout_dep_name=stem~$dryad_root_build_sprout_descriptor
             dryad_root_build_sprout_provenance_name=stem.provenance~$dryad_root_build_sprout_descriptor
         fi
-        ln -s "$(dryad_root_build_heap_package_path "$dryad_root_build_sprout_garden" stems "$dryad_root_build_sprout_stem_fingerprint")" "$dryad_root_build_sprout_tmp/dyd/dependencies/$dryad_root_build_sprout_dep_name"
-        ln -s "$(dryad_root_build_heap_package_path "$dryad_root_build_sprout_garden" stems "$dryad_root_build_sprout_provenance_fingerprint")" "$dryad_root_build_sprout_tmp/dyd/dependencies/$dryad_root_build_sprout_provenance_name"
+        dryad_root_build_heap_fingerprint_path_load "$dryad_root_build_sprout_garden" stems "$dryad_root_build_sprout_stem_fingerprint"
+        dryad_root_build_sprout_stem_heap_path=$dyd_ret0
+        dryad_root_build_heap_fingerprint_path_load "$dryad_root_build_sprout_garden" stems "$dryad_root_build_sprout_provenance_fingerprint"
+        dryad_root_build_sprout_provenance_heap_path=$dyd_ret0
+        ln -s "$dryad_root_build_sprout_stem_heap_path" "$dryad_root_build_sprout_tmp/dyd/dependencies/$dryad_root_build_sprout_dep_name"
+        ln -s "$dryad_root_build_sprout_provenance_heap_path" "$dryad_root_build_sprout_tmp/dyd/dependencies/$dryad_root_build_sprout_provenance_name"
     done < "$dryad_root_build_sprout_descriptors_file"
 
     dryad_root_build_prepare_built_requirements "$dryad_root_build_sprout_tmp"
@@ -1506,7 +1546,8 @@ dryad_root_build_materialize_sprout () {
     dryad_root_build_sprout_fingerprint=$(dryad_profile_time_block root-build.fingerprint.sprout \
         dryad_root_build_fingerprint "$dryad_root_build_sprout_tmp" "$dryad_root_build_sprout_file_hashes")
     printf '%s' "$dryad_root_build_sprout_fingerprint" > "$dryad_root_build_sprout_tmp/dyd/fingerprint"
-    dryad_root_build_sprout_heap_path=$(dryad_root_build_heap_package_path "$dryad_root_build_sprout_garden" sprouts "$dryad_root_build_sprout_fingerprint")
+    dryad_root_build_heap_fingerprint_path_load "$dryad_root_build_sprout_garden" sprouts "$dryad_root_build_sprout_fingerprint"
+    dryad_root_build_sprout_heap_path=$dyd_ret0
     dryad_profile_time_block root-build.publish-dir.sprout \
         dryad_root_build_publish_dir "$dryad_root_build_sprout_garden" sprout "$dryad_root_build_sprout_tmp" "$dryad_root_build_sprout_heap_path" "$dryad_root_build_sprout_file_hashes"
 
