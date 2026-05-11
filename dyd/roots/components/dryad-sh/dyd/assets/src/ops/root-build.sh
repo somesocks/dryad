@@ -504,9 +504,11 @@ dryad_root_build_prepare_dependencies () {
             dryad_die "root requirement target has no matching variants: $dryad_root_build_deps_file"
 
         while IFS= read -r dryad_root_build_deps_target_descriptor; do
-            dryad_root_build_deps_fingerprint=$(dryad_root_build_stem "$dryad_root_build_deps_garden" "$dryad_root_build_deps_target_root" "$dryad_root_build_deps_target_descriptor")
-            dryad_root_build_deps_source_fingerprint=$(dryad_memo_get root-build-source-fingerprint "$dryad_root_build_deps_garden" "$dryad_root_build_deps_target_root" "$dryad_root_build_deps_target_descriptor") ||
+            dryad_root_build_stem_load "$dryad_root_build_deps_garden" "$dryad_root_build_deps_target_root" "$dryad_root_build_deps_target_descriptor"
+            dryad_root_build_deps_fingerprint=$dyd_ret0
+            dryad_memo_get_line_load root-build-source-fingerprint "$dryad_root_build_deps_garden" "$dryad_root_build_deps_target_root" "$dryad_root_build_deps_target_descriptor" ||
                 dryad_die "missing source fingerprint for root dependency: $dryad_root_build_deps_target_root"
+            dryad_root_build_deps_source_fingerprint=$dyd_ret0
             dryad_root_build_deps_dep_name=$dryad_root_build_deps_alias
             if dryad_root_build_descriptor_needs_suffix "$dryad_root_build_deps_selector" "$dryad_root_build_deps_count" &&
                 [ -n "$dryad_root_build_deps_target_descriptor" ]; then
@@ -1490,16 +1492,17 @@ dryad_root_build_stem_uncached () {
     printf '%s\n' "$dryad_root_build_stem_fingerprint"
 }
 
-dryad_root_build_stem () {
+dryad_root_build_stem_load () {
     dryad_root_build_memo_garden=$1
     dryad_root_build_memo_root=$2
     dryad_root_build_memo_descriptor=$3
 
-    if dryad_root_build_memo_fingerprint=$(dryad_memo_get root-build-stem "$dryad_root_build_memo_garden" "$dryad_root_build_memo_root" "$dryad_root_build_memo_descriptor"); then
+    if dryad_memo_get_line_load root-build-stem "$dryad_root_build_memo_garden" "$dryad_root_build_memo_root" "$dryad_root_build_memo_descriptor"; then
         dryad_profile_count memo.hit.root-build-stem
+        dryad_root_build_memo_fingerprint=$dyd_ret0
         dryad_root_build_memo_rel=${dryad_root_build_memo_root#"$dryad_root_build_memo_garden"/dyd/roots/}
         dryad_debug "root build memo hit path=dyd/roots/$dryad_root_build_memo_rel variant=${dryad_root_build_memo_descriptor:-default}"
-        printf '%s\n' "$dryad_root_build_memo_fingerprint"
+        dyd_ret0=$dryad_root_build_memo_fingerprint
         return 0
     fi
 
@@ -1507,7 +1510,7 @@ dryad_root_build_stem () {
     dryad_root_build_memo_fingerprint=$(dryad_root_build_stem_uncached "$dryad_root_build_memo_garden" "$dryad_root_build_memo_root" "$dryad_root_build_memo_descriptor") ||
         return $?
     dryad_memo_put_value root-build-stem "$dryad_root_build_memo_fingerprint" "$dryad_root_build_memo_garden" "$dryad_root_build_memo_root" "$dryad_root_build_memo_descriptor"
-    printf '%s\n' "$dryad_root_build_memo_fingerprint"
+    dyd_ret0=$dryad_root_build_memo_fingerprint
 }
 
 dryad_root_build_materialize_sprout () {
@@ -1527,9 +1530,11 @@ dryad_root_build_materialize_sprout () {
     fi
 
     while IFS= read -r dryad_root_build_sprout_descriptor; do
-        dryad_root_build_sprout_stem_fingerprint=$(dryad_root_build_stem "$dryad_root_build_sprout_garden" "$dryad_root_build_sprout_root" "$dryad_root_build_sprout_descriptor")
-        dryad_root_build_sprout_source_fingerprint=$(dryad_memo_get root-build-source-fingerprint "$dryad_root_build_sprout_garden" "$dryad_root_build_sprout_root" "$dryad_root_build_sprout_descriptor") ||
+        dryad_root_build_stem_load "$dryad_root_build_sprout_garden" "$dryad_root_build_sprout_root" "$dryad_root_build_sprout_descriptor"
+        dryad_root_build_sprout_stem_fingerprint=$dyd_ret0
+        dryad_memo_get_line_load root-build-source-fingerprint "$dryad_root_build_sprout_garden" "$dryad_root_build_sprout_root" "$dryad_root_build_sprout_descriptor" ||
             dryad_die "missing source fingerprint for root build sprout variant: $dryad_root_build_sprout_root"
+        dryad_root_build_sprout_source_fingerprint=$dyd_ret0
         dryad_root_build_sprout_provenance_fingerprint=$(dryad_root_build_provenance_stem \
             "$dryad_root_build_sprout_garden" \
             "$dryad_root_build_sprout_source_fingerprint" \
