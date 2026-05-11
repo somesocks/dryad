@@ -428,7 +428,7 @@ dryad_root_build_prepare_dependencies () {
     for dryad_root_build_deps_file in "$dryad_root_build_deps_req_dir"/* "$dryad_root_build_deps_req_dir"/.[!.]* "$dryad_root_build_deps_req_dir"/..?*; do
         [ -f "$dryad_root_build_deps_file" ] || [ -L "$dryad_root_build_deps_file" ] || continue
 
-        dryad_root_build_deps_name=$(basename "$dryad_root_build_deps_file")
+        dryad_root_build_deps_name=${dryad_root_build_deps_file##*/}
         dryad_root_build_deps_alias=${dryad_root_build_deps_name%%~*}
         dryad_root_build_deps_condition=
         case $dryad_root_build_deps_name in
@@ -508,11 +508,11 @@ dryad_root_build_prepare_path () {
 
     for dryad_root_build_path_dep in "$dryad_root_build_path_workspace"/dyd/dependencies/*; do
         [ -e "$dryad_root_build_path_dep" ] || [ -L "$dryad_root_build_path_dep" ] || continue
-        dryad_root_build_path_dep_name=$(basename "$dryad_root_build_path_dep")
+        dryad_root_build_path_dep_name=${dryad_root_build_path_dep##*/}
         [ -d "$dryad_root_build_path_dep/dyd/commands" ] || continue
         for dryad_root_build_path_command in "$dryad_root_build_path_dep"/dyd/commands/*; do
             [ -f "$dryad_root_build_path_command" ] || continue
-            dryad_root_build_path_command_name=$(basename "$dryad_root_build_path_command")
+            dryad_root_build_path_command_name=${dryad_root_build_path_command##*/}
             case $dryad_root_build_path_command_name in
                 dyd-stem-run | default )
                     dryad_root_build_path_stub_name=$dryad_root_build_path_dep_name
@@ -545,7 +545,7 @@ dryad_root_build_prepare_built_requirements () {
 
     for dryad_root_build_reqs_dep in "$dryad_root_build_reqs_deps"/*; do
         [ -e "$dryad_root_build_reqs_dep" ] || [ -L "$dryad_root_build_reqs_dep" ] || continue
-        dryad_root_build_reqs_name=$(basename "$dryad_root_build_reqs_dep")
+        dryad_root_build_reqs_name=${dryad_root_build_reqs_dep##*/}
         [ -f "$dryad_root_build_reqs_dep/dyd/fingerprint" ] ||
             dryad_die "dependency missing fingerprint: $dryad_root_build_reqs_dep"
         cp "$dryad_root_build_reqs_dep/dyd/fingerprint" "$dryad_root_build_reqs_dir/$dryad_root_build_reqs_name"
@@ -564,7 +564,7 @@ dryad_root_build_prepare_built_dependencies () {
 
     for dryad_root_build_built_deps_source_link in "$dryad_root_build_built_deps_source_dir"/*; do
         [ -e "$dryad_root_build_built_deps_source_link" ] || [ -L "$dryad_root_build_built_deps_source_link" ] || continue
-        dryad_root_build_built_deps_name=$(basename "$dryad_root_build_built_deps_source_link")
+        dryad_root_build_built_deps_name=${dryad_root_build_built_deps_source_link##*/}
         dryad_root_build_built_deps_dest_link=$dryad_root_build_built_deps_dest_dir/$dryad_root_build_built_deps_name
         [ ! -e "$dryad_root_build_built_deps_dest_link" ] && [ ! -L "$dryad_root_build_built_deps_dest_link" ] || continue
 
@@ -906,7 +906,9 @@ dryad_root_build_link_is_internal () {
 
 dryad_root_build_mkdir_parent () {
     dryad_root_build_mkdir_parent_path=$1
-    mkdir -p "$(dirname "$dryad_root_build_mkdir_parent_path")"
+    dryad_root_build_mkdir_parent_dir=${dryad_root_build_mkdir_parent_path%/*}
+    [ "$dryad_root_build_mkdir_parent_dir" != "$dryad_root_build_mkdir_parent_path" ] || dryad_root_build_mkdir_parent_dir=.
+    mkdir -p "$dryad_root_build_mkdir_parent_dir"
 }
 
 dryad_root_build_publish_symlink () {
@@ -1263,7 +1265,8 @@ dryad_root_build_lookup_derivation () {
 dryad_root_build_ensure_sprout_parent () {
     dryad_root_build_parent_garden=$1
     dryad_root_build_parent_rel=$2
-    dryad_root_build_parent_dir=$(dirname "$dryad_root_build_parent_rel")
+    dryad_root_build_parent_dir=${dryad_root_build_parent_rel%/*}
+    [ "$dryad_root_build_parent_dir" != "$dryad_root_build_parent_rel" ] || dryad_root_build_parent_dir=.
     dryad_root_build_parent_current=$(dryad_sprouts_ensure_dir "$dryad_root_build_parent_garden")
 
     if [ "$dryad_root_build_parent_dir" = . ]; then
@@ -1508,7 +1511,7 @@ dryad_root_build_materialize_sprout () {
         dryad_root_build_publish_dir "$dryad_root_build_sprout_garden" sprout "$dryad_root_build_sprout_tmp" "$dryad_root_build_sprout_heap_path" "$dryad_root_build_sprout_file_hashes"
 
     dryad_root_build_sprout_link_parent=$(dryad_root_build_ensure_sprout_parent "$dryad_root_build_sprout_garden" "$dryad_root_build_sprout_rel")
-    dryad_root_build_sprout_link=$dryad_root_build_sprout_link_parent/$(basename "$dryad_root_build_sprout_rel")
+    dryad_root_build_sprout_link=$dryad_root_build_sprout_link_parent/${dryad_root_build_sprout_rel##*/}
     dryad_root_build_sprout_restore_parent=0
     if [ -d "$dryad_root_build_sprout_link_parent" ] &&
         ! dryad_path_has_owner_write "$dryad_root_build_sprout_link_parent"; then
