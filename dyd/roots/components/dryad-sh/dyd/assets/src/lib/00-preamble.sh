@@ -118,29 +118,68 @@ dryad_profile_time_block () {
     return "$dryad_profile_time_status"
 }
 
+dryad_profile_report_add () {
+    dryad_profile_report_add_key=$1
+    dryad_profile_report_add_delta=$2
+    dryad_profile_report_add_lines=$3
+    dryad_profile_report_add_found=0
+    dryad_profile_report_add_out=
+
+    while IFS='	' read -r dryad_profile_report_add_line_key dryad_profile_report_add_line_value; do
+        [ -n "$dryad_profile_report_add_line_key" ] || continue
+        if [ "$dryad_profile_report_add_line_key" = "$dryad_profile_report_add_key" ]; then
+            dryad_profile_report_add_line_value=$((dryad_profile_report_add_line_value + dryad_profile_report_add_delta))
+            dryad_profile_report_add_found=1
+        fi
+
+        dryad_profile_report_add_out="${dryad_profile_report_add_out}${dryad_profile_report_add_line_key}	${dryad_profile_report_add_line_value}
+"
+    done <<EOF
+$dryad_profile_report_add_lines
+EOF
+
+    if [ "$dryad_profile_report_add_found" = 0 ]; then
+        dryad_profile_report_add_out="${dryad_profile_report_add_out}${dryad_profile_report_add_key}	${dryad_profile_report_add_delta}
+"
+    fi
+}
+
 dryad_profile_report () {
     [ -n "${DRYAD_SH_PROFILE_FILE:-}" ] || return 0
     [ -f "$DRYAD_SH_PROFILE_FILE" ] || return 0
 
+    dryad_profile_report_counts=
+    dryad_profile_report_times=
+    while IFS='	' read -r dryad_profile_report_kind dryad_profile_report_name dryad_profile_report_value dryad_profile_report_rest; do
+        [ -n "$dryad_profile_report_name" ] || continue
+        [ -n "$dryad_profile_report_value" ] || continue
+
+        case $dryad_profile_report_kind in
+            count )
+                dryad_profile_report_add "$dryad_profile_report_name" "$dryad_profile_report_value" "$dryad_profile_report_counts"
+                dryad_profile_report_counts=$dryad_profile_report_add_out
+                ;;
+            time )
+                dryad_profile_report_add "$dryad_profile_report_name" "$dryad_profile_report_value" "$dryad_profile_report_times"
+                dryad_profile_report_times=$dryad_profile_report_add_out
+                ;;
+        esac
+    done < "$DRYAD_SH_PROFILE_FILE"
+
     printf 'dryad-sh: profile file=%s\n' "$DRYAD_SH_PROFILE_FILE" >&2
-    awk -F '\t' '
-        $1 == "count" {
-            counts[$2] += $3
-        }
+    while IFS='	' read -r dryad_profile_report_name dryad_profile_report_value; do
+        [ -n "$dryad_profile_report_name" ] || continue
+        printf 'dryad-sh: profile count %s=%s\n' "$dryad_profile_report_name" "$dryad_profile_report_value" >&2
+    done <<EOF
+$dryad_profile_report_counts
+EOF
 
-        $1 == "time" {
-            times[$2] += $3
-        }
-
-        END {
-            for (key in counts) {
-                printf "dryad-sh: profile count %s=%s\n", key, counts[key]
-            }
-            for (key in times) {
-                printf "dryad-sh: profile time_ns %s=%s\n", key, times[key]
-            }
-        }
-    ' "$DRYAD_SH_PROFILE_FILE" >&2
+    while IFS='	' read -r dryad_profile_report_name dryad_profile_report_value; do
+        [ -n "$dryad_profile_report_name" ] || continue
+        printf 'dryad-sh: profile time_ns %s=%s\n' "$dryad_profile_report_name" "$dryad_profile_report_value" >&2
+    done <<EOF
+$dryad_profile_report_times
+EOF
 }
 
 dryad_usage () {
