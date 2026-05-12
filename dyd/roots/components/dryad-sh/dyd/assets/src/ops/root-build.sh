@@ -1339,7 +1339,8 @@ dryad_root_build_ensure_sprout_parent_load () {
     dryad_root_build_parent_rel=$2
     dryad_root_build_parent_dir=${dryad_root_build_parent_rel%/*}
     [ "$dryad_root_build_parent_dir" != "$dryad_root_build_parent_rel" ] || dryad_root_build_parent_dir=.
-    dryad_root_build_parent_current=$(dryad_sprouts_ensure_dir "$dryad_root_build_parent_garden")
+    dryad_sprouts_ensure_dir_load "$dryad_root_build_parent_garden"
+    dryad_root_build_parent_current=$dyd_ret0
 
     if [ "$dryad_root_build_parent_dir" = . ]; then
         dyd_ret0=$dryad_root_build_parent_current

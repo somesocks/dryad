@@ -1403,7 +1403,7 @@ dryad_path_chmod_parent_owner_write () {
     fi
 }
 
-dryad_sprouts_ensure_dir () {
+dryad_sprouts_ensure_dir_load () {
     dryad_sprouts_ensure_garden=$1
     dryad_sprouts_ensure_dir=$dryad_sprouts_ensure_garden/dyd/sprouts
 
@@ -1417,7 +1417,7 @@ dryad_sprouts_ensure_dir () {
         chmod 551 "$dryad_sprouts_ensure_dir"
     fi
 
-    printf '%s\n' "$dryad_sprouts_ensure_dir"
+    dyd_ret0=$dryad_sprouts_ensure_dir
 }
 
 dryad_sprouts_make_tree_removable () {
@@ -1453,7 +1453,8 @@ dryad_sprouts_remove_children () {
 
 dryad_sprouts_prune () {
     dryad_sprouts_prune_garden=$1
-    dryad_sprouts_prune_dir=$(dryad_sprouts_ensure_dir "$dryad_sprouts_prune_garden")
+    dryad_sprouts_ensure_dir_load "$dryad_sprouts_prune_garden"
+    dryad_sprouts_prune_dir=$dyd_ret0
     dryad_sprouts_prune_roots=$dryad_sprouts_prune_garden/dyd/roots
 
     find "$dryad_sprouts_prune_dir" -depth -mindepth 1 -print |
@@ -1522,7 +1523,8 @@ EOF
     dryad_sprouts_no_arg_garden=$(dryad_garden_find)
     case $dryad_sprouts_no_arg_action in
         wipe )
-            dryad_sprouts_no_arg_dir=$(dryad_sprouts_ensure_dir "$dryad_sprouts_no_arg_garden")
+            dryad_sprouts_ensure_dir_load "$dryad_sprouts_no_arg_garden"
+            dryad_sprouts_no_arg_dir=$dyd_ret0
             dryad_sprouts_remove_children "$dryad_sprouts_no_arg_dir"
             ;;
         prune )
