@@ -124,12 +124,13 @@ dryad_package_path_find () {
     done
 }
 
-dryad_root_selected_variant_descriptor () {
+dryad_root_selected_variant_descriptor_load () {
     dryad_root_selected_root=$1
     dryad_root_selected_requested=$2
+    dyd_ret0=
 
     if [ -n "$dryad_root_selected_requested" ]; then
-        dryad_fs_descriptor_normalize "$dryad_root_selected_requested"
+        dyd_ret0=$(dryad_fs_descriptor_normalize "$dryad_root_selected_requested")
         return 0
     fi
 
@@ -155,6 +156,6 @@ dryad_root_selected_variant_descriptor () {
     fi
 
     if [ "$dryad_root_selected_count" -eq 1 ]; then
-        printf '%s\n' "$dryad_root_selected_descriptor"
+        dyd_ret0=$dryad_root_selected_descriptor
     fi
 }

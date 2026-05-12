@@ -277,7 +277,8 @@ dryad_root_requirements_path_for_variant () {
 dryad_root_requirements_selected_path () {
     dryad_root_requirements_root=$1
     dryad_root_requirements_variant=$2
-    dryad_root_requirements_variant=$(dryad_root_selected_variant_descriptor "$dryad_root_requirements_root" "$dryad_root_requirements_variant")
+    dryad_root_selected_variant_descriptor_load "$dryad_root_requirements_root" "$dryad_root_requirements_variant"
+    dryad_root_requirements_variant=$dyd_ret0
 
     if [ -n "$dryad_root_requirements_variant" ]; then
         dryad_root_requirements_match=
@@ -399,7 +400,8 @@ EOF
 
     dryad_root_path_find_load .
     dryad_root_requirement_add_root=$dyd_ret0
-    dryad_root_requirement_add_variant=$(dryad_root_selected_variant_descriptor "$dryad_root_requirement_add_root" "$dryad_root_requirement_add_variant")
+    dryad_root_selected_variant_descriptor_load "$dryad_root_requirement_add_root" "$dryad_root_requirement_add_variant"
+    dryad_root_requirement_add_variant=$dyd_ret0
     dryad_root_requirement_add_dir=$(dryad_root_requirements_path_for_variant "$dryad_root_requirement_add_root" "$dryad_root_requirement_add_variant")
 
     dryad_root_requirement_add_parsed=$(dryad_root_requirement_parse_target "$dryad_root_requirement_add_target")
@@ -480,7 +482,8 @@ EOF
     dryad_root_requirement_remove_name=$(dryad_requirement_name_normalize "$dryad_root_requirement_remove_name")
     dryad_root_path_find_load .
     dryad_root_requirement_remove_root=$dyd_ret0
-    dryad_root_requirement_remove_variant=$(dryad_root_selected_variant_descriptor "$dryad_root_requirement_remove_root" "$dryad_root_requirement_remove_variant")
+    dryad_root_selected_variant_descriptor_load "$dryad_root_requirement_remove_root" "$dryad_root_requirement_remove_variant"
+    dryad_root_requirement_remove_variant=$dyd_ret0
     dryad_root_requirement_remove_dir=$(dryad_root_requirements_path_for_variant "$dryad_root_requirement_remove_root" "$dryad_root_requirement_remove_variant")
     dryad_root_requirement_remove_path=$dryad_root_requirement_remove_dir/$dryad_root_requirement_remove_name
 
