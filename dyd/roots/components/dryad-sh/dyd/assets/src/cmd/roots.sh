@@ -713,7 +713,8 @@ EOF
             dryad_root_requirements_query=${dryad_root_requirements_ref#*\?}
             [ -z "$dryad_root_requirements_variant" ] ||
                 dryad_die "cannot use --variant when root reference already has a selector"
-            dryad_root_requirements_variant=$(dryad_url_query_to_descriptor "$dryad_root_requirements_query")
+            dryad_url_query_to_descriptor_load "$dryad_root_requirements_query"
+            dryad_root_requirements_variant=$dyd_ret0
             ;;
     esac
 
@@ -836,7 +837,8 @@ dryad_root_ref_parse () {
             dryad_root_ref_query=${dryad_root_ref_raw#*\?}
             [ -n "$dryad_root_ref_path" ] ||
                 dryad_die "missing root ref path"
-            dryad_root_ref_selector=$(dryad_url_query_to_descriptor "$dryad_root_ref_query")
+            dryad_url_query_to_descriptor_load "$dryad_root_ref_query"
+            dryad_root_ref_selector=$dyd_ret0
             ;;
         *~* )
             dryad_root_ref_path=${dryad_root_ref_raw%%~*}

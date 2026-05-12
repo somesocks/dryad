@@ -485,7 +485,8 @@ dryad_root_build_prepare_dependencies () {
         esac
 
         dryad_url_query_warn_if_noncanonical "$dryad_root_build_deps_query"
-        dryad_root_build_deps_selector=$(dryad_url_query_to_descriptor "$dryad_root_build_deps_query")
+        dryad_url_query_to_descriptor_load "$dryad_root_build_deps_query"
+        dryad_root_build_deps_selector=$dyd_ret0
         dryad_root_build_deps_file_dir=$(dryad_clean_cd "$(dirname "$dryad_root_build_deps_file")")
         dryad_join_path_load "$dryad_root_build_deps_file_dir" "$dryad_root_build_deps_target_rel"
         dryad_root_build_deps_target_path=$dyd_ret0

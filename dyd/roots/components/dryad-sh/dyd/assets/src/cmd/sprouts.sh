@@ -129,7 +129,8 @@ dryad_sprouts_run_ref_parse () {
             dryad_sprouts_run_ref_query=${dryad_sprouts_run_ref_raw#*\?}
             [ -n "$dryad_sprouts_run_ref_path" ] ||
                 dryad_die "missing sprouts run sprout_ref path"
-            dryad_sprouts_run_ref_selector=$(dryad_url_query_to_descriptor "$dryad_sprouts_run_ref_query")
+            dryad_url_query_to_descriptor_load "$dryad_sprouts_run_ref_query"
+            dryad_sprouts_run_ref_selector=$dyd_ret0
             ;;
         *~* )
             dryad_sprouts_run_ref_path=${dryad_sprouts_run_ref_raw%%~*}

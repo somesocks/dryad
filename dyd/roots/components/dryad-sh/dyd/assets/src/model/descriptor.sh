@@ -24,8 +24,8 @@ dryad_url_query_join () {
         }
 }
 
-dryad_url_query_to_descriptor () {
-    dryad_url_query_join '+' "$1"
+dryad_url_query_to_descriptor_load () {
+    dyd_ret0=$(dryad_url_query_join '+' "$1")
 }
 
 dryad_url_query_normalize () {
