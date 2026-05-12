@@ -1205,7 +1205,7 @@ EOF
     : > "$dryad_root_build_provenance_collect_results_dir/$dryad_root_build_provenance_collect_result/$dryad_root_build_provenance_collect_source"
 }
 
-dryad_root_build_provenance_stem () {
+dryad_root_build_provenance_stem_load () {
     dryad_root_build_provenance_garden=$1
     dryad_root_build_provenance_source_fingerprint=$2
     dryad_root_build_provenance_result_fingerprint=$3
@@ -1261,7 +1261,7 @@ dryad_root_build_provenance_stem () {
 
     rm -f "$dryad_root_build_provenance_file_hashes"
     rm -rf "$dryad_root_build_provenance_tmp" "$dryad_root_build_provenance_sources_dir" "$dryad_root_build_provenance_results_dir"
-    printf '%s\n' "$dryad_root_build_provenance_fingerprint"
+    dyd_ret0=$dryad_root_build_provenance_fingerprint
 }
 
 dryad_root_build_lookup_derivation_load () {
@@ -1542,10 +1542,11 @@ dryad_root_build_materialize_sprout () {
         dryad_memo_get_line_load root-build-source-fingerprint "$dryad_root_build_sprout_garden" "$dryad_root_build_sprout_root" "$dryad_root_build_sprout_descriptor" ||
             dryad_die "missing source fingerprint for root build sprout variant: $dryad_root_build_sprout_root"
         dryad_root_build_sprout_source_fingerprint=$dyd_ret0
-        dryad_root_build_sprout_provenance_fingerprint=$(dryad_root_build_provenance_stem \
+        dryad_root_build_provenance_stem_load \
             "$dryad_root_build_sprout_garden" \
             "$dryad_root_build_sprout_source_fingerprint" \
-            "$dryad_root_build_sprout_stem_fingerprint")
+            "$dryad_root_build_sprout_stem_fingerprint"
+        dryad_root_build_sprout_provenance_fingerprint=$dyd_ret0
         dryad_root_build_sprout_dep_name=stem
         dryad_root_build_sprout_provenance_name=stem.provenance
         if [ -n "$dryad_root_build_sprout_descriptor" ]; then
