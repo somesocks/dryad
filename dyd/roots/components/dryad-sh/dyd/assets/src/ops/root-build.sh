@@ -1312,7 +1312,7 @@ dryad_root_build_lookup_derivation_load () {
     dyd_ret0=$dryad_root_build_lookup_result
 }
 
-dryad_root_build_ensure_sprout_parent () {
+dryad_root_build_ensure_sprout_parent_load () {
     dryad_root_build_parent_garden=$1
     dryad_root_build_parent_rel=$2
     dryad_root_build_parent_dir=${dryad_root_build_parent_rel%/*}
@@ -1320,7 +1320,7 @@ dryad_root_build_ensure_sprout_parent () {
     dryad_root_build_parent_current=$(dryad_sprouts_ensure_dir "$dryad_root_build_parent_garden")
 
     if [ "$dryad_root_build_parent_dir" = . ]; then
-        printf '%s\n' "$dryad_root_build_parent_current"
+        dyd_ret0=$dryad_root_build_parent_current
         return 0
     fi
 
@@ -1350,7 +1350,7 @@ dryad_root_build_ensure_sprout_parent () {
         dryad_root_build_parent_current=$dryad_root_build_parent_next
     done
 
-    printf '%s\n' "$dryad_root_build_parent_current"
+    dyd_ret0=$dryad_root_build_parent_current
 }
 
 dryad_root_build_run_command () {
@@ -1573,7 +1573,8 @@ dryad_root_build_materialize_sprout () {
     dryad_profile_time_block root-build.publish-dir.sprout \
         dryad_root_build_publish_dir "$dryad_root_build_sprout_garden" sprout "$dryad_root_build_sprout_tmp" "$dryad_root_build_sprout_heap_path" "$dryad_root_build_sprout_file_hashes"
 
-    dryad_root_build_sprout_link_parent=$(dryad_root_build_ensure_sprout_parent "$dryad_root_build_sprout_garden" "$dryad_root_build_sprout_rel")
+    dryad_root_build_ensure_sprout_parent_load "$dryad_root_build_sprout_garden" "$dryad_root_build_sprout_rel"
+    dryad_root_build_sprout_link_parent=$dyd_ret0
     dryad_root_build_sprout_link=$dryad_root_build_sprout_link_parent/${dryad_root_build_sprout_rel##*/}
     dryad_root_build_sprout_restore_parent=0
     if [ -d "$dryad_root_build_sprout_link_parent" ] &&
