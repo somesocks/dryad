@@ -144,7 +144,7 @@ dryad_sprouts_run_ref_parse () {
     esac
 }
 
-dryad_sprouts_run_resolve_path () {
+dryad_sprouts_run_resolve_path_load () {
     dryad_sprouts_run_resolve_garden=$1
     dryad_sprouts_run_resolve_ref=$2
 
@@ -165,7 +165,7 @@ dryad_sprouts_run_resolve_path () {
     dryad_sprouts_run_resolve_dir=$(dirname "$dryad_sprouts_run_resolve_path")
     dryad_sprouts_run_resolve_base=$(basename "$dryad_sprouts_run_resolve_path")
     dryad_sprouts_run_resolve_dir=$(dryad_clean_cd "$dryad_sprouts_run_resolve_dir")
-    printf '%s/%s\n' "$dryad_sprouts_run_resolve_dir" "$dryad_sprouts_run_resolve_base"
+    dyd_ret0=$dryad_sprouts_run_resolve_dir/$dryad_sprouts_run_resolve_base
 }
 
 dryad_sprouts_run_stem_dependency_descriptor () {
@@ -642,7 +642,8 @@ dryad_sprouts_run_confirm_print_stdin () {
         if [ -n "$dryad_sprouts_run_variant" ] && [ -n "$dryad_sprouts_run_ref_selector" ]; then
             dryad_die "sprouts run selector specified in both stdin sprout_ref and --variant"
         fi
-        dryad_sprouts_run_confirm_sprout=$(dryad_sprouts_run_resolve_path "$dryad_sprouts_run_confirm_garden" "$dryad_sprouts_run_ref_path")
+        dryad_sprouts_run_resolve_path_load "$dryad_sprouts_run_confirm_garden" "$dryad_sprouts_run_ref_path"
+        dryad_sprouts_run_confirm_sprout=$dyd_ret0
         dryad_sprouts_run_confirm_print_sprout "$dryad_sprouts_run_confirm_garden" "$dryad_sprouts_run_confirm_sprout" "$dryad_sprouts_run_confirm_ref"
     done < "$dryad_sprouts_run_confirm_file"
 }
@@ -1117,7 +1118,8 @@ $2"
             dryad_sprouts_run_stdin_selector=$dryad_sprouts_run_variant
             [ -z "$dryad_sprouts_run_ref_selector" ] ||
                 dryad_sprouts_run_stdin_selector=$dryad_sprouts_run_ref_selector
-            dryad_sprouts_run_stdin_sprout=$(dryad_sprouts_run_resolve_path "$dryad_sprouts_run_garden" "$dryad_sprouts_run_ref_path")
+            dryad_sprouts_run_resolve_path_load "$dryad_sprouts_run_garden" "$dryad_sprouts_run_ref_path"
+            dryad_sprouts_run_stdin_sprout=$dyd_ret0
             if dryad_sprouts_run_target "$dryad_sprouts_run_garden" "$dryad_sprouts_run_stdin_sprout" "$dryad_sprouts_run_stdin_selector" "$@"; then
                 :
             else
@@ -1346,7 +1348,8 @@ EOF
     dryad_sprout_run_selector=$dryad_sprouts_run_variant
     [ -z "$dryad_sprouts_run_ref_selector" ] ||
         dryad_sprout_run_selector=$dryad_sprouts_run_ref_selector
-    dryad_sprout_run_sprout=$(dryad_sprouts_run_resolve_path "$dryad_sprouts_run_garden" "$dryad_sprouts_run_ref_path")
+    dryad_sprouts_run_resolve_path_load "$dryad_sprouts_run_garden" "$dryad_sprouts_run_ref_path"
+    dryad_sprout_run_sprout=$dyd_ret0
 
     if [ -n "$dryad_sprouts_run_confirm" ]; then
         printf '%s\n' "this package will be executed:"
