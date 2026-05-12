@@ -38,7 +38,8 @@ dryad_sprouts_ref_descriptor () {
 
     case $dryad_sprouts_ref in
         *~* )
-            dryad_fs_descriptor_normalize "${dryad_sprouts_ref#*~}"
+            dryad_fs_descriptor_normalize_load "${dryad_sprouts_ref#*~}"
+            [ -z "$dyd_ret0" ] || printf '%s\n' "$dyd_ret0"
             ;;
         * )
             printf '\n'
@@ -137,7 +138,8 @@ dryad_sprouts_run_ref_parse () {
             dryad_sprouts_run_ref_selector=${dryad_sprouts_run_ref_raw#*~}
             [ -n "$dryad_sprouts_run_ref_path" ] ||
                 dryad_die "missing sprouts run sprout_ref path"
-            dryad_sprouts_run_ref_selector=$(dryad_fs_descriptor_normalize "$dryad_sprouts_run_ref_selector")
+            dryad_fs_descriptor_normalize_load "$dryad_sprouts_run_ref_selector"
+            dryad_sprouts_run_ref_selector=$dyd_ret0
             ;;
     esac
 }
@@ -175,7 +177,8 @@ dryad_sprouts_run_stem_dependency_descriptor () {
             ;;
         stem~* )
             dryad_sprouts_run_stem_dependency_raw=${dryad_sprouts_run_stem_dependency_name#stem~}
-            dryad_sprouts_run_stem_dependency_normalized=$(dryad_fs_descriptor_normalize "$dryad_sprouts_run_stem_dependency_raw")
+            dryad_fs_descriptor_normalize_load "$dryad_sprouts_run_stem_dependency_raw"
+            dryad_sprouts_run_stem_dependency_normalized=$dyd_ret0
             if [ "$dryad_sprouts_run_stem_dependency_normalized" != "$dryad_sprouts_run_stem_dependency_raw" ]; then
                 dryad_die "non-canonical sprout stem dependency descriptor: $dryad_sprouts_run_stem_dependency_name"
             fi
@@ -329,7 +332,8 @@ dryad_sprouts_run_selector_normalize () {
         fi
     done
 
-    dryad_fs_descriptor_normalize "$dryad_sprouts_run_normalize_output"
+    dryad_fs_descriptor_normalize_load "$dryad_sprouts_run_normalize_output"
+    [ -z "$dyd_ret0" ] || printf '%s\n' "$dyd_ret0"
 }
 
 dryad_sprouts_run_selector_option_exists () {
@@ -531,7 +535,8 @@ dryad_sprouts_run_filter_matches_one () {
     [ "$dryad_sprouts_run_filter_has_selector" = 1 ] ||
         return 0
 
-    dryad_sprouts_run_filter_selector=$(dryad_fs_descriptor_normalize "$dryad_sprouts_run_filter_selector")
+    dryad_fs_descriptor_normalize_load "$dryad_sprouts_run_filter_selector"
+    dryad_sprouts_run_filter_selector=$dyd_ret0
     dryad_sprouts_run_sprout_matches_selector "$dryad_sprouts_run_filter_sprout" "$dryad_sprouts_run_filter_stems" "$dryad_sprouts_run_filter_selector"
 }
 
@@ -996,12 +1001,14 @@ $2"
                 shift
                 ;;
             --variant=* )
-                dryad_sprouts_run_variant=$(dryad_fs_descriptor_normalize "${dryad_sprouts_run_arg#--variant=}")
+                dryad_fs_descriptor_normalize_load "${dryad_sprouts_run_arg#--variant=}"
+                dryad_sprouts_run_variant=$dyd_ret0
                 shift
                 ;;
             --variant )
                 [ "$#" -gt 1 ] || dryad_die "--variant requires a value"
-                dryad_sprouts_run_variant=$(dryad_fs_descriptor_normalize "$2")
+                dryad_fs_descriptor_normalize_load "$2"
+                dryad_sprouts_run_variant=$dyd_ret0
                 shift 2
                 ;;
             --context=* )
@@ -1178,12 +1185,14 @@ EOF
                 return 0
                 ;;
             --variant=* )
-                dryad_sprouts_run_variant=$(dryad_fs_descriptor_normalize "${dryad_sprout_run_arg#--variant=}")
+                dryad_fs_descriptor_normalize_load "${dryad_sprout_run_arg#--variant=}"
+                dryad_sprouts_run_variant=$dyd_ret0
                 shift
                 ;;
             --variant )
                 [ "$#" -gt 1 ] || dryad_die "--variant requires a value"
-                dryad_sprouts_run_variant=$(dryad_fs_descriptor_normalize "$2")
+                dryad_fs_descriptor_normalize_load "$2"
+                dryad_sprouts_run_variant=$dyd_ret0
                 shift 2
                 ;;
             --context=* )

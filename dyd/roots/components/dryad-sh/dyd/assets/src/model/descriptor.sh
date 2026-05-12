@@ -46,42 +46,43 @@ dryad_url_query_warn_if_noncanonical () {
     fi
 }
 
-dryad_fs_descriptor_normalize () {
+dryad_fs_descriptor_normalize_load () {
     dryad_fs_descriptor_raw=$1
+    dyd_ret0=
 
     [ -n "$dryad_fs_descriptor_raw" ] || return 0
 
-    printf '%s\n' "$dryad_fs_descriptor_raw" |
-        tr '+' '\n' |
-        sed '/^$/d' |
-        sort |
-        {
-            dryad_fs_descriptor_seen=0
-            while IFS= read -r dryad_fs_descriptor_part; do
-                case $dryad_fs_descriptor_part in
-                    *=?* )
-                        dryad_fs_descriptor_dim=${dryad_fs_descriptor_part%%=*}
-                        case $dryad_fs_descriptor_dim in
-                            '' | *[!ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-]* )
-                                return 2
-                                ;;
-                        esac
-                        ;;
-                    * )
-                        return 2
-                        ;;
-                esac
+    dyd_ret0=$(printf '%s\n' "$dryad_fs_descriptor_raw" |
+            tr '+' '\n' |
+            sed '/^$/d' |
+            sort |
+            {
+                dryad_fs_descriptor_seen=0
+                while IFS= read -r dryad_fs_descriptor_part; do
+                    case $dryad_fs_descriptor_part in
+                        *=?* )
+                            dryad_fs_descriptor_dim=${dryad_fs_descriptor_part%%=*}
+                            case $dryad_fs_descriptor_dim in
+                                '' | *[!ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-]* )
+                                    return 2
+                                    ;;
+                            esac
+                            ;;
+                        * )
+                            return 2
+                            ;;
+                    esac
 
+                    if [ "$dryad_fs_descriptor_seen" = 1 ]; then
+                        printf '+'
+                    fi
+                    printf '%s' "$dryad_fs_descriptor_part"
+                    dryad_fs_descriptor_seen=1
+                done
                 if [ "$dryad_fs_descriptor_seen" = 1 ]; then
-                    printf '+'
+                    printf '\n'
                 fi
-                printf '%s' "$dryad_fs_descriptor_part"
-                dryad_fs_descriptor_seen=1
-            done
-            if [ "$dryad_fs_descriptor_seen" = 1 ]; then
-                printf '\n'
-            fi
-        } || dryad_die "malformed variant descriptor: $dryad_fs_descriptor_raw"
+            }) || dryad_die "malformed variant descriptor: $dryad_fs_descriptor_raw"
 }
 
 dryad_descriptor_value_load () {

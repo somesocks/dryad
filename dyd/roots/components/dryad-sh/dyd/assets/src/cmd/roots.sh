@@ -256,7 +256,8 @@ dryad_requirement_name_normalize () {
     esac
 
     if [ -n "$dryad_requirement_name_condition" ]; then
-        dryad_requirement_name_condition=$(dryad_fs_descriptor_normalize "$dryad_requirement_name_condition")
+        dryad_fs_descriptor_normalize_load "$dryad_requirement_name_condition"
+        dryad_requirement_name_condition=$dyd_ret0
         printf '%s~%s\n' "$dryad_requirement_name_alias" "$dryad_requirement_name_condition"
     else
         printf '%s\n' "$dryad_requirement_name_alias"
@@ -845,7 +846,8 @@ dryad_root_ref_parse () {
             dryad_root_ref_selector=${dryad_root_ref_raw#*~}
             [ -n "$dryad_root_ref_path" ] ||
                 dryad_die "missing root ref path"
-            dryad_root_ref_selector=$(dryad_fs_descriptor_normalize "$dryad_root_ref_selector")
+            dryad_fs_descriptor_normalize_load "$dryad_root_ref_selector"
+            dryad_root_ref_selector=$dyd_ret0
             ;;
     esac
 
@@ -907,14 +909,16 @@ EOF
                 [ -z "$dryad_root_walk_variant" ] ||
                     dryad_die "root ${dryad_root_walk_kind%?} selector specified in both root_ref and --variant"
                 dryad_root_walk_variant=${dryad_root_walk_arg#--variant=}
-                dryad_root_walk_variant=$(dryad_fs_descriptor_normalize "$dryad_root_walk_variant")
+                dryad_fs_descriptor_normalize_load "$dryad_root_walk_variant"
+                dryad_root_walk_variant=$dyd_ret0
                 shift
                 ;;
             --variant )
                 [ "$#" -gt 1 ] || dryad_die "--variant requires a value"
                 [ -z "$dryad_root_walk_variant" ] ||
                     dryad_die "root ${dryad_root_walk_kind%?} selector specified in both root_ref and --variant"
-                dryad_root_walk_variant=$(dryad_fs_descriptor_normalize "$2")
+                dryad_fs_descriptor_normalize_load "$2"
+                dryad_root_walk_variant=$dyd_ret0
                 shift 2
                 ;;
             --relative=* )
@@ -1182,12 +1186,14 @@ $2"
                 shift
                 ;;
             --variant=* )
-                dryad_roots_build_variant=$(dryad_fs_descriptor_normalize "${dryad_roots_build_arg#--variant=}")
+                dryad_fs_descriptor_normalize_load "${dryad_roots_build_arg#--variant=}"
+                dryad_roots_build_variant=$dyd_ret0
                 shift
                 ;;
             --variant )
                 [ "$#" -gt 1 ] || dryad_die "--variant requires a value"
-                dryad_roots_build_variant=$(dryad_fs_descriptor_normalize "$2")
+                dryad_fs_descriptor_normalize_load "$2"
+                dryad_roots_build_variant=$dyd_ret0
                 shift 2
                 ;;
             --join-stdout=* )
@@ -1284,14 +1290,16 @@ EOF
             --variant=* )
                 [ -z "$dryad_root_build_variant" ] ||
                     dryad_die "root build selector specified in both root_ref and --variant"
-                dryad_root_build_variant=$(dryad_fs_descriptor_normalize "${dryad_root_build_arg#--variant=}")
+                dryad_fs_descriptor_normalize_load "${dryad_root_build_arg#--variant=}"
+                dryad_root_build_variant=$dyd_ret0
                 shift
                 ;;
             --variant )
                 [ "$#" -gt 1 ] || dryad_die "--variant requires a value"
                 [ -z "$dryad_root_build_variant" ] ||
                     dryad_die "root build selector specified in both root_ref and --variant"
-                dryad_root_build_variant=$(dryad_fs_descriptor_normalize "$2")
+                dryad_fs_descriptor_normalize_load "$2"
+                dryad_root_build_variant=$dyd_ret0
                 shift 2
                 ;;
             --join-stdout=* )

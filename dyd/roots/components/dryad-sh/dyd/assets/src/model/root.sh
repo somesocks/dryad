@@ -130,7 +130,7 @@ dryad_root_selected_variant_descriptor_load () {
     dyd_ret0=
 
     if [ -n "$dryad_root_selected_requested" ]; then
-        dyd_ret0=$(dryad_fs_descriptor_normalize "$dryad_root_selected_requested")
+        dryad_fs_descriptor_normalize_load "$dryad_root_selected_requested"
         return 0
     fi
 
