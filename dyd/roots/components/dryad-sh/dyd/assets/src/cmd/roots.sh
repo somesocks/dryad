@@ -423,7 +423,8 @@ EOF
     dryad_root_requirement_add_alias=$dyd_ret0
 
     mkdir -p "$dryad_root_requirement_add_dir"
-    dryad_root_requirement_add_rel=$(dryad_relative_path "$dryad_root_requirement_add_dir" "$dryad_root_requirement_add_dep_root")
+    dryad_relative_path_load "$dryad_root_requirement_add_dir" "$dryad_root_requirement_add_dep_root"
+    dryad_root_requirement_add_rel=$dyd_ret0
     dryad_root_requirement_add_query=$(dryad_url_query_normalize "$dryad_root_requirement_add_dep_query")
     printf 'root:%s%s' "$dryad_root_requirement_add_rel" "$dryad_root_requirement_add_query" > "$dryad_root_requirement_add_dir/$dryad_root_requirement_add_alias"
 }
@@ -544,7 +545,8 @@ dryad_requirement_target_spec_load () {
                 dryad_requirement_target=$dyd_ret0
                 dryad_root_path_find_load "$dryad_requirement_target"
                 dryad_requirement_root=$dyd_ret0
-                dryad_requirement_rel=$(dryad_relative_path "$dryad_requirement_dir" "$dryad_requirement_root")
+                dryad_relative_path_load "$dryad_requirement_dir" "$dryad_requirement_root"
+                dryad_requirement_rel=$dyd_ret0
                 dyd_ret0=root:$dryad_requirement_rel
                 ;;
         esac
@@ -601,7 +603,8 @@ dryad_requirement_target_url () {
     dryad_requirement_target_path=$dyd_ret0
     dryad_root_path_find_load "$dryad_requirement_target_path"
     dryad_requirement_target_root=$dyd_ret0
-    dryad_requirement_target_rel=$(dryad_relative_path "$dryad_requirement_dir" "$dryad_requirement_target_root")
+    dryad_relative_path_load "$dryad_requirement_dir" "$dryad_requirement_target_root"
+    dryad_requirement_target_rel=$dyd_ret0
     dryad_requirement_target_query=$(dryad_url_query_normalize "$dryad_requirement_query")
     printf 'root:%s%s\n' "$dryad_requirement_target_rel" "$dryad_requirement_target_query"
 }

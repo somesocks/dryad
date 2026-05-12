@@ -257,6 +257,13 @@ dryad_clean_cd () {
     pwd -P
 }
 
+dryad_clean_cd_load () {
+    dryad_clean_cd_restore=${PWD:-.}
+    cd -P "$1" 2>/dev/null || dryad_die "could not enter directory: $1"
+    dyd_ret0=$PWD
+    cd "$dryad_clean_cd_restore" 2>/dev/null || dryad_die "could not restore directory: $dryad_clean_cd_restore"
+}
+
 dryad_strip_option_quotes_load () {
     case $1 in
         *=\'*\' )

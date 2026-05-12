@@ -489,7 +489,9 @@ dryad_root_build_prepare_dependencies () {
         dryad_url_query_warn_if_noncanonical "$dryad_root_build_deps_query"
         dryad_url_query_to_descriptor_load "$dryad_root_build_deps_query"
         dryad_root_build_deps_selector=$dyd_ret0
-        dryad_root_build_deps_file_dir=$(dryad_clean_cd "$(dirname "$dryad_root_build_deps_file")")
+        dryad_root_build_deps_file_parent=$(dirname "$dryad_root_build_deps_file")
+        dryad_clean_cd_load "$dryad_root_build_deps_file_parent"
+        dryad_root_build_deps_file_dir=$dyd_ret0
         dryad_join_path_load "$dryad_root_build_deps_file_dir" "$dryad_root_build_deps_target_rel"
         dryad_root_build_deps_target_path=$dyd_ret0
         dryad_root_path_find_load "$dryad_root_build_deps_target_path"
@@ -599,7 +601,8 @@ dryad_root_build_prepare_built_dependencies () {
         dryad_root_build_built_deps_dest_link=$dryad_root_build_built_deps_dest_dir/$dryad_root_build_built_deps_name
         [ ! -e "$dryad_root_build_built_deps_dest_link" ] && [ ! -L "$dryad_root_build_built_deps_dest_link" ] || continue
 
-        dryad_root_build_built_deps_target=$(dryad_clean_cd "$dryad_root_build_built_deps_source_link")
+        dryad_clean_cd_load "$dryad_root_build_built_deps_source_link"
+        dryad_root_build_built_deps_target=$dyd_ret0
         [ -f "$dryad_root_build_built_deps_target/dyd/fingerprint" ] ||
             dryad_die "dependency missing fingerprint: $dryad_root_build_built_deps_source_link"
         ln -s "$dryad_root_build_built_deps_target" "$dryad_root_build_built_deps_dest_link"
@@ -945,7 +948,8 @@ dryad_root_build_link_is_internal () {
     dryad_root_build_link_base=$1
     dryad_root_build_link_rel=$2
     dryad_root_build_link_target=$3
-    dryad_root_build_link_base_abs=$(dryad_clean_cd "$dryad_root_build_link_base")
+    dryad_clean_cd_load "$dryad_root_build_link_base"
+    dryad_root_build_link_base_abs=$dyd_ret0
 
     case $dryad_root_build_link_target in
         /* )
