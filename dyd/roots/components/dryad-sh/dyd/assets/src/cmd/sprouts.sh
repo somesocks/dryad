@@ -1143,7 +1143,7 @@ $2"
         done
 }
 
-dryad_cmd_sprout_run_bool_option () {
+dryad_cmd_sprout_run_bool_option_load () {
     dryad_sprout_run_bool_arg=$1
     dryad_sprout_run_bool_name=$2
     dryad_sprout_run_bool_default=$3
@@ -1151,10 +1151,9 @@ dryad_cmd_sprout_run_bool_option () {
     case $dryad_sprout_run_bool_arg in
         --*=* )
             dryad_bool_value_load "${dryad_sprout_run_bool_arg#--*=}"
-            printf '%s\n' "$dyd_ret0"
             ;;
         * )
-            printf '%s\n' "$dryad_sprout_run_bool_default"
+            dyd_ret0=$dryad_sprout_run_bool_default
             ;;
     esac
 }
@@ -1205,7 +1204,8 @@ EOF
                 shift 2
                 ;;
             --inherit=* )
-                dryad_sprouts_run_inherit=$(dryad_cmd_sprout_run_bool_option "$dryad_sprout_run_arg" inherit 1)
+                dryad_cmd_sprout_run_bool_option_load "$dryad_sprout_run_arg" inherit 1
+                dryad_sprouts_run_inherit=$dyd_ret0
                 shift
                 ;;
             --inherit )
@@ -1245,7 +1245,8 @@ EOF
                 shift 2
                 ;;
             --join-stdout=* )
-                dryad_sprouts_run_join_stdout=$(dryad_cmd_sprout_run_bool_option "$dryad_sprout_run_arg" join-stdout 1)
+                dryad_cmd_sprout_run_bool_option_load "$dryad_sprout_run_arg" join-stdout 1
+                dryad_sprouts_run_join_stdout=$dyd_ret0
                 shift
                 ;;
             --join-stdout )
@@ -1267,7 +1268,8 @@ EOF
                 fi
                 ;;
             --join-stderr=* )
-                dryad_sprouts_run_join_stderr=$(dryad_cmd_sprout_run_bool_option "$dryad_sprout_run_arg" join-stderr 1)
+                dryad_cmd_sprout_run_bool_option_load "$dryad_sprout_run_arg" join-stderr 1
+                dryad_sprouts_run_join_stderr=$dyd_ret0
                 shift
                 ;;
             --join-stderr )
