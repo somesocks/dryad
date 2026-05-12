@@ -33,16 +33,13 @@ dryad_sprouts_find_sprouts () {
         sort
 }
 
-dryad_sprouts_ref_descriptor () {
+dryad_sprouts_ref_descriptor_load () {
     dryad_sprouts_ref=$1
+    dyd_ret0=
 
     case $dryad_sprouts_ref in
         *~* )
             dryad_fs_descriptor_normalize_load "${dryad_sprouts_ref#*~}"
-            [ -z "$dyd_ret0" ] || printf '%s\n' "$dyd_ret0"
-            ;;
-        * )
-            printf '\n'
             ;;
     esac
 }
@@ -91,7 +88,8 @@ dryad_sprouts_list_from_stdin () {
         else
             dryad_sprouts_stdin_display=$dryad_sprouts_stdin_path
         fi
-        dryad_sprouts_stdin_descriptor=$(dryad_sprouts_ref_descriptor "$dryad_sprouts_stdin_display")
+        dryad_sprouts_ref_descriptor_load "$dryad_sprouts_stdin_display"
+        dryad_sprouts_stdin_descriptor=$dyd_ret0
         if dryad_sprouts_entry_matches_filters "$dryad_sprouts_stdin_display" "$dryad_sprouts_stdin_path" "$dryad_sprouts_stdin_descriptor"; then
             case $dryad_sprouts_stdin_display in
                 /* )
@@ -1668,7 +1666,8 @@ $2"
     dryad_sprouts_dir=$dryad_sprouts_garden/dyd/sprouts
     dryad_sprouts_find_sprouts "$dryad_sprouts_dir" | while IFS= read -r dryad_sprouts_path_entry; do
         dryad_sprouts_display=${dryad_sprouts_path_entry#"$dryad_sprouts_garden"/}
-        dryad_sprouts_descriptor=$(dryad_sprouts_ref_descriptor "$dryad_sprouts_display")
+        dryad_sprouts_ref_descriptor_load "$dryad_sprouts_display"
+        dryad_sprouts_descriptor=$dyd_ret0
         if dryad_sprouts_entry_matches_filters "$dryad_sprouts_display" "$dryad_sprouts_path_entry" "$dryad_sprouts_descriptor"; then
             dryad_sprouts_print_ref "$dryad_sprouts_path_entry" "$dryad_sprouts_garden"
         fi
