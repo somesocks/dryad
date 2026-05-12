@@ -1422,11 +1422,13 @@ dryad_root_build_run_command () {
     fi
     if [ -n "$dryad_root_build_run_log_stdout" ]; then
         mkdir -p "$dryad_root_build_run_log_stdout"
-        cp "$dryad_root_build_run_stdout" "$dryad_root_build_run_log_stdout/dyd-root-build--$(dryad_sprouts_run_sanitize_segment "$dryad_root_build_run_rel").out"
+        dryad_sprouts_run_sanitize_segment_load "$dryad_root_build_run_rel"
+        cp "$dryad_root_build_run_stdout" "$dryad_root_build_run_log_stdout/dyd-root-build--$dyd_ret0.out"
     fi
     if [ -n "$dryad_root_build_run_log_stderr" ]; then
         mkdir -p "$dryad_root_build_run_log_stderr"
-        cp "$dryad_root_build_run_stderr" "$dryad_root_build_run_log_stderr/dyd-root-build--$(dryad_sprouts_run_sanitize_segment "$dryad_root_build_run_rel").err"
+        dryad_sprouts_run_sanitize_segment_load "$dryad_root_build_run_rel"
+        cp "$dryad_root_build_run_stderr" "$dryad_root_build_run_log_stderr/dyd-root-build--$dyd_ret0.err"
     fi
 
     rm -f "$dryad_root_build_run_stdout" "$dryad_root_build_run_stderr"

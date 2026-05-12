@@ -104,8 +104,8 @@ dryad_sprouts_list_from_stdin () {
     done
 }
 
-dryad_sprouts_run_sanitize_segment () {
-    printf '%s\n' "$1" | sed 's#[<>:"/\\|?*]#-#g'
+dryad_sprouts_run_sanitize_segment_load () {
+    dyd_ret0=$(printf '%s\n' "$1" | sed 's#[<>:"/\\|?*]#-#g')
 }
 
 dryad_sprouts_run_log () {
@@ -833,9 +833,11 @@ dryad_sprouts_run_one_stem () {
 
     if [ -n "$dryad_sprouts_run_log_stdout" ]; then
         dryad_sprouts_run_one_stem_stdout_mode=file
-        dryad_sprouts_run_one_stem_stdout_name=dyd-sprout-run--$(dryad_sprouts_run_sanitize_segment "$dryad_sprouts_run_one_stem_rel")
+        dryad_sprouts_run_sanitize_segment_load "$dryad_sprouts_run_one_stem_rel"
+        dryad_sprouts_run_one_stem_stdout_name=dyd-sprout-run--$dyd_ret0
         if [ "$dryad_sprouts_run_one_stem_selected_count" -gt 1 ] || [ -n "$dryad_sprouts_run_one_stem_descriptor" ]; then
-            dryad_sprouts_run_one_stem_stdout_name=$dryad_sprouts_run_one_stem_stdout_name--$(dryad_sprouts_run_sanitize_segment "$dryad_sprouts_run_one_stem_label")
+            dryad_sprouts_run_sanitize_segment_load "$dryad_sprouts_run_one_stem_label"
+            dryad_sprouts_run_one_stem_stdout_name=$dryad_sprouts_run_one_stem_stdout_name--$dyd_ret0
         fi
         dryad_sprouts_run_one_stem_stdout_file=$dryad_sprouts_run_log_stdout/$dryad_sprouts_run_one_stem_stdout_name.out
     elif [ "$dryad_sprouts_run_join_stdout" = 1 ]; then
@@ -844,9 +846,11 @@ dryad_sprouts_run_one_stem () {
 
     if [ -n "$dryad_sprouts_run_log_stderr" ]; then
         dryad_sprouts_run_one_stem_stderr_mode=file
-        dryad_sprouts_run_one_stem_stderr_name=dyd-sprout-run--$(dryad_sprouts_run_sanitize_segment "$dryad_sprouts_run_one_stem_rel")
+        dryad_sprouts_run_sanitize_segment_load "$dryad_sprouts_run_one_stem_rel"
+        dryad_sprouts_run_one_stem_stderr_name=dyd-sprout-run--$dyd_ret0
         if [ "$dryad_sprouts_run_one_stem_selected_count" -gt 1 ] || [ -n "$dryad_sprouts_run_one_stem_descriptor" ]; then
-            dryad_sprouts_run_one_stem_stderr_name=$dryad_sprouts_run_one_stem_stderr_name--$(dryad_sprouts_run_sanitize_segment "$dryad_sprouts_run_one_stem_label")
+            dryad_sprouts_run_sanitize_segment_load "$dryad_sprouts_run_one_stem_label"
+            dryad_sprouts_run_one_stem_stderr_name=$dryad_sprouts_run_one_stem_stderr_name--$dyd_ret0
         fi
         dryad_sprouts_run_one_stem_stderr_file=$dryad_sprouts_run_log_stderr/$dryad_sprouts_run_one_stem_stderr_name.err
     elif [ "$dryad_sprouts_run_join_stderr" = 1 ]; then
