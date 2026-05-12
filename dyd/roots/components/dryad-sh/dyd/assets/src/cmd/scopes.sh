@@ -1,9 +1,9 @@
 dryad_scope_arg=
 
-dryad_scopes_path () {
+dryad_scopes_path_load () {
     dryad_garden_find_load
     dryad_scopes_garden=$dyd_ret0
-    printf '%s\n' "$dryad_scopes_garden/dyd/shed/scopes"
+    dyd_ret0=$dryad_scopes_garden/dyd/shed/scopes
 }
 
 dryad_scope_active () {
@@ -39,7 +39,8 @@ dryad_scope_setting_path () {
 dryad_scope_setting_get () {
     dryad_scope_setting_scope=$1
     dryad_scope_setting_name=$2
-    dryad_scope_setting_scope_dir=$(dryad_scopes_path)/$dryad_scope_setting_scope
+    dryad_scopes_path_load
+    dryad_scope_setting_scope_dir=$dyd_ret0/$dryad_scope_setting_scope
 
     if [ ! -d "$dryad_scope_setting_scope_dir" ]; then
         dryad_die "scope not found: $dryad_scope_setting_scope"
@@ -57,7 +58,8 @@ dryad_scope_setting_set () {
     dryad_scope_setting_scope=$1
     dryad_scope_setting_name=$2
     dryad_scope_setting_value=$3
-    dryad_scope_setting_scope_dir=$(dryad_scopes_path)/$dryad_scope_setting_scope
+    dryad_scopes_path_load
+    dryad_scope_setting_scope_dir=$dyd_ret0/$dryad_scope_setting_scope
 
     if [ ! -d "$dryad_scope_setting_scope_dir" ]; then
         dryad_die "scope not found: $dryad_scope_setting_scope"
@@ -69,7 +71,8 @@ dryad_scope_setting_set () {
 dryad_scope_setting_unset () {
     dryad_scope_setting_scope=$1
     dryad_scope_setting_name=$2
-    dryad_scope_setting_scope_dir=$(dryad_scopes_path)/$dryad_scope_setting_scope
+    dryad_scopes_path_load
+    dryad_scope_setting_scope_dir=$dyd_ret0/$dryad_scope_setting_scope
 
     if [ ! -d "$dryad_scope_setting_scope_dir" ]; then
         dryad_die "scope not found: $dryad_scope_setting_scope"
@@ -227,7 +230,8 @@ EOF
 }
 
 dryad_scopes_default_get () {
-    dryad_scopes_default_alias=$(dryad_scopes_path)/default
+    dryad_scopes_path_load
+    dryad_scopes_default_alias=$dyd_ret0/default
     if [ ! -e "$dryad_scopes_default_alias" ]; then
         return 0
     fi
@@ -239,7 +243,8 @@ dryad_scopes_default_get () {
 
 dryad_scopes_default_set () {
     dryad_scopes_default_scope=$1
-    dryad_scopes_default_dir=$(dryad_scopes_path)
+    dryad_scopes_path_load
+    dryad_scopes_default_dir=$dyd_ret0
     dryad_scopes_default_scope_dir=$dryad_scopes_default_dir/$dryad_scopes_default_scope
 
     if [ ! -e "$dryad_scopes_default_scope_dir" ]; then
@@ -254,7 +259,8 @@ dryad_scopes_default_set () {
 }
 
 dryad_scopes_default_unset () {
-    dryad_scopes_default_alias=$(dryad_scopes_path)/default
+    dryad_scopes_path_load
+    dryad_scopes_default_alias=$dyd_ret0/default
     if [ -e "$dryad_scopes_default_alias" ] || [ -L "$dryad_scopes_default_alias" ]; then
         rm "$dryad_scopes_default_alias"
     fi
@@ -262,14 +268,16 @@ dryad_scopes_default_unset () {
 
 dryad_scope_create () {
     dryad_scope_create_name=$1
-    dryad_scope_create_path=$(dryad_scopes_path)/$dryad_scope_create_name
+    dryad_scopes_path_load
+    dryad_scope_create_path=$dyd_ret0/$dryad_scope_create_name
     mkdir -p "$dryad_scope_create_path"
     printf '%s\n' "$dryad_scope_create_path"
 }
 
 dryad_scope_delete () {
     dryad_scope_delete_name=$1
-    dryad_scope_delete_path=$(dryad_scopes_path)/$dryad_scope_delete_name
+    dryad_scopes_path_load
+    dryad_scope_delete_path=$dyd_ret0/$dryad_scope_delete_name
     rm -rf "$dryad_scope_delete_path"
 }
 
@@ -464,7 +472,8 @@ Usage:
 EOF
                     ;;
                 * )
-                    dryad_scopes_path
+                    dryad_scopes_path_load
+                    printf '%s\n' "$dyd_ret0"
                     ;;
             esac
             ;;
@@ -511,7 +520,8 @@ EOF
                         esac
                     done
 
-                    dryad_scopes_dir=$(dryad_scopes_path)
+                    dryad_scopes_path_load
+                    dryad_scopes_dir=$dyd_ret0
                     if [ ! -d "$dryad_scopes_dir" ]; then
                         return 0
                     fi
@@ -592,7 +602,8 @@ EOF
             [ -n "$dryad_scope_active_name" ] || return 0
 
             if [ "$dryad_scope_active_oneline" = 1 ]; then
-                dryad_scope_active_oneline_file=$(dryad_scopes_path)/$dryad_scope_active_name/.oneline
+                dryad_scopes_path_load
+                dryad_scope_active_oneline_file=$dyd_ret0/$dryad_scope_active_name/.oneline
                 if [ -f "$dryad_scope_active_oneline_file" ]; then
                     dryad_scope_active_description=$(cat "$dryad_scope_active_oneline_file")
                     if [ -n "$dryad_scope_active_description" ]; then
