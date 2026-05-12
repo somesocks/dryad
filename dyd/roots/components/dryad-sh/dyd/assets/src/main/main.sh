@@ -176,7 +176,8 @@ dryad_scope_rewrite () {
     dryad_rewrite_action=${1:-}
     [ -n "$dryad_rewrite_action" ] || return 0
 
-    dryad_rewrite_scope=$(dryad_scope_resolve)
+    dryad_scope_resolve_load
+    dryad_rewrite_scope=$dyd_ret0
     if [ -z "$dryad_rewrite_scope" ] || [ "$dryad_rewrite_scope" = none ]; then
         return 0
     fi

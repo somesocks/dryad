@@ -56,7 +56,8 @@ EOF
 
     dryad_garden_find_load
     dryad_run_garden=$dyd_ret0
-    dryad_run_scope=$(dryad_scope_resolve)
+    dryad_scope_resolve_load
+    dryad_run_scope=$dyd_ret0
 
     if [ -z "$dryad_run_scope" ] || [ "$dryad_run_scope" = none ]; then
         dryad_die "no scope set, can't find command"

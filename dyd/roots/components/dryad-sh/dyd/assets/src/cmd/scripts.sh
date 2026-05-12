@@ -65,7 +65,8 @@ EOF
 dryad_script_scope_dir () {
     dryad_garden_find_load
     dryad_script_scope_garden=$dyd_ret0
-    dryad_script_scope_name=$(dryad_scope_resolve)
+    dryad_scope_resolve_load
+    dryad_script_scope_name=$dyd_ret0
 
     if [ -z "$dryad_script_scope_name" ] || [ "$dryad_script_scope_name" = none ]; then
         dryad_die "no scope set, can't find command"
@@ -295,7 +296,8 @@ dryad_scripts_list () {
 
     dryad_garden_find_load
     dryad_scripts_garden=$dyd_ret0
-    dryad_scripts_scope=$(dryad_scope_resolve)
+    dryad_scope_resolve_load
+    dryad_scripts_scope=$dyd_ret0
 
     if [ -z "$dryad_scripts_scope" ] || [ "$dryad_scripts_scope" = none ]; then
         dryad_die "no scope set, can't find command"

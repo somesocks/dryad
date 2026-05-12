@@ -6,26 +6,27 @@ dryad_scopes_path_load () {
     dyd_ret0=$dryad_scopes_garden/dyd/shed/scopes
 }
 
-dryad_scope_active () {
+dryad_scope_active_load () {
     dryad_garden_find_load
     dryad_scope_garden=$dyd_ret0
     dryad_scope_default=$dryad_scope_garden/dyd/shed/scopes/default
+    dyd_ret0=
 
     if [ ! -d "$dryad_scope_default" ]; then
         return 1
     fi
 
     dryad_scope_real=$(cd "$dryad_scope_default" 2>/dev/null && pwd -P)
-    basename "$dryad_scope_real"
+    dyd_ret0=${dryad_scope_real##*/}
 }
 
-dryad_scope_resolve () {
+dryad_scope_resolve_load () {
     if [ -n "$dryad_scope_arg" ]; then
-        printf '%s\n' "$dryad_scope_arg"
+        dyd_ret0=$dryad_scope_arg
         return 0
     fi
 
-    dryad_scope_active || true
+    dryad_scope_active_load || dyd_ret0=
 }
 
 dryad_scope_setting_path () {
@@ -598,7 +599,8 @@ EOF
                 esac
             done
 
-            dryad_scope_active_name=$(dryad_scope_active || true)
+            dryad_scope_active_load || dyd_ret0=
+            dryad_scope_active_name=$dyd_ret0
             [ -n "$dryad_scope_active_name" ] || return 0
 
             if [ "$dryad_scope_active_oneline" = 1 ]; then
