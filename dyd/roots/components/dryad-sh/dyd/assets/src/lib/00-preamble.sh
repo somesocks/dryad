@@ -60,8 +60,8 @@ dryad_profile_count () {
     printf 'count\t%s\t%s\n' "$dryad_profile_name" "$dryad_profile_delta" >> "$DRYAD_SH_PROFILE_FILE"
 }
 
-dryad_profile_time_now_ns () {
-    date +%s%N 2>/dev/null || printf '0\n'
+dryad_profile_time_now_ns_load () {
+    dyd_ret0=$(date +%s%N 2>/dev/null) || dyd_ret0=0
 }
 
 dryad_profile_time_record_bounds () {
@@ -94,12 +94,15 @@ dryad_profile_time_block () {
     dryad_profile_time_frame=${DRYAD_SH_PROFILE_TIME_NEXT:-0}
     DRYAD_SH_PROFILE_TIME_NEXT=$((dryad_profile_time_frame + 1))
     DRYAD_SH_PROFILE_TIME_STACK="$dryad_profile_time_frame ${DRYAD_SH_PROFILE_TIME_STACK:-}"
+    dryad_profile_time_now_ns_load
+    dryad_profile_time_start=$dyd_ret0
     eval "dryad_profile_time_name_$dryad_profile_time_frame=\$dryad_profile_time_name"
-    eval "dryad_profile_time_start_$dryad_profile_time_frame=\$(dryad_profile_time_now_ns)"
+    eval "dryad_profile_time_start_$dryad_profile_time_frame=\$dryad_profile_time_start"
 
     "$@"
     dryad_profile_time_status=$?
-    dryad_profile_time_end=$(dryad_profile_time_now_ns)
+    dryad_profile_time_now_ns_load
+    dryad_profile_time_end=$dyd_ret0
 
     dryad_profile_time_frame=${DRYAD_SH_PROFILE_TIME_STACK%% *}
     eval "dryad_profile_time_name=\$dryad_profile_time_name_$dryad_profile_time_frame"

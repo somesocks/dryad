@@ -661,7 +661,8 @@ dryad_root_build_fingerprint () {
     dryad_root_build_fingerprint_file_hashes=$(mktemp "${TMPDIR:-/tmp}/dryad-sh-fingerprint-file-hashes.XXXXXX")
     dryad_root_build_fingerprint_hashes=$(mktemp "${TMPDIR:-/tmp}/dryad-sh-fingerprint-hashes.XXXXXX")
 
-    dryad_root_build_fingerprint_t_start=$(dryad_profile_time_now_ns)
+    dryad_profile_time_now_ns_load
+    dryad_root_build_fingerprint_t_start=$dyd_ret0
     (
         cd "$dryad_root_build_fingerprint_path" || exit 1
         find . -mindepth 1 -print | sort | while IFS= read -r dryad_root_build_fingerprint_entry; do
@@ -682,31 +683,37 @@ dryad_root_build_fingerprint () {
             fi
         done
     )
-    dryad_root_build_fingerprint_t_end=$(dryad_profile_time_now_ns)
+    dryad_profile_time_now_ns_load
+    dryad_root_build_fingerprint_t_end=$dyd_ret0
     dryad_profile_time_record_bounds root-build.fingerprint.scan "$dryad_root_build_fingerprint_t_start" "$dryad_root_build_fingerprint_t_end"
 
     if [ -s "$dryad_root_build_fingerprint_file_manifest" ]; then
-        dryad_root_build_fingerprint_t_start=$(dryad_profile_time_now_ns)
+        dryad_profile_time_now_ns_load
+        dryad_root_build_fingerprint_t_start=$dyd_ret0
         (
             cd "$dryad_root_build_fingerprint_path" || exit 1
             dryad_blake2b_128_files_table_base32 < "$dryad_root_build_fingerprint_file_manifest"
         ) > "$dryad_root_build_fingerprint_file_hashes"
-        dryad_root_build_fingerprint_t_end=$(dryad_profile_time_now_ns)
+        dryad_profile_time_now_ns_load
+        dryad_root_build_fingerprint_t_end=$dyd_ret0
         dryad_profile_time_record_bounds root-build.fingerprint.batch-file-hash "$dryad_root_build_fingerprint_t_start" "$dryad_root_build_fingerprint_t_end"
         cat "$dryad_root_build_fingerprint_file_hashes" >> "$dryad_root_build_fingerprint_hashes"
     fi
 
     dryad_root_build_fingerprint_sep=$(printf '\t')
-    dryad_root_build_fingerprint_t_start=$(dryad_profile_time_now_ns)
+    dryad_profile_time_now_ns_load
+    dryad_root_build_fingerprint_t_start=$dyd_ret0
     sort "$dryad_root_build_fingerprint_hashes" |
         while IFS=$dryad_root_build_fingerprint_sep read -r dryad_root_build_fingerprint_rel dryad_root_build_fingerprint_hash; do
             [ -n "$dryad_root_build_fingerprint_hash" ] || continue
             printf '%s ./%s\n' "$dryad_root_build_fingerprint_hash" "$dryad_root_build_fingerprint_rel"
         done > "$dryad_root_build_fingerprint_table"
-    dryad_root_build_fingerprint_t_end=$(dryad_profile_time_now_ns)
+    dryad_profile_time_now_ns_load
+    dryad_root_build_fingerprint_t_end=$dyd_ret0
     dryad_profile_time_record_bounds root-build.fingerprint.sort-table "$dryad_root_build_fingerprint_t_start" "$dryad_root_build_fingerprint_t_end"
 
-    dryad_root_build_fingerprint_t_start=$(dryad_profile_time_now_ns)
+    dryad_profile_time_now_ns_load
+    dryad_root_build_fingerprint_t_start=$dyd_ret0
     printf 'stem\000' > "$dryad_root_build_fingerprint_payload"
     dryad_root_build_fingerprint_first=1
     while IFS= read -r dryad_root_build_fingerprint_line; do
@@ -717,23 +724,28 @@ dryad_root_build_fingerprint () {
         fi
             printf '%s' "$dryad_root_build_fingerprint_line" >> "$dryad_root_build_fingerprint_payload"
     done < "$dryad_root_build_fingerprint_table"
-    dryad_root_build_fingerprint_t_end=$(dryad_profile_time_now_ns)
+    dryad_profile_time_now_ns_load
+    dryad_root_build_fingerprint_t_end=$dyd_ret0
     dryad_profile_time_record_bounds root-build.fingerprint.payload "$dryad_root_build_fingerprint_t_start" "$dryad_root_build_fingerprint_t_end"
 
     if [ -n "$dryad_root_build_fingerprint_file_hashes_out" ]; then
-        dryad_root_build_fingerprint_t_start=$(dryad_profile_time_now_ns)
+        dryad_profile_time_now_ns_load
+        dryad_root_build_fingerprint_t_start=$dyd_ret0
         sort "$dryad_root_build_fingerprint_file_hashes" |
             while IFS=$dryad_root_build_fingerprint_sep read -r dryad_root_build_fingerprint_file_rel dryad_root_build_fingerprint_file_hash; do
                 [ -n "$dryad_root_build_fingerprint_file_hash" ] || continue
                 printf '%s\tv2-%s\n' "$dryad_root_build_fingerprint_file_rel" "$dryad_root_build_fingerprint_file_hash"
             done > "$dryad_root_build_fingerprint_file_hashes_out"
-        dryad_root_build_fingerprint_t_end=$(dryad_profile_time_now_ns)
+        dryad_profile_time_now_ns_load
+        dryad_root_build_fingerprint_t_end=$dyd_ret0
         dryad_profile_time_record_bounds root-build.fingerprint.export-file-hashes "$dryad_root_build_fingerprint_t_start" "$dryad_root_build_fingerprint_t_end"
     fi
 
-    dryad_root_build_fingerprint_t_start=$(dryad_profile_time_now_ns)
+    dryad_profile_time_now_ns_load
+    dryad_root_build_fingerprint_t_start=$dyd_ret0
     dryad_blake2b_128_file_fingerprint "$dryad_root_build_fingerprint_payload"
-    dryad_root_build_fingerprint_t_end=$(dryad_profile_time_now_ns)
+    dryad_profile_time_now_ns_load
+    dryad_root_build_fingerprint_t_end=$dyd_ret0
     dryad_profile_time_record_bounds root-build.fingerprint.final-hash "$dryad_root_build_fingerprint_t_start" "$dryad_root_build_fingerprint_t_end"
     rm -f "$dryad_root_build_fingerprint_payload" "$dryad_root_build_fingerprint_table" "$dryad_root_build_fingerprint_file_manifest" "$dryad_root_build_fingerprint_file_hashes" "$dryad_root_build_fingerprint_hashes"
 }
@@ -1054,14 +1066,18 @@ dryad_root_build_publish_tree () {
         fi
         if [ -n "${DRYAD_SH_PROFILE_FILE:-}" ]; then
             dryad_root_build_publish_tree_entries=$(mktemp "${TMPDIR:-/tmp}/dryad-sh-publish-tree.XXXXXX")
-            dryad_root_build_publish_tree_t_start=$(dryad_profile_time_now_ns)
+            dryad_profile_time_now_ns_load
+            dryad_root_build_publish_tree_t_start=$dyd_ret0
             find . -print | sort > "$dryad_root_build_publish_tree_entries"
-            dryad_root_build_publish_tree_t_end=$(dryad_profile_time_now_ns)
+            dryad_profile_time_now_ns_load
+            dryad_root_build_publish_tree_t_end=$dyd_ret0
             dryad_profile_time_record_bounds root-build.publish-tree.scan-sort "$dryad_root_build_publish_tree_t_start" "$dryad_root_build_publish_tree_t_end"
 
-            dryad_root_build_publish_tree_t_start=$(dryad_profile_time_now_ns)
+            dryad_profile_time_now_ns_load
+            dryad_root_build_publish_tree_t_start=$dyd_ret0
             dryad_root_build_publish_tree_process_entries < "$dryad_root_build_publish_tree_entries"
-            dryad_root_build_publish_tree_t_end=$(dryad_profile_time_now_ns)
+            dryad_profile_time_now_ns_load
+            dryad_root_build_publish_tree_t_end=$dyd_ret0
             dryad_profile_time_record_bounds root-build.publish-tree.process "$dryad_root_build_publish_tree_t_start" "$dryad_root_build_publish_tree_t_end"
             rm -f "$dryad_root_build_publish_tree_entries"
         else
