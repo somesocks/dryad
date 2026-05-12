@@ -1353,12 +1353,51 @@ dryad_b2_compress_shell () {
     dryad_b2_h7_3=$((dryad_b2_h7_3 ^ dryad_b2_v7_3 ^ dryad_b2_v15_3))
 }
 
-dryad_b2_output_hex_shell () {
-    printf '%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x
-' $((dryad_b2_h0_0 & 255)) $((dryad_b2_h0_0 >> 8)) $((dryad_b2_h0_1 & 255)) $((dryad_b2_h0_1 >> 8)) $((dryad_b2_h0_2 & 255)) $((dryad_b2_h0_2 >> 8)) $((dryad_b2_h0_3 & 255)) $((dryad_b2_h0_3 >> 8)) $((dryad_b2_h1_0 & 255)) $((dryad_b2_h1_0 >> 8)) $((dryad_b2_h1_1 & 255)) $((dryad_b2_h1_1 >> 8)) $((dryad_b2_h1_2 & 255)) $((dryad_b2_h1_2 >> 8)) $((dryad_b2_h1_3 & 255)) $((dryad_b2_h1_3 >> 8))
+dryad_b2_hex_nibble_shell_load () {
+    case $1 in
+        0 ) dyd_ret0=0 ;; 1 ) dyd_ret0=1 ;; 2 ) dyd_ret0=2 ;; 3 ) dyd_ret0=3 ;;
+        4 ) dyd_ret0=4 ;; 5 ) dyd_ret0=5 ;; 6 ) dyd_ret0=6 ;; 7 ) dyd_ret0=7 ;;
+        8 ) dyd_ret0=8 ;; 9 ) dyd_ret0=9 ;; 10 ) dyd_ret0=a ;; 11 ) dyd_ret0=b ;;
+        12 ) dyd_ret0=c ;; 13 ) dyd_ret0=d ;; 14 ) dyd_ret0=e ;; 15 ) dyd_ret0=f ;;
+        * ) dryad_die "invalid hex nibble: $1" ;;
+    esac
 }
 
-dryad_b2_output_base32_shell () {
+dryad_b2_hex_byte_shell_append () {
+    dryad_b2_hex_byte=$1
+    dryad_b2_hex_nibble_shell_load $((dryad_b2_hex_byte >> 4))
+    dryad_b2_hex_output=$dryad_b2_hex_output$dyd_ret0
+    dryad_b2_hex_nibble_shell_load $((dryad_b2_hex_byte & 15))
+    dryad_b2_hex_output=$dryad_b2_hex_output$dyd_ret0
+}
+
+dryad_b2_output_hex_shell_load () {
+    dryad_b2_hex_output=
+    dryad_b2_hex_byte_shell_append $((dryad_b2_h0_0 & 255))
+    dryad_b2_hex_byte_shell_append $((dryad_b2_h0_0 >> 8))
+    dryad_b2_hex_byte_shell_append $((dryad_b2_h0_1 & 255))
+    dryad_b2_hex_byte_shell_append $((dryad_b2_h0_1 >> 8))
+    dryad_b2_hex_byte_shell_append $((dryad_b2_h0_2 & 255))
+    dryad_b2_hex_byte_shell_append $((dryad_b2_h0_2 >> 8))
+    dryad_b2_hex_byte_shell_append $((dryad_b2_h0_3 & 255))
+    dryad_b2_hex_byte_shell_append $((dryad_b2_h0_3 >> 8))
+    dryad_b2_hex_byte_shell_append $((dryad_b2_h1_0 & 255))
+    dryad_b2_hex_byte_shell_append $((dryad_b2_h1_0 >> 8))
+    dryad_b2_hex_byte_shell_append $((dryad_b2_h1_1 & 255))
+    dryad_b2_hex_byte_shell_append $((dryad_b2_h1_1 >> 8))
+    dryad_b2_hex_byte_shell_append $((dryad_b2_h1_2 & 255))
+    dryad_b2_hex_byte_shell_append $((dryad_b2_h1_2 >> 8))
+    dryad_b2_hex_byte_shell_append $((dryad_b2_h1_3 & 255))
+    dryad_b2_hex_byte_shell_append $((dryad_b2_h1_3 >> 8))
+    dyd_ret0=$dryad_b2_hex_output
+}
+
+dryad_b2_base32_char_shell_append () {
+    dryad_base32_char_load "$1"
+    dryad_b2_base32_output=$dryad_b2_base32_output$dyd_ret0
+}
+
+dryad_b2_output_base32_shell_load () {
     dryad_b2_d0=$((dryad_b2_h0_0 & 255))
     dryad_b2_d1=$((dryad_b2_h0_0 >> 8))
     dryad_b2_d2=$((dryad_b2_h0_1 & 255))
@@ -1375,33 +1414,34 @@ dryad_b2_output_base32_shell () {
     dryad_b2_d13=$((dryad_b2_h1_2 >> 8))
     dryad_b2_d14=$((dryad_b2_h1_3 & 255))
     dryad_b2_d15=$((dryad_b2_h1_3 >> 8))
-    dryad_base32_char $((dryad_b2_d0 >> 3))
-    dryad_base32_char $((((dryad_b2_d0 & 7) << 2) | (dryad_b2_d1 >> 6)))
-    dryad_base32_char $(((dryad_b2_d1 >> 1) & 31))
-    dryad_base32_char $((((dryad_b2_d1 & 1) << 4) | (dryad_b2_d2 >> 4)))
-    dryad_base32_char $((((dryad_b2_d2 & 15) << 1) | (dryad_b2_d3 >> 7)))
-    dryad_base32_char $(((dryad_b2_d3 >> 2) & 31))
-    dryad_base32_char $((((dryad_b2_d3 & 3) << 3) | (dryad_b2_d4 >> 5)))
-    dryad_base32_char $((dryad_b2_d4 & 31))
-    dryad_base32_char $((dryad_b2_d5 >> 3))
-    dryad_base32_char $((((dryad_b2_d5 & 7) << 2) | (dryad_b2_d6 >> 6)))
-    dryad_base32_char $(((dryad_b2_d6 >> 1) & 31))
-    dryad_base32_char $((((dryad_b2_d6 & 1) << 4) | (dryad_b2_d7 >> 4)))
-    dryad_base32_char $((((dryad_b2_d7 & 15) << 1) | (dryad_b2_d8 >> 7)))
-    dryad_base32_char $(((dryad_b2_d8 >> 2) & 31))
-    dryad_base32_char $((((dryad_b2_d8 & 3) << 3) | (dryad_b2_d9 >> 5)))
-    dryad_base32_char $((dryad_b2_d9 & 31))
-    dryad_base32_char $((dryad_b2_d10 >> 3))
-    dryad_base32_char $((((dryad_b2_d10 & 7) << 2) | (dryad_b2_d11 >> 6)))
-    dryad_base32_char $(((dryad_b2_d11 >> 1) & 31))
-    dryad_base32_char $((((dryad_b2_d11 & 1) << 4) | (dryad_b2_d12 >> 4)))
-    dryad_base32_char $((((dryad_b2_d12 & 15) << 1) | (dryad_b2_d13 >> 7)))
-    dryad_base32_char $(((dryad_b2_d13 >> 2) & 31))
-    dryad_base32_char $((((dryad_b2_d13 & 3) << 3) | (dryad_b2_d14 >> 5)))
-    dryad_base32_char $((dryad_b2_d14 & 31))
-    dryad_base32_char $((dryad_b2_d15 >> 3))
-    dryad_base32_char $(((dryad_b2_d15 & 7) << 2))
-    printf '\n'
+    dryad_b2_base32_output=
+    dryad_b2_base32_char_shell_append $((dryad_b2_d0 >> 3))
+    dryad_b2_base32_char_shell_append $((((dryad_b2_d0 & 7) << 2) | (dryad_b2_d1 >> 6)))
+    dryad_b2_base32_char_shell_append $(((dryad_b2_d1 >> 1) & 31))
+    dryad_b2_base32_char_shell_append $((((dryad_b2_d1 & 1) << 4) | (dryad_b2_d2 >> 4)))
+    dryad_b2_base32_char_shell_append $((((dryad_b2_d2 & 15) << 1) | (dryad_b2_d3 >> 7)))
+    dryad_b2_base32_char_shell_append $(((dryad_b2_d3 >> 2) & 31))
+    dryad_b2_base32_char_shell_append $((((dryad_b2_d3 & 3) << 3) | (dryad_b2_d4 >> 5)))
+    dryad_b2_base32_char_shell_append $((dryad_b2_d4 & 31))
+    dryad_b2_base32_char_shell_append $((dryad_b2_d5 >> 3))
+    dryad_b2_base32_char_shell_append $((((dryad_b2_d5 & 7) << 2) | (dryad_b2_d6 >> 6)))
+    dryad_b2_base32_char_shell_append $(((dryad_b2_d6 >> 1) & 31))
+    dryad_b2_base32_char_shell_append $((((dryad_b2_d6 & 1) << 4) | (dryad_b2_d7 >> 4)))
+    dryad_b2_base32_char_shell_append $((((dryad_b2_d7 & 15) << 1) | (dryad_b2_d8 >> 7)))
+    dryad_b2_base32_char_shell_append $(((dryad_b2_d8 >> 2) & 31))
+    dryad_b2_base32_char_shell_append $((((dryad_b2_d8 & 3) << 3) | (dryad_b2_d9 >> 5)))
+    dryad_b2_base32_char_shell_append $((dryad_b2_d9 & 31))
+    dryad_b2_base32_char_shell_append $((dryad_b2_d10 >> 3))
+    dryad_b2_base32_char_shell_append $((((dryad_b2_d10 & 7) << 2) | (dryad_b2_d11 >> 6)))
+    dryad_b2_base32_char_shell_append $(((dryad_b2_d11 >> 1) & 31))
+    dryad_b2_base32_char_shell_append $((((dryad_b2_d11 & 1) << 4) | (dryad_b2_d12 >> 4)))
+    dryad_b2_base32_char_shell_append $((((dryad_b2_d12 & 15) << 1) | (dryad_b2_d13 >> 7)))
+    dryad_b2_base32_char_shell_append $(((dryad_b2_d13 >> 2) & 31))
+    dryad_b2_base32_char_shell_append $((((dryad_b2_d13 & 3) << 3) | (dryad_b2_d14 >> 5)))
+    dryad_b2_base32_char_shell_append $((dryad_b2_d14 & 31))
+    dryad_b2_base32_char_shell_append $((dryad_b2_d15 >> 3))
+    dryad_b2_base32_char_shell_append $(((dryad_b2_d15 & 7) << 2))
+    dyd_ret0=$dryad_b2_base32_output
 }
 
 dryad_b2_hash_file_shell () {
@@ -1437,21 +1477,21 @@ dryad_b2_hash_file_shell () {
     dryad_b2_add_counter_shell "$dryad_b2_block_len"
     dryad_b2_compress_shell 1
     case $dryad_b2_format in
-        base32 ) dryad_b2_output_base32_shell ;;
-        hex ) dryad_b2_output_hex_shell ;;
+        base32 ) dryad_b2_output_base32_shell_load ;;
+        hex ) dryad_b2_output_hex_shell_load ;;
         * ) dryad_die "unsupported shell hash format: $dryad_b2_format" ;;
     esac
 }
 
-dryad_blake2b_128_file_hex_shell () {
+dryad_blake2b_128_file_hex_shell_load () {
     dryad_b2_hash_file_shell "$1" hex
 }
 
-dryad_blake2b_128_file_base32_shell () {
+dryad_blake2b_128_file_base32_shell_load () {
     dryad_b2_hash_file_shell "$1" base32
 }
 
-dryad_blake2b_128_file_prefixed_base32_shell () {
+dryad_blake2b_128_file_prefixed_base32_shell_load () {
     dryad_b2_prefixed_file=$1
     dryad_b2_od_tmp=${TMPDIR:-/tmp}/dryad-sh-hash-od.$$
     rm -f "$dryad_b2_od_tmp"
@@ -1497,5 +1537,5 @@ dryad_blake2b_128_file_prefixed_base32_shell () {
     fi
     dryad_b2_add_counter_shell "$dryad_b2_block_len"
     dryad_b2_compress_shell 1
-    dryad_b2_output_base32_shell
+    dryad_b2_output_base32_shell_load
 }

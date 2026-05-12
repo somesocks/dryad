@@ -95,6 +95,28 @@ dryad_profile_time_block () {
     dryad_profile_time_block_profiled "$dryad_profile_time_name" "$dyd_ret0" "$@"
 }
 
+dryad_profile_time_block_load () {
+    dryad_profile_time_name=$1
+    shift
+
+    if [ -z "${DRYAD_SH_PROFILE_FILE:-}" ]; then
+        "$@"
+        return $?
+    fi
+
+    dryad_profile_time_now_ns_load
+    dryad_profile_time_block_start=$dyd_ret0
+    "$@"
+    dryad_profile_time_block_status=$?
+    dryad_profile_time_block_ret0=${dyd_ret0:-}
+    dryad_profile_time_block_ret1=${dyd_ret1:-}
+    dryad_profile_time_now_ns_load
+    dryad_profile_time_record_bounds "$dryad_profile_time_name" "$dryad_profile_time_block_start" "$dyd_ret0"
+    dyd_ret0=$dryad_profile_time_block_ret0
+    dyd_ret1=$dryad_profile_time_block_ret1
+    return "$dryad_profile_time_block_status"
+}
+
 dryad_profile_time_block_profiled () {
     dryad_profile_time_block_exec "$@"
     dryad_profile_time_status=$?

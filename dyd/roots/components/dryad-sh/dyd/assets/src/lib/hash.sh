@@ -5,18 +5,23 @@
 # act as a small bootstrap implementation on a plain POSIX system.
 #
 
-dryad_base32_char () {
+dryad_base32_char_load () {
     case $1 in
-        0 ) printf 'a' ;; 1 ) printf 'b' ;; 2 ) printf 'c' ;; 3 ) printf 'd' ;;
-        4 ) printf 'e' ;; 5 ) printf 'f' ;; 6 ) printf 'g' ;; 7 ) printf 'h' ;;
-        8 ) printf 'i' ;; 9 ) printf 'j' ;; 10 ) printf 'k' ;; 11 ) printf 'l' ;;
-        12 ) printf 'm' ;; 13 ) printf 'n' ;; 14 ) printf 'o' ;; 15 ) printf 'p' ;;
-        16 ) printf 'q' ;; 17 ) printf 'r' ;; 18 ) printf 's' ;; 19 ) printf 't' ;;
-        20 ) printf 'u' ;; 21 ) printf 'v' ;; 22 ) printf 'w' ;; 23 ) printf 'x' ;;
-        24 ) printf 'y' ;; 25 ) printf 'z' ;; 26 ) printf '2' ;; 27 ) printf '3' ;;
-        28 ) printf '4' ;; 29 ) printf '5' ;; 30 ) printf '6' ;; 31 ) printf '7' ;;
+        0 ) dyd_ret0=a ;; 1 ) dyd_ret0=b ;; 2 ) dyd_ret0=c ;; 3 ) dyd_ret0=d ;;
+        4 ) dyd_ret0=e ;; 5 ) dyd_ret0=f ;; 6 ) dyd_ret0=g ;; 7 ) dyd_ret0=h ;;
+        8 ) dyd_ret0=i ;; 9 ) dyd_ret0=j ;; 10 ) dyd_ret0=k ;; 11 ) dyd_ret0=l ;;
+        12 ) dyd_ret0=m ;; 13 ) dyd_ret0=n ;; 14 ) dyd_ret0=o ;; 15 ) dyd_ret0=p ;;
+        16 ) dyd_ret0=q ;; 17 ) dyd_ret0=r ;; 18 ) dyd_ret0=s ;; 19 ) dyd_ret0=t ;;
+        20 ) dyd_ret0=u ;; 21 ) dyd_ret0=v ;; 22 ) dyd_ret0=w ;; 23 ) dyd_ret0=x ;;
+        24 ) dyd_ret0=y ;; 25 ) dyd_ret0=z ;; 26 ) dyd_ret0=2 ;; 27 ) dyd_ret0=3 ;;
+        28 ) dyd_ret0=4 ;; 29 ) dyd_ret0=5 ;; 30 ) dyd_ret0=6 ;; 31 ) dyd_ret0=7 ;;
         * ) dryad_die "invalid base32 index: $1" ;;
     esac
+}
+
+dryad_base32_char () {
+    dryad_base32_char_load "$1"
+    printf '%s' "$dyd_ret0"
 }
 
 dryad_hash_impl_resolve () {
@@ -27,20 +32,13 @@ dryad_hash_impl_resolve () {
     fi
 
     case $dryad_hash_impl_request in
-        auto )
-            if command -v awk >/dev/null 2>&1; then
-                dryad_hash_impl=awk
-            else
-                dryad_hash_impl=shell
-            fi
+        auto | shell )
+            dryad_hash_impl=shell
             ;;
         awk )
             command -v awk >/dev/null 2>&1 \
                 || dryad_die "DRYAD_SH_HASH_IMPL=awk requested, but awk was not found"
             dryad_hash_impl=awk
-            ;;
-        shell )
-            dryad_hash_impl=shell
             ;;
         * )
             dryad_die "invalid DRYAD_SH_HASH_IMPL: $dryad_hash_impl_request"
@@ -51,29 +49,57 @@ dryad_hash_impl_resolve () {
 }
 
 dryad_blake2b_128_file_hex () {
+    dryad_blake2b_128_file_hex_load "$@"
+    printf '%s\n' "$dyd_ret0"
+}
+
+dryad_blake2b_128_file_hex_load () {
     dryad_b2_file=$1
     dryad_b2_format=${2:-hex}
 
     dryad_hash_impl_resolve
     if [ "$dryad_hash_impl" = shell ]; then
         [ "$dryad_b2_format" = hex ] || dryad_die "unsupported shell hash format: $dryad_b2_format"
-        dryad_blake2b_128_file_hex_shell "$dryad_b2_file"
-        return 0
+        dryad_blake2b_128_file_hex_shell_load "$dryad_b2_file"
+        return $?
     fi
 
-    dryad_blake2b_128_file_hex_awk "$dryad_b2_file" "$dryad_b2_format"
+    dryad_b2_result=$(dryad_blake2b_128_file_hex_awk "$dryad_b2_file" "$dryad_b2_format") || return $?
+    dyd_ret0=$dryad_b2_result
 }
 
 dryad_blake2b_128_file_base32 () {
+    dryad_blake2b_128_file_base32_load "$1"
+    printf '%s\n' "$dyd_ret0"
+}
+
+dryad_blake2b_128_file_base32_load () {
     dryad_b2_base32_file=$1
 
     dryad_hash_impl_resolve
     if [ "$dryad_hash_impl" = shell ]; then
-        dryad_blake2b_128_file_base32_shell "$dryad_b2_base32_file"
-        return 0
+        dryad_blake2b_128_file_base32_shell_load "$dryad_b2_base32_file"
+        return $?
     fi
 
-    dryad_blake2b_128_file_hex_awk "$dryad_b2_base32_file" base32
+    dryad_b2_result=$(dryad_blake2b_128_file_hex_awk "$dryad_b2_base32_file" base32) || return $?
+    dyd_ret0=$dryad_b2_result
+}
+
+dryad_blake2b_128_file_prefixed_base32_load () {
+    dryad_b2_prefixed_file=$1
+
+    dryad_hash_impl_resolve
+    if [ "$dryad_hash_impl" = shell ]; then
+        dryad_blake2b_128_file_prefixed_base32_shell_load "$dryad_b2_prefixed_file"
+        return $?
+    fi
+
+    dryad_b2_result=$({
+        printf 'file\000'
+        cat "$dryad_b2_prefixed_file"
+    } | dryad_blake2b_128_file_hex_awk - base32) || return $?
+    dyd_ret0=$dryad_b2_result
 }
 
 dryad_blake2b_128_files_table_base32 () {
@@ -81,8 +107,8 @@ dryad_blake2b_128_files_table_base32 () {
     if [ "$dryad_hash_impl" = shell ]; then
         while IFS='	' read -r dryad_b2_files_table_rel dryad_b2_files_table_path; do
             [ -n "$dryad_b2_files_table_rel" ] || continue
-            printf '%s\t' "$dryad_b2_files_table_rel"
-            dryad_blake2b_128_file_prefixed_base32_shell "$dryad_b2_files_table_path"
+            dryad_blake2b_128_file_prefixed_base32_shell_load "$dryad_b2_files_table_path"
+            printf '%s\t%s\n' "$dryad_b2_files_table_rel" "$dyd_ret0"
         done
         return 0
     fi
@@ -96,7 +122,8 @@ dryad_blake2b_128_stream_base32 () {
         dryad_b2_stream_tmp=${TMPDIR:-/tmp}/dryad-sh-hash-stream.$$
         rm -f "$dryad_b2_stream_tmp"
         cat > "$dryad_b2_stream_tmp"
-        dryad_blake2b_128_file_base32_shell "$dryad_b2_stream_tmp"
+        dryad_blake2b_128_file_base32_shell_load "$dryad_b2_stream_tmp"
+        printf '%s\n' "$dyd_ret0"
         rm -f "$dryad_b2_stream_tmp"
         return 0
     fi
@@ -105,7 +132,12 @@ dryad_blake2b_128_stream_base32 () {
 }
 
 dryad_blake2b_128_file_fingerprint () {
+    dryad_blake2b_128_file_fingerprint_load "$1"
+    printf '%s\n' "$dyd_ret0"
+}
+
+dryad_blake2b_128_file_fingerprint_load () {
     dryad_b2_fp_file=$1
-    printf 'v2-'
-    dryad_blake2b_128_file_base32 "$dryad_b2_fp_file"
+    dryad_blake2b_128_file_base32_load "$dryad_b2_fp_file"
+    dyd_ret0=v2-$dyd_ret0
 }
