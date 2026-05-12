@@ -54,7 +54,8 @@ EOF
         esac
     done
 
-    dryad_run_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_run_garden=$dyd_ret0
     dryad_run_scope=$(dryad_scope_resolve)
 
     if [ -z "$dryad_run_scope" ] || [ "$dryad_run_scope" = none ]; then

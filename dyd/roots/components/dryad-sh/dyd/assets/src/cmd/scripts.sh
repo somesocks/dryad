@@ -63,7 +63,8 @@ EOF
 }
 
 dryad_script_scope_dir () {
-    dryad_script_scope_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_script_scope_garden=$dyd_ret0
     dryad_script_scope_name=$(dryad_scope_resolve)
 
     if [ -z "$dryad_script_scope_name" ] || [ "$dryad_script_scope_name" = none ]; then
@@ -292,7 +293,8 @@ dryad_scripts_list () {
         esac
     done
 
-    dryad_scripts_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_scripts_garden=$dyd_ret0
     dryad_scripts_scope=$(dryad_scope_resolve)
 
     if [ -z "$dryad_scripts_scope" ] || [ "$dryad_scripts_scope" = none ]; then

@@ -1,5 +1,6 @@
 dryad_roots_path () {
-    dryad_roots_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_roots_garden=$dyd_ret0
     printf '%s\n' "$dryad_roots_garden/dyd/roots"
 }
 
@@ -36,7 +37,8 @@ dryad_root_path_resolve_start () {
 
 dryad_root_path_find_uncached () {
     dryad_root_path_start=${1:-.}
-    dryad_root_path_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_root_path_garden=$dyd_ret0
     dryad_root_path_dir=$(dryad_root_path_resolve_start "$dryad_root_path_start")
 
     case $dryad_root_path_dir in

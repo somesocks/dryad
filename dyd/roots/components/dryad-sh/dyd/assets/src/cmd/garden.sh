@@ -1,4 +1,4 @@
-dryad_garden_find () {
+dryad_garden_find_load () {
     dryad_garden_dir=$(pwd -P)
 
     while :; do
@@ -10,7 +10,7 @@ dryad_garden_find () {
                 if [ "$dryad_garden_size" != 6 ]; then
                     printf '%s\n' 'dryad-sh: malformed sentinel file path=dyd/type expected="garden"' >&2
                 fi
-                printf '%s\n' "$dryad_garden_dir"
+                dyd_ret0=$dryad_garden_dir
                 return 0
             fi
         fi
@@ -56,7 +56,8 @@ dryad_garden_create () {
 }
 
 dryad_garden_prune () {
-    dryad_garden_prune_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_garden_prune_garden=$dyd_ret0
     dryad_garden_prune_derivations=$dryad_garden_prune_garden/dyd/heap/derivations/roots/v2
 
     [ -d "$dryad_garden_prune_derivations" ] || return 0
@@ -92,7 +93,8 @@ dryad_garden_wipe_path_contents () {
 }
 
 dryad_garden_wipe () {
-    dryad_garden_wipe_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_garden_wipe_garden=$dyd_ret0
     dryad_garden_wipe_heap=$dryad_garden_wipe_garden/dyd/heap
 
     dryad_sprouts_make_tree_removable "$dryad_garden_wipe_garden/dyd/sprouts"
@@ -159,7 +161,8 @@ Usage:
 EOF
                     ;;
                 * )
-                    dryad_garden_find
+                    dryad_garden_find_load
+                    printf '%s\n' "$dyd_ret0"
                     ;;
             esac
             ;;

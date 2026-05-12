@@ -78,7 +78,8 @@ dryad_root_build_materialize_traits () {
     dryad_roots_owning_selected_path_load "$dryad_root_build_traits_root" "$dryad_root_build_traits_descriptor" traits
     dryad_root_build_traits_selected=$dyd_ret0
     dryad_root_build_traits_dest=$dryad_root_build_traits_workspace/dyd/traits
-    dryad_root_build_traits_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_root_build_traits_garden=$dyd_ret0
     dryad_root_build_traits_rel=${dryad_root_build_traits_root#"$dryad_root_build_traits_garden"/dyd/roots/}
 
     mkdir -p "$dryad_root_build_traits_dest"

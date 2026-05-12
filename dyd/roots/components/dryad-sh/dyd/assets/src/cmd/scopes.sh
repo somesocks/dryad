@@ -1,12 +1,14 @@
 dryad_scope_arg=
 
 dryad_scopes_path () {
-    dryad_scopes_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_scopes_garden=$dyd_ret0
     printf '%s\n' "$dryad_scopes_garden/dyd/shed/scopes"
 }
 
 dryad_scope_active () {
-    dryad_scope_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_scope_garden=$dyd_ret0
     dryad_scope_default=$dryad_scope_garden/dyd/shed/scopes/default
 
     if [ ! -d "$dryad_scope_default" ]; then
@@ -29,7 +31,8 @@ dryad_scope_resolve () {
 dryad_scope_setting_path () {
     dryad_scope_setting_scope=$1
     dryad_scope_setting_name=$2
-    dryad_scope_setting_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_scope_setting_garden=$dyd_ret0
     printf '%s\n' "$dryad_scope_setting_garden/dyd/shed/scopes/$dryad_scope_setting_scope/$dryad_scope_setting_name"
 }
 

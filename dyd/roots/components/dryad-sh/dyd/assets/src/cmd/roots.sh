@@ -66,7 +66,8 @@ dryad_root_create_resolve_target () {
 
 dryad_root_create () {
     dryad_root_create_target=$1
-    dryad_root_create_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_root_create_garden=$dyd_ret0
     dryad_root_create_roots=$dryad_root_create_garden/dyd/roots
     dryad_root_create_path=$(dryad_root_create_resolve_target "$dryad_root_create_target")
 
@@ -556,7 +557,8 @@ dryad_requirement_target_spec_load () {
     if [ "$dryad_requirement_size" != "$dryad_requirement_trimmed_size" ]; then
         dryad_file_abs_path_load "$dryad_requirement_file"
         dryad_requirement_abs=$dyd_ret0
-        dryad_requirement_garden=$(dryad_garden_find)
+        dryad_garden_find_load
+        dryad_requirement_garden=$dyd_ret0
         dryad_requirement_display=${dryad_requirement_abs#"$dryad_requirement_garden"/}
         printf '%s\n' "dryad-sh: malformed requirement file path=$dryad_requirement_display expected=\"$dryad_requirement_spec\"" >&2
     fi
@@ -607,7 +609,8 @@ dryad_requirement_target_url () {
 dryad_root_requirements_list_entries () {
     dryad_root_requirements_dir=$1
     dryad_root_requirements_relative=$2
-    dryad_root_requirements_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_root_requirements_garden=$dyd_ret0
 
     for dryad_root_requirement_entry in "$dryad_root_requirements_dir"/* "$dryad_root_requirements_dir"/.[!.]* "$dryad_root_requirements_dir"/..?*; do
         [ -e "$dryad_root_requirement_entry" ] || [ -L "$dryad_root_requirement_entry" ] || continue
@@ -997,7 +1000,8 @@ EOF
         dryad_root_walk_variant=$dryad_root_walk_ref_selector
     fi
 
-    dryad_root_walk_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_root_walk_garden=$dyd_ret0
     dryad_roots_graph_garden=$dryad_root_walk_garden
     dryad_root_path_find_load "$dryad_root_walk_path"
     dryad_root_walk_root=$dyd_ret0
@@ -1268,7 +1272,8 @@ $2"
         esac
     done
 
-    dryad_roots_build_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_roots_build_garden=$dyd_ret0
     dryad_sprouts_prune "$dryad_roots_build_garden"
 
     if [ "$dryad_roots_build_from_stdin" = 1 ]; then
@@ -1396,7 +1401,8 @@ EOF
         dryad_root_build_variant=$dryad_root_build_ref_selector
     fi
 
-    dryad_root_build_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_root_build_garden=$dyd_ret0
     dryad_root_path_find_load "$dryad_root_build_path"
     dryad_root_build_root=$dyd_ret0
     dryad_root_build_sprout "$dryad_root_build_root" "$dryad_root_build_variant" "$dryad_root_build_garden"
@@ -1813,7 +1819,8 @@ $2"
     done
 
     dryad_roots_each_command=$*
-    dryad_roots_each_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_roots_each_garden=$dyd_ret0
 
     if [ "$dryad_roots_each_from_stdin" = 1 ]; then
         dryad_roots_each_entries=$(dryad_roots_each_entries_from_stdin "$dryad_roots_each_garden" | sort -u)
@@ -2288,7 +2295,8 @@ EOF
         esac
     done
 
-    dryad_roots_owning_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_roots_owning_garden=$dyd_ret0
 
     while IFS= read -r dryad_roots_owning_path; do
         [ -n "$dryad_roots_owning_path" ] || continue
@@ -2353,7 +2361,8 @@ EOF
         esac
     done
 
-    dryad_roots_affected_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_roots_affected_garden=$dyd_ret0
     dryad_roots_owning_garden=$dryad_roots_affected_garden
     dryad_roots_owning_relative=$dryad_roots_affected_relative
 
@@ -3049,7 +3058,8 @@ EOF
         esac
     done
 
-    dryad_roots_graph_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_roots_graph_garden=$dyd_ret0
 
     case $dryad_roots_graph_format in
         json | JSON | json-compact | JSON-COMPACT )

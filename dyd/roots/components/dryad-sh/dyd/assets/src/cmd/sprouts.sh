@@ -1,5 +1,6 @@
 dryad_sprouts_path () {
-    dryad_sprouts_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_sprouts_garden=$dyd_ret0
     printf '%s\n' "$dryad_sprouts_garden/dyd/sprouts"
 }
 
@@ -1087,7 +1088,8 @@ $2"
         esac
     done
 
-    dryad_sprouts_run_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_sprouts_run_garden=$dyd_ret0
     dryad_sprouts_run_stdin_file=
 
     if [ "$dryad_sprouts_run_from_stdin" = 1 ]; then
@@ -1341,7 +1343,8 @@ EOF
     [ -n "$dryad_sprout_run_ref" ] ||
         dryad_die "sprout run requires sprout_ref"
 
-    dryad_sprouts_run_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_sprouts_run_garden=$dyd_ret0
     dryad_sprouts_run_ref_parse "$dryad_sprout_run_ref"
     if [ -n "$dryad_sprouts_run_variant" ] && [ -n "$dryad_sprouts_run_ref_selector" ]; then
         dryad_die "sprout run selector specified in both sprout_ref and --variant"
@@ -1526,7 +1529,8 @@ EOF
         esac
     done
 
-    dryad_sprouts_no_arg_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_sprouts_no_arg_garden=$dyd_ret0
     case $dryad_sprouts_no_arg_action in
         wipe )
             dryad_sprouts_ensure_dir_load "$dryad_sprouts_no_arg_garden"
@@ -1663,7 +1667,8 @@ $2"
         esac
     done
 
-    dryad_sprouts_garden=$(dryad_garden_find)
+    dryad_garden_find_load
+    dryad_sprouts_garden=$dyd_ret0
 
     if [ "$dryad_sprouts_from_stdin" = 1 ]; then
         dryad_sprouts_list_from_stdin "$dryad_sprouts_garden" | sort
