@@ -1,14 +1,14 @@
 dryad_blake2b_128_file_hex_awk () {
-    dryad_b2_file=$1
-    dryad_b2_format=${2:-hex}
+    dyd_b2_file=$1
+    dyd_b2_format=${2:-hex}
 
-    if [ "$dryad_b2_format" = files-table ]; then
+    if [ "$dyd_b2_format" = files-table ]; then
         cat
-    elif [ "$dryad_b2_file" = - ]; then
+    elif [ "$dyd_b2_file" = - ]; then
         od -An -v -tu1
     else
-        od -An -v -tu1 "$dryad_b2_file"
-    fi | awk -v format="$dryad_b2_format" '
+        od -An -v -tu1 "$dyd_b2_file"
+    fi | awk -v format="$dyd_b2_format" '
         function bxor8(a, b,    key, aa, bb, bit, value, place) {
             key = a * 256 + b
             if (key in xor8_cache) {
