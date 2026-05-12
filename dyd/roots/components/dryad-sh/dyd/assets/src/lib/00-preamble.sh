@@ -257,20 +257,30 @@ dryad_strip_option_quotes () {
     esac
 }
 
-dryad_host_os () {
+dryad_host_load () {
+    [ -n "${dryad_host_os_cached+x}" ] && return 0
+
     dryad_host_os_name=$(uname -s 2>/dev/null || printf unknown)
     case $dryad_host_os_name in
-        Darwin ) printf 'darwin\n' ;;
-        Linux ) printf 'linux\n' ;;
-        * ) printf '%s\n' "$dryad_host_os_name" | tr '[:upper:]' '[:lower:]' ;;
+        Darwin ) dryad_host_os_cached=darwin ;;
+        Linux ) dryad_host_os_cached=linux ;;
+        * ) dryad_host_os_cached=$(printf '%s\n' "$dryad_host_os_name" | tr '[:upper:]' '[:lower:]') ;;
+    esac
+
+    dryad_host_arch_name=$(uname -m 2>/dev/null || printf unknown)
+    case $dryad_host_arch_name in
+        x86_64 | amd64 ) dryad_host_arch_cached=amd64 ;;
+        aarch64 | arm64 ) dryad_host_arch_cached=arm64 ;;
+        * ) dryad_host_arch_cached=$dryad_host_arch_name ;;
     esac
 }
 
-dryad_host_arch () {
-    dryad_host_arch_name=$(uname -m 2>/dev/null || printf unknown)
-    case $dryad_host_arch_name in
-        x86_64 | amd64 ) printf 'amd64\n' ;;
-        aarch64 | arm64 ) printf 'arm64\n' ;;
-        * ) printf '%s\n' "$dryad_host_arch_name" ;;
-    esac
+dryad_host_os_load () {
+    dryad_host_load
+    dyd_ret0=$dryad_host_os_cached
+}
+
+dryad_host_arch_load () {
+    dryad_host_load
+    dyd_ret0=$dryad_host_arch_cached
 }

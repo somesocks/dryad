@@ -301,8 +301,8 @@ dryad_sprouts_run_selector_normalize () {
                     ;;
                 host )
                     case $dryad_sprouts_run_normalize_dim in
-                        os ) dryad_sprouts_run_normalize_option=$(dryad_host_os) ;;
-                        arch ) dryad_sprouts_run_normalize_option=$(dryad_host_arch) ;;
+                        os ) dryad_host_os_load; dryad_sprouts_run_normalize_option=$dyd_ret0 ;;
+                        arch ) dryad_host_arch_load; dryad_sprouts_run_normalize_option=$dyd_ret0 ;;
                         * ) dryad_die "host option is only supported for variant dimensions os/arch: $dryad_sprouts_run_normalize_dim" ;;
                     esac
                     ;;
@@ -646,7 +646,9 @@ dryad_sprouts_run_stem_path_env () {
     dryad_sprouts_run_stem_path_env_bin_dir=$2
 
     dryad_sprouts_run_stem_path_env_value=$dryad_sprouts_run_stem_path_env_stem/dyd/commands:$dryad_sprouts_run_stem_path_env_stem/dyd/path:$dryad_sprouts_run_stem_path_env_bin_dir:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    case $(dryad_host_os) in
+    dryad_host_os_load
+    dryad_sprouts_run_stem_path_env_host_os=$dyd_ret0
+    case $dryad_sprouts_run_stem_path_env_host_os in
         darwin )
             dryad_sprouts_run_stem_path_env_value=$dryad_sprouts_run_stem_path_env_value:/opt/homebrew/bin:/opt/homebrew/sbin
             ;;
@@ -681,6 +683,10 @@ dryad_sprouts_run_env_command () {
     dryad_sprouts_run_env_path=$6
     dryad_sprouts_run_env_cli_bin=$7
     shift 7
+    dryad_host_os_load
+    dryad_sprouts_run_env_host_os=$dyd_ret0
+    dryad_host_arch_load
+    dryad_sprouts_run_env_host_arch=$dyd_ret0
 
     if [ "$dryad_sprouts_run_env_inherit" = 1 ]; then
         PATH=$dryad_sprouts_run_env_path \
@@ -689,8 +695,8 @@ dryad_sprouts_run_env_command () {
         DYD_STEM=$dryad_sprouts_run_env_stem \
         DYD_GARDEN=$dryad_sprouts_run_env_garden \
         DYD_CLI_BIN=$dryad_sprouts_run_env_cli_bin \
-        DYD_OS=$(dryad_host_os) \
-        DYD_ARCH=$(dryad_host_arch) \
+        DYD_OS=$dryad_sprouts_run_env_host_os \
+        DYD_ARCH=$dryad_sprouts_run_env_host_arch \
         DYD_LOG_LEVEL=$dryad_log_level \
         "$dryad_sprouts_run_env_command_path" "$@"
     else
@@ -702,8 +708,8 @@ dryad_sprouts_run_env_command () {
             DYD_STEM="$dryad_sprouts_run_env_stem" \
             DYD_GARDEN="$dryad_sprouts_run_env_garden" \
             DYD_CLI_BIN="$dryad_sprouts_run_env_cli_bin" \
-            DYD_OS="$(dryad_host_os)" \
-            DYD_ARCH="$(dryad_host_arch)" \
+            DYD_OS="$dryad_sprouts_run_env_host_os" \
+            DYD_ARCH="$dryad_sprouts_run_env_host_arch" \
             DYD_LOG_LEVEL="$dryad_log_level" \
             "$dryad_sprouts_run_env_command_path" "$@"
     fi

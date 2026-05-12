@@ -24,8 +24,8 @@ dryad_root_variant_selector_matches_descriptor () {
                 ;;
             host )
                 case $dryad_root_variant_dim in
-                    os ) dryad_root_variant_want=$(dryad_host_os) ;;
-                    arch ) dryad_root_variant_want=$(dryad_host_arch) ;;
+                    os ) dryad_host_os_load; dryad_root_variant_want=$dyd_ret0 ;;
+                    arch ) dryad_host_arch_load; dryad_root_variant_want=$dyd_ret0 ;;
                 esac
                 ;;
         esac

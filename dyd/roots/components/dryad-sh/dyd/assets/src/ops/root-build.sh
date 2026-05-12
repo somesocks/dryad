@@ -144,8 +144,8 @@ dryad_root_build_target_selector_matches_descriptor () {
                 ;;
             host )
                 case $dryad_root_build_target_dim in
-                    os ) dryad_root_build_target_want=$(dryad_host_os) ;;
-                    arch ) dryad_root_build_target_want=$(dryad_host_arch) ;;
+                    os ) dryad_host_os_load; dryad_root_build_target_want=$dyd_ret0 ;;
+                    arch ) dryad_host_arch_load; dryad_root_build_target_want=$dyd_ret0 ;;
                     * ) ;;
                 esac
                 ;;
@@ -324,8 +324,8 @@ dryad_root_build_validate_target_selector () {
                         ;;
                     host )
                         case $dryad_root_build_validate_dim in
-                            os ) dryad_root_build_validate_host=$(dryad_host_os) ;;
-                            arch ) dryad_root_build_validate_host=$(dryad_host_arch) ;;
+                            os ) dryad_host_os_load; dryad_root_build_validate_host=$dyd_ret0 ;;
+                            arch ) dryad_host_arch_load; dryad_root_build_validate_host=$dyd_ret0 ;;
                             * )
                                 dryad_root_build_dependency_die "$dryad_root_build_validate_garden" "$dryad_root_build_validate_source_root" "host option is only supported for variant dimensions os/arch: $dryad_root_build_validate_dim"
                                 ;;
@@ -1388,7 +1388,11 @@ dryad_root_build_run_command () {
     dryad_root_build_run_stdout=$(mktemp "${TMPDIR:-/tmp}/dryad-sh-root-build.stdout.XXXXXX")
     dryad_root_build_run_stderr=$(mktemp "${TMPDIR:-/tmp}/dryad-sh-root-build.stderr.XXXXXX")
     dryad_root_build_run_path=$dryad_root_build_run_source/dyd/commands:$dryad_root_build_run_source/dyd/path:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    case $(dryad_host_os) in
+    dryad_host_os_load
+    dryad_root_build_run_host_os=$dyd_ret0
+    dryad_host_arch_load
+    dryad_root_build_run_host_arch=$dyd_ret0
+    case $dryad_root_build_run_host_os in
         darwin )
             dryad_root_build_run_path=$dryad_root_build_run_path:/opt/homebrew/bin:/opt/homebrew/sbin
             ;;
@@ -1401,8 +1405,8 @@ dryad_root_build_run_command () {
         DYD_STEM=$dryad_root_build_run_source \
         DYD_BUILD=$dryad_root_build_run_dest \
         DYD_GARDEN=$dryad_root_build_run_garden \
-        DYD_OS=$(dryad_host_os) \
-        DYD_ARCH=$(dryad_host_arch) \
+        DYD_OS=$dryad_root_build_run_host_os \
+        DYD_ARCH=$dryad_root_build_run_host_arch \
         DYD_LOG_LEVEL=$dryad_log_level \
         "$dryad_root_build_run_command" "$dryad_root_build_run_dest"
     ) > "$dryad_root_build_run_stdout" 2> "$dryad_root_build_run_stderr"

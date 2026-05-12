@@ -2079,10 +2079,12 @@ dryad_condition_matches_descriptor () {
             host )
                 case $dryad_condition_dim in
                     os )
-                        dryad_condition_options=$(dryad_host_os)
+                        dryad_host_os_load
+                        dryad_condition_options=$dyd_ret0
                         ;;
                     arch )
-                        dryad_condition_options=$(dryad_host_arch)
+                        dryad_host_arch_load
+                        dryad_condition_options=$dyd_ret0
                         ;;
                 esac
                 ;;
@@ -2411,8 +2413,10 @@ dryad_roots_graph_records () {
 dryad_roots_graph_lines () {
     dryad_roots_graph_relative=$1
     dryad_roots_graph_transpose=$2
-    dryad_roots_graph_host_os=$(dryad_host_os)
-    dryad_roots_graph_host_arch=$(dryad_host_arch)
+    dryad_host_os_load
+    dryad_roots_graph_host_os=$dyd_ret0
+    dryad_host_arch_load
+    dryad_roots_graph_host_arch=$dyd_ret0
 
     dryad_roots_graph_records |
         awk -F '\t' \

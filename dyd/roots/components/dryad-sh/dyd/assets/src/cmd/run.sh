@@ -70,10 +70,15 @@ EOF
         dryad_die "script not found: $dryad_run_command"
     fi
 
+    dryad_host_os_load
+    dryad_run_host_os=$dyd_ret0
+    dryad_host_arch_load
+    dryad_run_host_arch=$dyd_ret0
+
     DYD_SCOPE=$dryad_run_scope \
     DYD_GARDEN=$dryad_run_garden \
-    DYD_OS=$(dryad_host_os) \
-    DYD_ARCH=$(dryad_host_arch) \
+    DYD_OS=$dryad_run_host_os \
+    DYD_ARCH=$dryad_run_host_arch \
     DYD_LOG_LEVEL=$dryad_log_level \
     "$dryad_run_script" "$@"
 }
