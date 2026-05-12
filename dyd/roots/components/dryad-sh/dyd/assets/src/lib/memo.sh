@@ -68,12 +68,21 @@ dryad_memo_path_load () {
     dyd_ret0=$dryad_memo_path_dir/$dryad_memo_path_key
 }
 
-dryad_memo_get () {
+dryad_memo_get_load () {
     dryad_memo_init
     dryad_memo_path_load "$@"
     dryad_memo_get_path=$dyd_ret0
+    dyd_ret0=
     [ -f "$dryad_memo_get_path" ] || return 1
-    cat "$dryad_memo_get_path"
+
+    dryad_memo_get_value=
+    dryad_memo_get_sep=
+    while IFS= read -r dryad_memo_get_line || [ -n "$dryad_memo_get_line" ]; do
+        dryad_memo_get_value=$dryad_memo_get_value$dryad_memo_get_sep$dryad_memo_get_line
+        dryad_memo_get_sep='
+'
+    done < "$dryad_memo_get_path"
+    dyd_ret0=$dryad_memo_get_value
 }
 
 dryad_memo_get_line_load () {

@@ -298,7 +298,8 @@ EOF
 dryad_roots_variant_descriptors () {
     dryad_roots_variant_root=$1
 
-    if dryad_roots_variant_result=$(dryad_memo_get roots-variant-descriptors "$dryad_roots_variant_root"); then
+    if dryad_memo_get_load roots-variant-descriptors "$dryad_roots_variant_root"; then
+        dryad_roots_variant_result=$dyd_ret0
         dryad_profile_count memo.hit.roots-variant-descriptors
         printf '%s\n' "$dryad_roots_variant_result"
         return 0

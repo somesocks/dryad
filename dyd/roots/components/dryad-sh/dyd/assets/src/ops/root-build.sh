@@ -22,7 +22,8 @@ dryad_root_build_selected_descriptors () {
     dryad_root_build_selected_root=$1
     dryad_root_build_selected_selector=$2
 
-    if dryad_root_build_selected_result=$(dryad_memo_get root-build-selected-descriptors "$dryad_root_build_selected_root" "$dryad_root_build_selected_selector"); then
+    if dryad_memo_get_load root-build-selected-descriptors "$dryad_root_build_selected_root" "$dryad_root_build_selected_selector"; then
+        dryad_root_build_selected_result=$dyd_ret0
         dryad_profile_count memo.hit.root-build-selected-descriptors
         printf '%s\n' "$dryad_root_build_selected_result"
         return 0
@@ -1196,8 +1197,11 @@ dryad_root_build_provenance_collect_node () {
     [ ! -e "$dryad_root_build_provenance_collect_sources_dir/$dryad_root_build_provenance_collect_source" ] || return 0
     : > "$dryad_root_build_provenance_collect_sources_dir/$dryad_root_build_provenance_collect_source"
 
-    dryad_root_build_provenance_collect_node_data=$(dryad_memo_get provenance-node "$dryad_root_build_provenance_collect_source") ||
+    if dryad_memo_get_load provenance-node "$dryad_root_build_provenance_collect_source"; then
+        dryad_root_build_provenance_collect_node_data=$dyd_ret0
+    else
         dryad_die "missing provenance node for source fingerprint: $dryad_root_build_provenance_collect_source"
+    fi
 
     dryad_root_build_provenance_collect_result=
     dryad_root_build_provenance_collect_tab=$(printf '\t')
