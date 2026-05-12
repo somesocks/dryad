@@ -650,14 +650,16 @@ EOF
                 shift 2
                 ;;
             --relative=* )
-                dryad_root_requirements_relative=$(dryad_bool_value "${dryad_root_requirements_arg#--relative=}")
+                dryad_bool_value_load "${dryad_root_requirements_arg#--relative=}"
+                dryad_root_requirements_relative=$dyd_ret0
                 shift
                 ;;
             --relative )
                 if [ "$#" -gt 1 ]; then
                     case $2 in
                         true | false | 0 | 1 )
-                            dryad_root_requirements_relative=$(dryad_bool_value "$2")
+                            dryad_bool_value_load "$2"
+                            dryad_root_requirements_relative=$dyd_ret0
                             shift 2
                             ;;
                         * )
@@ -914,14 +916,16 @@ EOF
                 shift 2
                 ;;
             --relative=* )
-                dryad_root_walk_relative=$(dryad_bool_value "${dryad_root_walk_arg#--relative=}")
+                dryad_bool_value_load "${dryad_root_walk_arg#--relative=}"
+                dryad_root_walk_relative=$dyd_ret0
                 shift
                 ;;
             --relative )
                 if [ "$#" -gt 1 ]; then
                     case $2 in
                         true | false | 0 | 1 )
-                            dryad_root_walk_relative=$(dryad_bool_value "$2")
+                            dryad_bool_value_load "$2"
+                            dryad_root_walk_relative=$dyd_ret0
                             shift 2
                             ;;
                         * )
@@ -1185,7 +1189,8 @@ $2"
                 shift 2
                 ;;
             --join-stdout=* )
-                dryad_root_build_join_stdout=$(dryad_bool_value "${dryad_roots_build_arg#--join-stdout=}")
+                dryad_bool_value_load "${dryad_roots_build_arg#--join-stdout=}"
+                dryad_root_build_join_stdout=$dyd_ret0
                 shift
                 ;;
             --join-stdout )
@@ -1193,7 +1198,8 @@ $2"
                 shift
                 ;;
             --join-stderr=* )
-                dryad_root_build_join_stderr=$(dryad_bool_value "${dryad_roots_build_arg#--join-stderr=}")
+                dryad_bool_value_load "${dryad_roots_build_arg#--join-stderr=}"
+                dryad_root_build_join_stderr=$dyd_ret0
                 shift
                 ;;
             --join-stderr )
@@ -1287,7 +1293,8 @@ EOF
                 shift 2
                 ;;
             --join-stdout=* )
-                dryad_root_build_join_stdout=$(dryad_bool_value "${dryad_root_build_arg#--join-stdout=}")
+                dryad_bool_value_load "${dryad_root_build_arg#--join-stdout=}"
+                dryad_root_build_join_stdout=$dyd_ret0
                 shift
                 ;;
             --join-stdout )
@@ -1295,7 +1302,8 @@ EOF
                 shift
                 ;;
             --join-stderr=* )
-                dryad_root_build_join_stderr=$(dryad_bool_value "${dryad_root_build_arg#--join-stderr=}")
+                dryad_bool_value_load "${dryad_root_build_arg#--join-stderr=}"
+                dryad_root_build_join_stderr=$dyd_ret0
                 shift
                 ;;
             --join-stderr )
@@ -2211,14 +2219,16 @@ EOF
                 return 0
                 ;;
             --relative=* )
-                dryad_roots_owning_relative=$(dryad_bool_value "${dryad_roots_owning_arg#--relative=}")
+                dryad_bool_value_load "${dryad_roots_owning_arg#--relative=}"
+                dryad_roots_owning_relative=$dyd_ret0
                 shift
                 ;;
             --relative )
                 if [ "$#" -gt 1 ]; then
                     case $2 in
                         true | false | 0 | 1 )
-                            dryad_roots_owning_relative=$(dryad_bool_value "$2")
+                            dryad_bool_value_load "$2"
+                            dryad_roots_owning_relative=$dyd_ret0
                             shift 2
                             ;;
                         * )
@@ -2273,14 +2283,16 @@ EOF
                 return 0
                 ;;
             --relative=* )
-                dryad_roots_affected_relative=$(dryad_bool_value "${dryad_roots_affected_arg#--relative=}")
+                dryad_bool_value_load "${dryad_roots_affected_arg#--relative=}"
+                dryad_roots_affected_relative=$dyd_ret0
                 shift
                 ;;
             --relative )
                 if [ "$#" -gt 1 ]; then
                     case $2 in
                         true | false | 0 | 1 )
-                            dryad_roots_affected_relative=$(dryad_bool_value "$2")
+                            dryad_bool_value_load "$2"
+                            dryad_roots_affected_relative=$dyd_ret0
                             shift 2
                             ;;
                         * )
@@ -2964,14 +2976,16 @@ EOF
                 shift
                 ;;
             --relative=* )
-                dryad_roots_graph_relative=$(dryad_bool_value "${dryad_roots_graph_arg#--relative=}")
+                dryad_bool_value_load "${dryad_roots_graph_arg#--relative=}"
+                dryad_roots_graph_relative=$dyd_ret0
                 shift
                 ;;
             --relative )
                 if [ "$#" -gt 1 ]; then
                     case $2 in
                         true | false | 0 | 1 )
-                            dryad_roots_graph_relative=$(dryad_bool_value "$2")
+                            dryad_bool_value_load "$2"
+                            dryad_roots_graph_relative=$dyd_ret0
                             shift 2
                             ;;
                         * )

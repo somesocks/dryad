@@ -1132,7 +1132,8 @@ dryad_cmd_sprout_run_bool_option () {
 
     case $dryad_sprout_run_bool_arg in
         --*=* )
-            dryad_bool_value "${dryad_sprout_run_bool_arg#--*=}"
+            dryad_bool_value_load "${dryad_sprout_run_bool_arg#--*=}"
+            printf '%s\n' "$dyd_ret0"
             ;;
         * )
             printf '%s\n' "$dryad_sprout_run_bool_default"
@@ -1191,7 +1192,8 @@ EOF
                 if [ "$#" -gt 1 ]; then
                     case $2 in
                         true | false | 0 | 1 )
-                            dryad_sprouts_run_inherit=$(dryad_bool_value "$2")
+                            dryad_bool_value_load "$2"
+                            dryad_sprouts_run_inherit=$dyd_ret0
                             shift 2
                             ;;
                         * )
@@ -1230,7 +1232,8 @@ EOF
                 if [ "$#" -gt 1 ]; then
                     case $2 in
                         true | false | 0 | 1 )
-                            dryad_sprouts_run_join_stdout=$(dryad_bool_value "$2")
+                            dryad_bool_value_load "$2"
+                            dryad_sprouts_run_join_stdout=$dyd_ret0
                             shift 2
                             ;;
                         * )
@@ -1251,7 +1254,8 @@ EOF
                 if [ "$#" -gt 1 ]; then
                     case $2 in
                         true | false | 0 | 1 )
-                            dryad_sprouts_run_join_stderr=$(dryad_bool_value "$2")
+                            dryad_bool_value_load "$2"
+                            dryad_sprouts_run_join_stderr=$dyd_ret0
                             shift 2
                             ;;
                         * )
@@ -1587,14 +1591,16 @@ $2"
                 shift
                 ;;
             --relative=* )
-                dryad_sprouts_relative=$(dryad_bool_value "${dryad_sprouts_arg#--relative=}")
+                dryad_bool_value_load "${dryad_sprouts_arg#--relative=}"
+                dryad_sprouts_relative=$dyd_ret0
                 shift
                 ;;
             --relative )
                 if [ "$#" -gt 1 ]; then
                     case $2 in
                         true | false | 0 | 1 )
-                            dryad_sprouts_relative=$(dryad_bool_value "$2")
+                            dryad_bool_value_load "$2"
+                            dryad_sprouts_relative=$dyd_ret0
                             shift 2
                             ;;
                         * )
