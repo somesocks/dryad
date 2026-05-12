@@ -235,24 +235,24 @@ dryad_clean_cd () {
     pwd -P
 }
 
-dryad_strip_option_quotes () {
+dryad_strip_option_quotes_load () {
     case $1 in
         *=\'*\' )
             dryad_strip_name=${1%%=*}
             dryad_strip_value=${1#*=}
             dryad_strip_value=${dryad_strip_value#\'}
             dryad_strip_value=${dryad_strip_value%\'}
-            printf '%s=%s\n' "$dryad_strip_name" "$dryad_strip_value"
+            dyd_ret0=$dryad_strip_name=$dryad_strip_value
             ;;
         *=* )
             dryad_strip_name=${1%%=*}
             dryad_strip_value=${1#*=}
             dryad_strip_value=${dryad_strip_value#\"}
             dryad_strip_value=${dryad_strip_value%\"}
-            printf '%s=%s\n' "$dryad_strip_name" "$dryad_strip_value"
+            dyd_ret0=$dryad_strip_name=$dryad_strip_value
             ;;
         * )
-            printf '%s\n' "$1"
+            dyd_ret0=$1
             ;;
     esac
 }

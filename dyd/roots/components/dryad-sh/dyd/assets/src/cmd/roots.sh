@@ -2,7 +2,8 @@ dryad_cmd_root_path () {
     dryad_root_path_target=
 
     while [ "$#" -gt 0 ]; do
-        dryad_root_path_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_root_path_arg=$dyd_ret0
         case $dryad_root_path_arg in
             --help | -h )
                 cat <<'EOF'
@@ -99,7 +100,8 @@ dryad_cmd_root_create () {
     dryad_root_create_target=
 
     while [ "$#" -gt 0 ]; do
-        dryad_root_create_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_root_create_arg=$dyd_ret0
         case $dryad_root_create_arg in
             --help | -h )
                 cat <<'EOF'
@@ -158,7 +160,8 @@ dryad_cmd_root_secrets_one_path () {
     dryad_root_secrets_target=
 
     while [ "$#" -gt 0 ]; do
-        dryad_root_secrets_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_root_secrets_arg=$dyd_ret0
         case $dryad_root_secrets_arg in
             --help | -h )
                 cat <<EOF
@@ -342,7 +345,8 @@ dryad_cmd_root_requirement_add () {
     dryad_root_requirement_add_variant=
 
     while [ "$#" -gt 0 ]; do
-        dryad_root_requirement_add_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_root_requirement_add_arg=$dyd_ret0
         case $dryad_root_requirement_add_arg in
             --help | -h )
                 cat <<'EOF'
@@ -428,7 +432,8 @@ dryad_cmd_root_requirement_remove () {
     dryad_root_requirement_remove_variant=
 
     while [ "$#" -gt 0 ]; do
-        dryad_root_requirement_remove_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_root_requirement_remove_arg=$dyd_ret0
         case $dryad_root_requirement_remove_arg in
             --help | -h )
                 cat <<'EOF'
@@ -634,7 +639,8 @@ dryad_cmd_root_requirements_list () {
     dryad_root_requirements_relative=1
 
     while [ "$#" -gt 0 ]; do
-        dryad_root_requirements_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_root_requirements_arg=$dyd_ret0
         case $dryad_root_requirements_arg in
             --help | -h )
                 cat <<'EOF'
@@ -755,7 +761,8 @@ dryad_cmd_root_variants_list () {
     dryad_root_variants_target=
 
     while [ "$#" -gt 0 ]; do
-        dryad_root_variants_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_root_variants_arg=$dyd_ret0
         case $dryad_root_variants_arg in
             --help | -h )
                 cat <<'EOF'
@@ -899,7 +906,8 @@ dryad_cmd_root_graph_walk () {
     dryad_root_walk_relative=1
 
     while [ "$#" -gt 0 ]; do
-        dryad_root_walk_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_root_walk_arg=$dyd_ret0
         case $dryad_root_walk_arg in
             --help | -h )
                 cat <<EOF
@@ -1153,7 +1161,8 @@ dryad_cmd_roots_build () {
     dryad_root_build_log_stderr=
 
     while [ "$#" -gt 0 ]; do
-        dryad_roots_build_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_roots_build_arg=$dyd_ret0
         case $dryad_roots_build_arg in
             --help | -h )
                 cat <<'EOF'
@@ -1281,7 +1290,8 @@ dryad_cmd_root_build () {
     dryad_root_build_log_stderr=
 
     while [ "$#" -gt 0 ]; do
-        dryad_root_build_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_root_build_arg=$dyd_ret0
         case $dryad_root_build_arg in
             --help | -h )
                 cat <<'EOF'
@@ -1725,7 +1735,8 @@ dryad_cmd_roots_each () {
     dryad_roots_each_command=
 
     while [ "$#" -gt 0 ]; do
-        dryad_roots_each_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_roots_each_arg=$dyd_ret0
         case $dryad_roots_each_arg in
             --help | -h )
                 cat <<'EOF'
@@ -2224,7 +2235,8 @@ dryad_cmd_roots_owning () {
     dryad_roots_owning_relative=1
 
     while [ "$#" -gt 0 ]; do
-        dryad_roots_owning_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_roots_owning_arg=$dyd_ret0
         case $dryad_roots_owning_arg in
             --help | -h )
                 cat <<'EOF'
@@ -2288,7 +2300,8 @@ dryad_cmd_roots_affected () {
     dryad_roots_affected_relative=1
 
     while [ "$#" -gt 0 ]; do
-        dryad_roots_affected_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_roots_affected_arg=$dyd_ret0
         case $dryad_roots_affected_arg in
             --help | -h )
                 cat <<'EOF'
@@ -2970,7 +2983,8 @@ dryad_cmd_roots_graph () {
     dryad_roots_graph_format=yaml
 
     while [ "$#" -gt 0 ]; do
-        dryad_roots_graph_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_roots_graph_arg=$dyd_ret0
         case $dryad_roots_graph_arg in
             --help | -h )
                 cat <<'EOF'
@@ -3094,7 +3108,8 @@ EOF
             dryad_roots_from_stdin=0
             dryad_roots_to_sprouts=0
             while [ "$#" -gt 0 ]; do
-                dryad_roots_arg=$(dryad_strip_option_quotes "$1")
+                dryad_strip_option_quotes_load "$1"
+                dryad_roots_arg=$dyd_ret0
                 case $dryad_roots_arg in
                     --include=* )
                         dryad_roots_include="${dryad_roots_include}

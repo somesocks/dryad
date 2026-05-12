@@ -2,7 +2,8 @@ dryad_main () {
     dryad_scope_rewrite_done=${dryad_scope_rewrite_done:-0}
 
     while [ "$#" -gt 0 ]; do
-        dryad_global_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_global_arg=$dyd_ret0
         case $1 in
             --scope=* )
                 dryad_scope_arg=${dryad_global_arg#--scope=}
@@ -123,7 +124,8 @@ dryad_main () {
 
 dryad_find_command_scope () {
     while [ "$#" -gt 0 ]; do
-        dryad_find_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_find_arg=$dyd_ret0
         case $dryad_find_arg in
             -- )
                 return 0

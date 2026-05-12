@@ -91,7 +91,8 @@ dryad_cmd_scope_setting () {
             dryad_scope_setting_scope=
             dryad_scope_setting_name=
             while [ "$#" -gt 0 ]; do
-                dryad_scope_setting_arg=$(dryad_strip_option_quotes "$1")
+                dryad_strip_option_quotes_load "$1"
+                dryad_scope_setting_arg=$dyd_ret0
                 case $dryad_scope_setting_arg in
                     --help | -h )
                         cat <<EOF
@@ -147,7 +148,8 @@ EOF
             dryad_scope_setting_value=
             dryad_scope_setting_has_value=0
             while [ "$#" -gt 0 ]; do
-                dryad_scope_setting_arg=$(dryad_strip_option_quotes "$1")
+                dryad_strip_option_quotes_load "$1"
+                dryad_scope_setting_arg=$dyd_ret0
                 case $dryad_scope_setting_arg in
                     --help | -h )
                         cat <<'EOF'
@@ -274,7 +276,8 @@ dryad_scope_one_name_command () {
     dryad_scope_one_name=
 
     while [ "$#" -gt 0 ]; do
-        dryad_scope_one_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_scope_one_arg=$dyd_ret0
         case $dryad_scope_one_arg in
             --help | -h )
                 cat <<EOF
@@ -328,7 +331,8 @@ dryad_cmd_scopes_default () {
     case $dryad_scopes_default_action in
         get )
             while [ "$#" -gt 0 ]; do
-                dryad_scopes_default_arg=$(dryad_strip_option_quotes "$1")
+                dryad_strip_option_quotes_load "$1"
+                dryad_scopes_default_arg=$dyd_ret0
                 case $dryad_scopes_default_arg in
                     --help | -h )
                         cat <<'EOF'
@@ -358,7 +362,8 @@ EOF
         set )
             dryad_scopes_default_scope=
             while [ "$#" -gt 0 ]; do
-                dryad_scopes_default_arg=$(dryad_strip_option_quotes "$1")
+                dryad_strip_option_quotes_load "$1"
+                dryad_scopes_default_arg=$dyd_ret0
                 case $dryad_scopes_default_arg in
                     --help | -h )
                         cat <<'EOF'
@@ -395,7 +400,8 @@ EOF
             ;;
         unset )
             while [ "$#" -gt 0 ]; do
-                dryad_scopes_default_arg=$(dryad_strip_option_quotes "$1")
+                dryad_strip_option_quotes_load "$1"
+                dryad_scopes_default_arg=$dyd_ret0
                 case $dryad_scopes_default_arg in
                     --help | -h )
                         cat <<'EOF'
@@ -471,7 +477,8 @@ EOF
                 * )
                     dryad_scopes_oneline=1
                     while [ "$#" -gt 0 ]; do
-                        dryad_scopes_arg=$(dryad_strip_option_quotes "$1")
+                        dryad_strip_option_quotes_load "$1"
+                        dryad_scopes_arg=$dyd_ret0
                         case $dryad_scopes_arg in
                             list )
                                 shift
@@ -547,7 +554,8 @@ dryad_cmd_scope () {
             dryad_scope_active_oneline=1
             while [ "$#" -gt 1 ]; do
                 shift
-                dryad_scope_active_arg=$(dryad_strip_option_quotes "$1")
+                dryad_strip_option_quotes_load "$1"
+                dryad_scope_active_arg=$dyd_ret0
                 case $dryad_scope_active_arg in
                     --help | -h )
                         cat <<'EOF'
@@ -601,7 +609,8 @@ EOF
             shift
             dryad_scope_use_scope=
             while [ "$#" -gt 0 ]; do
-                dryad_scope_use_arg=$(dryad_strip_option_quotes "$1")
+                dryad_strip_option_quotes_load "$1"
+                dryad_scope_use_arg=$dyd_ret0
                 case $dryad_scope_use_arg in
                     --help | -h )
                         cat <<'EOF'

@@ -115,7 +115,8 @@ dryad_cmd_garden () {
         create )
             dryad_garden_create_target=
             while [ "$#" -gt 0 ]; do
-                dryad_garden_create_arg=$(dryad_strip_option_quotes "$1")
+                dryad_strip_option_quotes_load "$1"
+                dryad_garden_create_arg=$dyd_ret0
                 case $dryad_garden_create_arg in
                     --help | -h )
                         cat <<'EOF'
@@ -187,7 +188,8 @@ EOF
                     ;;
                 * )
                     while [ "$#" -gt 0 ]; do
-                        dryad_garden_prune_arg=$(dryad_strip_option_quotes "$1")
+                        dryad_strip_option_quotes_load "$1"
+                        dryad_garden_prune_arg=$dyd_ret0
                         case $dryad_garden_prune_arg in
                             --scope=* | --log-level=* | --log-format=* | --parallel=* )
                                 shift
@@ -223,7 +225,8 @@ EOF
                     ;;
                 * )
                     while [ "$#" -gt 0 ]; do
-                        dryad_garden_wipe_arg=$(dryad_strip_option_quotes "$1")
+                        dryad_strip_option_quotes_load "$1"
+                        dryad_garden_wipe_arg=$dyd_ret0
                         case $dryad_garden_wipe_arg in
                             --scope=* | --log-level=* | --log-format=* | --parallel=* )
                                 shift

@@ -964,7 +964,8 @@ dryad_cmd_sprouts_run () {
     dryad_sprouts_run_confirm=
 
     while [ "$#" -gt 0 ]; do
-        dryad_sprouts_run_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_sprouts_run_arg=$dyd_ret0
         case $dryad_sprouts_run_arg in
             --help | -h )
                 cat <<'EOF'
@@ -1174,7 +1175,8 @@ dryad_cmd_sprout_run () {
     dryad_sprout_run_ref=
 
     while [ "$#" -gt 0 ]; do
-        dryad_sprout_run_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_sprout_run_arg=$dyd_ret0
         case $dryad_sprout_run_arg in
             --help | -h )
                 cat <<'EOF'
@@ -1494,7 +1496,8 @@ dryad_cmd_sprouts_no_arg_action () {
     shift
 
     while [ "$#" -gt 0 ]; do
-        dryad_sprouts_no_arg_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_sprouts_no_arg_arg=$dyd_ret0
         case $dryad_sprouts_no_arg_arg in
             --help | -h )
                 cat <<EOF
@@ -1541,7 +1544,8 @@ EOF
 
 dryad_cmd_sprouts_path () {
     while [ "$#" -gt 0 ]; do
-        dryad_sprouts_path_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_sprouts_path_arg=$dyd_ret0
         case $dryad_sprouts_path_arg in
             --help | -h )
                 cat <<'EOF'
@@ -1580,7 +1584,8 @@ dryad_cmd_sprouts_list () {
     dryad_sprouts_relative=1
 
     while [ "$#" -gt 0 ]; do
-        dryad_sprouts_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_sprouts_arg=$dyd_ret0
         case $dryad_sprouts_arg in
             --help | -h )
                 cat <<'EOF'

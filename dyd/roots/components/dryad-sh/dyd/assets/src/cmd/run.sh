@@ -13,7 +13,8 @@ EOF
     shift
 
     while [ "$#" -gt 0 ]; do
-        dryad_run_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_run_arg=$dyd_ret0
         case $dryad_run_arg in
             -- )
                 shift

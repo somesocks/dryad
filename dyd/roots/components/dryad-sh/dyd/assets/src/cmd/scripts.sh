@@ -90,7 +90,8 @@ dryad_script_parse_one_name () {
     dryad_script_parse_name=
 
     while [ "$#" -gt 0 ]; do
-        dryad_script_parse_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_script_parse_arg=$dyd_ret0
         case $dryad_script_parse_arg in
             --help | -h )
                 cat <<EOF
@@ -169,7 +170,8 @@ dryad_script_edit () {
     dryad_script_edit_editor=
 
     while [ "$#" -gt 0 ]; do
-        dryad_script_edit_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_script_edit_arg=$dyd_ret0
         case $dryad_script_edit_arg in
             --help | -h )
                 cat <<EOF
@@ -242,7 +244,8 @@ dryad_scripts_list () {
     dryad_scripts_oneline=1
 
     while [ "$#" -gt 0 ]; do
-        dryad_scripts_arg=$(dryad_strip_option_quotes "$1")
+        dryad_strip_option_quotes_load "$1"
+        dryad_scripts_arg=$dyd_ret0
         case $dryad_scripts_arg in
             list )
                 shift
