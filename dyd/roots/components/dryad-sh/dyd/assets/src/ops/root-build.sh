@@ -1264,7 +1264,7 @@ dryad_root_build_provenance_stem () {
     printf '%s\n' "$dryad_root_build_provenance_fingerprint"
 }
 
-dryad_root_build_lookup_derivation () {
+dryad_root_build_lookup_derivation_load () {
     dryad_root_build_lookup_garden=$1
     dryad_root_build_lookup_source_fingerprint=$2
     dryad_profile_count call.root-build.lookup-derivation
@@ -1276,7 +1276,10 @@ dryad_root_build_lookup_derivation () {
         return 1
     }
 
-    dryad_root_build_lookup_result=$(cat "$dryad_root_build_lookup_path")
+    IFS= read -r dryad_root_build_lookup_result < "$dryad_root_build_lookup_path" || [ -n "$dryad_root_build_lookup_result" ] || {
+        dryad_profile_count miss.root-build.lookup-derivation
+        return 1
+    }
     case $dryad_root_build_lookup_result in
         v2-* )
             ;;
@@ -1296,13 +1299,17 @@ dryad_root_build_lookup_derivation () {
         dryad_profile_count miss.root-build.lookup-derivation
         return 1
     }
-    [ "$(cat "$dryad_root_build_lookup_stem/dyd/fingerprint")" = "$dryad_root_build_lookup_result" ] || {
+    IFS= read -r dryad_root_build_lookup_stem_fingerprint < "$dryad_root_build_lookup_stem/dyd/fingerprint" || [ -n "$dryad_root_build_lookup_stem_fingerprint" ] || {
+        dryad_profile_count miss.root-build.lookup-derivation
+        return 1
+    }
+    [ "$dryad_root_build_lookup_stem_fingerprint" = "$dryad_root_build_lookup_result" ] || {
         dryad_profile_count miss.root-build.lookup-derivation
         return 1
     }
 
     dryad_profile_count hit.root-build.lookup-derivation
-    printf '%s\n' "$dryad_root_build_lookup_result"
+    dyd_ret0=$dryad_root_build_lookup_result
 }
 
 dryad_root_build_ensure_sprout_parent () {
@@ -1441,8 +1448,8 @@ dryad_root_build_stem_uncached () {
         "$dryad_root_build_stem_source_heap_path" \
         "$dryad_root_build_source_file_hashes"
 
-    dryad_root_build_stem_cached_fingerprint=$(dryad_root_build_lookup_derivation "$dryad_root_build_stem_garden" "$dryad_root_build_stem_source_fingerprint" || true)
-    if [ -n "$dryad_root_build_stem_cached_fingerprint" ]; then
+    if dryad_root_build_lookup_derivation_load "$dryad_root_build_stem_garden" "$dryad_root_build_stem_source_fingerprint"; then
+        dryad_root_build_stem_cached_fingerprint=$dyd_ret0
         dryad_root_build_provenance_node_store "$dryad_root_build_stem_source_fingerprint" "$dryad_root_build_stem_cached_fingerprint" "$dryad_root_build_stem_dependency_sources"
         rm -f "$dryad_root_build_source_file_hashes"
         rm -f "$dryad_root_build_stem_dependency_sources"
