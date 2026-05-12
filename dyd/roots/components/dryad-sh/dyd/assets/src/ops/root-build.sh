@@ -462,7 +462,8 @@ dryad_root_build_prepare_dependencies () {
             continue
         fi
 
-        dryad_root_build_deps_spec=$(dryad_requirement_target_spec "$dryad_root_build_deps_file")
+        dryad_requirement_target_spec_load "$dryad_root_build_deps_file"
+        dryad_root_build_deps_spec=$dyd_ret0
         case $dryad_root_build_deps_spec in
             root:* )
                 ;;

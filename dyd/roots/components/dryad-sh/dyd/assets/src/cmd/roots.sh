@@ -516,7 +516,7 @@ EOF
     esac
 }
 
-dryad_requirement_target_spec () {
+dryad_requirement_target_spec_load () {
     dryad_requirement_file=$1
 
     if [ -L "$dryad_requirement_file" ]; then
@@ -524,7 +524,7 @@ dryad_requirement_target_spec () {
             dryad_die "could not read requirement symlink: $dryad_requirement_file"
         case $dryad_requirement_link in
             root:* )
-                printf '%s\n' "$dryad_requirement_link"
+                dyd_ret0=$dryad_requirement_link
                 ;;
             * )
                 dryad_requirement_dir=$(dirname "$dryad_requirement_file")
@@ -533,7 +533,7 @@ dryad_requirement_target_spec () {
                 dryad_root_path_find_load "$dryad_requirement_target"
                 dryad_requirement_root=$dyd_ret0
                 dryad_requirement_rel=$(dryad_relative_path "$dryad_requirement_dir" "$dryad_requirement_root")
-                printf 'root:%s\n' "$dryad_requirement_rel"
+                dyd_ret0=root:$dryad_requirement_rel
                 ;;
         esac
         return 0
@@ -549,13 +549,14 @@ dryad_requirement_target_spec () {
         dryad_requirement_display=${dryad_requirement_abs#"$dryad_requirement_garden"/}
         printf '%s\n' "dryad-sh: malformed requirement file path=$dryad_requirement_display expected=\"$dryad_requirement_spec\"" >&2
     fi
-    printf '%s\n' "$dryad_requirement_spec"
+    dyd_ret0=$dryad_requirement_spec
 }
 
 dryad_requirement_target_url () {
     dryad_requirement_file=$1
     dryad_requirement_dir=$(dirname "$dryad_requirement_file")
-    dryad_requirement_spec=$(dryad_requirement_target_spec "$dryad_requirement_file")
+    dryad_requirement_target_spec_load "$dryad_requirement_file"
+    dryad_requirement_spec=$dyd_ret0
 
     case $dryad_requirement_spec in
         root:* )
@@ -2384,7 +2385,8 @@ dryad_roots_graph_records () {
             for dryad_roots_graph_record_req_file in "$dryad_roots_graph_record_req_dir"/* "$dryad_roots_graph_record_req_dir"/.[!.]* "$dryad_roots_graph_record_req_dir"/..?*; do
                 [ -f "$dryad_roots_graph_record_req_file" ] || [ -L "$dryad_roots_graph_record_req_file" ] || continue
                 dryad_roots_graph_record_req_rel=${dryad_roots_graph_record_req_file#"$dryad_roots_graph_record_root"/dyd/}
-                dryad_roots_graph_record_req_spec=$(dryad_requirement_target_spec "$dryad_roots_graph_record_req_file")
+                dryad_requirement_target_spec_load "$dryad_roots_graph_record_req_file"
+                dryad_roots_graph_record_req_spec=$dyd_ret0
                 printf 'Q\t%s\t%s\t%s\n' "$dryad_roots_graph_record_root" "$dryad_roots_graph_record_req_rel" "$dryad_roots_graph_record_req_spec"
             done
         done
