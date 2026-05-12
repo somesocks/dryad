@@ -827,7 +827,7 @@ EOF
     esac
 }
 
-dryad_root_ref_parse () {
+dryad_root_ref_parse_load () {
     dryad_root_ref_raw=${1:-.}
     dryad_root_ref_path=$dryad_root_ref_raw
     dryad_root_ref_selector=
@@ -851,7 +851,8 @@ dryad_root_ref_parse () {
             ;;
     esac
 
-    printf '%s\n%s\n' "$dryad_root_ref_path" "$dryad_root_ref_selector"
+    dyd_ret0=$dryad_root_ref_path
+    dyd_ret1=$dryad_root_ref_selector
 }
 
 dryad_root_ref_format () {
@@ -976,9 +977,9 @@ EOF
         esac
     done
 
-    dryad_root_walk_parsed=$(dryad_root_ref_parse "${dryad_root_walk_ref:-.}")
-    dryad_root_walk_path=$(printf '%s\n' "$dryad_root_walk_parsed" | sed -n '1p')
-    dryad_root_walk_ref_selector=$(printf '%s\n' "$dryad_root_walk_parsed" | sed -n '2p')
+    dryad_root_ref_parse_load "${dryad_root_walk_ref:-.}"
+    dryad_root_walk_path=$dyd_ret0
+    dryad_root_walk_ref_selector=$dyd_ret1
 
     if [ -n "$dryad_root_walk_ref_selector" ]; then
         [ -z "$dryad_root_walk_variant" ] ||
@@ -1077,9 +1078,9 @@ dryad_roots_build_entries_from_stdin () {
 
     while IFS= read -r dryad_roots_build_stdin_ref; do
         [ -n "$dryad_roots_build_stdin_ref" ] || continue
-        dryad_roots_build_stdin_parsed=$(dryad_root_ref_parse "$dryad_roots_build_stdin_ref")
-        dryad_roots_build_stdin_path=$(printf '%s\n' "$dryad_roots_build_stdin_parsed" | sed -n '1p')
-        dryad_roots_build_stdin_selector=$(printf '%s\n' "$dryad_roots_build_stdin_parsed" | sed -n '2p')
+        dryad_root_ref_parse_load "$dryad_roots_build_stdin_ref"
+        dryad_roots_build_stdin_path=$dyd_ret0
+        dryad_roots_build_stdin_selector=$dyd_ret1
         dryad_root_path_find_load "$dryad_roots_build_stdin_path"
         dryad_roots_build_stdin_root=$dyd_ret0
 
@@ -1374,9 +1375,9 @@ EOF
         esac
     done
 
-    dryad_root_build_parsed=$(dryad_root_ref_parse "${dryad_root_build_ref:-.}")
-    dryad_root_build_path=$(printf '%s\n' "$dryad_root_build_parsed" | sed -n '1p')
-    dryad_root_build_ref_selector=$(printf '%s\n' "$dryad_root_build_parsed" | sed -n '2p')
+    dryad_root_ref_parse_load "${dryad_root_build_ref:-.}"
+    dryad_root_build_path=$dyd_ret0
+    dryad_root_build_ref_selector=$dyd_ret1
     if [ -n "$dryad_root_build_ref_selector" ]; then
         [ -z "$dryad_root_build_variant" ] ||
             dryad_die "root build selector specified in both root_ref and --variant"
@@ -1652,9 +1653,9 @@ dryad_roots_each_entries_from_stdin () {
 
     while IFS= read -r dryad_roots_each_stdin_ref; do
         [ -n "$dryad_roots_each_stdin_ref" ] || continue
-        dryad_roots_each_stdin_parsed=$(dryad_root_ref_parse "$dryad_roots_each_stdin_ref")
-        dryad_roots_each_stdin_path=$(printf '%s\n' "$dryad_roots_each_stdin_parsed" | sed -n '1p')
-        dryad_roots_each_stdin_selector=$(printf '%s\n' "$dryad_roots_each_stdin_parsed" | sed -n '2p')
+        dryad_root_ref_parse_load "$dryad_roots_each_stdin_ref"
+        dryad_roots_each_stdin_path=$dyd_ret0
+        dryad_roots_each_stdin_selector=$dyd_ret1
         dryad_root_path_find_load "$dryad_roots_each_stdin_path"
         dryad_roots_each_stdin_root=$dyd_ret0
 
