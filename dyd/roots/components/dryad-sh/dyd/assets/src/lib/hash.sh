@@ -47,11 +47,6 @@ dryad_hash_impl_resolve () {
         shell-16 )
             dryad_hash_impl=shell-16
             ;;
-        awk )
-            command -v awk >/dev/null 2>&1 \
-                || dryad_die "DRYAD_SH_HASH_IMPL=awk requested, but awk was not found"
-            dryad_hash_impl=awk
-            ;;
         * )
             dryad_die "invalid DRYAD_SH_HASH_IMPL: $dryad_hash_impl_request"
             ;;
@@ -118,9 +113,6 @@ dryad_blake2b_128_file_hex_load () {
         return $?
         ;;
     esac
-
-    dyd_b2_result=$(dryad_blake2b_128_file_hex_awk "$dyd_b2_file" "$dyd_b2_format") || return $?
-    dyd_ret0=$dyd_b2_result
 }
 
 dryad_blake2b_128_file_base32 () {
@@ -138,9 +130,6 @@ dryad_blake2b_128_file_base32_load () {
         return $?
         ;;
     esac
-
-    dyd_b2_result=$(dryad_blake2b_128_file_hex_awk "$dyd_b2_base32_file" base32) || return $?
-    dyd_ret0=$dyd_b2_result
 }
 
 dryad_blake2b_128_file_prefixed_base32_load () {
@@ -153,12 +142,6 @@ dryad_blake2b_128_file_prefixed_base32_load () {
         return $?
         ;;
     esac
-
-    dyd_b2_result=$({
-        printf 'file\000'
-        cat "$dyd_b2_prefixed_file"
-    } | dryad_blake2b_128_file_hex_awk - base32) || return $?
-    dyd_ret0=$dyd_b2_result
 }
 
 dryad_blake2b_128_files_table_base32 () {
@@ -173,8 +156,6 @@ dryad_blake2b_128_files_table_base32 () {
         return 0
         ;;
     esac
-
-    dryad_blake2b_128_file_hex_awk - files-table
 }
 
 dryad_blake2b_128_stream_base32 () {
@@ -190,8 +171,6 @@ dryad_blake2b_128_stream_base32 () {
         return 0
         ;;
     esac
-
-    dryad_blake2b_128_file_hex_awk - base32
 }
 
 dryad_blake2b_128_file_fingerprint () {
