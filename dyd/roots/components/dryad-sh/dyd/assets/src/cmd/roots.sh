@@ -235,7 +235,7 @@ EOF
     esac
 }
 
-dryad_requirement_name_normalize () {
+dryad_requirement_name_normalize_load () {
     dryad_requirement_name_raw=$1
     dryad_requirement_name_alias=$dryad_requirement_name_raw
     dryad_requirement_name_condition=
@@ -258,9 +258,9 @@ dryad_requirement_name_normalize () {
     if [ -n "$dryad_requirement_name_condition" ]; then
         dryad_fs_descriptor_normalize_load "$dryad_requirement_name_condition"
         dryad_requirement_name_condition=$dyd_ret0
-        printf '%s~%s\n' "$dryad_requirement_name_alias" "$dryad_requirement_name_condition"
+        dyd_ret0=$dryad_requirement_name_alias~$dryad_requirement_name_condition
     else
-        printf '%s\n' "$dryad_requirement_name_alias"
+        dyd_ret0=$dryad_requirement_name_alias
     fi
 }
 
@@ -414,7 +414,8 @@ EOF
     if [ -z "$dryad_root_requirement_add_alias" ]; then
         dryad_root_requirement_add_alias=$(basename "$dryad_root_requirement_add_dep_root")
     fi
-    dryad_root_requirement_add_alias=$(dryad_requirement_name_normalize "$dryad_root_requirement_add_alias")
+    dryad_requirement_name_normalize_load "$dryad_root_requirement_add_alias"
+    dryad_root_requirement_add_alias=$dyd_ret0
 
     mkdir -p "$dryad_root_requirement_add_dir"
     dryad_root_requirement_add_rel=$(dryad_relative_path "$dryad_root_requirement_add_dir" "$dryad_root_requirement_add_dep_root")
@@ -480,7 +481,8 @@ EOF
     [ -n "$dryad_root_requirement_remove_name" ] ||
         dryad_die "root requirement remove requires a requirement name"
 
-    dryad_root_requirement_remove_name=$(dryad_requirement_name_normalize "$dryad_root_requirement_remove_name")
+    dryad_requirement_name_normalize_load "$dryad_root_requirement_remove_name"
+    dryad_root_requirement_remove_name=$dyd_ret0
     dryad_root_path_find_load .
     dryad_root_requirement_remove_root=$dyd_ret0
     dryad_root_selected_variant_descriptor_load "$dryad_root_requirement_remove_root" "$dryad_root_requirement_remove_variant"
