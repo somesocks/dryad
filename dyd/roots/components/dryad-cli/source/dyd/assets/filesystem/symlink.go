@@ -37,6 +37,11 @@ var Symlink task.Task[SymlinkRequest, SymlinkRequest] = func() task.Task[Symlink
 		var parentPath string = filepath.Dir(request.Path)
 		var err error
 
+		currentTarget, err := os.Readlink(request.Path)
+		if err == nil && currentTarget == request.Target {
+			return nil, request
+		}
+
 		// grab the fileinfo for the parent
 		var parentInfo fs.FileInfo
 		parentInfo, err = os.Lstat(parentPath)
