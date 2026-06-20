@@ -1,0 +1,140 @@
+version: 1
+seed: 1
+rules:
+  - id: os-stat
+    op: os.stat
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: os-lstat
+    op: os.lstat
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: os-open
+    op: os.open
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: os-open-file
+    op: os.open_file
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: os-read-file
+    op: os.read_file
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: os-read-dir
+    op: os.read_dir
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: os-write-file
+    op: os.write_file
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: os-create
+    op: os.create
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: os-create-temp
+    op: os.create_temp
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: os-mkdir
+    op: os.mkdir
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: os-mkdir-all
+    op: os.mkdir_all
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: os-mkdir-temp
+    op: os.mkdir_temp
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: os-link
+    op: os.link
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: os-rename
+    op: os.rename
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: os-symlink
+    op: os.symlink
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: os-readlink
+    op: os.readlink
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: os-remove
+    op: os.remove
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: os-remove-all
+    op: os.remove_all
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: os-chmod
+    op: os.chmod
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: os-chtimes
+    op: os.chtimes
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: filepath-glob
+    op: filepath.glob
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: filepath-rel
+    op: filepath.rel
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
+
+  - id: filepath-eval-symlinks
+    op: filepath.eval_symlinks
+    key: "*"
+    when: { mode: every_x, x: 1 }
+    action: { type: metrics, output: stderr }
