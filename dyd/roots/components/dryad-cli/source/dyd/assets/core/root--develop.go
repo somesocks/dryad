@@ -26,7 +26,7 @@ func rootDevelop_stage0(
 	workspacePath string,
 	selectedPaths rootDevelopSelectedPaths,
 ) error {
-	err := os.MkdirAll(
+	err := os.Mkdir(
 		filepath.Join(workspacePath, "dyd"),
 		os.ModePerm,
 	)
@@ -105,7 +105,7 @@ func rootDevelop_stage0(
 			return err
 		}
 	} else {
-		err = os.MkdirAll(filepath.Join(workspacePath, "dyd", "requirements"), os.ModePerm)
+		err = os.Mkdir(filepath.Join(workspacePath, "dyd", "requirements"), os.ModePerm)
 		if err != nil {
 			return err
 		}
@@ -261,7 +261,7 @@ func rootDevelop_createSnapshotStem(
 	}
 	defer dydfs.RemoveAll(task.SERIAL_CONTEXT, snapshotWorkspace)
 
-	err = os.MkdirAll(filepath.Join(snapshotWorkspace, "dyd"), os.ModePerm)
+	err = os.Mkdir(filepath.Join(snapshotWorkspace, "dyd"), os.ModePerm)
 	if err != nil {
 		return "", err
 	}
@@ -361,13 +361,13 @@ func rootDevelop_createSnapshotStem(
 			return "", err
 		}
 	} else {
-		err = os.MkdirAll(filepath.Join(snapshotWorkspace, "dyd", "requirements"), os.ModePerm)
+		err = os.Mkdir(filepath.Join(snapshotWorkspace, "dyd", "requirements"), os.ModePerm)
 		if err != nil {
 			return "", err
 		}
 	}
 
-	err = os.MkdirAll(filepath.Join(snapshotWorkspace, "dyd", "dependencies"), os.ModePerm)
+	err = os.Mkdir(filepath.Join(snapshotWorkspace, "dyd", "dependencies"), os.ModePerm)
 	if err != nil {
 		return "", err
 	}
@@ -829,7 +829,7 @@ func rootDevelop(
 	defer dydfs.RemoveAll(task.SERIAL_CONTEXT, workspacePath)
 
 	devDir := rootDevelop_devDir(workspacePath)
-	err = os.MkdirAll(devDir, 0o755)
+	err = os.Mkdir(devDir, 0o755)
 	if err != nil {
 		return "", err
 	}
@@ -934,6 +934,9 @@ func rootDevelop(
 
 	// use a disposable build directory at the root of the development workspace.
 	stemBuildPath := filepath.Join(workspacePath, "out")
+	if err := os.Mkdir(stemBuildPath, os.ModePerm); err != nil {
+		return "", err
+	}
 
 	stemBuildFingerprint, onDevelopErr := rootDevelop_stage5(
 		workspacePath,
