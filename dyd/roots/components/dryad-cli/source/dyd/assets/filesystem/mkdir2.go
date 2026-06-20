@@ -28,6 +28,44 @@ var Mkdir2 = func() task.Task[MkdirRequest, *MkdirResult] {
 		}
 		var err error
 
+		ensureExistingDir := func(info fs.FileInfo) (error, *MkdirResult) {
+			if info.IsDir() {
+				currentMode := info.Mode()
+				newMode := (currentMode & 0xFFFFFE00) | req.Mode
+				if currentMode == newMode {
+					return nil, &res
+				}
+
+				zlog.Trace().
+					Str("orig_perms", currentMode.String()).
+					Str("new_perms", newMode.String()).
+					Msg("dydfs.Mkdir2 chmod")
+
+				err, _ = Chmod(ctx, ChmodRequest{Path: req.Path, Mode: newMode})
+				if err != nil {
+					zlog.Error().
+						Err(err).
+						Msg("dydfs.Mkdir2 chmod error")
+					return err, nil
+				}
+
+				return nil, &res
+			} else {
+				return errors.New("path exists as file"), nil
+			}
+		}
+
+		// If the directory already exists, no parent-directory mutation is needed.
+		info, err := os.Lstat(req.Path)
+		if err == nil {
+			return ensureExistingDir(info)
+		} else if !errors.Is(err, fs.ErrNotExist) {
+			zlog.Error().
+				Err(err).
+				Msg("dydfs.Mkdir2 lstat error")
+			return err, nil
+		}
+
 		var parentPath string = filepath.Dir(req.Path)
 
 		// grab the fileinfo for the parent
@@ -80,8 +118,7 @@ var Mkdir2 = func() task.Task[MkdirRequest, *MkdirResult] {
 		if err == nil {
 			return nil, &res
 		} else if errors.Is(err, fs.ErrExist) {
-			// if the file already exists, check to see if it's a directory
-			var info fs.FileInfo
+			// If another process created the path, verify it has the requested shape.
 			info, err = os.Lstat(req.Path)
 			if err != nil {
 				zlog.Error().
@@ -90,30 +127,7 @@ var Mkdir2 = func() task.Task[MkdirRequest, *MkdirResult] {
 				return err, nil
 			}
 
-			if info.IsDir() {
-				currentMode := info.Mode()
-				newMode := (currentMode & 0xFFFFFE00) | req.Mode
-				if currentMode == newMode {
-					return nil, &res
-				}
-
-				zlog.Trace().
-					Str("orig_perms", currentMode.String()).
-					Str("new_perms", newMode.String()).
-					Msg("dydfs.Mkdir2 chmod")
-
-				err, _ = Chmod(ctx, ChmodRequest{Path: req.Path, Mode: newMode})
-				if err != nil {
-					zlog.Error().
-						Err(err).
-						Msg("dydfs.Mkdir2 chmod error")
-					return err, nil
-				}
-
-				return nil, &res
-			} else {
-				return errors.New("path exists as file"), nil
-			}
+			return ensureExistingDir(info)
 		} else {
 			return err, nil
 		}
