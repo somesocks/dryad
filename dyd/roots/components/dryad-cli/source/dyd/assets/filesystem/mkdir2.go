@@ -91,9 +91,14 @@ var Mkdir2 = func() task.Task[MkdirRequest, *MkdirResult] {
 			}
 
 			if info.IsDir() {
-				newMode := (info.Mode() & 0xFFFFFE00) | req.Mode
+				currentMode := info.Mode()
+				newMode := (currentMode & 0xFFFFFE00) | req.Mode
+				if currentMode == newMode {
+					return nil, &res
+				}
+
 				zlog.Trace().
-					Str("orig_perms", info.Mode().String()).
+					Str("orig_perms", currentMode.String()).
 					Str("new_perms", newMode.String()).
 					Msg("dydfs.Mkdir2 chmod")
 
