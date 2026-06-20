@@ -19,10 +19,6 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 		}
 		defer sourceFile.Close()
 
-		if err := os.MkdirAll(filepath.Dir(destPath), os.ModePerm); err != nil {
-			return err
-		}
-
 		destFile, err := os.Create(destPath)
 		if err != nil {
 			return err
