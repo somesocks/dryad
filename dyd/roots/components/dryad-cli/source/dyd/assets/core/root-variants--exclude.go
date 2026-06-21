@@ -4,7 +4,9 @@ import (
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
+	"errors"
 	"fmt"
+	"io/fs"
 	"sort"
 )
 
@@ -16,17 +18,11 @@ type VariantExclusion struct {
 func (rootVariants *SafeRootVariantsReference) Exclusions(ctx *task.ExecutionContext) (error, []VariantExclusion) {
 	exclusionsPath := filepath.Join(rootVariants.BasePath, "_exclude")
 
-	exclusionsExists, err := fileExists(exclusionsPath)
-	if err != nil {
-		return err, nil
-	}
-
-	if !exclusionsExists {
-		return nil, []VariantExclusion{}
-	}
-
 	exclusionsInfo, err := os.Stat(exclusionsPath)
 	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, []VariantExclusion{}
+		}
 		return err, nil
 	}
 	if !exclusionsInfo.IsDir() {
