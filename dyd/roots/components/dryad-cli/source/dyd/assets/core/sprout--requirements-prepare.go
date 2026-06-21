@@ -54,18 +54,8 @@ func sproutRequirementsPrepare(sproutPath string) error {
 		dependencyName := dependencyEntry.Name()
 		dependencySourcePath := filepath.Join(dependenciesPath, dependencyName)
 
-		resolvedDependencyPath, err := filepath.EvalSymlinks(dependencySourcePath)
-		if err != nil {
-			return err
-		}
-
-		stemDependencyPath, err := StemPath(resolvedDependencyPath)
-		if err != nil {
-			return err
-		}
-
 		if err := sproutRequirementsCopyFile(
-			filepath.Join(stemDependencyPath, "dyd", "fingerprint"),
+			filepath.Join(dependencySourcePath, "dyd", "fingerprint"),
 			filepath.Join(requirementsPath, dependencyName),
 		); err != nil {
 			return err

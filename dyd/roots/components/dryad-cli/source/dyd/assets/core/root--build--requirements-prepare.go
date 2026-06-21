@@ -57,18 +57,8 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 			dependencyName := dependencyEntry.Name()
 			dependencyPath := filepath.Join(dependenciesPath, dependencyName)
 
-			resolvedDependencyPath, err := filepath.EvalSymlinks(dependencyPath)
-			if err != nil {
-				return err
-			}
-
-			stemDependencyPath, err := StemPath(resolvedDependencyPath)
-			if err != nil {
-				return err
-			}
-
 			err = copyFingerprint(
-				filepath.Join(stemDependencyPath, "dyd", "fingerprint"),
+				filepath.Join(dependencyPath, "dyd", "fingerprint"),
 				filepath.Join(requirementsPath, dependencyName),
 			)
 			if err != nil {
