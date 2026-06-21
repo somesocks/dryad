@@ -223,12 +223,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 	}
 
 	for _, dependencySourcePath := range dependencies {
-		targetStemPath, err := filepath.EvalSymlinks(dependencySourcePath)
-		if err != nil {
-			return err, nil
-		}
-
-		targetFingerprintFile := filepath.Join(targetStemPath, "dyd", "fingerprint")
+		targetFingerprintFile := filepath.Join(dependencySourcePath, "dyd", "fingerprint")
 		targetFingerprintBytes, err := ioutil.ReadFile(targetFingerprintFile)
 		if err != nil {
 			return err, nil
