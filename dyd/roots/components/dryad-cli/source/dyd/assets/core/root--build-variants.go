@@ -138,15 +138,7 @@ func (root *SafeRootReference) ResolveBuildVariants(
 		return err, nil
 	}
 
-	err, dimensions := root.VariantDimensions(ctx)
-	if err != nil {
-		return err, nil
-	}
-	err, inclusions := root.VariantInclusions(ctx)
-	if err != nil {
-		return err, nil
-	}
-	err, exclusions := root.VariantExclusions(ctx)
+	err, dimensions, inclusions, exclusions := root.variantMetadata(ctx)
 	if err != nil {
 		return err, nil
 	}

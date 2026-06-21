@@ -45,3 +45,28 @@ func (root *SafeRootReference) VariantInclusions(ctx *task.ExecutionContext) (er
 	}
 	return variants.Inclusions(ctx)
 }
+
+func (root *SafeRootReference) variantMetadata(ctx *task.ExecutionContext) (error, []VariantDimension, []VariantInclusion, []VariantExclusion) {
+	err, variants := root.Variants().Resolve(ctx)
+	if err != nil {
+		return err, nil, nil, nil
+	}
+	if variants == nil {
+		return nil, []VariantDimension{}, []VariantInclusion{}, []VariantExclusion{}
+	}
+
+	err, dimensions := variants.Dimensions(ctx)
+	if err != nil {
+		return err, nil, nil, nil
+	}
+	err, inclusions := variants.Inclusions(ctx)
+	if err != nil {
+		return err, nil, nil, nil
+	}
+	err, exclusions := variants.Exclusions(ctx)
+	if err != nil {
+		return err, nil, nil, nil
+	}
+
+	return nil, dimensions, inclusions, exclusions
+}
