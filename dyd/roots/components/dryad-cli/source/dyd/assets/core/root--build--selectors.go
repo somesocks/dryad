@@ -182,15 +182,15 @@ func rootBuild_considerSelectorMatch(
 func rootVariant_resolveConcreteDescriptor(
 	ctx *task.ExecutionContext,
 	variant *UnsafeRootVariantReference,
-) (error, VariantDescriptor) {
+) (error, VariantDescriptor, []VariantDimension) {
 	err, normalizedDescriptor := normalizeVariantDescriptor(variant.Descriptor)
 	if err != nil {
-		return err, nil
+		return err, nil, nil
 	}
 
 	err, dimensions := variant.Root.VariantDimensions(ctx)
 	if err != nil {
-		return err, nil
+		return err, nil, nil
 	}
 
 	dimensionsByName := map[string]VariantDimension{}
@@ -203,7 +203,7 @@ func rootVariant_resolveConcreteDescriptor(
 	for descriptorDimension := range normalizedDescriptor {
 		_, exists := dimensionsByName[descriptorDimension]
 		if !exists {
-			return fmt.Errorf("over-specified root variant descriptor dimension: %s", descriptorDimension), nil
+			return fmt.Errorf("over-specified root variant descriptor dimension: %s", descriptorDimension), nil, nil
 		}
 	}
 
@@ -218,20 +218,20 @@ func rootVariant_resolveConcreteDescriptor(
 			if noneOption, hasNone := optionByName[VariantOptionNone]; hasNone && noneOption.Enabled {
 				continue
 			}
-			return fmt.Errorf("under-specified root variant descriptor dimension: %s", dimension.Name), nil
+			return fmt.Errorf("under-specified root variant descriptor dimension: %s", dimension.Name), nil, nil
 		}
 
 		switch selectedOption {
 		case VariantOptionInherit, VariantOptionAny, VariantOptionHost:
-			return fmt.Errorf("invalid concrete root variant option for %s: %s", dimension.Name, selectedOption), nil
+			return fmt.Errorf("invalid concrete root variant option for %s: %s", dimension.Name, selectedOption), nil, nil
 		}
 
 		option, exists := optionByName[selectedOption]
 		if !exists {
-			return fmt.Errorf("wrongly-specified root variant option: %s=%s", dimension.Name, selectedOption), nil
+			return fmt.Errorf("wrongly-specified root variant option: %s=%s", dimension.Name, selectedOption), nil, nil
 		}
 		if !option.Enabled {
-			return fmt.Errorf("disabled root variant option: %s=%s", dimension.Name, selectedOption), nil
+			return fmt.Errorf("disabled root variant option: %s=%s", dimension.Name, selectedOption), nil, nil
 		}
 		if selectedOption == VariantOptionNone {
 			continue
@@ -240,19 +240,15 @@ func rootVariant_resolveConcreteDescriptor(
 		concreteDescriptor[dimension.Name] = selectedOption
 	}
 
-	return nil, concreteDescriptor
+	return nil, concreteDescriptor, dimensions
 }
 
 func rootVariant_resolveSelectedPathValues(
 	ctx *task.ExecutionContext,
 	root *SafeRootReference,
 	concreteDescriptor VariantDescriptor,
+	dimensions []VariantDimension,
 ) (error, rootVariantSelectedPathValues) {
-	err, dimensions := root.VariantDimensions(ctx)
-	if err != nil {
-		return err, rootVariantSelectedPathValues{}
-	}
-
 	matchContext := rootBuild_newSelectorMatchContext(
 		dimensions,
 		concreteDescriptor,
@@ -411,7 +407,7 @@ func rootVariant_resolveSelectedPathValues(
 func (variant *UnsafeRootVariantReference) Resolve(
 	ctx *task.ExecutionContext,
 ) (error, *SafeRootVariantReference) {
-	err, concreteDescriptor := rootVariant_resolveConcreteDescriptor(ctx, variant)
+	err, concreteDescriptor, dimensions := rootVariant_resolveConcreteDescriptor(ctx, variant)
 	if err != nil {
 		return err, nil
 	}
@@ -425,6 +421,7 @@ func (variant *UnsafeRootVariantReference) Resolve(
 		ctx,
 		variant.Root,
 		concreteDescriptor,
+		dimensions,
 	)
 	if err != nil {
 		return err, nil
