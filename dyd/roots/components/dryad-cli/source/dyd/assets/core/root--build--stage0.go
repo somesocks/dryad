@@ -27,7 +27,7 @@ type rootBuild_stage0_request struct {
 
 // stage 0 - build a shallow partial clone of the root into a working directory,
 // so we can build it into a stem
-var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_stage0_request) (error, any) {
+var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
 
 	var prepReq = func(ctx *task.ExecutionContext, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
 		zlog.Trace().
@@ -229,8 +229,8 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 				rootBuild_stage0_request,
 				rootBuild_stage0_request,
 			],
-		) (error, any) {
-			return nil, nil
+		) (error, rootBuild_stage0_request) {
+			return nil, req.A
 		},
 	)
 
