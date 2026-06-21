@@ -22,19 +22,12 @@ func (requirements *SafeRootRequirementsReference) Walk(ctx *task.ExecutionConte
 	}
 
 	var onMatch = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
-		var unsafeRequirementRef = UnsafeRootRequirementReference{
+		safeRequirementRef := &SafeRootRequirementReference{
 			BasePath:     node.Path,
 			Requirements: requirements,
 		}
-		var safeRequirementRef *SafeRootRequirementReference
-		var err error
 
-		err, safeRequirementRef = unsafeRequirementRef.Resolve(ctx)
-		if err != nil {
-			return err, nil
-		}
-
-		err, _ = req.OnMatch(ctx, safeRequirementRef)
+		err, _ := req.OnMatch(ctx, safeRequirementRef)
 		if err != nil {
 			return err, nil
 		}
