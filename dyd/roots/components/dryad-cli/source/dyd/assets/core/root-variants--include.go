@@ -4,7 +4,9 @@ import (
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
+	"errors"
 	"fmt"
+	"io/fs"
 	"sort"
 )
 
@@ -16,17 +18,11 @@ type VariantInclusion struct {
 func (rootVariants *SafeRootVariantsReference) Inclusions(ctx *task.ExecutionContext) (error, []VariantInclusion) {
 	inclusionsPath := filepath.Join(rootVariants.BasePath, "_include")
 
-	inclusionsExists, err := fileExists(inclusionsPath)
-	if err != nil {
-		return err, nil
-	}
-
-	if !inclusionsExists {
-		return nil, []VariantInclusion{}
-	}
-
 	inclusionsInfo, err := os.Stat(inclusionsPath)
 	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, []VariantInclusion{}
+		}
 		return err, nil
 	}
 	if !inclusionsInfo.IsDir() {

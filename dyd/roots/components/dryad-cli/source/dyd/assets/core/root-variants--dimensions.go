@@ -4,7 +4,9 @@ import (
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
+	"errors"
 	"fmt"
+	"io/fs"
 	"regexp"
 	"sort"
 	"strconv"
@@ -72,17 +74,11 @@ func variantOptionEnabledFromFile(path string) (error, bool) {
 func (rootVariants *SafeRootVariantsReference) Dimensions(ctx *task.ExecutionContext) (error, []VariantDimension) {
 	variantsPath := rootVariants.BasePath
 
-	variantsExists, err := fileExists(variantsPath)
-	if err != nil {
-		return err, nil
-	}
-
-	if !variantsExists {
-		return nil, []VariantDimension{}
-	}
-
 	variantsInfo, err := os.Stat(variantsPath)
 	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, []VariantDimension{}
+		}
 		return err, nil
 	}
 	if !variantsInfo.IsDir() {
