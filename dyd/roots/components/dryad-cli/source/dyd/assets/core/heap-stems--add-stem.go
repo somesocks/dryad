@@ -33,8 +33,6 @@ type heapAddStemRequest struct {
 func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *SafeHeapStemReference) {
 	var stemPath = req.StemPath
 
-	heapFilesPath := req.HeapFiles.BasePath
-	heapSecretsPath := req.HeapSecrets.BasePath
 	heapStemsPath := req.HeapStems.BasePath
 
 	stemFingerprint, err := _readFile(filepath.Join(stemPath, "dyd", "fingerprint"))
@@ -64,6 +62,23 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 
 		return nil, &stemRef
 	}
+
+	if req.HeapFiles == nil {
+		err, req.HeapFiles = req.HeapStems.Heap.Files().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+	}
+
+	if req.HeapSecrets == nil {
+		err, req.HeapSecrets = req.HeapStems.Heap.Secrets().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+	}
+
+	heapFilesPath := req.HeapFiles.BasePath
+	heapSecretsPath := req.HeapSecrets.BasePath
 
 	tempStemPath, err := os.MkdirTemp(
 		heapStemsVersionPath,
@@ -375,23 +390,11 @@ func (heapStems *SafeHeapStemsReference) AddStem(
 	ctx *task.ExecutionContext,
 	req HeapAddStemRequest,
 ) (error, *SafeHeapStemReference) {
-	err, heapFiles := heapStems.Heap.Files().Resolve(ctx)
-	if err != nil {
-		return err, nil
-	}
-
-	err, heapSecrets := heapStems.Heap.Secrets().Resolve(ctx)
-	if err != nil {
-		return err, nil
-	}
-
 	err, res := memoHeapAddStem(
 		ctx,
 		heapAddStemRequest{
-			HeapStems:   heapStems,
-			HeapFiles:   heapFiles,
-			HeapSecrets: heapSecrets,
-			StemPath:    req.StemPath,
+			HeapStems: heapStems,
+			StemPath:  req.StemPath,
 		},
 	)
 
