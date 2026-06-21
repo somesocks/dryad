@@ -255,16 +255,11 @@ func rootVariant_resolveSelectedPathValues(
 	)
 
 	dydPath := filepath.Join(root.BasePath, "dyd")
-	dydPathExists, err := fileExists(dydPath)
-	if err != nil {
-		return err, rootVariantSelectedPathValues{}
-	}
-	if !dydPathExists {
-		return nil, rootVariantSelectedPathValues{}
-	}
-
 	dydDir, err := os.Open(dydPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, rootVariantSelectedPathValues{}
+		}
 		return err, rootVariantSelectedPathValues{}
 	}
 	defer dydDir.Close()
