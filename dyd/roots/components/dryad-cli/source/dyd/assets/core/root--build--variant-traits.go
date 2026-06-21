@@ -31,9 +31,12 @@ func rootBuild_materializeVariantTraits(
 
 	traitsDestinationPath := filepath.Join(workspacePath, "dyd", "traits")
 
-	sourceTraitsExists, err := fileExists(traitsSourcePath)
-	if err != nil {
-		return err
+	sourceTraitsExists := false
+	if traitsSourcePath != "" {
+		sourceTraitsExists, err = fileExists(traitsSourcePath)
+		if err != nil {
+			return err
+		}
 	}
 	warnTraitsBasePath := traitsSourcePath
 	if warnTraitsBasePath == "" {
