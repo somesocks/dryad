@@ -282,7 +282,7 @@ func rootBuildStemResult(ctx *task.ExecutionContext, req rootBuildRequest) (erro
 	}
 	defer dydfs.RemoveAll(ctx, workspacePath)
 
-	err, _ = rootBuild_stage0(
+	err, stage0Req := rootBuild_stage0(
 		ctx,
 		rootBuild_stage0_request{
 			RootPath:          rootPath,
@@ -297,14 +297,15 @@ func rootBuildStemResult(ctx *task.ExecutionContext, req rootBuildRequest) (erro
 	err, dependencyResults := rootBuild_stage1(
 		ctx,
 		rootBuild_stage1_request{
-			Roots:             req.Root.Roots,
-			RootPath:          rootPath,
-			WorkspacePath:     workspacePath,
-			VariantDescriptor: req.VariantDescriptor,
-			JoinStdout:        req.JoinStdout,
-			JoinStderr:        req.JoinStderr,
-			LogStdout:         req.LogStdout,
-			LogStderr:         req.LogStderr,
+			Roots:                    req.Root.Roots,
+			RootPath:                 rootPath,
+			WorkspacePath:            workspacePath,
+			VariantDescriptor:        req.VariantDescriptor,
+			SelectedRequirementsPath: stage0Req.SelectedRequirementsPath,
+			JoinStdout:               req.JoinStdout,
+			JoinStderr:               req.JoinStderr,
+			LogStdout:                req.LogStdout,
+			LogStderr:                req.LogStderr,
 		},
 	)
 	if err != nil {

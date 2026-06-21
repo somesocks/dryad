@@ -14,13 +14,14 @@ import (
 )
 
 type rootBuild_stage1_request struct {
-	Roots             *SafeRootsReference
-	RootPath          string
-	WorkspacePath     string
-	VariantDescriptor string
-	JoinStdout        bool
-	JoinStderr        bool
-	LogStdout         struct {
+	Roots                    *SafeRootsReference
+	RootPath                 string
+	WorkspacePath            string
+	VariantDescriptor        string
+	SelectedRequirementsPath string
+	JoinStdout               bool
+	JoinStderr               bool
+	LogStdout                struct {
 		Path string
 		Name string
 	}
@@ -88,12 +89,7 @@ func init() {
 	) (error, []rootBuild_stage1_buildDependencyRequest) {
 		var buildDependencyRequests []rootBuild_stage1_buildDependencyRequest
 
-		requirementsSourcePath := filepath.Join(req.WorkspacePath, "dyd", "~requirements")
-		exists, err := fileExists(requirementsSourcePath)
-		if err != nil {
-			return err, buildDependencyRequests
-		}
-		if !exists {
+		if req.SelectedRequirementsPath == "" {
 			return nil, buildDependencyRequests
 		}
 
@@ -107,13 +103,8 @@ func init() {
 			return err, buildDependencyRequests
 		}
 
-		requirementsBasePath, err := filepath.EvalSymlinks(requirementsSourcePath)
-		if err != nil {
-			return err, buildDependencyRequests
-		}
-
 		unsafeRequirementsRef := UnsafeRootRequirementsReference{
-			BasePath: requirementsBasePath,
+			BasePath: req.SelectedRequirementsPath,
 			Root:     &rootRef,
 		}
 		err, requirementsRef := unsafeRequirementsRef.Resolve(ctx)
