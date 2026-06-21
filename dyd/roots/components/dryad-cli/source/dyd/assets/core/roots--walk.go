@@ -5,6 +5,7 @@ import (
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
+	"strings"
 )
 
 type rootsWalkRequest struct {
@@ -67,16 +68,26 @@ func rootsWalk(ctx *task.ExecutionContext, req rootsWalkRequest) (error, any) {
 	}
 
 	var onMatch = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
-		var unsafeRootRef = UnsafeRootReference{
-			BasePath: node.Path,
-			Roots:    req.Roots,
-		}
 		var safeRootRef SafeRootReference
 		var err error
+		relPath, relErr := filepath.Rel(req.Roots.BasePath, node.Path)
+		isInRootsPath := relErr == nil && relPath != ".." && !strings.HasPrefix(relPath, "../")
 
-		err, safeRootRef = unsafeRootRef.Resolve(ctx)
-		if err != nil {
-			return err, nil
+		if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink || !isInRootsPath {
+			unsafeRootRef := UnsafeRootReference{
+				BasePath: node.Path,
+				Roots:    req.Roots,
+			}
+
+			err, safeRootRef = unsafeRootRef.Resolve(ctx)
+			if err != nil {
+				return err, nil
+			}
+		} else {
+			safeRootRef = SafeRootReference{
+				BasePath: node.Path,
+				Roots:    req.Roots,
+			}
 		}
 
 		err, shouldMatchRoot := req.ShouldMatch(ctx, &safeRootRef)
