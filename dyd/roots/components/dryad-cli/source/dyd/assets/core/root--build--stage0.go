@@ -22,6 +22,7 @@ type rootBuild_stage0_request struct {
 	SelectedSecretsPath      string
 	SelectedDocsPath         string
 	SelectedRequirementsPath string
+	VariantDimensions        []VariantDimension
 }
 
 // stage 0 - build a shallow partial clone of the root into a working directory,
@@ -64,6 +65,7 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		if variant.Requirements != nil {
 			req.SelectedRequirementsPath = variant.Requirements.BasePath
 		}
+		req.VariantDimensions = variant.Dimensions
 
 		return nil, req
 	}
@@ -146,6 +148,7 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 			req.SelectedTraitsPath,
 			req.WorkspacePath,
 			req.VariantDescriptor,
+			req.VariantDimensions,
 		)
 		if err != nil {
 			return err, req

@@ -17,14 +17,9 @@ func rootBuild_materializeVariantTraits(
 	traitsSourcePath string,
 	workspacePath string,
 	variantDescriptor string,
+	dimensions []VariantDimension,
 ) error {
 	err, variantContext := RootVariantContextFromFilesystem(variantDescriptor)
-	if err != nil {
-		return err
-	}
-
-	rootRef := SafeRootReference{BasePath: rootPath}
-	err, dimensions := rootRef.VariantDimensions(ctx)
 	if err != nil {
 		return err
 	}

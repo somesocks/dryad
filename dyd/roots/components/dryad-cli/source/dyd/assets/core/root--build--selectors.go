@@ -410,6 +410,7 @@ func (variant *UnsafeRootVariantReference) Resolve(
 	safeVariant := &SafeRootVariantReference{
 		Root:       variant.Root,
 		Descriptor: concreteDescriptor,
+		Dimensions: dimensions,
 	}
 
 	err, selectedPathValues := rootVariant_resolveSelectedPathValues(

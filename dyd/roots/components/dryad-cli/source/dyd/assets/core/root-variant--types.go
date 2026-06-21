@@ -14,6 +14,7 @@ type UnsafeRootVariantReference struct {
 type SafeRootVariantReference struct {
 	Root         *SafeRootReference
 	Descriptor   VariantDescriptor
+	Dimensions   []VariantDimension
 	Assets       *SafeRootVariantAssetsReference
 	Commands     *SafeRootVariantCommandsReference
 	Traits       *SafeRootVariantTraitsReference
