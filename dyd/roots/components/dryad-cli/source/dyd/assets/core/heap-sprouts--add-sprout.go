@@ -22,7 +22,6 @@ type heapAddSproutRequest struct {
 func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error, *SafeHeapSproutReference) {
 	sproutPath := req.SproutPath
 
-	heapFilesPath := req.HeapFiles.BasePath
 	heapSproutsPath := req.HeapSprouts.BasePath
 	heapStemsPath := filepath.Join(req.HeapSprouts.Heap.BasePath, "stems")
 
@@ -53,6 +52,15 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 
 		return nil, &sproutRef
 	}
+
+	if req.HeapFiles == nil {
+		err, req.HeapFiles = req.HeapSprouts.Heap.Files().Resolve(ctx)
+		if err != nil {
+			return err, nil
+		}
+	}
+
+	heapFilesPath := req.HeapFiles.BasePath
 
 	tempSproutPath, err := os.MkdirTemp(
 		heapSproutsVersionPath,
@@ -320,16 +328,10 @@ func (heapSprouts *SafeHeapSproutsReference) AddSprout(
 	ctx *task.ExecutionContext,
 	req HeapAddSproutRequest,
 ) (error, *SafeHeapSproutReference) {
-	err, heapFiles := heapSprouts.Heap.Files().Resolve(ctx)
-	if err != nil {
-		return err, nil
-	}
-
 	err, res := memoHeapAddSprout(
 		ctx,
 		heapAddSproutRequest{
 			HeapSprouts: heapSprouts,
-			HeapFiles:   heapFiles,
 			SproutPath:  req.SproutPath,
 		},
 	)
