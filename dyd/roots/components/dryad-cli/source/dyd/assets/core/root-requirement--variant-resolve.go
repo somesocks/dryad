@@ -197,15 +197,7 @@ func (targetSpec *RootRequirementTargetSpec) ResolveVariants(
 		return err, nil
 	}
 
-	err, dimensions := targetSpec.Root.VariantDimensions(ctx)
-	if err != nil {
-		return err, nil
-	}
-	err, inclusions := targetSpec.Root.VariantInclusions(ctx)
-	if err != nil {
-		return err, nil
-	}
-	err, exclusions := targetSpec.Root.VariantExclusions(ctx)
+	err, dimensions, inclusions, exclusions := targetSpec.Root.variantMetadata(ctx)
 	if err != nil {
 		return err, nil
 	}
