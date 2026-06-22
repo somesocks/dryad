@@ -9,9 +9,7 @@ import (
 	"dryad/internal/os"
 )
 
-// This function is used to prepare the dyd/requirements for a package,
-// based on the contents of dyd/dependencies.
-var rootBuild_requirementsPrepare = func() func(string) error {
+var rootBuild_requirementsPopulate = func() func(string, string) error {
 	copyFingerprint := func(sourcePath string, destPath string) error {
 		sourceFile, err := os.Open(sourcePath)
 		if err != nil {
@@ -32,18 +30,7 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 		return destFile.Chmod(0o511)
 	}
 
-	var action = func(workspacePath string) error {
-		requirementsPath := filepath.Join(workspacePath, "dyd", "requirements")
-
-		err, _ := dydfs.RemoveAll(task.SERIAL_CONTEXT, requirementsPath)
-		if err != nil {
-			return err
-		}
-
-		if err := os.MkdirAll(requirementsPath, os.ModePerm); err != nil {
-			return err
-		}
-
+	return func(workspacePath string, requirementsPath string) error {
 		dependenciesPath := filepath.Join(workspacePath, "dyd", "dependencies")
 		dependencyEntries, err := os.ReadDir(dependenciesPath)
 		if err != nil {
@@ -69,6 +56,31 @@ var rootBuild_requirementsPrepare = func() func(string) error {
 		return nil
 	}
 
-	return action
-
 }()
+
+// This function is used to prepare the dyd/requirements for a package,
+// based on the contents of dyd/dependencies.
+var rootBuild_requirementsPrepare = func(workspacePath string) error {
+	requirementsPath := filepath.Join(workspacePath, "dyd", "requirements")
+
+	err, _ := dydfs.RemoveAll(task.SERIAL_CONTEXT, requirementsPath)
+	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(requirementsPath, os.ModePerm); err != nil {
+		return err
+	}
+
+	return rootBuild_requirementsPopulate(workspacePath, requirementsPath)
+}
+
+var rootBuild_requirementsPrepareFresh = func(workspacePath string) error {
+	requirementsPath := filepath.Join(workspacePath, "dyd", "requirements")
+
+	if err := os.Mkdir(requirementsPath, os.ModePerm); err != nil {
+		return err
+	}
+
+	return rootBuild_requirementsPopulate(workspacePath, requirementsPath)
+}
