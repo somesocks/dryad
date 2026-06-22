@@ -103,6 +103,7 @@ func rootBuildProvenanceStem(ctx *task.ExecutionContext, req rootBuildProvenance
 	assetsPath := filepath.Join(dydPath, "assets")
 	assetsResultsPath := filepath.Join(assetsPath, "results")
 	dependenciesPath := filepath.Join(dydPath, "dependencies")
+	requirementsPath := filepath.Join(dydPath, "requirements")
 	traitsPath := filepath.Join(dydPath, "traits")
 
 	err = os.Mkdir(dydPath, os.ModePerm)
@@ -114,6 +115,10 @@ func rootBuildProvenanceStem(ctx *task.ExecutionContext, req rootBuildProvenance
 		return err, nil
 	}
 	err = os.Mkdir(dependenciesPath, os.ModePerm)
+	if err != nil {
+		return err, nil
+	}
+	err = os.Mkdir(requirementsPath, os.ModePerm)
 	if err != nil {
 		return err, nil
 	}
@@ -158,6 +163,15 @@ func rootBuildProvenanceStem(ctx *task.ExecutionContext, req rootBuildProvenance
 		if err != nil {
 			return err, nil
 		}
+
+		err = os.WriteFile(
+			filepath.Join(requirementsPath, sourceFingerprint),
+			[]byte(sourceFingerprint),
+			0o511,
+		)
+		if err != nil {
+			return err, nil
+		}
 	}
 
 	for resultFingerprint, resultSources := range provenance.Results {
@@ -177,11 +191,6 @@ func rootBuildProvenanceStem(ctx *task.ExecutionContext, req rootBuildProvenance
 				return err, nil
 			}
 		}
-	}
-
-	err = rootBuild_requirementsPrepare(provenanceStemPath)
-	if err != nil {
-		return err, nil
 	}
 
 	err, _ = stemFinalize(ctx, provenanceStemPath)
