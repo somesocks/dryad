@@ -12,12 +12,6 @@ import (
 func sproutFinalize(ctx *task.ExecutionContext, sproutPath string) (error, string) {
 	var err error
 
-	// normalize sproutPath
-	sproutPath, err = StemPath(sproutPath)
-	if err != nil {
-		return err, ""
-	}
-
 	// write the type file
 	err = os.WriteFile(filepath.Join(sproutPath, "dyd", "type"), []byte(SentinelSprout.String()), os.ModePerm)
 	if err != nil {
