@@ -18,6 +18,7 @@ import (
 type rootBuildRequest struct {
 	Root              *SafeRootReference
 	VariantDescriptor string
+	Variant           *SafeRootVariantReference
 	JoinStdout        bool
 	JoinStderr        bool
 	LogStdout         struct {
@@ -305,6 +306,7 @@ func rootBuildStemResult(ctx *task.ExecutionContext, req rootBuildRequest) (erro
 			RootPath:          rootPath,
 			WorkspacePath:     workspacePath,
 			VariantDescriptor: req.VariantDescriptor,
+			Variant:           req.Variant,
 		},
 	)
 	if err != nil {
@@ -596,6 +598,31 @@ func (root *SafeRootReference) BuildStem(ctx *task.ExecutionContext, req RootBui
 	return err, res
 }
 
+func (root *SafeRootReference) buildStemResolvedVariant(ctx *task.ExecutionContext, variant *SafeRootVariantReference, req RootBuildStemRequest) (error, *RootBuildResult) {
+	if variant == nil {
+		return fmt.Errorf("missing resolved root variant"), nil
+	}
+
+	err, variantDescriptor := variant.Filesystem()
+	if err != nil {
+		return err, nil
+	}
+
+	err, res := rootBuildStemResultWrapper(
+		ctx,
+		rootBuildRequest{
+			Root:              root,
+			VariantDescriptor: variantDescriptor,
+			Variant:           variant,
+			JoinStdout:        req.JoinStdout,
+			JoinStderr:        req.JoinStderr,
+			LogStdout:         req.LogStdout,
+			LogStderr:         req.LogStderr,
+		},
+	)
+	return err, res
+}
+
 func (root *SafeRootReference) BuildSprout(ctx *task.ExecutionContext, req RootBuildSproutRequest) (error, string) {
 	err, variantDescriptor := normalizeRootBuildVariantDescriptor(req.VariantDescriptor)
 	if err != nil {
@@ -607,7 +634,7 @@ func (root *SafeRootReference) BuildSprout(ctx *task.ExecutionContext, req RootB
 		return err, ""
 	}
 
-	err, variants := root.ResolveBuildVariants(
+	err, variants := root.ResolveBuildVariantReferences(
 		ctx,
 		RootResolveBuildVariantsRequest{
 			Selector:                variantSelector,
@@ -618,34 +645,73 @@ func (root *SafeRootReference) BuildSprout(ctx *task.ExecutionContext, req RootB
 		return err, ""
 	}
 
-	renderedVariants := make([]string, 0, len(variants))
-	for _, variant := range variants {
-		err, concreteDescriptor := variantDescriptorEncodeFilesystem(variant)
-		if err != nil {
-			return err, ""
-		}
-
-		renderedVariants = append(renderedVariants, concreteDescriptor)
-	}
-
-	return root.BuildSproutVariants(
+	return root.buildSproutResolvedVariants(
 		ctx,
-		RootBuildSproutVariantsRequest{
-			VariantDescriptors: renderedVariants,
-			JoinStdout:         req.JoinStdout,
-			JoinStderr:         req.JoinStderr,
-			LogStdout:          req.LogStdout,
-			LogStderr:          req.LogStderr,
+		rootBuildSproutResolvedVariantsRequest{
+			Variants:   variants,
+			JoinStdout: req.JoinStdout,
+			JoinStderr: req.JoinStderr,
+			LogStdout:  req.LogStdout,
+			LogStderr:  req.LogStderr,
 		},
 	)
 }
 
-func (root *SafeRootReference) BuildSproutVariants(ctx *task.ExecutionContext, req RootBuildSproutVariantsRequest) (error, string) {
-	type rootBuildVariantResult struct {
-		Descriptor  string
-		BuildResult *RootBuildResult
+type rootBuildSproutResolvedVariantsRequest struct {
+	Variants   []*SafeRootVariantReference
+	JoinStdout bool
+	JoinStderr bool
+	LogStdout  struct {
+		Path string
+		Name string
+	}
+	LogStderr struct {
+		Path string
+		Name string
+	}
+}
+
+type rootBuildVariantResult struct {
+	Descriptor  string
+	BuildResult *RootBuildResult
+}
+
+func (root *SafeRootReference) buildSproutResolvedVariants(ctx *task.ExecutionContext, req rootBuildSproutResolvedVariantsRequest) (error, string) {
+	buildVariant := func(ctx *task.ExecutionContext, variant *SafeRootVariantReference) (error, rootBuildVariantResult) {
+		err, descriptor := variant.Filesystem()
+		if err != nil {
+			return err, rootBuildVariantResult{}
+		}
+
+		err, buildResult := root.buildStemResolvedVariant(
+			ctx,
+			variant,
+			RootBuildStemRequest{
+				JoinStdout: req.JoinStdout,
+				JoinStderr: req.JoinStderr,
+				LogStdout:  req.LogStdout,
+				LogStderr:  req.LogStderr,
+			},
+		)
+		if err != nil {
+			return err, rootBuildVariantResult{}
+		}
+
+		return nil, rootBuildVariantResult{
+			Descriptor:  descriptor,
+			BuildResult: buildResult,
+		}
 	}
 
+	err, builtVariants := task.ParallelMap(buildVariant)(ctx, req.Variants)
+	if err != nil {
+		return err, ""
+	}
+
+	return root.materializeBuiltSproutVariants(ctx, builtVariants)
+}
+
+func (root *SafeRootReference) BuildSproutVariants(ctx *task.ExecutionContext, req RootBuildSproutVariantsRequest) (error, string) {
 	buildVariant := func(ctx *task.ExecutionContext, concreteDescriptor string) (error, rootBuildVariantResult) {
 		err, buildResult := root.BuildStem(
 			ctx,
@@ -672,6 +738,10 @@ func (root *SafeRootReference) BuildSproutVariants(ctx *task.ExecutionContext, r
 		return err, ""
 	}
 
+	return root.materializeBuiltSproutVariants(ctx, builtVariants)
+}
+
+func (root *SafeRootReference) materializeBuiltSproutVariants(ctx *task.ExecutionContext, builtVariants []rootBuildVariantResult) (error, string) {
 	stemByVariant := map[string]string{}
 	buildResultByVariant := map[string]*RootBuildResult{}
 	for _, builtVariant := range builtVariants {
