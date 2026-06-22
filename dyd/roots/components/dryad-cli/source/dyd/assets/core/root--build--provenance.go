@@ -99,12 +99,29 @@ func rootBuildProvenanceStem(ctx *task.ExecutionContext, req rootBuildProvenance
 	}
 	defer os.RemoveAll(provenanceStemPath)
 
-	err = StemInit(provenanceStemPath)
+	dydPath := filepath.Join(provenanceStemPath, "dyd")
+	assetsPath := filepath.Join(dydPath, "assets")
+	assetsResultsPath := filepath.Join(assetsPath, "results")
+	dependenciesPath := filepath.Join(dydPath, "dependencies")
+	traitsPath := filepath.Join(dydPath, "traits")
+
+	err = os.Mkdir(dydPath, os.ModePerm)
+	if err != nil {
+		return err, nil
+	}
+	err = os.Mkdir(assetsPath, os.ModePerm)
+	if err != nil {
+		return err, nil
+	}
+	err = os.Mkdir(dependenciesPath, os.ModePerm)
+	if err != nil {
+		return err, nil
+	}
+	err = os.Mkdir(traitsPath, os.ModePerm)
 	if err != nil {
 		return err, nil
 	}
 
-	traitsPath := filepath.Join(provenanceStemPath, "dyd", "traits")
 	err = os.WriteFile(filepath.Join(traitsPath, "kind"), []byte("provenance"), 0o511)
 	if err != nil {
 		return err, nil
@@ -121,8 +138,6 @@ func rootBuildProvenanceStem(ctx *task.ExecutionContext, req rootBuildProvenance
 		return err, nil
 	}
 
-	dependenciesPath := filepath.Join(provenanceStemPath, "dyd", "dependencies")
-	assetsResultsPath := filepath.Join(provenanceStemPath, "dyd", "assets", "results")
 	heapStemsPath := filepath.Join(req.Garden.BasePath, "dyd", "heap", "stems")
 
 	for sourceFingerprint := range provenance.Sources {
