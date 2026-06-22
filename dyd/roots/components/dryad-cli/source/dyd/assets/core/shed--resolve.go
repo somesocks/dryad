@@ -7,7 +7,7 @@ import (
 	"dryad/internal/os"
 )
 
-func (shed *UnsafeShedReference) Resolve(ctx *task.ExecutionContext) (error, *SafeShedReference) {
+func resolveShedReference(ctx *task.ExecutionContext, shed *UnsafeShedReference) (error, *SafeShedReference) {
 	var shedExists bool
 	var err error
 	var safeRef SafeShedReference
@@ -36,4 +36,30 @@ func (shed *UnsafeShedReference) Resolve(ctx *task.ExecutionContext) (error, *Sa
 	}
 
 	return nil, &safeRef
+}
+
+var memoResolveShedReference = task.Memoize(
+	resolveShedReference,
+	func(ctx *task.ExecutionContext, shed *UnsafeShedReference) (error, any) {
+		type Key struct {
+			Group      string
+			BasePath   string
+			GardenPath string
+		}
+
+		gardenPath := ""
+		if shed.Garden != nil {
+			gardenPath = shed.Garden.BasePath
+		}
+
+		return nil, Key{
+			Group:      "Shed.Resolve",
+			BasePath:   shed.BasePath,
+			GardenPath: gardenPath,
+		}
+	},
+)
+
+func (shed *UnsafeShedReference) Resolve(ctx *task.ExecutionContext) (error, *SafeShedReference) {
+	return memoResolveShedReference(ctx, shed)
 }

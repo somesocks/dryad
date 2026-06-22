@@ -7,7 +7,7 @@ import (
 	// zlog "github.com/rs/zerolog/log"
 )
 
-func (ur *UnsafeRootsReference) Resolve(ctx *task.ExecutionContext) (error, *SafeRootsReference) {
+func resolveRootsReference(ctx *task.ExecutionContext, ur *UnsafeRootsReference) (error, *SafeRootsReference) {
 	var rootsExists bool
 	var err error
 	var safeRef SafeRootsReference
@@ -30,4 +30,30 @@ func (ur *UnsafeRootsReference) Resolve(ctx *task.ExecutionContext) (error, *Saf
 	}
 
 	return nil, &safeRef
+}
+
+var memoResolveRootsReference = task.Memoize(
+	resolveRootsReference,
+	func(ctx *task.ExecutionContext, ur *UnsafeRootsReference) (error, any) {
+		type Key struct {
+			Group      string
+			BasePath   string
+			GardenPath string
+		}
+
+		gardenPath := ""
+		if ur.Garden != nil {
+			gardenPath = ur.Garden.BasePath
+		}
+
+		return nil, Key{
+			Group:      "Roots.Resolve",
+			BasePath:   ur.BasePath,
+			GardenPath: gardenPath,
+		}
+	},
+)
+
+func (ur *UnsafeRootsReference) Resolve(ctx *task.ExecutionContext) (error, *SafeRootsReference) {
+	return memoResolveRootsReference(ctx, ur)
 }

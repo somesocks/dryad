@@ -1,4 +1,3 @@
-
 package core
 
 import (
@@ -10,8 +9,7 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-
-func (sprouts *UnsafeSproutsReference) Resolve(ctx *task.ExecutionContext) (error, *SafeSproutsReference) {
+func resolveSproutsReference(ctx *task.ExecutionContext, sprouts *UnsafeSproutsReference) (error, *SafeSproutsReference) {
 	zlog.Trace().
 		Str("path", sprouts.BasePath).
 		Msg("UnsafeSproutsReference.Resolve")
@@ -41,8 +39,34 @@ func (sprouts *UnsafeSproutsReference) Resolve(ctx *task.ExecutionContext) (erro
 
 	safeRef = SafeSproutsReference{
 		BasePath: sprouts.BasePath,
-		Garden: sprouts.Garden,
+		Garden:   sprouts.Garden,
 	}
 
-	return nil, &safeRef 
+	return nil, &safeRef
+}
+
+var memoResolveSproutsReference = task.Memoize(
+	resolveSproutsReference,
+	func(ctx *task.ExecutionContext, sprouts *UnsafeSproutsReference) (error, any) {
+		type Key struct {
+			Group      string
+			BasePath   string
+			GardenPath string
+		}
+
+		gardenPath := ""
+		if sprouts.Garden != nil {
+			gardenPath = sprouts.Garden.BasePath
+		}
+
+		return nil, Key{
+			Group:      "Sprouts.Resolve",
+			BasePath:   sprouts.BasePath,
+			GardenPath: gardenPath,
+		}
+	},
+)
+
+func (sprouts *UnsafeSproutsReference) Resolve(ctx *task.ExecutionContext) (error, *SafeSproutsReference) {
+	return memoResolveSproutsReference(ctx, sprouts)
 }
