@@ -8,7 +8,7 @@ import (
 	// zlog "github.com/rs/zerolog/log"
 )
 
-func (heapSprouts *UnsafeHeapSproutsReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapSproutsReference) {
+func resolveHeapSproutsReference(ctx *task.ExecutionContext, heapSprouts *UnsafeHeapSproutsReference) (error, *SafeHeapSproutsReference) {
 	var heapSproutsExists bool
 	var err error
 	var safeRef SafeHeapSproutsReference
@@ -49,4 +49,36 @@ func (heapSprouts *UnsafeHeapSproutsReference) Resolve(ctx *task.ExecutionContex
 	}
 
 	return nil, &safeRef
+}
+
+var memoResolveHeapSproutsReference = task.Memoize(
+	resolveHeapSproutsReference,
+	func(ctx *task.ExecutionContext, heapSprouts *UnsafeHeapSproutsReference) (error, any) {
+		type Key struct {
+			Group      string
+			BasePath   string
+			HeapPath   string
+			GardenPath string
+		}
+
+		heapPath := ""
+		gardenPath := ""
+		if heapSprouts.Heap != nil {
+			heapPath = heapSprouts.Heap.BasePath
+			if heapSprouts.Heap.Garden != nil {
+				gardenPath = heapSprouts.Heap.Garden.BasePath
+			}
+		}
+
+		return nil, Key{
+			Group:      "HeapSprouts.Resolve",
+			BasePath:   heapSprouts.BasePath,
+			HeapPath:   heapPath,
+			GardenPath: gardenPath,
+		}
+	},
+)
+
+func (heapSprouts *UnsafeHeapSproutsReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapSproutsReference) {
+	return memoResolveHeapSproutsReference(ctx, heapSprouts)
 }

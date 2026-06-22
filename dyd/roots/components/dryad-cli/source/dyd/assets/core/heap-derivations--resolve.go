@@ -11,7 +11,7 @@ import (
 	// zlog "github.com/rs/zerolog/log"
 )
 
-func (heapDerivations *UnsafeHeapDerivationsReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapDerivationsReference) {
+func resolveHeapDerivationsReference(ctx *task.ExecutionContext, heapDerivations *UnsafeHeapDerivationsReference) (error, *SafeHeapDerivationsReference) {
 	var heapDerivationsExists bool
 	var err error
 	var safeRef SafeHeapDerivationsReference
@@ -74,4 +74,36 @@ func (heapDerivations *UnsafeHeapDerivationsReference) Resolve(ctx *task.Executi
 	}
 
 	return nil, &safeRef
+}
+
+var memoResolveHeapDerivationsReference = task.Memoize(
+	resolveHeapDerivationsReference,
+	func(ctx *task.ExecutionContext, heapDerivations *UnsafeHeapDerivationsReference) (error, any) {
+		type Key struct {
+			Group      string
+			BasePath   string
+			HeapPath   string
+			GardenPath string
+		}
+
+		heapPath := ""
+		gardenPath := ""
+		if heapDerivations.Heap != nil {
+			heapPath = heapDerivations.Heap.BasePath
+			if heapDerivations.Heap.Garden != nil {
+				gardenPath = heapDerivations.Heap.Garden.BasePath
+			}
+		}
+
+		return nil, Key{
+			Group:      "HeapDerivations.Resolve",
+			BasePath:   heapDerivations.BasePath,
+			HeapPath:   heapPath,
+			GardenPath: gardenPath,
+		}
+	},
+)
+
+func (heapDerivations *UnsafeHeapDerivationsReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapDerivationsReference) {
+	return memoResolveHeapDerivationsReference(ctx, heapDerivations)
 }

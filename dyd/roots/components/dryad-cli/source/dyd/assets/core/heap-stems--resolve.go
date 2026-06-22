@@ -8,7 +8,7 @@ import (
 	// zlog "github.com/rs/zerolog/log"
 )
 
-func (heapStems *UnsafeHeapStemsReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapStemsReference) {
+func resolveHeapStemsReference(ctx *task.ExecutionContext, heapStems *UnsafeHeapStemsReference) (error, *SafeHeapStemsReference) {
 	var heapStemsExists bool
 	var err error
 	var safeRef SafeHeapStemsReference
@@ -50,4 +50,36 @@ func (heapStems *UnsafeHeapStemsReference) Resolve(ctx *task.ExecutionContext) (
 	}
 
 	return nil, &safeRef
+}
+
+var memoResolveHeapStemsReference = task.Memoize(
+	resolveHeapStemsReference,
+	func(ctx *task.ExecutionContext, heapStems *UnsafeHeapStemsReference) (error, any) {
+		type Key struct {
+			Group      string
+			BasePath   string
+			HeapPath   string
+			GardenPath string
+		}
+
+		heapPath := ""
+		gardenPath := ""
+		if heapStems.Heap != nil {
+			heapPath = heapStems.Heap.BasePath
+			if heapStems.Heap.Garden != nil {
+				gardenPath = heapStems.Heap.Garden.BasePath
+			}
+		}
+
+		return nil, Key{
+			Group:      "HeapStems.Resolve",
+			BasePath:   heapStems.BasePath,
+			HeapPath:   heapPath,
+			GardenPath: gardenPath,
+		}
+	},
+)
+
+func (heapStems *UnsafeHeapStemsReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapStemsReference) {
+	return memoResolveHeapStemsReference(ctx, heapStems)
 }
