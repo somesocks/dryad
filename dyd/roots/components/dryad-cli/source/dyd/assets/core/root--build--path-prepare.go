@@ -9,20 +9,7 @@ import (
 	"io/fs"
 )
 
-func rootBuild_pathPrepare(workspacePath string) error {
-
-	pathPath := filepath.Join(workspacePath, "dyd", "path")
-
-	err, _ := dydfs.RemoveAll(task.SERIAL_CONTEXT, pathPath)
-	if err != nil {
-		return err
-	}
-
-	err = os.MkdirAll(pathPath, fs.ModePerm)
-	if err != nil {
-		return err
-	}
-
+func rootBuild_pathPopulate(workspacePath string, pathPath string) error {
 	// walk through the dependencies, build them, and add the fingerprint as a dependency
 	dependenciesPath := filepath.Join(workspacePath, "dyd", "dependencies")
 
@@ -67,4 +54,30 @@ func rootBuild_pathPrepare(workspacePath string) error {
 	}
 
 	return nil
+}
+
+func rootBuild_pathPrepare(workspacePath string) error {
+	pathPath := filepath.Join(workspacePath, "dyd", "path")
+
+	err, _ := dydfs.RemoveAll(task.SERIAL_CONTEXT, pathPath)
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(pathPath, fs.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	return rootBuild_pathPopulate(workspacePath, pathPath)
+}
+
+func rootBuild_pathPrepareFresh(workspacePath string) error {
+	pathPath := filepath.Join(workspacePath, "dyd", "path")
+
+	if err := os.Mkdir(pathPath, fs.ModePerm); err != nil {
+		return err
+	}
+
+	return rootBuild_pathPopulate(workspacePath, pathPath)
 }

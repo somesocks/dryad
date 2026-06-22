@@ -33,12 +33,12 @@ func init() {
 			Str("path", relRootPath).
 			Msg("RootBuild/stage2")
 
-		err = rootBuild_requirementsPrepare(req.WorkspacePath)
+		err = rootBuild_requirementsPrepareFresh(req.WorkspacePath)
 		if err != nil {
 			return err, nil
 		}
 
-		err = rootBuild_pathPrepare(req.WorkspacePath)
+		err = rootBuild_pathPrepareFresh(req.WorkspacePath)
 		if err != nil {
 			return err, nil
 		}
