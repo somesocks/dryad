@@ -9,7 +9,7 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-func (heap *UnsafeHeapReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapReference) {
+func resolveHeapReference(ctx *task.ExecutionContext, heap *UnsafeHeapReference) (error, *SafeHeapReference) {
 	zlog.Trace().
 		Str("path", heap.BasePath).
 		Msg("UnsafeHeapReference.Resolve")
@@ -43,4 +43,30 @@ func (heap *UnsafeHeapReference) Resolve(ctx *task.ExecutionContext) (error, *Sa
 	}
 
 	return nil, &safeRef
+}
+
+var memoResolveHeapReference = task.Memoize(
+	resolveHeapReference,
+	func(ctx *task.ExecutionContext, heap *UnsafeHeapReference) (error, any) {
+		type Key struct {
+			Group      string
+			BasePath   string
+			GardenPath string
+		}
+
+		gardenPath := ""
+		if heap.Garden != nil {
+			gardenPath = heap.Garden.BasePath
+		}
+
+		return nil, Key{
+			Group:      "Heap.Resolve",
+			BasePath:   heap.BasePath,
+			GardenPath: gardenPath,
+		}
+	},
+)
+
+func (heap *UnsafeHeapReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapReference) {
+	return memoResolveHeapReference(ctx, heap)
 }

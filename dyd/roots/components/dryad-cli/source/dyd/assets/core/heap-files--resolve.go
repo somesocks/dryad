@@ -8,7 +8,7 @@ import (
 	// zlog "github.com/rs/zerolog/log"
 )
 
-func (heapFiles *UnsafeHeapFilesReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapFilesReference) {
+func resolveHeapFilesReference(ctx *task.ExecutionContext, heapFiles *UnsafeHeapFilesReference) (error, *SafeHeapFilesReference) {
 	var heapFilesExists bool
 	var err error
 	var safeRef SafeHeapFilesReference
@@ -50,4 +50,36 @@ func (heapFiles *UnsafeHeapFilesReference) Resolve(ctx *task.ExecutionContext) (
 	}
 
 	return nil, &safeRef
+}
+
+var memoResolveHeapFilesReference = task.Memoize(
+	resolveHeapFilesReference,
+	func(ctx *task.ExecutionContext, heapFiles *UnsafeHeapFilesReference) (error, any) {
+		type Key struct {
+			Group      string
+			BasePath   string
+			HeapPath   string
+			GardenPath string
+		}
+
+		heapPath := ""
+		gardenPath := ""
+		if heapFiles.Heap != nil {
+			heapPath = heapFiles.Heap.BasePath
+			if heapFiles.Heap.Garden != nil {
+				gardenPath = heapFiles.Heap.Garden.BasePath
+			}
+		}
+
+		return nil, Key{
+			Group:      "HeapFiles.Resolve",
+			BasePath:   heapFiles.BasePath,
+			HeapPath:   heapPath,
+			GardenPath: gardenPath,
+		}
+	},
+)
+
+func (heapFiles *UnsafeHeapFilesReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapFilesReference) {
+	return memoResolveHeapFilesReference(ctx, heapFiles)
 }
