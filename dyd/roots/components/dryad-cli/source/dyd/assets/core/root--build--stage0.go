@@ -187,31 +187,11 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		return err, req
 	}
 
-	var linkRequirementsDir = func(ctx *task.ExecutionContext, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
-		zlog.Trace().
-			Msg("RootBuild/stage0/linkRequirementsDir")
-
-		if req.SelectedRequirementsPath == "" {
-			return nil, req
-		}
-
-		err := os.Symlink(
-			req.SelectedRequirementsPath,
-			filepath.Join(req.WorkspacePath, "dyd", "~requirements"),
-		)
-		if err != nil {
-			return err, req
-		}
-
-		return nil, req
-	}
-
 	var rootBuild_stage0 = task.Series4(
 		prepReq,
 		mkBaseDir,
-		task.Parallel7(
+		task.Parallel6(
 			mkDependenciesDir,
-			linkRequirementsDir,
 			linkAssetsDir,
 			linkCommandsDir,
 			linkSecretsDir,
@@ -220,8 +200,7 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		),
 		func(
 			ctx *task.ExecutionContext,
-			req task.Tuple7[
-				rootBuild_stage0_request,
+			req task.Tuple6[
 				rootBuild_stage0_request,
 				rootBuild_stage0_request,
 				rootBuild_stage0_request,
