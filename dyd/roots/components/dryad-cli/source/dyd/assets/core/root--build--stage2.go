@@ -11,9 +11,8 @@ import (
 )
 
 type rootBuild_stage2_request struct {
-	RootPath      string
-	WorkspacePath string
-	GardenPath    string
+	RootPath   string
+	GardenPath string
 }
 
 // stage 2 - generate the artificial links to all executable stems for the path
@@ -33,15 +32,6 @@ func init() {
 			Str("path", relRootPath).
 			Msg("RootBuild/stage2")
 
-		err = rootBuild_requirementsPrepareFresh(req.WorkspacePath)
-		if err != nil {
-			return err, nil
-		}
-
-		err = rootBuild_pathPrepareFresh(req.WorkspacePath)
-		if err != nil {
-			return err, nil
-		}
 		return nil, nil
 	}
 

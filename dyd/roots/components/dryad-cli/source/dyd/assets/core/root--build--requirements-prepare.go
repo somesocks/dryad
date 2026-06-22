@@ -74,13 +74,3 @@ var rootBuild_requirementsPrepare = func(workspacePath string) error {
 
 	return rootBuild_requirementsPopulate(workspacePath, requirementsPath)
 }
-
-var rootBuild_requirementsPrepareFresh = func(workspacePath string) error {
-	requirementsPath := filepath.Join(workspacePath, "dyd", "requirements")
-
-	if err := os.Mkdir(requirementsPath, os.ModePerm); err != nil {
-		return err
-	}
-
-	return rootBuild_requirementsPopulate(workspacePath, requirementsPath)
-}
