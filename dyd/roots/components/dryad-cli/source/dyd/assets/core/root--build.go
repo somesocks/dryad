@@ -87,6 +87,12 @@ func rootMaterializeSprout(ctx *task.ExecutionContext, req rootMaterializeSprout
 	}
 
 	sproutDependenciesPath := filepath.Join(sproutBuildPath, "dyd", "dependencies")
+	sproutRequirementsPath := filepath.Join(sproutBuildPath, "dyd", "requirements")
+	err = os.Mkdir(sproutRequirementsPath, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("error preparing sprout requirements: %w", err), ""
+	}
+
 	descriptors := make([]string, 0, len(req.StemByVariant))
 	for descriptor := range req.StemByVariant {
 		descriptors = append(descriptors, descriptor)
@@ -114,6 +120,14 @@ func rootMaterializeSprout(ctx *task.ExecutionContext, req rootMaterializeSprout
 		)
 		if err != nil {
 			return fmt.Errorf("error linking stem dependency for sprout: %w", err), ""
+		}
+		err = os.WriteFile(
+			filepath.Join(sproutRequirementsPath, dependencyName),
+			[]byte(stemFingerprint),
+			0o511,
+		)
+		if err != nil {
+			return fmt.Errorf("error writing stem requirement for sprout: %w", err), ""
 		}
 
 		buildResult := req.BuildResultByVariant[descriptor]
@@ -144,11 +158,14 @@ func rootMaterializeSprout(ctx *task.ExecutionContext, req rootMaterializeSprout
 		if err != nil {
 			return fmt.Errorf("error linking provenance stem for sprout: %w", err), ""
 		}
-	}
-
-	err = sproutRequirementsPrepare(sproutBuildPath)
-	if err != nil {
-		return fmt.Errorf("error preparing sprout requirements: %w", err), ""
+		err = os.WriteFile(
+			filepath.Join(sproutRequirementsPath, provenanceName),
+			[]byte(provenanceStem.Fingerprint),
+			0o511,
+		)
+		if err != nil {
+			return fmt.Errorf("error writing provenance requirement for sprout: %w", err), ""
+		}
 	}
 
 	err, sproutFingerprint := sproutFinalize(ctx, sproutBuildPath)
