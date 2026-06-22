@@ -71,13 +71,3 @@ func rootBuild_pathPrepare(workspacePath string) error {
 
 	return rootBuild_pathPopulate(workspacePath, pathPath)
 }
-
-func rootBuild_pathPrepareFresh(workspacePath string) error {
-	pathPath := filepath.Join(workspacePath, "dyd", "path")
-
-	if err := os.Mkdir(pathPath, fs.ModePerm); err != nil {
-		return err
-	}
-
-	return rootBuild_pathPopulate(workspacePath, pathPath)
-}

@@ -332,9 +332,8 @@ func rootBuildStemResult(ctx *task.ExecutionContext, req rootBuildRequest) (erro
 	err, _ = rootBuild_stage2(
 		ctx,
 		rootBuild_stage2_request{
-			RootPath:      rootPath,
-			WorkspacePath: workspacePath,
-			GardenPath:    gardenPath,
+			RootPath:   rootPath,
+			GardenPath: gardenPath,
 		},
 	)
 	if err != nil {

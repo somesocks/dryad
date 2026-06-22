@@ -80,6 +80,14 @@ func init() {
 		zlog.Trace().
 			Msg("RootBuild/stage1")
 
+		if err := os.Mkdir(filepath.Join(req.WorkspacePath, "dyd", "requirements"), os.ModePerm); err != nil {
+			return err, req
+		}
+
+		if err := os.Mkdir(filepath.Join(req.WorkspacePath, "dyd", "path"), os.ModePerm); err != nil {
+			return err, req
+		}
+
 		return nil, req
 	}
 
@@ -214,12 +222,12 @@ func init() {
 			return err, nil
 		}
 
-		dependencyName := req.DependencyName
-
-		targetDepPath := filepath.Join(req.BaseRequest.WorkspacePath, "dyd", "dependencies", dependencyName)
-
-		err = os.Symlink(dependencyHeapPath, targetDepPath)
-
+		err = rootBuild_linkDependency(rootBuild_linkDependencyRequest{
+			WorkspacePath:         req.BaseRequest.WorkspacePath,
+			DependencyName:        req.DependencyName,
+			DependencyHeapPath:    dependencyHeapPath,
+			DependencyFingerprint: dependencyBuildResult.ResultFingerprint,
+		})
 		if err != nil {
 			return err, nil
 		}
