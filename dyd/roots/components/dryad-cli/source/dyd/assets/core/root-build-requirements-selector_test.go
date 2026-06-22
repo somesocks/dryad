@@ -2,7 +2,6 @@ package core
 
 import (
 	"dryad/internal/filepath"
-	"os"
 	"testing"
 
 	"dryad/task"
@@ -80,7 +79,7 @@ func TestRootBuildSelectRequirementsPath_MultipleMatchesFails(t *testing.T) {
 	assert.Contains(err.Error(), "multiple matching dyd/requirements selectors")
 }
 
-func TestRootBuildStage0_LinksOnlySelectedRequirementsToTempPath(t *testing.T) {
+func TestRootBuildStage0_ReturnsOnlySelectedRequirementsPath(t *testing.T) {
 	assert := assert.New(t)
 
 	rootPath := t.TempDir()
@@ -91,21 +90,17 @@ func TestRootBuildStage0_LinksOnlySelectedRequirementsToTempPath(t *testing.T) {
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "requirements~os=linux", "dep"), "root:../../../dep-linux")
 	writeFileForTest(t, filepath.Join(rootPath, "dyd", "requirements~os=darwin", "dep"), "root:../../../dep-darwin")
 
-	err, _ := rootBuild_stage0(task.SERIAL_CONTEXT, rootBuild_stage0_request{
+	err, stage0Req := rootBuild_stage0(task.SERIAL_CONTEXT, rootBuild_stage0_request{
 		RootPath:          rootPath,
 		WorkspacePath:     workspacePath,
 		VariantDescriptor: "os=linux",
 	})
 	assert.Nil(err)
+	assert.Equal(filepath.Join(rootPath, "dyd", "requirements~os=linux"), stage0Req.SelectedRequirementsPath)
 
-	workspaceRequirementsPath := filepath.Join(workspacePath, "dyd", "~requirements")
-	workspaceRequirementsInfo, err := os.Lstat(workspaceRequirementsPath)
+	exists, err := fileExists(filepath.Join(workspacePath, "dyd", "~requirements"))
 	assert.Nil(err)
-	assert.True(workspaceRequirementsInfo.Mode()&os.ModeSymlink == os.ModeSymlink)
-
-	selectedRequirementsPath, err := os.Readlink(workspaceRequirementsPath)
-	assert.Nil(err)
-	assert.Equal(filepath.Join(rootPath, "dyd", "requirements~os=linux"), selectedRequirementsPath)
+	assert.False(exists)
 }
 
 func TestRootBuildStage0_NoMatchingRequirementsLeavesTempRequirementsPathAbsent(t *testing.T) {
