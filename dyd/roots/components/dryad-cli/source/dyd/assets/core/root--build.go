@@ -359,15 +359,6 @@ func rootBuildStemResult(ctx *task.ExecutionContext, req rootBuildRequest) (erro
 		return fmt.Errorf("error generating root fingerprint: %w", err), nil
 	}
 
-	err = checkTypeFileWhitespace(
-		filepath.Join(rootPath, "dyd", "type"),
-		filepath.Join("dyd", "roots", relRootPath, "dyd", "type"),
-		SentinelRoot.String(),
-	)
-	if err != nil {
-		return err, nil
-	}
-
 	isUnstableRoot, err := fileExists(
 		filepath.Join(workspacePath, "dyd", "traits", "unstable"),
 	)
