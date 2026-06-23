@@ -211,6 +211,11 @@ func rootMaterializeSprout(ctx *task.ExecutionContext, req rootMaterializeSprout
 		Str("path", relSproutPath).
 		Msg("root build - linking sprout")
 
+	currentSproutLink, err := os.Readlink(sproutPath)
+	if err == nil && currentSproutLink == relSproutLink {
+		return nil, sproutFingerprint
+	}
+
 	relSproutParentPath := filepath.Dir(relRootPath)
 	if relSproutParentPath != "." {
 		currentPath := sproutsPath
