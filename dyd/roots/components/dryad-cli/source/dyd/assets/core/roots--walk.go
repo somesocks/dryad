@@ -63,6 +63,11 @@ func rootsWalk(ctx *task.ExecutionContext, req rootsWalkRequest) (error, any) {
 	}
 
 	var shouldMatch = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+		// Only directories and symlinks can be roots; regular files cannot contain dyd/type.
+		if !node.Info.IsDir() && node.Info.Mode()&os.ModeSymlink != os.ModeSymlink {
+			return nil, false
+		}
+
 		err, root := isRoot(ctx, node.Path)
 		return err, root
 	}
