@@ -59,9 +59,9 @@ func init() {
 	// the initialization for rootBuild_stage1 has to be deferred in an init block,
 	// in order to avoid an init cycle with RootBuild
 	type rootBuild_stage1_buildDependencyRequest struct {
-		Roots                       *SafeRootsReference
 		BaseRequest                 rootBuild_stage1_request
 		DependencyName              string
+		DependencyRoot              *SafeRootReference
 		DependencyPath              string
 		DependencyVariantDescriptor string
 		JoinStdout                  bool
@@ -153,9 +153,9 @@ func init() {
 					}
 
 					buildDependencyRequests = append(buildDependencyRequests, rootBuild_stage1_buildDependencyRequest{
-						Roots:                       req.Roots,
 						BaseRequest:                 req,
 						DependencyName:              dependencyName,
+						DependencyRoot:              target.Root,
 						DependencyPath:              target.Root.BasePath,
 						DependencyVariantDescriptor: dependencyVariantDescriptor,
 						JoinStdout:                  req.JoinStdout,
@@ -176,22 +176,11 @@ func init() {
 	}
 
 	var rootBuild_stage1_buildDependency = func(ctx *task.ExecutionContext, req rootBuild_stage1_buildDependencyRequest) (error, *RootBuildResult) {
-
-		var unsafeDepReference = UnsafeRootReference{
-			Roots:    req.Roots,
-			BasePath: req.DependencyPath,
+		if req.DependencyRoot == nil {
+			return fmt.Errorf("missing dependency root: %s", req.DependencyPath), nil
 		}
 
-		var safeDepReference SafeRootReference
-		var err error
-
-		// verify that root path is valid for dependency
-		err, safeDepReference = unsafeDepReference.Resolve(ctx)
-		if err != nil {
-			return err, nil
-		}
-
-		err, dependencyBuildResult := safeDepReference.BuildStem(
+		err, dependencyBuildResult := req.DependencyRoot.BuildStem(
 			ctx,
 			RootBuildStemRequest{
 				VariantDescriptor: req.DependencyVariantDescriptor,
