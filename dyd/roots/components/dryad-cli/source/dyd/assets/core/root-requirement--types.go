@@ -1,11 +1,14 @@
 package core
 
+import "io/fs"
+
 type UnsafeRootRequirementReference struct {
-	BasePath string
+	BasePath     string
 	Requirements *SafeRootRequirementsReference
 }
 
 type SafeRootRequirementReference struct {
-	BasePath string
+	BasePath     string
+	fileInfo     fs.FileInfo
 	Requirements *SafeRootRequirementsReference
 }

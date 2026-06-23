@@ -111,13 +111,9 @@ func init() {
 			return err, buildDependencyRequests
 		}
 
-		unsafeRequirementsRef := UnsafeRootRequirementsReference{
+		requirementsRef := SafeRootRequirementsReference{
 			BasePath: req.SelectedRequirementsPath,
 			Root:     &rootRef,
-		}
-		err, requirementsRef := unsafeRequirementsRef.Resolve(ctx)
-		if err != nil {
-			return err, buildDependencyRequests
 		}
 
 		err = requirementsRef.Walk(task.SERIAL_CONTEXT, RootRequirementsWalkRequest{
