@@ -35,9 +35,13 @@ func rootRequirementVariantSelectorFromURL(linkURL *url.URL) (error, VariantDesc
 }
 
 func (rootRequirement *SafeRootRequirementReference) TargetSpec(ctx *task.ExecutionContext) (error, *RootRequirementTargetSpec) {
-	linkInfo, err := os.Lstat(rootRequirement.BasePath)
-	if err != nil {
-		return err, nil
+	linkInfo := rootRequirement.fileInfo
+	if linkInfo == nil {
+		var err error
+		linkInfo, err = os.Lstat(rootRequirement.BasePath)
+		if err != nil {
+			return err, nil
+		}
 	}
 
 	isSymlink := linkInfo.Mode()&os.ModeSymlink == os.ModeSymlink

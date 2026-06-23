@@ -24,6 +24,7 @@ func (requirements *SafeRootRequirementsReference) Walk(ctx *task.ExecutionConte
 	var onMatch = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
 		safeRequirementRef := &SafeRootRequirementReference{
 			BasePath:     node.Path,
+			fileInfo:     node.Info,
 			Requirements: requirements,
 		}
 
