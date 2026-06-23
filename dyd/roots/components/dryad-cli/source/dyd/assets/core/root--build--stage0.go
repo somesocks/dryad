@@ -16,6 +16,7 @@ type rootBuild_stage0_request struct {
 	RootPath                 string
 	WorkspacePath            string
 	VariantDescriptor        string
+	Variant                  *SafeRootVariantReference
 	SelectedAssetsPath       string
 	SelectedCommandsPath     string
 	SelectedTraitsPath       string
@@ -36,15 +37,18 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		zlog.Trace().
 			Msg("RootBuild/stage0/prepReq")
 
-		rootRef := SafeRootReference{BasePath: req.RootPath}
-		err, unsafeVariant := rootRef.VariantFromFilesystem(req.VariantDescriptor)
-		if err != nil {
-			return err, req
-		}
+		variant := req.Variant
+		if variant == nil {
+			rootRef := SafeRootReference{BasePath: req.RootPath}
+			err, unsafeVariant := rootRef.VariantFromFilesystem(req.VariantDescriptor)
+			if err != nil {
+				return err, req
+			}
 
-		err, variant := unsafeVariant.Resolve(ctx)
-		if err != nil {
-			return err, req
+			err, variant = unsafeVariant.Resolve(ctx)
+			if err != nil {
+				return err, req
+			}
 		}
 
 		if variant.Assets != nil {

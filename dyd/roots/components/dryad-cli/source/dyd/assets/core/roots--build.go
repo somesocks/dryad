@@ -65,7 +65,7 @@ func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, a
 			return err, nil
 		}
 
-		selectedDescriptors := make([]string, 0, len(variants))
+		selectedVariants := make([]*SafeRootVariantReference, 0, len(variants))
 		for _, variant := range variants {
 			err, shouldMatch := request.Filter(ctx, variant)
 			if err != nil {
@@ -75,25 +75,21 @@ func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, a
 				continue
 			}
 
-			err, rendered := variant.Filesystem()
-			if err != nil {
-				return err, nil
-			}
-			selectedDescriptors = append(selectedDescriptors, rendered)
+			selectedVariants = append(selectedVariants, variant)
 		}
 
-		if len(selectedDescriptors) == 0 {
+		if len(selectedVariants) == 0 {
 			return nil, nil
 		}
 
-		err, _ = root.BuildSproutVariants(
+		err, _ = root.buildSproutResolvedVariants(
 			ctx,
-			RootBuildSproutVariantsRequest{
-				VariantDescriptors: selectedDescriptors,
-				JoinStdout:         request.JoinStdout,
-				JoinStderr:         request.JoinStderr,
-				LogStdout:          request.LogStdout,
-				LogStderr:          request.LogStderr,
+			rootBuildSproutResolvedVariantsRequest{
+				Variants:   selectedVariants,
+				JoinStdout: request.JoinStdout,
+				JoinStderr: request.JoinStderr,
+				LogStdout:  request.LogStdout,
+				LogStderr:  request.LogStderr,
 			},
 		)
 		return err, nil
