@@ -61,11 +61,3 @@ Root builds are variant-aware:
 Build caching is variant-scoped: different concrete variants are cached independently.
 
 For full variant semantics and selector behavior, see [Root variants](../02-10-root-variants/).
-
-## Unstable roots
-
-A root is _unstable_ if the package has dependencies that may change between builds. A common example is using the current time as a property during the build process.
-
-If a root is unstable, add the trait `dyd/traits/unstable` (file content does not matter). If this file exists, dryad bypasses derivation cache reuse and rebuilds the root.
-
-Keep in mind that any root with a direct or indirect dependency on an unstable root may also need to be rebuilt.
