@@ -359,13 +359,6 @@ func rootBuildStemResult(ctx *task.ExecutionContext, req rootBuildRequest) (erro
 		return fmt.Errorf("error generating root fingerprint: %w", err), nil
 	}
 
-	isUnstableRoot, err := fileExists(
-		filepath.Join(workspacePath, "dyd", "traits", "unstable"),
-	)
-	if err != nil {
-		return err, nil
-	}
-
 	err, rootStem := rootBuild_stage4(
 		ctx,
 		rootBuild_stage4_request{
@@ -378,32 +371,28 @@ func rootBuildStemResult(ctx *task.ExecutionContext, req rootBuildRequest) (erro
 		return fmt.Errorf("error packing root into heap: %w", err), nil
 	}
 
-	var heapDerivations *SafeHeapDerivationsReference
-	if !isUnstableRoot {
-		err, heap := req.Root.Roots.Garden.Heap().Resolve(ctx)
-		if err != nil {
-			return err, nil
-		}
+	err, heap := req.Root.Roots.Garden.Heap().Resolve(ctx)
+	if err != nil {
+		return err, nil
+	}
 
-		err, heapDerivations = heap.Derivations().Resolve(ctx)
-		if err != nil {
-			return err, nil
-		}
+	err, heapDerivations := heap.Derivations().Resolve(ctx)
+	if err != nil {
+		return err, nil
+	}
 
-		unsafeDerivationRef := heapDerivations.Derivation(rootFingerprint)
+	unsafeDerivationRef := heapDerivations.Derivation(rootFingerprint)
 
-		err, safeDerivationRef := unsafeDerivationRef.Resolve(ctx)
-		if err == nil {
-			return nil, &RootBuildResult{
-				SourceFingerprint: rootFingerprint,
-				ResultFingerprint: safeDerivationRef.ResultFingerprint,
-				Dependencies:      dependencyResults,
-			}
+	err, safeDerivationRef := unsafeDerivationRef.Resolve(ctx)
+	if err == nil {
+		return nil, &RootBuildResult{
+			SourceFingerprint: rootFingerprint,
+			ResultFingerprint: safeDerivationRef.ResultFingerprint,
+			Dependencies:      dependencyResults,
 		}
-		if !errors.Is(err, ErrUnresolvableHeapDerivation) {
-			return err, nil
-		}
-
+	}
+	if !errors.Is(err, ErrUnresolvableHeapDerivation) {
+		return err, nil
 	}
 
 	zlog.Info().
@@ -447,15 +436,13 @@ func rootBuildStemResult(ctx *task.ExecutionContext, req rootBuildRequest) (erro
 		return fmt.Errorf("error packing stem into heap: %w", err), nil
 	}
 
-	if !isUnstableRoot && heapDerivations != nil {
-		err, _ = heapDerivations.Add(
-			ctx,
-			rootFingerprint,
-			stemBuildFingerprint,
-		)
-		if err != nil {
-			return err, nil
-		}
+	err, _ = heapDerivations.Add(
+		ctx,
+		rootFingerprint,
+		stemBuildFingerprint,
+	)
+	if err != nil {
+		return err, nil
 	}
 
 	zlog.Info().
