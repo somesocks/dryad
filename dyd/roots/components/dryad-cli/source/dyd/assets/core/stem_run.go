@@ -64,6 +64,94 @@ type StemRunRequest struct {
 	InheritEnv bool
 }
 
+func stemRunReservedEnvName(name string) bool {
+	switch name {
+	case "PATH",
+		"HOME",
+		"DYD_CONTEXT",
+		"DYD_STEM",
+		"DYD_GARDEN",
+		"DYD_CLI_BIN",
+		"DYD_OS",
+		"DYD_ARCH",
+		"DYD_LOG_LEVEL",
+		"DOCKER_HOST":
+		return true
+	default:
+		return false
+	}
+}
+
+func stemRunEnvRequirements(stemPath string) (map[string]string, error) {
+	requirementEnv := map[string]string{}
+	requirementsPath := filepath.Join(stemPath, "dyd", "requirements")
+	requirementEntries, err := os.ReadDir(requirementsPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return requirementEnv, nil
+		}
+		return nil, err
+	}
+
+	for _, requirementEntry := range requirementEntries {
+		if requirementEntry.IsDir() {
+			continue
+		}
+
+		requirementPath := filepath.Join(requirementsPath, requirementEntry.Name())
+		requirementBytes, err := os.ReadFile(requirementPath)
+		if err != nil {
+			return nil, err
+		}
+
+		err, envSpec, isEnv := rootRequirementParseEnvTarget(string(requirementBytes))
+		if err != nil {
+			return nil, fmt.Errorf("invalid env requirement %s: %w", requirementEntry.Name(), err)
+		}
+		if !isEnv {
+			continue
+		}
+
+		err, requirementName, condition := rootRequirementParseName(requirementEntry.Name())
+		if err != nil {
+			return nil, err
+		}
+		if len(condition) > 0 {
+			return nil, fmt.Errorf("conditional env requirement is not valid in a stem: %s", requirementEntry.Name())
+		}
+
+		err, injectName := rootRequirementCanonicalEnvName(requirementName)
+		if err != nil {
+			return nil, err
+		}
+		if stemRunReservedEnvName(injectName) {
+			return nil, fmt.Errorf("env requirement cannot inject reserved env var: %s", injectName)
+		}
+
+		envValue, exists := os.LookupEnv(envSpec.Name)
+		if !exists {
+			return nil, fmt.Errorf("missing env requirement %s: host env %s is not set", injectName, envSpec.Name)
+		}
+
+		if envSpec.Fingerprint != "" {
+			err, envFingerprint := rootRequirementEnvValueFingerprint(envValue)
+			if err != nil {
+				return nil, err
+			}
+			if envFingerprint != envSpec.Fingerprint {
+				return nil, fmt.Errorf("env requirement %s fingerprint mismatch for host env %s", injectName, envSpec.Name)
+			}
+		}
+
+		if _, exists := requirementEnv[injectName]; exists {
+			return nil, fmt.Errorf("duplicate env requirement injects %s", injectName)
+		}
+		requirementEnv[injectName] = envValue
+	}
+
+	return requirementEnv, nil
+}
+
 func stemRun_prepContext(request StemRunRequest) (string, error) {
 	var gardenPath string
 	var err error
@@ -93,14 +181,14 @@ type StemRunInstance struct {
 func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 	var workingPath = request.WorkingPath
 	var stemPath = request.StemPath
-	var env = request.Env
+	var env = map[string]string{}
 	var args = request.Args
 	var gardenPath string
 	var err error
 	var closers []io.Closer
 
-	if env == nil {
-		env = make(map[string]string)
+	for key, value := range request.Env {
+		env[key] = value
 	}
 
 	if !filepath.IsAbs(stemPath) {
@@ -131,6 +219,20 @@ func StemRunCommand(request StemRunRequest) (*StemRunInstance, error) {
 	dryadPath = filepath.Dir(dryadPath)
 
 	stemPathEnv := BuildPlatformPath(stemPath, dryadPath)
+
+	requirementEnv, err := stemRunEnvRequirements(stemPath)
+	if err != nil {
+		return nil, err
+	}
+	for key, value := range requirementEnv {
+		if existingValue, exists := env[key]; exists {
+			if existingValue != value {
+				return nil, fmt.Errorf("env requirement conflicts with explicit env value for %s", key)
+			}
+			continue
+		}
+		env[key] = value
+	}
 
 	var command string
 	if request.MainOverride != "" {

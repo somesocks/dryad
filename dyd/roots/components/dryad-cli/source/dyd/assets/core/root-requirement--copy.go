@@ -2,6 +2,7 @@ package core
 
 import (
 	// fs2 "dryad/filesystem"
+	"dryad/internal/os"
 	"dryad/task"
 
 	// "os"
@@ -23,6 +24,27 @@ func (rootRequirement *SafeRootRequirementReference) Copy(
 	if err != nil {
 		return err, nil
 	}
+	if rootRequirementTargetKind(targetSpec.Kind) != RootRequirementTargetKindRoot {
+		alias := filepath.Base(rootRequirement.BasePath)
+		destRequirementPath := filepath.Join(req.DestRequirements.BasePath, alias)
+		if err := os.MkdirAll(req.DestRequirements.BasePath, os.ModePerm); err != nil {
+			return err, nil
+		}
+
+		contents, err := os.ReadFile(rootRequirement.BasePath)
+		if err != nil {
+			return err, nil
+		}
+		if err := os.WriteFile(destRequirementPath, contents, 0644); err != nil {
+			return err, nil
+		}
+
+		return nil, &SafeRootRequirementReference{
+			BasePath:     destRequirementPath,
+			Requirements: req.DestRequirements,
+		}
+	}
+
 	target := targetSpec.Root
 
 	err, targetVariantSelector := variantDescriptorEncodeURL(targetSpec.VariantSelector)

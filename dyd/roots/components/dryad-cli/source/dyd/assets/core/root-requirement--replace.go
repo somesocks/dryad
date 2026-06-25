@@ -23,6 +23,10 @@ func rootRequirementTargetSpecMatchesReplaceTarget(
 	targetSpec *RootRequirementTargetSpec,
 	matchSpec RootReplaceTargetSpec,
 ) bool {
+	if rootRequirementTargetKind(targetSpec.Kind) != RootRequirementTargetKindRoot || targetSpec.Root == nil {
+		return false
+	}
+
 	if targetSpec.Root.BasePath != matchSpec.Root.BasePath {
 		return false
 	}
@@ -45,6 +49,10 @@ func rootRequirementTargetSpecApplyReplaceTarget(
 	targetSpec *RootRequirementTargetSpec,
 	replaceSpec RootReplaceTargetSpec,
 ) (error, *RootRequirementTargetSpec) {
+	if rootRequirementTargetKind(targetSpec.Kind) != RootRequirementTargetKindRoot {
+		return nil, targetSpec
+	}
+
 	if replaceSpec.Root == nil {
 		return fmt.Errorf("missing replacement root"), nil
 	}
@@ -61,6 +69,7 @@ func rootRequirementTargetSpecApplyReplaceTarget(
 	}
 
 	return nil, &RootRequirementTargetSpec{
+		Kind:            RootRequirementTargetKindRoot,
 		Root:            replaceSpec.Root,
 		VariantSelector: nextSelector,
 	}
@@ -72,6 +81,9 @@ func (rootRequirement *SafeRootRequirementReference) Replace(ctx *task.Execution
 
 	if targetSpec == nil || targetSpec.Root == nil {
 		return fmt.Errorf("missing replacement target")
+	}
+	if rootRequirementTargetKind(targetSpec.Kind) != RootRequirementTargetKindRoot {
+		return fmt.Errorf("replacement target must be a root")
 	}
 
 	err, variantSelector := variantDescriptorEncodeURL(targetSpec.VariantSelector)

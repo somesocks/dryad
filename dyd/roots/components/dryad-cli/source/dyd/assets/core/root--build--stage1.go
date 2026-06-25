@@ -96,6 +96,44 @@ func init() {
 		req rootBuild_stage1_request,
 	) (error, []rootBuild_stage1_buildDependencyRequest) {
 		var buildDependencyRequests []rootBuild_stage1_buildDependencyRequest
+		boundNames := map[string]struct{}{}
+
+		bindName := func(name string) error {
+			if _, exists := boundNames[name]; exists {
+				return fmt.Errorf("duplicate materialized requirement name: %s", name)
+			}
+			boundNames[name] = struct{}{}
+			return nil
+		}
+
+		materializeEnvRequirement := func(requirementName string, targetSpec *RootRequirementTargetSpec) error {
+			err, injectName := rootRequirementCanonicalEnvName(requirementName)
+			if err != nil {
+				return err
+			}
+			if err := bindName(injectName); err != nil {
+				return err
+			}
+
+			envValue, exists := os.LookupEnv(targetSpec.EnvName)
+			if !exists {
+				return fmt.Errorf("missing env requirement %s: host env %s is not set", injectName, targetSpec.EnvName)
+			}
+
+			err, envFingerprint := rootRequirementEnvValueFingerprint(envValue)
+			if err != nil {
+				return err
+			}
+			if targetSpec.EnvFingerprint != "" && targetSpec.EnvFingerprint != envFingerprint {
+				return fmt.Errorf("env requirement %s fingerprint mismatch for host env %s", injectName, targetSpec.EnvName)
+			}
+
+			return os.WriteFile(
+				filepath.Join(req.WorkspacePath, "dyd", "requirements", injectName),
+				[]byte(rootRequirementEnvTargetString(targetSpec.EnvName, envFingerprint)),
+				0o511,
+			)
+		}
 
 		if req.SelectedRequirementsPath == "" {
 			return nil, buildDependencyRequests
@@ -134,6 +172,14 @@ func init() {
 					return nil, nil
 				}
 
+				err, targetSpec := requirement.TargetSpec(ctx)
+				if err != nil {
+					return err, nil
+				}
+				if rootRequirementTargetKind(targetSpec.Kind) == RootRequirementTargetKindEnv {
+					return materializeEnvRequirement(requirementName, targetSpec), nil
+				}
+
 				err, targets := requirement.ResolveTargets(ctx, RootRequirementResolveTargetsRequest{
 					ParentVariant: parentVariantContext.Descriptor,
 				})
@@ -144,6 +190,9 @@ func init() {
 				for _, target := range targets {
 					err, dependencyName := rootBuild_stage1DependencyName(requirementName, target, len(targets))
 					if err != nil {
+						return err, nil
+					}
+					if err := bindName(dependencyName); err != nil {
 						return err, nil
 					}
 
