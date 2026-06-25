@@ -13,17 +13,25 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-func rootRequirementAdd_parseDependencyTarget(raw string) (error, string, string) {
+func rootRequirementAdd_parseDependencyTarget(raw string) (error, string, string, string) {
 	targetURL, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil {
-		return err, "", ""
+		return err, "", "", ""
+	}
+
+	if targetURL.Scheme == "env" {
+		err, envTarget := dryad.RootRequirementEnvTargetNormalize(raw)
+		if err != nil {
+			return err, "", "", ""
+		}
+		return nil, "env", envTarget, ""
 	}
 
 	if targetURL.Scheme != "" && targetURL.Scheme != "root" {
-		return fmt.Errorf("unsupported scheme for root requirement: %s", targetURL.Scheme), "", ""
+		return fmt.Errorf("unsupported scheme for root requirement: %s", targetURL.Scheme), "", "", ""
 	}
 	if targetURL.Fragment != "" {
-		return fmt.Errorf("variant descriptor fragments are not supported; use query parameters with '&'"), "", ""
+		return fmt.Errorf("variant descriptor fragments are not supported; use query parameters with '&'"), "", "", ""
 	}
 
 	targetPath := targetURL.Path
@@ -31,7 +39,7 @@ func rootRequirementAdd_parseDependencyTarget(raw string) (error, string, string
 		targetPath = targetURL.Opaque
 	}
 	if targetPath == "" {
-		return fmt.Errorf("missing root requirement target path"), "", ""
+		return fmt.Errorf("missing root requirement target path"), "", "", ""
 	}
 
 	variantSelectorRaw := ""
@@ -39,7 +47,7 @@ func rootRequirementAdd_parseDependencyTarget(raw string) (error, string, string
 		variantSelectorRaw = "?" + targetURL.RawQuery
 	}
 
-	return nil, targetPath, variantSelectorRaw
+	return nil, "root", targetPath, variantSelectorRaw
 }
 
 var rootRequirementAddCommand = func() clib.Command {
@@ -47,6 +55,7 @@ var rootRequirementAddCommand = func() clib.Command {
 		RootPath           string
 		Variant            string
 		DepPath            string
+		DepScheme          string
 		DepVariantSelector string
 		Alias              string
 		Parallel           int
@@ -79,14 +88,16 @@ var rootRequirementAddCommand = func() clib.Command {
 			return err, ParsedArgs{}
 		}
 
-		err, depPath, depVariantSelector := rootRequirementAdd_parseDependencyTarget(depRaw)
+		err, depScheme, depPath, depVariantSelector := rootRequirementAdd_parseDependencyTarget(depRaw)
 		if err != nil {
 			return err, ParsedArgs{}
 		}
 
-		err, depPath = dydfs.PartialEvalSymlinks(ctx, depPath)
-		if err != nil {
-			return err, ParsedArgs{}
+		if depScheme == "root" {
+			err, depPath = dydfs.PartialEvalSymlinks(ctx, depPath)
+			if err != nil {
+				return err, ParsedArgs{}
+			}
 		}
 
 		var variant string
@@ -98,6 +109,7 @@ var rootRequirementAddCommand = func() clib.Command {
 			RootPath:           rootPath,
 			Variant:            variant,
 			DepPath:            depPath,
+			DepScheme:          depScheme,
 			DepVariantSelector: depVariantSelector,
 			Alias:              alias,
 			Parallel:           parallel,
@@ -130,19 +142,29 @@ var rootRequirementAddCommand = func() clib.Command {
 			return err, nil
 		}
 
-		err, dep := roots.Root(args.DepPath).Resolve(ctx)
-		if err != nil {
-			return err, nil
-		}
+		if args.DepScheme == "env" {
+			err, _ = reqs.AddEnv(
+				ctx,
+				dryad.RootRequirementsAddEnvRequest{
+					Alias:  args.Alias,
+					Target: args.DepPath,
+				},
+			)
+		} else {
+			err, dep := roots.Root(args.DepPath).Resolve(ctx)
+			if err != nil {
+				return err, nil
+			}
 
-		err, _ = reqs.Add(
-			ctx,
-			dryad.RootRequirementsAddRequest{
-				Dependency:                &dep,
-				Alias:                     args.Alias,
-				DependencyVariantSelector: args.DepVariantSelector,
-			},
-		)
+			err, _ = reqs.Add(
+				ctx,
+				dryad.RootRequirementsAddRequest{
+					Dependency:                &dep,
+					Alias:                     args.Alias,
+					DependencyVariantSelector: args.DepVariantSelector,
+				},
+			)
+		}
 		if err != nil {
 			return err, nil
 		}
@@ -172,10 +194,10 @@ var rootRequirementAddCommand = func() clib.Command {
 		},
 	)
 
-	command := clib.NewCommand("add", "add a root as a dependency of the current root").
+	command := clib.NewCommand("add", "add a requirement to the current root").
 		WithArg(
 			clib.
-				NewArg("path", "path or root URL to add as a dependency (for example ../dep or root:../dep?arch=amd64&os=linux)").
+				NewArg("target", "requirement target to add (for example ../dep, root:../dep?arch=amd64&os=linux, or env:DISPLAY)").
 				WithAutoComplete(ArgAutoCompletePath),
 		).
 		WithArg(clib.NewArg("alias", "the alias to add the root under. if not specified, this defaults to the basename of the linked root").AsOptional()).

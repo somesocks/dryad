@@ -4,6 +4,7 @@ import (
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
+	"fmt"
 	"net/url"
 	"strings"
 	// zlog "github.com/rs/zerolog/log"
@@ -13,6 +14,11 @@ type RootRequirementsAddRequest struct {
 	Dependency                *SafeRootReference
 	Alias                     string
 	DependencyVariantSelector string
+}
+
+type RootRequirementsAddEnvRequest struct {
+	Alias  string
+	Target string
 }
 
 func (requirements *SafeRootRequirementsReference) Add(
@@ -72,4 +78,49 @@ func (requirements *SafeRootRequirementsReference) Add(
 		Requirements: requirements,
 	}
 	return nil, &rootRequirementRef
+}
+
+func (requirements *SafeRootRequirementsReference) AddEnv(
+	ctx *task.ExecutionContext,
+	req RootRequirementsAddEnvRequest,
+) (error, *SafeRootRequirementReference) {
+	err, envSpec, isEnv := rootRequirementParseEnvTarget(req.Target)
+	if err != nil {
+		return err, nil
+	}
+	if !isEnv {
+		return fmt.Errorf("env requirement target must use env scheme: %s", req.Target), nil
+	}
+
+	alias := req.Alias
+	if alias == "" {
+		alias = envSpec.Name
+	}
+
+	err, aliasName, condition := rootRequirementParseName(alias)
+	if err != nil {
+		return err, nil
+	}
+	err, _ = rootRequirementCanonicalEnvName(aliasName)
+	if err != nil {
+		return err, nil
+	}
+	err, alias = rootRequirementEncodeName(aliasName, condition)
+	if err != nil {
+		return err, nil
+	}
+
+	if err := os.MkdirAll(requirements.BasePath, os.ModePerm); err != nil {
+		return err, nil
+	}
+
+	requirementPath := filepath.Join(requirements.BasePath, alias)
+	if err := os.WriteFile(requirementPath, []byte(rootRequirementEnvTargetString(envSpec.Name, envSpec.Fingerprint)), 0644); err != nil {
+		return err, nil
+	}
+
+	return nil, &SafeRootRequirementReference{
+		BasePath:     requirementPath,
+		Requirements: requirements,
+	}
 }

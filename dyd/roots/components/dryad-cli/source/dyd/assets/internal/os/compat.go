@@ -46,6 +46,10 @@ func Getenv(key string) string {
 	return stdos.Getenv(key)
 }
 
+func LookupEnv(key string) (string, bool) {
+	return stdos.LookupEnv(key)
+}
+
 func IsNotExist(err error) bool {
 	return stdos.IsNotExist(err)
 }

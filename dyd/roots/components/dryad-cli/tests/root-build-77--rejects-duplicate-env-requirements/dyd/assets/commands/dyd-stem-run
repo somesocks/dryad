@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+TEMP_DIR=''
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+	mkdir -p "$TEMP_DIR/dyd/roots"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	cd "$TEMP_DIR"
+}
+
+_create_duplicate_root() {
+	mkdir -p dyd/roots/root-dup/dyd/commands
+	printf 'root' > dyd/roots/root-dup/dyd/type
+	cat > dyd/roots/root-dup/dyd/commands/dyd-root-build <<'EOF'
+#!/usr/bin/env sh
+set -eu
+mkdir -p "$DYD_BUILD/dyd/requirements"
+printf '%s' 'env:DRYAD_TEST_DUPLICATE_VALUE' > "$DYD_BUILD/dyd/requirements/my-value"
+printf '%s' 'env:DRYAD_TEST_DUPLICATE_VALUE' > "$DYD_BUILD/dyd/requirements/my.value"
+cat > "$DYD_BUILD/dyd/commands/dyd-stem-run" <<'RUNEOF'
+#!/usr/bin/env sh
+set -eu
+printf '%s' "$MY_VALUE" > /dev/null
+RUNEOF
+chmod +x "$DYD_BUILD/dyd/commands/dyd-stem-run"
+EOF
+	chmod +x dyd/roots/root-dup/dyd/commands/dyd-root-build
+}
+
+_test() {
+	_create_duplicate_root
+	set +e
+	output=$(dryad root build dyd/roots/root-dup --log-level=info 2>&1)
+	status=$?
+	set -e
+	if [ "$status" -eq 0 ]; then
+		echo '[ERROR] Fail: expected duplicate canonical env requirements to fail build' 1>&2
+		printf '%s\n' "$output" 1>&2
+		return 1
+	fi
+}
+
+_teardown() { if [ -d "$TEMP_DIR" ]; then chmod -R 755 "$TEMP_DIR"; rm -rf "$TEMP_DIR"; fi; }
+trap _teardown ERR EXIT
+_setup
+_test

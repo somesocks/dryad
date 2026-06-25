@@ -187,6 +187,10 @@ func (targetSpec *RootRequirementTargetSpec) ResolveVariants(
 	ctx *task.ExecutionContext,
 	req RootRequirementResolveVariantsRequest,
 ) (error, []VariantDescriptor) {
+	if rootRequirementTargetKind(targetSpec.Kind) != RootRequirementTargetKindRoot {
+		return nil, nil
+	}
+
 	err, parentVariant := normalizeVariantDescriptor(req.ParentVariant)
 	if err != nil {
 		return err, nil
@@ -291,6 +295,9 @@ func (rootRequirement *SafeRootRequirementReference) ResolveTargets(
 	err, targetSpec := rootRequirement.TargetSpec(ctx)
 	if err != nil {
 		return err, nil
+	}
+	if rootRequirementTargetKind(targetSpec.Kind) != RootRequirementTargetKindRoot {
+		return nil, nil
 	}
 
 	err, variants := targetSpec.ResolveVariants(ctx, RootRequirementResolveVariantsRequest{

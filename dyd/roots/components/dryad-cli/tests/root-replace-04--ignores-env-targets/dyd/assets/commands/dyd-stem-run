@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+TEMP_DIR=''
+
+assert_file_content_equals() { actual=$(cat "$1"); if [ "$actual" != "$2" ]; then echo "[ERROR] Fail: expected $1 to contain ($2), got ($actual)" 1>&2; return 1; fi; }
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+	mkdir -p "$TEMP_DIR/dyd/roots"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	cd "$TEMP_DIR"
+}
+
+_create_root() {
+	root_name="$1"
+	mkdir -p "dyd/roots/$root_name/dyd/commands" "dyd/roots/$root_name/dyd/requirements"
+	printf 'root' > "dyd/roots/$root_name/dyd/type"
+}
+
+_test() {
+	_create_root root-replace-b
+	_create_root root-replace-c
+	_create_root root-user
+	printf 'root:../../../root-replace-b' > dyd/roots/root-user/dyd/requirements/dep
+	printf 'env:DRYAD_TEST_REPLACE_TOKEN' > dyd/roots/root-user/dyd/requirements/token
+	dryad root replace root:dyd/roots/root-replace-b dyd/roots/root-replace-c --log-level=info > /dev/null 2>&1
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-user/dyd/requirements/dep" 'root:../../../root-replace-c'
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-user/dyd/requirements/token" 'env:DRYAD_TEST_REPLACE_TOKEN'
+}
+
+_teardown() { if [ -d "$TEMP_DIR" ]; then chmod -R 755 "$TEMP_DIR"; rm -rf "$TEMP_DIR"; fi; }
+trap _teardown ERR EXIT
+_setup
+_test

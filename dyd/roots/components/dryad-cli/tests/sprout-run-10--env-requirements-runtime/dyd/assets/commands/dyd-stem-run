@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+TEMP_DIR=''
+
+assert_file_content_equals() {
+	file="$1"
+	expected="$2"
+	if [ ! -f "$file" ]; then
+		echo "[ERROR] Fail: file '$file' does not exist" 1>&2
+		return 1
+	fi
+	actual=$(cat "$file")
+	if [ "$actual" != "$expected" ]; then
+		echo "[ERROR] Fail: file '$file' content does not match. expected ($expected), got ($actual)" 1>&2
+		return 1
+	fi
+}
+
+assert_file_not_exists() {
+	if [ -f "$1" ]; then
+		echo "[ERROR] Fail: file '$1' exists" 1>&2
+		return 1
+	fi
+}
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+	mkdir -p "$TEMP_DIR/dyd/roots"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	cd "$TEMP_DIR"
+}
+
+_create_runtime_root() {
+	root_name="$1"
+	req_name="$2"
+	req_target="$3"
+	injected_name="$4"
+	mode="$5"
+	extra_req_name="${6:-}"
+	extra_req_target="${7:-}"
+	mkdir -p "dyd/roots/$root_name/dyd/commands"
+	printf 'root' > "dyd/roots/$root_name/dyd/type"
+	{
+	cat <<EOF
+#!/usr/bin/env sh
+set -eu
+mkdir -p "\$DYD_BUILD/dyd/requirements"
+EOF
+	if [ "$req_target" != '-' ]; then
+		printf "printf '%%s' '%s' > \"\$DYD_BUILD/dyd/requirements/%s\"\n" "$req_target" "$req_name"
+	fi
+	if [ -n "$extra_req_name" ]; then
+		printf "printf '%%s' '%s' > \"\$DYD_BUILD/dyd/requirements/%s\"\n" "$extra_req_target" "$extra_req_name"
+	fi
+	cat <<EOF
+cat > "\$DYD_BUILD/dyd/commands/dyd-stem-run" <<'RUNEOF'
+#!/usr/bin/env sh
+set -eu
+mkdir -p "\$DYD_GARDEN/dyd/heap/env-requirements-02"
+case '$mode' in
+  write)
+    value=\${$injected_name}
+    printf '%s' "\$value" > "\$DYD_GARDEN/dyd/heap/env-requirements-02/$root_name"
+    ;;
+  fail-if-present)
+    if env | grep -q '^RUNTIME_VALUE='; then
+      echo '[ERROR] leaked runtime env' 1>&2
+      exit 1
+    fi
+    printf 'clean' > "\$DYD_GARDEN/dyd/heap/env-requirements-02/$root_name"
+    ;;
+esac
+RUNEOF
+chmod +x "\$DYD_BUILD/dyd/commands/dyd-stem-run"
+EOF
+	} > "dyd/roots/$root_name/dyd/commands/dyd-root-build"
+	chmod +x "dyd/roots/$root_name/dyd/commands/dyd-root-build"
+}
+
+_expect_run_fails() {
+	root_name="$1"
+	shift
+	set +e
+	output=$("$@" dryad sprout run "dyd/sprouts/$root_name" --log-level=info 2>&1)
+	status=$?
+	set -e
+	if [ "$status" -eq 0 ]; then
+		echo "[ERROR] Fail: expected sprout run of $root_name to fail" 1>&2
+		printf '%s\n' "$output" 1>&2
+		return 1
+	fi
+}
+
+_find_runtime_requirement() {
+	root_name="$1"
+	req_name="$2"
+	cat "$TEMP_DIR/dyd/sprouts/$root_name/dyd/dependencies/stem/dyd/requirements/$req_name"
+}
+
+_test() {
+	_create_runtime_root root-runtime runtime-value env:DRYAD_TEST_RUNTIME_VALUE RUNTIME_VALUE write
+	dryad root build dyd/roots/root-runtime --log-level=info > /dev/null 2>&1
+	DRYAD_TEST_RUNTIME_VALUE='run-one' dryad sprout run dyd/sprouts/root-runtime --log-level=info > /dev/null 2>&1
+	assert_file_content_equals "$TEMP_DIR/dyd/heap/env-requirements-02/root-runtime" 'run-one'
+
+	_create_runtime_root root-missing runtime-missing env:DRYAD_TEST_RUNTIME_MISSING RUNTIME_MISSING write
+	dryad root build dyd/roots/root-missing --log-level=info > /dev/null 2>&1
+	_expect_run_fails root-missing env -u DRYAD_TEST_RUNTIME_MISSING
+	assert_file_not_exists "$TEMP_DIR/dyd/heap/env-requirements-02/root-missing"
+
+	_create_runtime_root root-fp-source runtime-value env:DRYAD_TEST_RUNTIME_VALUE RUNTIME_VALUE write
+	dryad root build dyd/roots/root-fp-source --log-level=info > /dev/null 2>&1
+	DRYAD_TEST_RUNTIME_VALUE='fingerprinted' dryad sprout run dyd/sprouts/root-fp-source --log-level=info > /dev/null 2>&1
+	# Use a build-time materialized fingerprint as a portable source for the runtime fingerprint syntax.
+	mkdir -p dyd/roots/root-fp-helper/dyd/requirements dyd/roots/root-fp-helper/dyd/commands
+	printf 'root' > dyd/roots/root-fp-helper/dyd/type
+	printf 'env:DRYAD_TEST_RUNTIME_VALUE' > dyd/roots/root-fp-helper/dyd/requirements/runtime-value
+	cat > dyd/roots/root-fp-helper/dyd/commands/dyd-root-build <<'EOF'
+#!/usr/bin/env sh
+set -eu
+printf ok > "$DYD_BUILD/dyd/assets/ok"
+EOF
+	chmod +x dyd/roots/root-fp-helper/dyd/commands/dyd-root-build
+	DRYAD_TEST_RUNTIME_VALUE='fingerprinted' dryad root build dyd/roots/root-fp-helper --log-level=info > /dev/null 2>&1
+	fp_req=''
+	while IFS= read -r f; do
+		content=$(cat "$f")
+		case "$content" in env:DRYAD_TEST_RUNTIME_VALUE?fingerprint=*) fp_req="$content"; break ;; esac
+	done < <(find "$TEMP_DIR/dyd/heap/stems" -type f -path '*/dyd/requirements/*')
+	if [ -z "$fp_req" ]; then
+		echo "[ERROR] Fail: expected materialized runtime fingerprint helper requirement" 1>&2
+		return 1
+	fi
+	_create_runtime_root root-fp-match runtime-value "$fp_req" RUNTIME_VALUE write
+	dryad root build dyd/roots/root-fp-match --log-level=info > /dev/null 2>&1
+	DRYAD_TEST_RUNTIME_VALUE='fingerprinted' dryad sprout run dyd/sprouts/root-fp-match --log-level=info > /dev/null 2>&1
+	assert_file_content_equals "$TEMP_DIR/dyd/heap/env-requirements-02/root-fp-match" 'fingerprinted'
+	_create_runtime_root root-fp-mismatch runtime-value "$fp_req" RUNTIME_VALUE write
+	dryad root build dyd/roots/root-fp-mismatch --log-level=info > /dev/null 2>&1
+	_expect_run_fails root-fp-mismatch env DRYAD_TEST_RUNTIME_VALUE='changed'
+	assert_file_not_exists "$TEMP_DIR/dyd/heap/env-requirements-02/root-fp-mismatch"
+
+	_create_runtime_root root-a runtime-value env:DRYAD_TEST_RUNTIME_VALUE RUNTIME_VALUE write
+	_create_runtime_root root-b none - RUNTIME_VALUE fail-if-present
+	dryad root build dyd/roots/root-a --log-level=info > /dev/null 2>&1
+	dryad root build dyd/roots/root-b --log-level=info > /dev/null 2>&1
+	printf '%s\n%s\n' dyd/sprouts/root-a dyd/sprouts/root-b | DRYAD_TEST_RUNTIME_VALUE='leak-check' dryad sprouts run --from-stdin --parallel=1 --log-level=info > /dev/null 2>&1
+	assert_file_content_equals "$TEMP_DIR/dyd/heap/env-requirements-02/root-a" 'leak-check'
+	assert_file_content_equals "$TEMP_DIR/dyd/heap/env-requirements-02/root-b" 'clean'
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_test

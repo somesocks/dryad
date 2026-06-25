@@ -145,6 +145,18 @@ func (requirements *SafeRootVariantRequirementsReference) Add(
 	return rootRequirements.Add(ctx, req)
 }
 
+func (requirements *SafeRootVariantRequirementsReference) AddEnv(
+	ctx *task.ExecutionContext,
+	req RootRequirementsAddEnvRequest,
+) (error, *SafeRootRequirementReference) {
+	rootRequirements := SafeRootRequirementsReference{
+		BasePath: requirements.BasePath,
+		Root:     requirements.Variant.Root,
+	}
+
+	return rootRequirements.AddEnv(ctx, req)
+}
+
 func rootVariantExactSelectorDescriptor(
 	ctx *task.ExecutionContext,
 	variant *SafeRootVariantReference,

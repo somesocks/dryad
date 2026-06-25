@@ -10,8 +10,11 @@ import (
 )
 
 type RootRequirementTargetSpec struct {
+	Kind            RootRequirementTargetKind
 	Root            *SafeRootReference
 	VariantSelector VariantDescriptor
+	EnvName         string
+	EnvFingerprint  string
 }
 
 func rootRequirementVariantSelectorFromURL(linkURL *url.URL) (error, VariantDescriptor) {
@@ -68,6 +71,7 @@ func (rootRequirement *SafeRootRequirementReference) TargetSpec(ctx *task.Execut
 		}
 
 		return nil, &RootRequirementTargetSpec{
+			Kind:            RootRequirementTargetKindRoot,
 			Root:            &safeRef,
 			VariantSelector: VariantDescriptor{},
 		}
@@ -95,6 +99,19 @@ func (rootRequirement *SafeRootRequirementReference) TargetSpec(ctx *task.Execut
 	}
 
 	linkScheme := linkURL.Scheme
+	if linkScheme == "env" {
+		err, envSpec := rootRequirementEnvTargetFromURL(linkURL)
+		if err != nil {
+			return err, nil
+		}
+
+		return nil, &RootRequirementTargetSpec{
+			Kind:           RootRequirementTargetKindEnv,
+			EnvName:        envSpec.Name,
+			EnvFingerprint: envSpec.Fingerprint,
+		}
+	}
+
 	if linkScheme != "root" {
 		return fmt.Errorf("unsupported scheme for root requirement: %s", linkScheme), nil
 	}
@@ -125,6 +142,7 @@ func (rootRequirement *SafeRootRequirementReference) TargetSpec(ctx *task.Execut
 	}
 
 	return nil, &RootRequirementTargetSpec{
+		Kind:            RootRequirementTargetKindRoot,
 		Root:            &safeRef,
 		VariantSelector: selector,
 	}
@@ -134,6 +152,9 @@ func (rootRequirement *SafeRootRequirementReference) Target(ctx *task.ExecutionC
 	err, targetSpec := rootRequirement.TargetSpec(ctx)
 	if err != nil {
 		return err, nil
+	}
+	if rootRequirementTargetKind(targetSpec.Kind) != RootRequirementTargetKindRoot {
+		return fmt.Errorf("requirement does not target a root"), nil
 	}
 	return nil, targetSpec.Root
 }

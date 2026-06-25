@@ -140,14 +140,20 @@ var rootRequirementsListCommand = func() clib.Command {
 				return err, nil
 			}
 
-			targetPath, err := filepath.Rel(
-				filepath.Dir(requirement.BasePath),
-				targetSpec.Root.BasePath,
-			)
-			if err != nil {
-				return err, nil
+			var targetURL string
+			switch targetSpec.Kind {
+			case dryad.RootRequirementTargetKindEnv:
+				targetURL = dryad.RootRequirementEnvTargetString(targetSpec.EnvName, targetSpec.EnvFingerprint)
+			default:
+				targetPath, err := filepath.Rel(
+					filepath.Dir(requirement.BasePath),
+					targetSpec.Root.BasePath,
+				)
+				if err != nil {
+					return err, nil
+				}
+				targetURL = "root:" + targetPath + rootRequirementsList_encodeVariantSelectorURL(targetSpec.VariantSelector)
 			}
-			targetURL := "root:" + targetPath + rootRequirementsList_encodeVariantSelectorURL(targetSpec.VariantSelector)
 
 			requirementPath := requirement.BasePath
 			if args.Relative {
