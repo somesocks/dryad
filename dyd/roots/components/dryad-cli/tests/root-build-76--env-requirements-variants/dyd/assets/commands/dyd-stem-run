@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+TEMP_DIR=''
+
+assert_file_content_equals() { actual=$(cat "$1"); if [ "$actual" != "$2" ]; then echo "[ERROR] Fail: expected $1 to contain ($2), got ($actual)" 1>&2; return 1; fi; }
+assert_file_not_exists() { if [ -e "$1" ] || [ -L "$1" ]; then echo "[ERROR] Fail: expected $1 to be absent" 1>&2; return 1; fi; }
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+	mkdir -p "$TEMP_DIR/dyd/roots"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	cd "$TEMP_DIR"
+}
+
+_write_variant_catalog() {
+	root="$1"
+	mkdir -p "$root/dyd/variants/os"
+	printf 'true' > "$root/dyd/variants/os/linux"
+	printf 'true' > "$root/dyd/variants/os/darwin"
+}
+
+_write_build_script() {
+	root="$1"
+	cat > "$root/dyd/commands/dyd-root-build" <<'EOF'
+#!/usr/bin/env sh
+set -eu
+mkdir -p "$DYD_BUILD/dyd/assets"
+value=${TOKEN:-none}
+printf '%s' "$value" > "$DYD_BUILD/dyd/assets/value.txt"
+EOF
+	chmod +x "$root/dyd/commands/dyd-root-build"
+}
+
+_create_conditional_root() {
+	root="$TEMP_DIR/dyd/roots/root-conditional"
+	mkdir -p "$root/dyd/commands" "$root/dyd/requirements"
+	printf 'root' > "$root/dyd/type"
+	_write_variant_catalog "$root"
+	printf 'env:DRYAD_TEST_LINUX_TOKEN' > "$root/dyd/requirements/token~os=linux"
+	_write_build_script "$root"
+}
+
+_create_selector_root() {
+	root="$TEMP_DIR/dyd/roots/root-selector"
+	mkdir -p "$root/dyd/commands" "$root/dyd/requirements~os=linux" "$root/dyd/requirements~os=darwin"
+	printf 'root' > "$root/dyd/type"
+	_write_variant_catalog "$root"
+	printf 'env:DRYAD_TEST_LINUX_TOKEN' > "$root/dyd/requirements~os=linux/token"
+	printf 'env:DRYAD_TEST_DARWIN_TOKEN' > "$root/dyd/requirements~os=darwin/token"
+	_write_build_script "$root"
+}
+
+_test() {
+	_create_conditional_root
+	DRYAD_TEST_LINUX_TOKEN='linux-token' dryad root build dyd/roots/root-conditional --log-level=info > /dev/null 2>&1
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-conditional/dyd/dependencies/stem~os=linux/dyd/assets/value.txt" 'linux-token'
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-conditional/dyd/dependencies/stem~os=darwin/dyd/assets/value.txt" 'none'
+	assert_file_not_exists "$TEMP_DIR/dyd/sprouts/root-conditional/dyd/dependencies/stem~os=darwin/dyd/requirements/TOKEN"
+
+	_create_selector_root
+	DRYAD_TEST_LINUX_TOKEN='selector-linux' DRYAD_TEST_DARWIN_TOKEN='selector-darwin' dryad root build dyd/roots/root-selector --log-level=info > /dev/null 2>&1
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-selector/dyd/dependencies/stem~os=linux/dyd/assets/value.txt" 'selector-linux'
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-selector/dyd/dependencies/stem~os=darwin/dyd/assets/value.txt" 'selector-darwin'
+}
+
+_teardown() { if [ -d "$TEMP_DIR" ]; then chmod -R 755 "$TEMP_DIR"; rm -rf "$TEMP_DIR"; fi; }
+trap _teardown ERR EXIT
+_setup
+_test

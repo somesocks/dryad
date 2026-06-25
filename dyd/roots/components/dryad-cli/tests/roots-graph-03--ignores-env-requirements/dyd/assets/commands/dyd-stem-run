@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+TEMP_DIR=''
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+	mkdir -p "$TEMP_DIR/dyd/roots/root-dep/dyd/commands" "$TEMP_DIR/dyd/roots/root-top/dyd/commands" "$TEMP_DIR/dyd/roots/root-top/dyd/requirements"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	printf 'root' > "$TEMP_DIR/dyd/roots/root-dep/dyd/type"
+	printf 'root' > "$TEMP_DIR/dyd/roots/root-top/dyd/type"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	printf 'root:../../../root-dep' > dyd/roots/root-top/dyd/requirements/dep
+	printf 'env:DRYAD_TEST_GRAPH_TOKEN' > dyd/roots/root-top/dyd/requirements/token
+	graph=$(dryad roots graph --format=json-compact --log-level=info)
+	if ! printf '%s' "$graph" | grep -Fq '"dyd/roots/root-top":{"dep":"dyd/roots/root-dep"}'; then
+		echo "[ERROR] Fail: expected graph to include root dependency" 1>&2
+		printf '%s\n' "$graph" 1>&2
+		return 1
+	fi
+	if printf '%s' "$graph" | grep -Fq 'DRYAD_TEST_GRAPH_TOKEN'; then
+		echo "[ERROR] Fail: expected graph to omit env requirement target" 1>&2
+		printf '%s\n' "$graph" 1>&2
+		return 1
+	fi
+}
+
+_teardown() { if [ -d "$TEMP_DIR" ]; then chmod -R 755 "$TEMP_DIR"; rm -rf "$TEMP_DIR"; fi; }
+trap _teardown ERR EXIT
+_setup
+_test

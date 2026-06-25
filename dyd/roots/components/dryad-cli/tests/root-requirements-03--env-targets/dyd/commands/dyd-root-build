@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+cp -R "$DYD_STEM/dyd/assets/commands/." "$DYD_BUILD/dyd/commands/"
+ln -s "$DYD_STEM/dyd/dependencies/dryad" "$DYD_BUILD/dyd/dependencies/dryad"
