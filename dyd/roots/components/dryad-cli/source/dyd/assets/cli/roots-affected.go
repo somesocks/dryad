@@ -71,7 +71,7 @@ var rootsAffectedCommand = func() clib.Command {
 
 		for scanner.Scan() {
 			rawPath := scanner.Text()
-			rawChangedPath, err := filepath.Abs(rawPath)
+			err, rawChangedPath := rootsFileRequirementOwnershipPath(ctx, rawPath)
 			if err != nil {
 				return err, nil
 			}

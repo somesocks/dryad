@@ -4,7 +4,6 @@ import (
 	"bufio"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
-	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
@@ -61,7 +60,7 @@ var rootsOwningCommand = func() clib.Command {
 
 		for scanner.Scan() {
 			rawPath := scanner.Text()
-			rawChangedPath, err := filepath.Abs(rawPath)
+			err, rawChangedPath := rootsFileRequirementOwnershipPath(ctx, rawPath)
 			if err != nil {
 				return err, nil
 			}
