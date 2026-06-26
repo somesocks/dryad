@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+TEMP_DIR=''
+FP='v2-aaaaaaaaaaaaaaaaaaaaaaaaaa'
+
+assert_file_content_equals() { actual=$(cat "$1"); if [ "$actual" != "$2" ]; then echo "[ERROR] Fail: expected $1 to contain ($2), got ($actual)" 1>&2; return 1; fi; }
+
+expect_add_fails() {
+	target="$1"
+	set +e
+	output=$(cd dyd/roots/root-01 && dryad root requirement add "$target" invalid --log-level=info 2>&1)
+	status=$?
+	set -e
+	if [ "$status" -eq 0 ]; then
+		echo "[ERROR] Fail: expected add to fail for $target" 1>&2
+		printf '%s\n' "$output" 1>&2
+		return 1
+	fi
+}
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+	mkdir -p "$TEMP_DIR/dyd/roots/root-01/dyd" "$TEMP_DIR/dyd/external"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	printf 'root' > "$TEMP_DIR/dyd/roots/root-01/dyd/type"
+	printf 'data' > "$TEMP_DIR/dyd/external/data.txt"
+	cd "$TEMP_DIR"
+}
+
+_test() {
+	(cd dyd/roots/root-01 && dryad root requirement add file:../../../../external/data.txt data --log-level=info)
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-01/dyd/requirements/data" 'file:../../../../external/data.txt'
+	list_output=$(dryad root requirements list dyd/roots/root-01 --log-level=info)
+	if ! printf '%s' "$list_output" | grep -Fq 'dyd/roots/root-01/dyd/requirements/data -> file:../../../../external/data.txt'; then
+		echo '[ERROR] Fail: expected file requirement in list output' 1>&2
+		printf '%s\n' "$list_output" 1>&2
+		return 1
+	fi
+
+	(cd dyd/roots/root-01 && dryad root requirement add "file:../../../../external/data.txt?unpack=true&as=dyd/secrets/data.txt&fingerprint=$FP" secret-data --log-level=info)
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-01/dyd/requirements/secret-data" "file:../../../../external/data.txt?as=dyd/secrets/data.txt&fingerprint=$FP&unpack=true"
+	list_output=$(dryad root requirements list dyd/roots/root-01 --log-level=info)
+	if ! printf '%s' "$list_output" | grep -Fq "dyd/roots/root-01/dyd/requirements/secret-data -> file:../../../../external/data.txt?as=dyd/secrets/data.txt&fingerprint=$FP&unpack=true"; then
+		echo '[ERROR] Fail: expected normalized file requirement in list output' 1>&2
+		printf '%s\n' "$list_output" 1>&2
+		return 1
+	fi
+
+	(cd dyd/roots/root-01 && dryad root requirement add 'file:../../../../external/data.txt?into=dyd/assets/config' config-data --log-level=info)
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-01/dyd/requirements/config-data" 'file:../../../../external/data.txt?into=dyd/assets/config'
+
+	expect_add_fails 'file:../../../../external/data.txt?target=assets'
+	expect_add_fails 'file:../../../../external/data.txt?as=dyd/assets/data.txt&into=dyd/assets'
+	expect_add_fails 'file:../../../../external/data.txt?as=/dyd/assets/data.txt'
+	expect_add_fails 'file:../../../../external/data.txt?as=dyd/assets~os=linux/data.txt'
+	expect_add_fails 'file:../../../../external/data.txt?as=dyd/assets/../../outside.txt'
+	expect_add_fails 'file:../../../../external/data.txt?as=dyd/commands/data.txt'
+}
+
+_teardown() { if [ -d "$TEMP_DIR" ]; then chmod -R 755 "$TEMP_DIR"; rm -rf "$TEMP_DIR"; fi; }
+trap _teardown ERR EXIT
+_setup
+_test

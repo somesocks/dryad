@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+REAL_DIR=''
+LINK_DIR=''
+
+_assert_output() {
+	actual="$1"
+	expected="$2"
+	message="$3"
+	if [ "$actual" != "$expected" ]; then
+		echo "[ERROR] Fail: $message" 1>&2
+		echo "$actual" 1>&2
+		return 1
+	fi
+}
+
+_setup() {
+	REAL_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+	LINK_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-links'`
+	REAL_PARENT="$REAL_DIR/real-parent"
+	REAL_GARDEN="$REAL_PARENT/garden"
+	LINK_ONE="$LINK_DIR/parent-link-1"
+	LINK_TWO="$LINK_DIR/parent-link-2"
+	mkdir -p "$REAL_GARDEN"
+	ln -s "$REAL_PARENT" "$LINK_ONE"
+	ln -s "$LINK_ONE" "$LINK_TWO"
+
+	mkdir -p "$REAL_GARDEN/dyd/roots/root-consumer/dyd/requirements" "$REAL_GARDEN/dyd/roots/root-user/dyd/requirements" "$REAL_GARDEN/dyd/external"
+	printf 'garden' > "$REAL_GARDEN/dyd/type"
+	printf 'root' > "$REAL_GARDEN/dyd/roots/root-consumer/dyd/type"
+	printf 'root' > "$REAL_GARDEN/dyd/roots/root-user/dyd/type"
+	printf 'data' > "$REAL_GARDEN/dyd/external/data.txt"
+	printf '%s' 'file:../../../../external/data.txt' > "$REAL_GARDEN/dyd/roots/root-consumer/dyd/requirements/data"
+	printf '%s' 'root:../../../root-consumer' > "$REAL_GARDEN/dyd/roots/root-user/dyd/requirements/consumer"
+	cd "$LINK_TWO/garden"
+}
+
+_test() {
+	EXPECTED=$(cat <<'EOF'
+dyd/roots/root-consumer
+dyd/roots/root-user
+EOF
+)
+
+	OUTPUT=$(printf '%s\n' "$LINK_TWO/garden/dyd/external/data.txt" | dryad roots affected --log-level="$DYD_LOG_LEVEL")
+	_assert_output "$OUTPUT" "$EXPECTED" 'expected symlinked file source path to affect consumer and its dependent'
+}
+
+_teardown() {
+	if [ -n "$REAL_DIR" ] && [ -d "$REAL_DIR" ]; then
+		chmod -R 755 "$REAL_DIR"
+		rm -rf "$REAL_DIR"
+	fi
+	if [ -n "$LINK_DIR" ] && [ -d "$LINK_DIR" ]; then
+		rm -rf "$LINK_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_test

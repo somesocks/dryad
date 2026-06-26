@@ -14,20 +14,6 @@ const RootRequirementEnvFingerprintQueryKey = "fingerprint"
 
 var rootRequirementEnvNameRE = regexp.MustCompile(`^[A-Z_][A-Z0-9_]*$`)
 
-type RootRequirementTargetKind string
-
-const (
-	RootRequirementTargetKindRoot RootRequirementTargetKind = "root"
-	RootRequirementTargetKindEnv  RootRequirementTargetKind = "env"
-)
-
-func rootRequirementTargetKind(kind RootRequirementTargetKind) RootRequirementTargetKind {
-	if kind == "" {
-		return RootRequirementTargetKindRoot
-	}
-	return kind
-}
-
 func rootRequirementCanonicalEnvName(raw string) (error, string) {
 	canonical := strings.ToUpper(strings.ReplaceAll(strings.ReplaceAll(strings.TrimSpace(raw), "-", "_"), ".", "_"))
 	if !rootRequirementEnvNameRE.MatchString(canonical) {

@@ -26,6 +26,13 @@ func rootRequirementAdd_parseDependencyTarget(raw string) (error, string, string
 		}
 		return nil, "env", envTarget, ""
 	}
+	if targetURL.Scheme == "file" {
+		err, fileTarget := dryad.RootRequirementFileTargetNormalize(raw)
+		if err != nil {
+			return err, "", "", ""
+		}
+		return nil, "file", fileTarget, ""
+	}
 
 	if targetURL.Scheme != "" && targetURL.Scheme != "root" {
 		return fmt.Errorf("unsupported scheme for root requirement: %s", targetURL.Scheme), "", "", ""
@@ -146,6 +153,14 @@ var rootRequirementAddCommand = func() clib.Command {
 			err, _ = reqs.AddEnv(
 				ctx,
 				dryad.RootRequirementsAddEnvRequest{
+					Alias:  args.Alias,
+					Target: args.DepPath,
+				},
+			)
+		} else if args.DepScheme == "file" {
+			err, _ = reqs.AddFile(
+				ctx,
+				dryad.RootRequirementsAddFileRequest{
 					Alias:  args.Alias,
 					Target: args.DepPath,
 				},

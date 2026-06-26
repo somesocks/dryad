@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+TEMP_DIR=''
+SRC_DIR=$DYD_STEM
+
+assert_file_content_equals() {
+	file="$1"
+	expected="$2"
+	if [ ! -f "$file" ]; then
+		echo "[ERROR] Fail: file '$file' does not exist" 1>&2
+		return 1
+	fi
+	actual=$(cat "$file")
+	if [ "$actual" != "$expected" ]; then
+		echo "[ERROR] Fail: file '$file' content does not match. expected ($expected), got ($actual)" 1>&2
+		return 1
+	fi
+}
+
+assert_file_not_exists() {
+	if [ -e "$1" ]; then
+		echo "[ERROR] Fail: file '$1' exists" 1>&2
+		return 1
+	fi
+}
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+	mkdir -p "$TEMP_DIR/dyd/roots" "$TEMP_DIR/dyd/external"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	cd "$TEMP_DIR"
+}
+
+_write_build_script() {
+	root_name="$1"
+	cat > "dyd/roots/$root_name/dyd/commands/dyd-root-build" <<'EOF'
+#!/usr/bin/env sh
+set -eu
+
+mkdir -p "$DYD_BUILD/dyd/assets"
+
+data=$(cat "$DYD_STEM/dyd/dependencies/data/dyd/assets/data.txt")
+renamed_data=$(cat "$DYD_STEM/dyd/dependencies/renamed-data/dyd/assets/renamed/data-renamed.txt")
+dir_data=$(cat "$DYD_STEM/dyd/dependencies/dir-data/dyd/assets/vendor/dir-data/keep.txt")
+secret_data=$(cat "$DYD_STEM/dyd/dependencies/secret-data/dyd/secrets/.env")
+archive_data=$(cat "$DYD_STEM/dyd/dependencies/archive-data/dyd/assets/vendor/packed/packed.txt")
+data_fingerprint=$(cat "$DYD_STEM/dyd/dependencies/data/dyd/fingerprint")
+
+if [ -e "$DYD_STEM/dyd/dependencies/dir-data/dyd/assets/vendor/dir-data/ignored.txt" ]; then
+	echo '[ERROR] Fail: ignored file was imported' 1>&2
+	exit 1
+fi
+
+printf '%s|%s|%s|%s|%s' "$data" "$renamed_data" "$dir_data" "$secret_data" "$archive_data" > "$DYD_BUILD/dyd/assets/summary.txt"
+printf '%s' "$data_fingerprint" > "$DYD_BUILD/dyd/assets/data-fingerprint.txt"
+EOF
+	chmod +x "dyd/roots/$root_name/dyd/commands/dyd-root-build"
+}
+
+_create_file_root() {
+	root_name="$1"
+	data_target="$2"
+	mkdir -p "dyd/roots/$root_name/dyd/commands" "dyd/roots/$root_name/dyd/requirements"
+	printf 'root' > "dyd/roots/$root_name/dyd/type"
+	printf '%s' "$data_target" > "dyd/roots/$root_name/dyd/requirements/data"
+	printf '%s' 'file:../../../../external/data.txt?as=dyd/assets/renamed/data-renamed.txt' > "dyd/roots/$root_name/dyd/requirements/renamed-data"
+	printf '%s' 'file:../../../../external/dir-data?into=dyd/assets/vendor' > "dyd/roots/$root_name/dyd/requirements/dir-data"
+	printf '%s' 'file:../../../../external/.env?as=dyd/secrets/.env' > "dyd/roots/$root_name/dyd/requirements/secret-data"
+	printf '%s' 'file:../../../../external/packed.tar?unpack=true&into=dyd/assets/vendor' > "dyd/roots/$root_name/dyd/requirements/archive-data"
+	_write_build_script "$root_name"
+}
+
+_prepare_sources() {
+	printf 'one' > dyd/external/data.txt
+	mkdir -p dyd/external/dir-data
+	printf 'ignored.txt\n' > dyd/external/dir-data/.dyd-ignore
+	printf 'kept' > dyd/external/dir-data/keep.txt
+	printf 'ignored' > dyd/external/dir-data/ignored.txt
+	printf 'SECRET=1' > dyd/external/.env
+	cp "$SRC_DIR/dyd/assets/packed.tar" dyd/external/packed.tar
+}
+
+_expect_build_fails() {
+	root_name="$1"
+	set +e
+	output=$(dryad root build "dyd/roots/$root_name" --log-level=info 2>&1)
+	status=$?
+	set -e
+	if [ "$status" -eq 0 ]; then
+		echo "[ERROR] Fail: expected build of $root_name to fail" 1>&2
+		printf '%s\n' "$output" 1>&2
+		return 1
+	fi
+}
+
+_test() {
+	_prepare_sources
+	_create_file_root root-use 'file:../../../../external/data.txt'
+	dryad root build dyd/roots/root-use --log-level=info > /dev/null 2>&1
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-use/dyd/dependencies/stem/dyd/assets/summary.txt" 'one|one|kept|SECRET=1|packed'
+	assert_file_not_exists "$TEMP_DIR/dyd/sprouts/root-use/dyd/dependencies/stem/dyd/dependencies/dir-data/dyd/assets/vendor/dir-data/ignored.txt"
+
+	fingerprint=$(cat "$TEMP_DIR/dyd/sprouts/root-use/dyd/dependencies/stem/dyd/assets/data-fingerprint.txt")
+	_create_file_root root-pinned "file:../../../../external/data.txt?fingerprint=$fingerprint"
+	dryad root build dyd/roots/root-pinned --log-level=info > /dev/null 2>&1
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-pinned/dyd/dependencies/stem/dyd/assets/summary.txt" 'one|one|kept|SECRET=1|packed'
+
+	printf 'two' > dyd/external/data.txt
+	dryad root build dyd/roots/root-use --log-level=info > /dev/null 2>&1
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-use/dyd/dependencies/stem/dyd/assets/summary.txt" 'two|two|kept|SECRET=1|packed'
+	_expect_build_fails root-pinned
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_test

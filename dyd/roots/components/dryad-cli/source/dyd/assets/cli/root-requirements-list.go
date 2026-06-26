@@ -144,6 +144,15 @@ var rootRequirementsListCommand = func() clib.Command {
 			switch targetSpec.Kind {
 			case dryad.RootRequirementTargetKindEnv:
 				targetURL = dryad.RootRequirementEnvTargetString(targetSpec.EnvName, targetSpec.EnvFingerprint)
+			case dryad.RootRequirementTargetKindFile:
+				targetPath, err := filepath.Rel(
+					filepath.Dir(requirement.BasePath),
+					targetSpec.FileSourcePath,
+				)
+				if err != nil {
+					return err, nil
+				}
+				targetURL = dryad.RootRequirementFileTargetString(targetPath, targetSpec.FileDestinationAs, targetSpec.FileDestinationInto, targetSpec.FileUnpack, targetSpec.FileFingerprint)
 			default:
 				targetPath, err := filepath.Rel(
 					filepath.Dir(requirement.BasePath),

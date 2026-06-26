@@ -21,6 +21,11 @@ type RootRequirementsAddEnvRequest struct {
 	Target string
 }
 
+type RootRequirementsAddFileRequest struct {
+	Alias  string
+	Target string
+}
+
 func (requirements *SafeRootRequirementsReference) Add(
 	ctx *task.ExecutionContext,
 	req RootRequirementsAddRequest,
@@ -116,6 +121,42 @@ func (requirements *SafeRootRequirementsReference) AddEnv(
 
 	requirementPath := filepath.Join(requirements.BasePath, alias)
 	if err := os.WriteFile(requirementPath, []byte(rootRequirementEnvTargetString(envSpec.Name, envSpec.Fingerprint)), 0644); err != nil {
+		return err, nil
+	}
+
+	return nil, &SafeRootRequirementReference{
+		BasePath:     requirementPath,
+		Requirements: requirements,
+	}
+}
+
+func (requirements *SafeRootRequirementsReference) AddFile(
+	ctx *task.ExecutionContext,
+	req RootRequirementsAddFileRequest,
+) (error, *SafeRootRequirementReference) {
+	err, fileSpec, isFile := rootRequirementParseFileTarget(req.Target)
+	if err != nil {
+		return err, nil
+	}
+	if !isFile {
+		return fmt.Errorf("file requirement target must use file scheme: %s", req.Target), nil
+	}
+
+	alias := req.Alias
+	if alias == "" {
+		alias = filepath.Base(fileSpec.SourcePath)
+	}
+	err, alias = RootRequirementNormalizeName(alias)
+	if err != nil {
+		return err, nil
+	}
+
+	if err := os.MkdirAll(requirements.BasePath, os.ModePerm); err != nil {
+		return err, nil
+	}
+
+	requirementPath := filepath.Join(requirements.BasePath, alias)
+	if err := os.WriteFile(requirementPath, []byte(rootRequirementFileTargetString(fileSpec.SourcePath, fileSpec.DestinationAs, fileSpec.DestinationInto, fileSpec.Unpack, fileSpec.Fingerprint)), 0644); err != nil {
 		return err, nil
 	}
 

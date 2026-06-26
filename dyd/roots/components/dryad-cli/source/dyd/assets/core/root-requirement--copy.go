@@ -24,6 +24,40 @@ func (rootRequirement *SafeRootRequirementReference) Copy(
 	if err != nil {
 		return err, nil
 	}
+	if rootRequirementTargetKind(targetSpec.Kind) == RootRequirementTargetKindFile {
+		alias := filepath.Base(rootRequirement.BasePath)
+		targetPath := targetSpec.FileSourcePath
+
+		if req.Unpin {
+			relTargetPath, err := filepath.Rel(
+				rootRequirement.Requirements.BasePath,
+				targetSpec.FileSourcePath,
+			)
+			if err != nil {
+				return err, nil
+			}
+
+			newTargetPath := filepath.Join(req.DestRequirements.BasePath, relTargetPath)
+			newTargetExists, err := fileExists(newTargetPath)
+			if err != nil {
+				return err, nil
+			}
+			if newTargetExists {
+				targetPath = newTargetPath
+			}
+		}
+
+		relTargetPath, err := filepath.Rel(req.DestRequirements.BasePath, targetPath)
+		if err != nil {
+			return err, nil
+		}
+
+		return req.DestRequirements.AddFile(ctx, RootRequirementsAddFileRequest{
+			Alias:  alias,
+			Target: rootRequirementFileTargetString(relTargetPath, targetSpec.FileDestinationAs, targetSpec.FileDestinationInto, targetSpec.FileUnpack, targetSpec.FileFingerprint),
+		})
+	}
+
 	if rootRequirementTargetKind(targetSpec.Kind) != RootRequirementTargetKindRoot {
 		alias := filepath.Base(rootRequirement.BasePath)
 		destRequirementPath := filepath.Join(req.DestRequirements.BasePath, alias)

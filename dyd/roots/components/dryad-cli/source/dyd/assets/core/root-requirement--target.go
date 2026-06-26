@@ -10,11 +10,16 @@ import (
 )
 
 type RootRequirementTargetSpec struct {
-	Kind            RootRequirementTargetKind
-	Root            *SafeRootReference
-	VariantSelector VariantDescriptor
-	EnvName         string
-	EnvFingerprint  string
+	Kind                RootRequirementTargetKind
+	Root                *SafeRootReference
+	VariantSelector     VariantDescriptor
+	EnvName             string
+	EnvFingerprint      string
+	FileSourcePath      string
+	FileDestinationAs   string
+	FileDestinationInto string
+	FileUnpack          bool
+	FileFingerprint     string
 }
 
 func rootRequirementVariantSelectorFromURL(linkURL *url.URL) (error, VariantDescriptor) {
@@ -109,6 +114,21 @@ func (rootRequirement *SafeRootRequirementReference) TargetSpec(ctx *task.Execut
 			Kind:           RootRequirementTargetKindEnv,
 			EnvName:        envSpec.Name,
 			EnvFingerprint: envSpec.Fingerprint,
+		}
+	}
+	if linkScheme == "file" {
+		err, fileSpec := rootRequirementFileTargetFromURL(linkURL)
+		if err != nil {
+			return err, nil
+		}
+
+		return nil, &RootRequirementTargetSpec{
+			Kind:                RootRequirementTargetKindFile,
+			FileSourcePath:      filepath.Join(filepath.Dir(rootRequirement.BasePath), fileSpec.SourcePath),
+			FileDestinationAs:   fileSpec.DestinationAs,
+			FileDestinationInto: fileSpec.DestinationInto,
+			FileUnpack:          fileSpec.Unpack,
+			FileFingerprint:     fileSpec.Fingerprint,
 		}
 	}
 
