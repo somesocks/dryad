@@ -414,6 +414,7 @@ func rootDevelop_stage1(
 		DependencyName              string
 		DependencyPath              string
 		DependencyVariantDescriptor string
+		FileTargetSpec              *RootRequirementTargetSpec
 	}
 
 	rootRef := SafeRootReference{
@@ -455,6 +456,19 @@ func rootDevelop_stage1(
 				return nil, nil
 			}
 
+			err, targetSpec := requirement.TargetSpec(ctx)
+			if err != nil {
+				return err, nil
+			}
+			if rootRequirementTargetKind(targetSpec.Kind) == RootRequirementTargetKindFile {
+				buildDependencyRequests = append(buildDependencyRequests, rootDevelop_stage1_buildDependencyRequest{
+					DependencyName: requirementName,
+					DependencyPath: targetSpec.FileSourcePath,
+					FileTargetSpec: targetSpec,
+				})
+				return nil, nil
+			}
+
 			err, targets := requirement.ResolveTargets(ctx, RootRequirementResolveTargetsRequest{
 				ParentVariant: parentVariantContext.Descriptor,
 			})
@@ -488,6 +502,28 @@ func rootDevelop_stage1(
 	}
 
 	buildDependency := func(ctx *task.ExecutionContext, req rootDevelop_stage1_buildDependencyRequest) (error, any) {
+		if req.FileTargetSpec != nil {
+			err, fileStem := RootRequirementFileBuildStem(ctx, RootRequirementFileBuildStemRequest{
+				Garden:          roots.Garden,
+				SourcePath:      req.FileTargetSpec.FileSourcePath,
+				DestinationAs:   req.FileTargetSpec.FileDestinationAs,
+				DestinationInto: req.FileTargetSpec.FileDestinationInto,
+				Unpack:          req.FileTargetSpec.FileUnpack,
+			})
+			if err != nil {
+				return err, nil
+			}
+			if fileStem == nil {
+				return fmt.Errorf("missing file dependency build result: %s", req.DependencyPath), nil
+			}
+			if req.FileTargetSpec.FileFingerprint != "" && req.FileTargetSpec.FileFingerprint != fileStem.Fingerprint {
+				return fmt.Errorf("file requirement %s fingerprint mismatch for %s", req.DependencyName, req.FileTargetSpec.FileSourcePath), nil
+			}
+
+			targetDepPath := filepath.Join(workspacePath, "dyd", "dependencies", req.DependencyName)
+			return os.Symlink(fileStem.BasePath, targetDepPath), nil
+		}
+
 		unsafeDepReference := UnsafeRootReference{
 			Roots:    roots,
 			BasePath: req.DependencyPath,

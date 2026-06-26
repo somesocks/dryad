@@ -4,6 +4,7 @@ import (
 	"bufio"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
+	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
@@ -54,11 +55,17 @@ var rootsOwningCommand = func() clib.Command {
 		}
 
 		changedPathsByRoot := make(map[string][]string)
+		ownerSet := make(dryad.TStringSet)
 
 		scanner := bufio.NewScanner(os.Stdin)
 
 		for scanner.Scan() {
-			err, owningPath, changedPath := rootsInputOwnershipPaths(ctx, scanner.Text())
+			rawPath := scanner.Text()
+			rawChangedPath, err := filepath.Abs(rawPath)
+			if err != nil {
+				return err, nil
+			}
+			err, owningPath, changedPath := rootsInputOwnershipPaths(ctx, rawPath)
 			if err != nil {
 				return err, nil
 			}
@@ -66,14 +73,25 @@ var rootsOwningCommand = func() clib.Command {
 			if err == nil {
 				changedPathsByRoot[root.BasePath] = append(changedPathsByRoot[root.BasePath], changedPath)
 			}
+
+			err, fileOwners := roots.FileRequirementOwners(ctx, rawChangedPath)
+			if err != nil {
+				return err, nil
+			}
+			for _, fileOwner := range fileOwners {
+				root := dryad.SafeRootReference{BasePath: fileOwner.RootPath, Roots: roots}
+				err, ownerRef := formatRootVariantDescriptorRef(&root, fileOwner.Variant, args.Relative)
+				if err != nil {
+					return err, nil
+				}
+				ownerSet[ownerRef] = true
+			}
 		}
 
 		// Check for any errors during scanning
 		if err := scanner.Err(); err != nil {
 			return err, nil
 		}
-
-		ownerSet := make(dryad.TStringSet)
 
 		for rootPath, changedPaths := range changedPathsByRoot {
 			err, root := roots.Root(rootPath).Resolve(ctx)

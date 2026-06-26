@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+TEMP_DIR=''
+
+_assert_output() {
+	actual="$1"
+	expected="$2"
+	message="$3"
+	if [ "$actual" != "$expected" ]; then
+		echo "[ERROR] Fail: $message" 1>&2
+		echo "$actual" 1>&2
+		return 1
+	fi
+}
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+	mkdir -p "$TEMP_DIR/dyd/roots/root-consumer/dyd/requirements" "$TEMP_DIR/dyd/roots/root-user/dyd/requirements" "$TEMP_DIR/dyd/roots/root-link/dyd/requirements" "$TEMP_DIR/dyd/roots/root-link-user/dyd/requirements" "$TEMP_DIR/dyd/external/dir-data"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	printf 'root' > "$TEMP_DIR/dyd/roots/root-consumer/dyd/type"
+	printf 'root' > "$TEMP_DIR/dyd/roots/root-user/dyd/type"
+	printf 'root' > "$TEMP_DIR/dyd/roots/root-link/dyd/type"
+	printf 'root' > "$TEMP_DIR/dyd/roots/root-link-user/dyd/type"
+	printf 'data' > "$TEMP_DIR/dyd/external/data.txt"
+	printf 'link-target' > "$TEMP_DIR/dyd/external/link-target.txt"
+	printf 'dir-link-target' > "$TEMP_DIR/dyd/external/dir-link-target.txt"
+	ln -s link-target.txt "$TEMP_DIR/dyd/external/data-link"
+	printf 'ignored.txt\n' > "$TEMP_DIR/dyd/external/dir-data/.dyd-ignore"
+	printf 'kept' > "$TEMP_DIR/dyd/external/dir-data/keep.txt"
+	printf 'ignored' > "$TEMP_DIR/dyd/external/dir-data/ignored.txt"
+	ln -s ../dir-link-target.txt "$TEMP_DIR/dyd/external/dir-data/target-link"
+	printf '%s' 'file:../../../../external/data.txt' > "$TEMP_DIR/dyd/roots/root-consumer/dyd/requirements/data"
+	printf '%s' 'file:../../../../external/dir-data' > "$TEMP_DIR/dyd/roots/root-consumer/dyd/requirements/dir-data"
+	printf '%s' 'root:../../../root-consumer' > "$TEMP_DIR/dyd/roots/root-user/dyd/requirements/consumer"
+	printf '%s' 'file:../../../../external/data-link' > "$TEMP_DIR/dyd/roots/root-link/dyd/requirements/data-link"
+	printf '%s' 'root:../../../root-link' > "$TEMP_DIR/dyd/roots/root-link-user/dyd/requirements/link"
+	cd "$TEMP_DIR"
+	TEMP_DIR=$(pwd -P)
+}
+
+_test() {
+	EXPECTED=$(cat <<'EOF'
+dyd/roots/root-consumer
+dyd/roots/root-user
+EOF
+)
+
+	OUTPUT_FILE=$(printf '%s\n' 'dyd/external/data.txt' | dryad roots affected --log-level="$DYD_LOG_LEVEL")
+	_assert_output "$OUTPUT_FILE" "$EXPECTED" 'expected direct file source changes to affect consumer and its dependent'
+
+	OUTPUT_DIR=$(printf '%s\n' 'dyd/external/dir-data/keep.txt' | dryad roots affected --log-level="$DYD_LOG_LEVEL")
+	_assert_output "$OUTPUT_DIR" "$EXPECTED" 'expected directory source changes to affect consumer and its dependent'
+
+	OUTPUT_IGNORED=$(printf '%s\n' 'dyd/external/dir-data/ignored.txt' | dryad roots affected --log-level="$DYD_LOG_LEVEL")
+	_assert_output "$OUTPUT_IGNORED" '' 'expected ignored directory source path not to affect roots'
+
+	EXPECTED_LINK=$(cat <<'EOF'
+dyd/roots/root-link
+dyd/roots/root-link-user
+EOF
+)
+
+	OUTPUT_LINK=$(printf '%s\n' 'dyd/external/data-link' | dryad roots affected --log-level="$DYD_LOG_LEVEL")
+	_assert_output "$OUTPUT_LINK" "$EXPECTED_LINK" 'expected file requirement symlink source path to affect consumer and its dependent'
+
+	OUTPUT_LINK_TARGET=$(printf '%s\n' 'dyd/external/link-target.txt' | dryad roots affected --log-level="$DYD_LOG_LEVEL")
+	_assert_output "$OUTPUT_LINK_TARGET" '' 'expected file requirement symlink target path not to affect roots'
+
+	OUTPUT_DIR_LINK=$(printf '%s\n' 'dyd/external/dir-data/target-link' | dryad roots affected --log-level="$DYD_LOG_LEVEL")
+	_assert_output "$OUTPUT_DIR_LINK" "$EXPECTED" 'expected directory file requirement symlink path to affect consumer and its dependent'
+
+	OUTPUT_DIR_LINK_TARGET=$(printf '%s\n' 'dyd/external/dir-link-target.txt' | dryad roots affected --log-level="$DYD_LOG_LEVEL")
+	_assert_output "$OUTPUT_DIR_LINK_TARGET" '' 'expected directory file requirement symlink target path not to affect roots'
+}
+
+_teardown() { if [ -d "$TEMP_DIR" ]; then chmod -R 755 "$TEMP_DIR"; rm -rf "$TEMP_DIR"; fi; }
+trap _teardown ERR EXIT
+_setup
+_test

@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+TEMP_DIR=''
+
+_assert_output() {
+	actual="$1"
+	expected="$2"
+	message="$3"
+	if [ "$actual" != "$expected" ]; then
+		echo "[ERROR] Fail: $message" 1>&2
+		echo "$actual" 1>&2
+		return 1
+	fi
+}
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+	mkdir -p "$TEMP_DIR/dyd/roots/root-consumer/dyd/requirements" "$TEMP_DIR/dyd/roots/root-link/dyd/requirements" "$TEMP_DIR/dyd/external/dir-data"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	printf 'root' > "$TEMP_DIR/dyd/roots/root-consumer/dyd/type"
+	printf 'root' > "$TEMP_DIR/dyd/roots/root-link/dyd/type"
+	printf 'data' > "$TEMP_DIR/dyd/external/data.txt"
+	printf 'link-target' > "$TEMP_DIR/dyd/external/link-target.txt"
+	printf 'dir-link-target' > "$TEMP_DIR/dyd/external/dir-link-target.txt"
+	ln -s link-target.txt "$TEMP_DIR/dyd/external/data-link"
+	printf 'ignored.txt\n' > "$TEMP_DIR/dyd/external/dir-data/.dyd-ignore"
+	printf 'kept' > "$TEMP_DIR/dyd/external/dir-data/keep.txt"
+	printf 'ignored' > "$TEMP_DIR/dyd/external/dir-data/ignored.txt"
+	ln -s ../dir-link-target.txt "$TEMP_DIR/dyd/external/dir-data/target-link"
+	printf '%s' 'file:../../../../external/data.txt' > "$TEMP_DIR/dyd/roots/root-consumer/dyd/requirements/data"
+	printf '%s' 'file:../../../../external/dir-data' > "$TEMP_DIR/dyd/roots/root-consumer/dyd/requirements/dir-data"
+	printf '%s' 'file:../../../../external/data-link' > "$TEMP_DIR/dyd/roots/root-link/dyd/requirements/data-link"
+	cd "$TEMP_DIR"
+	TEMP_DIR=$(pwd -P)
+}
+
+_test() {
+	OUTPUT_FILE=$(printf '%s\n' 'dyd/external/data.txt' | dryad roots owning --log-level="$DYD_LOG_LEVEL")
+	_assert_output "$OUTPUT_FILE" 'dyd/roots/root-consumer' 'expected direct file requirement source to be owned by the consumer root'
+
+	OUTPUT_DIR=$(printf '%s\n' 'dyd/external/dir-data/keep.txt' | dryad roots owning --log-level="$DYD_LOG_LEVEL")
+	_assert_output "$OUTPUT_DIR" 'dyd/roots/root-consumer' 'expected directory file requirement source to be owned by the consumer root'
+
+	OUTPUT_IGNORED=$(printf '%s\n' 'dyd/external/dir-data/ignored.txt' | dryad roots owning --log-level="$DYD_LOG_LEVEL")
+	_assert_output "$OUTPUT_IGNORED" '' 'expected ignored directory source path not to be owned'
+
+	OUTPUT_LINK=$(printf '%s\n' 'dyd/external/data-link' | dryad roots owning --log-level="$DYD_LOG_LEVEL")
+	_assert_output "$OUTPUT_LINK" 'dyd/roots/root-link' 'expected file requirement symlink source path to be owned'
+
+	OUTPUT_LINK_TARGET=$(printf '%s\n' 'dyd/external/link-target.txt' | dryad roots owning --log-level="$DYD_LOG_LEVEL")
+	_assert_output "$OUTPUT_LINK_TARGET" '' 'expected file requirement symlink target path not to be owned'
+
+	OUTPUT_DIR_LINK=$(printf '%s\n' 'dyd/external/dir-data/target-link' | dryad roots owning --log-level="$DYD_LOG_LEVEL")
+	_assert_output "$OUTPUT_DIR_LINK" 'dyd/roots/root-consumer' 'expected directory file requirement symlink path to be owned'
+
+	OUTPUT_DIR_LINK_TARGET=$(printf '%s\n' 'dyd/external/dir-link-target.txt' | dryad roots owning --log-level="$DYD_LOG_LEVEL")
+	_assert_output "$OUTPUT_DIR_LINK_TARGET" '' 'expected directory file requirement symlink target path not to be owned'
+}
+
+_teardown() { if [ -d "$TEMP_DIR" ]; then chmod -R 755 "$TEMP_DIR"; rm -rf "$TEMP_DIR"; fi; }
+trap _teardown ERR EXIT
+_setup
+_test

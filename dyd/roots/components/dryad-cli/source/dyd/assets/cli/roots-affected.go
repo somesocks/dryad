@@ -64,11 +64,18 @@ var rootsAffectedCommand = func() clib.Command {
 		}
 
 		changedPathsByRoot := make(map[string][]string)
+		startNodes := make([]string, 0)
+		startNodeSet := make(dryad.TStringSet)
 
 		scanner := bufio.NewScanner(os.Stdin)
 
 		for scanner.Scan() {
-			err, owningPath, changedPath := rootsInputOwnershipPaths(ctx, scanner.Text())
+			rawPath := scanner.Text()
+			rawChangedPath, err := filepath.Abs(rawPath)
+			if err != nil {
+				return err, nil
+			}
+			err, owningPath, changedPath := rootsInputOwnershipPaths(ctx, rawPath)
 			if err != nil {
 				return err, nil
 			}
@@ -76,15 +83,35 @@ var rootsAffectedCommand = func() clib.Command {
 			if err == nil {
 				changedPathsByRoot[root.BasePath] = append(changedPathsByRoot[root.BasePath], changedPath)
 			}
+
+			err, fileOwners := roots.FileRequirementOwners(ctx, rawChangedPath)
+			if err != nil {
+				return err, nil
+			}
+			for _, fileOwner := range fileOwners {
+				renderedRootPath := fileOwner.RootPath
+				if args.Relative {
+					renderedRootPath, err = filepath.Rel(garden.BasePath, renderedRootPath)
+					if err != nil {
+						return err, nil
+					}
+				}
+				err, node := formatVariantDescriptorRef(renderedRootPath, fileOwner.Variant)
+				if err != nil {
+					return err, nil
+				}
+				if startNodeSet[node] {
+					continue
+				}
+				startNodeSet[node] = true
+				startNodes = append(startNodes, node)
+			}
 		}
 
 		// Check for any errors during scanning
 		if err := scanner.Err(); err != nil {
 			return err, nil
 		}
-
-		startNodes := make([]string, 0)
-		startNodeSet := make(dryad.TStringSet)
 
 		for rootPath, changedPaths := range changedPathsByRoot {
 			err, root := roots.Root(rootPath).Resolve(ctx)

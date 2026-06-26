@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+TEMP_DIR=''
+
+assert_file_content_equals() {
+	file="$1"
+	expected="$2"
+	if [ ! -f "$file" ]; then
+		echo "[ERROR] Fail: file '$file' does not exist" 1>&2
+		return 1
+	fi
+	actual=$(cat "$file")
+	if [ "$actual" != "$expected" ]; then
+		echo "[ERROR] Fail: file '$file' content does not match. expected ($expected), got ($actual)" 1>&2
+		return 1
+	fi
+}
+
+_write_editor() {
+	root_name="$1"
+	dep_name="$2"
+	out_name="$3"
+	dep_rel_path="$4"
+	cat > "$TEMP_DIR/dyd/roots/$root_name/dyd/commands/dev-editor" <<EOF
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+dep_file="\$DYD_STEM/dyd/dependencies/$dep_name/$dep_rel_path"
+if [ ! -f "\$dep_file" ]; then
+	echo "[ERROR] missing file dependency: \$dep_file" 1>&2
+	exit 1
+fi
+
+out_dir="\$DYD_GARDEN/dyd/heap/root-develop-30--file-requirements"
+mkdir -p "\$out_dir"
+cat "\$dep_file" > "\$out_dir/$out_name.txt"
+EOF
+	chmod +x "$TEMP_DIR/dyd/roots/$root_name/dyd/commands/dev-editor"
+}
+
+_write_build_script() {
+	root_name="$1"
+	cat > "$TEMP_DIR/dyd/roots/$root_name/dyd/commands/dyd-root-build" <<'EOF'
+#!/usr/bin/env sh
+set -eu
+mkdir -p "$DYD_BUILD/dyd/assets"
+EOF
+	chmod +x "$TEMP_DIR/dyd/roots/$root_name/dyd/commands/dyd-root-build"
+}
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+	mkdir -p "$TEMP_DIR/dyd/roots/root-01/dyd/commands" "$TEMP_DIR/dyd/roots/root-01/dyd/requirements" "$TEMP_DIR/dyd/roots/root-variant/dyd/commands" "$TEMP_DIR/dyd/roots/root-variant/dyd/requirements~os=linux" "$TEMP_DIR/dyd/roots/root-variant/dyd/variants/os" "$TEMP_DIR/dyd/external"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	printf 'root' > "$TEMP_DIR/dyd/roots/root-01/dyd/type"
+	printf 'root' > "$TEMP_DIR/dyd/roots/root-variant/dyd/type"
+	printf 'true' > "$TEMP_DIR/dyd/roots/root-variant/dyd/variants/os/linux"
+	printf 'true' > "$TEMP_DIR/dyd/roots/root-variant/dyd/variants/os/darwin"
+	printf 'develop-data' > "$TEMP_DIR/dyd/external/data.txt"
+	printf 'variant-data' > "$TEMP_DIR/dyd/external/variant.txt"
+	printf '%s' 'file:../../../../external/data.txt?as=dyd/assets/develop/data.txt' > "$TEMP_DIR/dyd/roots/root-01/dyd/requirements/data"
+	printf '%s' 'file:../../../../external/variant.txt?into=dyd/assets/variant-files' > "$TEMP_DIR/dyd/roots/root-variant/dyd/requirements~os=linux/variant"
+	_write_editor root-01 data data dyd/assets/develop/data.txt
+	_write_editor root-variant variant variant dyd/assets/variant-files/variant.txt
+	_write_build_script root-01
+	_write_build_script root-variant
+	cd "$TEMP_DIR"
+}
+
+_test_plain_requirement() {
+	EDITOR_PATH="$PWD/dyd/roots/root-01/dyd/commands/dev-editor"
+	(dryad root develop start dyd/roots/root-01 --shell="$EDITOR_PATH" --log-level="$DYD_LOG_LEVEL") 1>&2
+}
+
+_test_variant_requirement() {
+	EDITOR_PATH="$PWD/dyd/roots/root-variant/dyd/commands/dev-editor"
+	(dryad root develop start dyd/roots/root-variant --variant=os=linux --shell="$EDITOR_PATH" --log-level="$DYD_LOG_LEVEL") 1>&2
+}
+
+_verify() {
+	assert_file_content_equals "$TEMP_DIR/dyd/heap/root-develop-30--file-requirements/data.txt" 'develop-data'
+	assert_file_content_equals "$TEMP_DIR/dyd/heap/root-develop-30--file-requirements/variant.txt" 'variant-data'
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_test_plain_requirement
+_test_variant_requirement
+_verify

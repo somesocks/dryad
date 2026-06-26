@@ -1,0 +1,215 @@
+package core
+
+import (
+	"archive/tar"
+	"dryad/internal/filepath"
+	"dryad/internal/os"
+	"dryad/task"
+	stdos "os"
+	stdfilepath "path/filepath"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func makeWritableForCleanupForTest(t *testing.T, path string) {
+	t.Helper()
+	t.Cleanup(func() {
+		_ = stdfilepath.WalkDir(path, func(path string, entry stdos.DirEntry, err error) error {
+			if err != nil || entry.Type()&stdos.ModeSymlink == stdos.ModeSymlink {
+				return nil
+			}
+			if entry.IsDir() {
+				_ = stdos.Chmod(path, 0o755)
+				return nil
+			}
+			_ = stdos.Chmod(path, 0o644)
+			return nil
+		})
+	})
+}
+
+func TestRootRequirementFileTargetNormalize(t *testing.T) {
+	assert := assert.New(t)
+
+	err, target := RootRequirementFileTargetNormalize("file:../foo.txt")
+	assert.Nil(err)
+	assert.Equal("file:../foo.txt", target)
+
+	err, target = RootRequirementFileTargetNormalize("file:../foo.txt?into=dyd/assets")
+	assert.Nil(err)
+	assert.Equal("file:../foo.txt", target)
+
+	err, target = RootRequirementFileTargetNormalize("file:../foo.txt?as=dyd/secrets/.env&unpack=true&fingerprint=v2-aaaaaaaaaaaaaaaaaaaaaaaaaa")
+	assert.Nil(err)
+	assert.Equal("file:../foo.txt?as=dyd/secrets/.env&fingerprint=v2-aaaaaaaaaaaaaaaaaaaaaaaaaa&unpack=true", target)
+
+	err, _ = RootRequirementFileTargetNormalize("file:/abs/foo.txt")
+	assert.NotNil(err)
+
+	err, _ = RootRequirementFileTargetNormalize("file:../foo.txt?target=assets")
+	assert.NotNil(err)
+
+	err, _ = RootRequirementFileTargetNormalize("file:../foo.txt?as=dyd/assets/foo.txt&into=dyd/assets")
+	assert.NotNil(err)
+
+	err, _ = RootRequirementFileTargetNormalize("file:../foo.txt?as=/dyd/assets/foo.txt")
+	assert.NotNil(err)
+
+	err, _ = RootRequirementFileTargetNormalize("file:../foo.txt?as=dyd/assets/../../outside.txt")
+	assert.NotNil(err)
+
+	err, _ = RootRequirementFileTargetNormalize("file:../foo.txt?as=dyd/assets~os=linux/foo.txt")
+	assert.NotNil(err)
+
+	err, _ = RootRequirementFileTargetNormalize("file:../foo.txt?as=dyd/commands/foo.txt")
+	assert.NotNil(err)
+}
+
+func TestRootRequirementFileBuildStem_DirectoryHonorsIgnoreAndSymlinks(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	makeWritableForCleanupForTest(t, gardenPath)
+	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "type"), "garden")
+	sourcePath := filepath.Join(t.TempDir(), "source")
+	externalPath := filepath.Join(t.TempDir(), "external.txt")
+	writeFileForTest(t, filepath.Join(sourcePath, ".dyd-ignore"), "ignored.txt\nignored-dir\n")
+	writeFileForTest(t, filepath.Join(sourcePath, "keep.txt"), "keep")
+	writeFileForTest(t, filepath.Join(sourcePath, "ignored.txt"), "ignored")
+	writeFileForTest(t, filepath.Join(sourcePath, "ignored-dir", "value.txt"), "ignored")
+	writeFileForTest(t, externalPath, "external")
+	assert.Nil(os.Symlink("keep.txt", filepath.Join(sourcePath, "internal-link")))
+	assert.Nil(os.Symlink(externalPath, filepath.Join(sourcePath, "external-link")))
+
+	err, stem := RootRequirementFileBuildStem(task.SERIAL_CONTEXT, RootRequirementFileBuildStemRequest{
+		Garden:        &SafeGardenReference{BasePath: gardenPath},
+		SourcePath:    sourcePath,
+		DestinationAs: "dyd/assets/vendor",
+	})
+	assert.Nil(err)
+	assert.NotNil(stem)
+	assert.FileExists(filepath.Join(stem.BasePath, "dyd", "assets", "vendor", "keep.txt"))
+	assert.NoFileExists(filepath.Join(stem.BasePath, "dyd", "assets", "vendor", "ignored.txt"))
+	assert.NoDirExists(filepath.Join(stem.BasePath, "dyd", "assets", "vendor", "ignored-dir"))
+	linkInfo, err := os.Lstat(filepath.Join(stem.BasePath, "dyd", "assets", "vendor", "internal-link"))
+	assert.Nil(err)
+	assert.True(linkInfo.Mode()&os.ModeSymlink == os.ModeSymlink)
+	assert.Equal("external", readTrimmedFileForTest(t, filepath.Join(stem.BasePath, "dyd", "assets", "vendor", "external-link")))
+}
+
+func TestRootRequirementFileBuildStem_FileAsSecrets(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	makeWritableForCleanupForTest(t, gardenPath)
+	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "type"), "garden")
+	sourcePath := filepath.Join(t.TempDir(), ".env")
+	writeFileForTest(t, sourcePath, "SECRET=1")
+
+	err, stem := RootRequirementFileBuildStem(task.SERIAL_CONTEXT, RootRequirementFileBuildStemRequest{
+		Garden:        &SafeGardenReference{BasePath: gardenPath},
+		SourcePath:    sourcePath,
+		DestinationAs: "dyd/secrets/runtime.env",
+	})
+	assert.Nil(err)
+	assert.NotNil(stem)
+	assert.Equal("SECRET=1", readTrimmedFileForTest(t, filepath.Join(stem.BasePath, "dyd", "secrets", "runtime.env")))
+}
+
+func TestRootRequirementFileBuildStem_FileIntoUsesSourceName(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	makeWritableForCleanupForTest(t, gardenPath)
+	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "type"), "garden")
+	sourcePath := filepath.Join(t.TempDir(), "value.txt")
+	writeFileForTest(t, sourcePath, "value")
+
+	err, stem := RootRequirementFileBuildStem(task.SERIAL_CONTEXT, RootRequirementFileBuildStemRequest{
+		Garden:          &SafeGardenReference{BasePath: gardenPath},
+		SourcePath:      sourcePath,
+		DestinationInto: "dyd/assets/config",
+	})
+	assert.Nil(err)
+	assert.NotNil(stem)
+	assert.Equal("value", readTrimmedFileForTest(t, filepath.Join(stem.BasePath, "dyd", "assets", "config", "value.txt")))
+}
+
+func TestRootRequirementFileBuildStem_DefaultTargetAssets(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	makeWritableForCleanupForTest(t, gardenPath)
+	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "type"), "garden")
+	sourcePath := filepath.Join(t.TempDir(), "value.txt")
+	writeFileForTest(t, sourcePath, "value")
+
+	err, stem := RootRequirementFileBuildStem(task.SERIAL_CONTEXT, RootRequirementFileBuildStemRequest{
+		Garden:     &SafeGardenReference{BasePath: gardenPath},
+		SourcePath: sourcePath,
+	})
+	assert.Nil(err)
+	assert.NotNil(stem)
+	assert.Equal("value", readTrimmedFileForTest(t, filepath.Join(stem.BasePath, "dyd", "assets", "value.txt")))
+}
+
+func TestRootRequirementFileBuildStem_UnpackIntoUsesArchiveName(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	makeWritableForCleanupForTest(t, gardenPath)
+	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "type"), "garden")
+	archivePath := filepath.Join(t.TempDir(), "pkg.tar")
+	archiveFile, err := stdos.Create(archivePath)
+	assert.Nil(err)
+	tarWriter := tar.NewWriter(archiveFile)
+	contents := "packed"
+	assert.Nil(tarWriter.WriteHeader(&tar.Header{
+		Name: "contents/value.txt",
+		Mode: 0o644,
+		Size: int64(len(contents)),
+	}))
+	_, err = tarWriter.Write([]byte(contents))
+	assert.Nil(err)
+	assert.Nil(tarWriter.Close())
+	assert.Nil(archiveFile.Close())
+
+	err, stem := RootRequirementFileBuildStem(task.SERIAL_CONTEXT, RootRequirementFileBuildStemRequest{
+		Garden:          &SafeGardenReference{BasePath: gardenPath},
+		SourcePath:      archivePath,
+		DestinationInto: "dyd/assets/vendor",
+		Unpack:          true,
+	})
+	assert.Nil(err)
+	assert.NotNil(stem)
+	assert.Equal("packed", readTrimmedFileForTest(t, filepath.Join(stem.BasePath, "dyd", "assets", "vendor", "pkg", "contents", "value.txt")))
+}
+
+func TestRootRequirementFileBuildStem_RejectsUnsafeArchiveSymlink(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	makeWritableForCleanupForTest(t, gardenPath)
+	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "type"), "garden")
+	archivePath := filepath.Join(t.TempDir(), "bad.tar")
+	archiveFile, err := stdos.Create(archivePath)
+	assert.Nil(err)
+	tarWriter := tar.NewWriter(archiveFile)
+	assert.Nil(tarWriter.WriteHeader(&tar.Header{
+		Name:     "escape-link",
+		Typeflag: tar.TypeSymlink,
+		Linkname: "../../outside",
+		Mode:     0o777,
+	}))
+	assert.Nil(tarWriter.Close())
+	assert.Nil(archiveFile.Close())
+
+	err, stem := RootRequirementFileBuildStem(task.SERIAL_CONTEXT, RootRequirementFileBuildStemRequest{
+		Garden:     &SafeGardenReference{BasePath: gardenPath},
+		SourcePath: archivePath,
+		Unpack:     true,
+	})
+	assert.NotNil(err)
+	assert.Nil(stem)
+}

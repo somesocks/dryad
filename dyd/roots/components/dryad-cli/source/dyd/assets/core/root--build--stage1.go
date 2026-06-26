@@ -64,6 +64,7 @@ func init() {
 		DependencyRoot              *SafeRootReference
 		DependencyPath              string
 		DependencyVariantDescriptor string
+		FileTargetSpec              *RootRequirementTargetSpec
 		JoinStdout                  bool
 		JoinStderr                  bool
 		LogStdout                   struct {
@@ -179,6 +180,18 @@ func init() {
 				if rootRequirementTargetKind(targetSpec.Kind) == RootRequirementTargetKindEnv {
 					return materializeEnvRequirement(requirementName, targetSpec), nil
 				}
+				if rootRequirementTargetKind(targetSpec.Kind) == RootRequirementTargetKindFile {
+					if err := bindName(requirementName); err != nil {
+						return err, nil
+					}
+					buildDependencyRequests = append(buildDependencyRequests, rootBuild_stage1_buildDependencyRequest{
+						BaseRequest:    req,
+						DependencyName: requirementName,
+						DependencyPath: targetSpec.FileSourcePath,
+						FileTargetSpec: targetSpec,
+					})
+					return nil, nil
+				}
 
 				err, targets := requirement.ResolveTargets(ctx, RootRequirementResolveTargetsRequest{
 					ParentVariant: parentVariantContext.Descriptor,
@@ -225,6 +238,40 @@ func init() {
 	}
 
 	var rootBuild_stage1_buildDependency = func(ctx *task.ExecutionContext, req rootBuild_stage1_buildDependencyRequest) (error, *RootBuildResult) {
+		if req.FileTargetSpec != nil {
+			err, fileStem := RootRequirementFileBuildStem(ctx, RootRequirementFileBuildStemRequest{
+				Garden:          req.BaseRequest.Roots.Garden,
+				SourcePath:      req.FileTargetSpec.FileSourcePath,
+				DestinationAs:   req.FileTargetSpec.FileDestinationAs,
+				DestinationInto: req.FileTargetSpec.FileDestinationInto,
+				Unpack:          req.FileTargetSpec.FileUnpack,
+			})
+			if err != nil {
+				return err, nil
+			}
+			if fileStem == nil {
+				return fmt.Errorf("missing file dependency build result: %s", req.DependencyPath), nil
+			}
+			if req.FileTargetSpec.FileFingerprint != "" && req.FileTargetSpec.FileFingerprint != fileStem.Fingerprint {
+				return fmt.Errorf("file requirement %s fingerprint mismatch for %s", req.DependencyName, req.FileTargetSpec.FileSourcePath), nil
+			}
+
+			err = rootBuild_linkDependency(rootBuild_linkDependencyRequest{
+				WorkspacePath:         req.BaseRequest.WorkspacePath,
+				DependencyName:        req.DependencyName,
+				DependencyHeapPath:    fileStem.BasePath,
+				DependencyFingerprint: fileStem.Fingerprint,
+			})
+			if err != nil {
+				return err, nil
+			}
+
+			return nil, &RootBuildResult{
+				SourceFingerprint: fileStem.Fingerprint,
+				ResultFingerprint: fileStem.Fingerprint,
+			}
+		}
+
 		if req.DependencyRoot == nil {
 			return fmt.Errorf("missing dependency root: %s", req.DependencyPath), nil
 		}
