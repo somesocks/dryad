@@ -17,6 +17,7 @@ const (
 	RootRequirementFileFingerprintQueryKey = "fingerprint"
 	RootRequirementFileAsQueryKey          = "as"
 	RootRequirementFileIntoQueryKey        = "into"
+	RootRequirementFileOptionalQueryKey    = "optional"
 	RootRequirementFileUnpackQueryKey      = "unpack"
 )
 
@@ -24,6 +25,7 @@ type rootRequirementFileTargetSpec struct {
 	SourcePath      string
 	DestinationAs   string
 	DestinationInto string
+	Optional        bool
 	Unpack          bool
 	Fingerprint     string
 }
@@ -117,6 +119,20 @@ func rootRequirementFileTargetFromURL(linkURL *url.URL) (error, rootRequirementF
 	query.Del(RootRequirementFileAsQueryKey)
 	query.Del(RootRequirementFileIntoQueryKey)
 
+	optional := false
+	optionalRaw := query.Get(RootRequirementFileOptionalQueryKey)
+	if optionalRaw != "" {
+		switch optionalRaw {
+		case "true":
+			optional = true
+		case "false":
+			optional = false
+		default:
+			return fmt.Errorf("file requirement optional must be true or false"), rootRequirementFileTargetSpec{}
+		}
+	}
+	query.Del(RootRequirementFileOptionalQueryKey)
+
 	unpack := false
 	unpackRaw := query.Get(RootRequirementFileUnpackQueryKey)
 	if unpackRaw != "" {
@@ -148,12 +164,13 @@ func rootRequirementFileTargetFromURL(linkURL *url.URL) (error, rootRequirementF
 		SourcePath:      filepath.Clean(linkPath),
 		DestinationAs:   destinationAs,
 		DestinationInto: destinationInto,
+		Optional:        optional,
 		Unpack:          unpack,
 		Fingerprint:     fingerprint,
 	}
 }
 
-func rootRequirementFileTargetString(sourcePath string, destinationAs string, destinationInto string, unpack bool, fingerprint string) string {
+func rootRequirementFileTargetString(sourcePath string, destinationAs string, destinationInto string, optional bool, unpack bool, fingerprint string) string {
 	linkURL := url.URL{
 		Scheme: "file",
 		Opaque: filepath.ToSlash(filepath.Clean(sourcePath)),
@@ -170,6 +187,9 @@ func rootRequirementFileTargetString(sourcePath string, destinationAs string, de
 	}
 	if destinationInto != "" && destinationInto != "dyd/assets" {
 		query = append(query, RootRequirementFileIntoQueryKey+"="+escapeQueryValue(destinationInto))
+	}
+	if optional {
+		query = append(query, RootRequirementFileOptionalQueryKey+"=true")
 	}
 	if unpack {
 		query = append(query, RootRequirementFileUnpackQueryKey+"=true")
@@ -204,11 +224,11 @@ func RootRequirementFileTargetNormalize(raw string) (error, string) {
 		return fmt.Errorf("file requirement target must use file scheme: %s", raw), ""
 	}
 
-	return nil, rootRequirementFileTargetString(fileSpec.SourcePath, fileSpec.DestinationAs, fileSpec.DestinationInto, fileSpec.Unpack, fileSpec.Fingerprint)
+	return nil, rootRequirementFileTargetString(fileSpec.SourcePath, fileSpec.DestinationAs, fileSpec.DestinationInto, fileSpec.Optional, fileSpec.Unpack, fileSpec.Fingerprint)
 }
 
-func RootRequirementFileTargetString(sourcePath string, destinationAs string, destinationInto string, unpack bool, fingerprint string) string {
-	return rootRequirementFileTargetString(sourcePath, destinationAs, destinationInto, unpack, fingerprint)
+func RootRequirementFileTargetString(sourcePath string, destinationAs string, destinationInto string, optional bool, unpack bool, fingerprint string) string {
+	return rootRequirementFileTargetString(sourcePath, destinationAs, destinationInto, optional, unpack, fingerprint)
 }
 
 func rootRequirementFileIsWithin(basePath string, path string) (error, bool) {
@@ -519,6 +539,7 @@ type RootRequirementFileBuildStemRequest struct {
 	SourcePath      string
 	DestinationAs   string
 	DestinationInto string
+	Optional        bool
 	Unpack          bool
 }
 
@@ -560,6 +581,7 @@ func RootRequirementFileBuildStem(ctx *task.ExecutionContext, req RootRequiremen
 		destPath = filepath.Join(stemPath, destinationInto, filepath.Base(req.SourcePath))
 	}
 
+	missingOptionalSource := false
 	if req.Unpack {
 		extractPath, err := os.MkdirTemp("", "dryad-file-unpack-*")
 		if err != nil {
@@ -567,13 +589,23 @@ func RootRequirementFileBuildStem(ctx *task.ExecutionContext, req RootRequiremen
 		}
 		defer os.RemoveAll(extractPath)
 		if err := rootRequirementFileExtractTar(req.SourcePath, extractPath); err != nil {
-			return err, nil
+			if req.Optional && os.IsNotExist(err) {
+				missingOptionalSource = true
+			} else {
+				return err, nil
+			}
 		}
-		if err := rootRequirementFileCopyDir(ctx, extractPath, destPath); err != nil {
-			return err, nil
+		if !missingOptionalSource {
+			if err := rootRequirementFileCopyDir(ctx, extractPath, destPath); err != nil {
+				return err, nil
+			}
 		}
 	} else if err := rootRequirementFileImportSourceExact(ctx, req.SourcePath, destPath); err != nil {
-		return err, nil
+		if req.Optional && os.IsNotExist(err) {
+			missingOptionalSource = true
+		} else {
+			return err, nil
+		}
 	}
 
 	err, _ = stemFinalize(ctx, stemPath)

@@ -40,9 +40,9 @@ func TestRootRequirementFileTargetNormalize(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal("file:../foo.txt", target)
 
-	err, target = RootRequirementFileTargetNormalize("file:../foo.txt?as=dyd/secrets/.env&unpack=true&fingerprint=v2-aaaaaaaaaaaaaaaaaaaaaaaaaa")
+	err, target = RootRequirementFileTargetNormalize("file:../foo.txt?as=dyd/secrets/.env&unpack=true&optional=true&fingerprint=v2-aaaaaaaaaaaaaaaaaaaaaaaaaa")
 	assert.Nil(err)
-	assert.Equal("file:../foo.txt?as=dyd/secrets/.env&fingerprint=v2-aaaaaaaaaaaaaaaaaaaaaaaaaa&unpack=true", target)
+	assert.Equal("file:../foo.txt?as=dyd/secrets/.env&fingerprint=v2-aaaaaaaaaaaaaaaaaaaaaaaaaa&optional=true&unpack=true", target)
 
 	err, _ = RootRequirementFileTargetNormalize("file:/abs/foo.txt")
 	assert.NotNil(err)
@@ -63,6 +63,9 @@ func TestRootRequirementFileTargetNormalize(t *testing.T) {
 	assert.NotNil(err)
 
 	err, _ = RootRequirementFileTargetNormalize("file:../foo.txt?as=dyd/commands/foo.txt")
+	assert.NotNil(err)
+
+	err, _ = RootRequirementFileTargetNormalize("file:../foo.txt?optional=maybe")
 	assert.NotNil(err)
 }
 
@@ -152,6 +155,64 @@ func TestRootRequirementFileBuildStem_DefaultTargetAssets(t *testing.T) {
 	assert.Nil(err)
 	assert.NotNil(stem)
 	assert.Equal("value", readTrimmedFileForTest(t, filepath.Join(stem.BasePath, "dyd", "assets", "value.txt")))
+}
+
+func TestRootRequirementFileBuildStem_MissingRequiredSourceFails(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	makeWritableForCleanupForTest(t, gardenPath)
+	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "type"), "garden")
+	sourcePath := filepath.Join(t.TempDir(), "missing.txt")
+
+	err, stem := RootRequirementFileBuildStem(task.SERIAL_CONTEXT, RootRequirementFileBuildStemRequest{
+		Garden:     &SafeGardenReference{BasePath: gardenPath},
+		SourcePath: sourcePath,
+	})
+	assert.NotNil(err)
+	assert.Nil(stem)
+}
+
+func TestRootRequirementFileBuildStem_MissingOptionalFileBuildsEmptyStem(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	makeWritableForCleanupForTest(t, gardenPath)
+	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "type"), "garden")
+	sourcePath := filepath.Join(t.TempDir(), "missing.txt")
+
+	err, stem := RootRequirementFileBuildStem(task.NewContext(1), RootRequirementFileBuildStemRequest{
+		Garden:        &SafeGardenReference{BasePath: gardenPath},
+		SourcePath:    sourcePath,
+		DestinationAs: "dyd/assets/missing.txt",
+		Optional:      true,
+	})
+	assert.Nil(err)
+	assert.NotNil(stem)
+	assert.Equal("stem", readTrimmedFileForTest(t, filepath.Join(stem.BasePath, "dyd", "type")))
+	assert.FileExists(filepath.Join(stem.BasePath, "dyd", "fingerprint"))
+	assert.NoFileExists(filepath.Join(stem.BasePath, "dyd", "assets", "missing.txt"))
+}
+
+func TestRootRequirementFileBuildStem_MissingOptionalArchiveBuildsEmptyStem(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	makeWritableForCleanupForTest(t, gardenPath)
+	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "type"), "garden")
+	sourcePath := filepath.Join(t.TempDir(), "missing.tar")
+
+	err, stem := RootRequirementFileBuildStem(task.NewContext(1), RootRequirementFileBuildStemRequest{
+		Garden:          &SafeGardenReference{BasePath: gardenPath},
+		SourcePath:      sourcePath,
+		DestinationInto: "dyd/assets/vendor",
+		Optional:        true,
+		Unpack:          true,
+	})
+	assert.Nil(err)
+	assert.NotNil(stem)
+	assert.FileExists(filepath.Join(stem.BasePath, "dyd", "fingerprint"))
+	assert.NoDirExists(filepath.Join(stem.BasePath, "dyd", "assets", "vendor", "missing"))
 }
 
 func TestRootRequirementFileBuildStem_UnpackIntoUsesArchiveName(t *testing.T) {

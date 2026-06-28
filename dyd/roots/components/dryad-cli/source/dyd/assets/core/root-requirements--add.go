@@ -156,7 +156,7 @@ func (requirements *SafeRootRequirementsReference) AddFile(
 	}
 
 	requirementPath := filepath.Join(requirements.BasePath, alias)
-	if err := os.WriteFile(requirementPath, []byte(rootRequirementFileTargetString(fileSpec.SourcePath, fileSpec.DestinationAs, fileSpec.DestinationInto, fileSpec.Unpack, fileSpec.Fingerprint)), 0644); err != nil {
+	if err := os.WriteFile(requirementPath, []byte(rootRequirementFileTargetString(fileSpec.SourcePath, fileSpec.DestinationAs, fileSpec.DestinationInto, fileSpec.Optional, fileSpec.Unpack, fileSpec.Fingerprint)), 0644); err != nil {
 		return err, nil
 	}
 

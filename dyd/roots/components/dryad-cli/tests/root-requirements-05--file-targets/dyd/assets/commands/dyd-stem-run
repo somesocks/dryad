@@ -50,7 +50,11 @@ _test() {
 	(cd dyd/roots/root-01 && dryad root requirement add 'file:../../../../external/data.txt?into=dyd/assets/config' config-data --log-level=info)
 	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-01/dyd/requirements/config-data" 'file:../../../../external/data.txt?into=dyd/assets/config'
 
+	(cd dyd/roots/root-01 && dryad root requirement add 'file:../../../../external/data.txt?optional=true&into=dyd/assets/optional' optional-data --log-level=info)
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-01/dyd/requirements/optional-data" 'file:../../../../external/data.txt?into=dyd/assets/optional&optional=true'
+
 	expect_add_fails 'file:../../../../external/data.txt?target=assets'
+	expect_add_fails 'file:../../../../external/data.txt?optional=maybe'
 	expect_add_fails 'file:../../../../external/data.txt?as=dyd/assets/data.txt&into=dyd/assets'
 	expect_add_fails 'file:../../../../external/data.txt?as=/dyd/assets/data.txt'
 	expect_add_fails 'file:../../../../external/data.txt?as=dyd/assets~os=linux/data.txt'
