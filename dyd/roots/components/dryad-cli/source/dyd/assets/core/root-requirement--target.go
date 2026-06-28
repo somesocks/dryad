@@ -21,6 +21,11 @@ type RootRequirementTargetSpec struct {
 	FileOptional        bool
 	FileUnpack          bool
 	FileFingerprint     string
+	HTTPSourceURL       string
+	HTTPDestinationAs   string
+	HTTPDestinationInto string
+	HTTPUnpack          bool
+	HTTPFingerprint     string
 }
 
 func rootRequirementVariantSelectorFromURL(linkURL *url.URL) (error, VariantDescriptor) {
@@ -131,6 +136,24 @@ func (rootRequirement *SafeRootRequirementReference) TargetSpec(ctx *task.Execut
 			FileOptional:        fileSpec.Optional,
 			FileUnpack:          fileSpec.Unpack,
 			FileFingerprint:     fileSpec.Fingerprint,
+		}
+	}
+	if linkScheme == "http" || linkScheme == "https" {
+		err, httpSpec := rootRequirementHTTPTargetFromURL(linkURL)
+		if err != nil {
+			return err, nil
+		}
+		if err := rootRequirementHTTPValidateStoredTargetSpec(httpSpec); err != nil {
+			return err, nil
+		}
+
+		return nil, &RootRequirementTargetSpec{
+			Kind:                RootRequirementTargetKindHTTP,
+			HTTPSourceURL:       httpSpec.SourceURL,
+			HTTPDestinationAs:   httpSpec.DestinationAs,
+			HTTPDestinationInto: httpSpec.DestinationInto,
+			HTTPUnpack:          httpSpec.Unpack,
+			HTTPFingerprint:     httpSpec.Fingerprint,
 		}
 	}
 

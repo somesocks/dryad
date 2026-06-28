@@ -26,6 +26,11 @@ type RootRequirementsAddFileRequest struct {
 	Target string
 }
 
+type RootRequirementsAddHTTPRequest struct {
+	Alias  string
+	Target string
+}
+
 func (requirements *SafeRootRequirementsReference) Add(
 	ctx *task.ExecutionContext,
 	req RootRequirementsAddRequest,
@@ -157,6 +162,49 @@ func (requirements *SafeRootRequirementsReference) AddFile(
 
 	requirementPath := filepath.Join(requirements.BasePath, alias)
 	if err := os.WriteFile(requirementPath, []byte(rootRequirementFileTargetString(fileSpec.SourcePath, fileSpec.DestinationAs, fileSpec.DestinationInto, fileSpec.Optional, fileSpec.Unpack, fileSpec.Fingerprint)), 0644); err != nil {
+		return err, nil
+	}
+
+	return nil, &SafeRootRequirementReference{
+		BasePath:     requirementPath,
+		Requirements: requirements,
+	}
+}
+
+func (requirements *SafeRootRequirementsReference) AddHTTP(
+	ctx *task.ExecutionContext,
+	req RootRequirementsAddHTTPRequest,
+) (error, *SafeRootRequirementReference) {
+	err, httpSpec, isHTTP := rootRequirementParseHTTPTarget(req.Target)
+	if err != nil {
+		return err, nil
+	}
+	if !isHTTP {
+		return fmt.Errorf("http requirement target must use http or https scheme: %s", req.Target), nil
+	}
+	if err := rootRequirementHTTPValidateStoredTargetSpec(httpSpec); err != nil {
+		return err, nil
+	}
+
+	alias := req.Alias
+	if alias == "" {
+		sourceURL, err := url.Parse(httpSpec.SourceURL)
+		if err != nil {
+			return err, nil
+		}
+		alias = filepath.Base(sourceURL.Path)
+	}
+	err, alias = RootRequirementNormalizeName(alias)
+	if err != nil {
+		return err, nil
+	}
+
+	if err := os.MkdirAll(requirements.BasePath, os.ModePerm); err != nil {
+		return err, nil
+	}
+
+	requirementPath := filepath.Join(requirements.BasePath, alias)
+	if err := os.WriteFile(requirementPath, []byte(rootRequirementHTTPTargetString(httpSpec.SourceURL, httpSpec.DestinationAs, httpSpec.DestinationInto, httpSpec.Unpack, httpSpec.Fingerprint)), 0644); err != nil {
 		return err, nil
 	}
 

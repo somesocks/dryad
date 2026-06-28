@@ -414,7 +414,7 @@ func rootDevelop_stage1(
 		DependencyName              string
 		DependencyPath              string
 		DependencyVariantDescriptor string
-		FileTargetSpec              *RootRequirementTargetSpec
+		ExternalTargetSpec          *RootRequirementTargetSpec
 	}
 
 	rootRef := SafeRootReference{
@@ -462,9 +462,17 @@ func rootDevelop_stage1(
 			}
 			if rootRequirementTargetKind(targetSpec.Kind) == RootRequirementTargetKindFile {
 				buildDependencyRequests = append(buildDependencyRequests, rootDevelop_stage1_buildDependencyRequest{
-					DependencyName: requirementName,
-					DependencyPath: targetSpec.FileSourcePath,
-					FileTargetSpec: targetSpec,
+					DependencyName:     requirementName,
+					DependencyPath:     targetSpec.FileSourcePath,
+					ExternalTargetSpec: targetSpec,
+				})
+				return nil, nil
+			}
+			if rootRequirementTargetKind(targetSpec.Kind) == RootRequirementTargetKindHTTP {
+				buildDependencyRequests = append(buildDependencyRequests, rootDevelop_stage1_buildDependencyRequest{
+					DependencyName:     requirementName,
+					DependencyPath:     targetSpec.HTTPSourceURL,
+					ExternalTargetSpec: targetSpec,
 				})
 				return nil, nil
 			}
@@ -502,14 +510,14 @@ func rootDevelop_stage1(
 	}
 
 	buildDependency := func(ctx *task.ExecutionContext, req rootDevelop_stage1_buildDependencyRequest) (error, any) {
-		if req.FileTargetSpec != nil {
+		if req.ExternalTargetSpec != nil && rootRequirementTargetKind(req.ExternalTargetSpec.Kind) == RootRequirementTargetKindFile {
 			err, fileStem := RootRequirementFileBuildStem(ctx, RootRequirementFileBuildStemRequest{
 				Garden:          roots.Garden,
-				SourcePath:      req.FileTargetSpec.FileSourcePath,
-				DestinationAs:   req.FileTargetSpec.FileDestinationAs,
-				DestinationInto: req.FileTargetSpec.FileDestinationInto,
-				Optional:        req.FileTargetSpec.FileOptional,
-				Unpack:          req.FileTargetSpec.FileUnpack,
+				SourcePath:      req.ExternalTargetSpec.FileSourcePath,
+				DestinationAs:   req.ExternalTargetSpec.FileDestinationAs,
+				DestinationInto: req.ExternalTargetSpec.FileDestinationInto,
+				Optional:        req.ExternalTargetSpec.FileOptional,
+				Unpack:          req.ExternalTargetSpec.FileUnpack,
 			})
 			if err != nil {
 				return err, nil
@@ -517,12 +525,31 @@ func rootDevelop_stage1(
 			if fileStem == nil {
 				return fmt.Errorf("missing file dependency build result: %s", req.DependencyPath), nil
 			}
-			if req.FileTargetSpec.FileFingerprint != "" && req.FileTargetSpec.FileFingerprint != fileStem.Fingerprint {
-				return fmt.Errorf("file requirement %s fingerprint mismatch for %s", req.DependencyName, req.FileTargetSpec.FileSourcePath), nil
+			if req.ExternalTargetSpec.FileFingerprint != "" && req.ExternalTargetSpec.FileFingerprint != fileStem.Fingerprint {
+				return fmt.Errorf("file requirement %s fingerprint mismatch for %s", req.DependencyName, req.ExternalTargetSpec.FileSourcePath), nil
 			}
 
 			targetDepPath := filepath.Join(workspacePath, "dyd", "dependencies", req.DependencyName)
 			return os.Symlink(fileStem.BasePath, targetDepPath), nil
+		}
+		if req.ExternalTargetSpec != nil && rootRequirementTargetKind(req.ExternalTargetSpec.Kind) == RootRequirementTargetKindHTTP {
+			err, httpStem := RootRequirementHTTPBuildStem(ctx, RootRequirementHTTPBuildStemRequest{
+				Garden:          roots.Garden,
+				SourceURL:       req.ExternalTargetSpec.HTTPSourceURL,
+				DestinationAs:   req.ExternalTargetSpec.HTTPDestinationAs,
+				DestinationInto: req.ExternalTargetSpec.HTTPDestinationInto,
+				Unpack:          req.ExternalTargetSpec.HTTPUnpack,
+				Fingerprint:     req.ExternalTargetSpec.HTTPFingerprint,
+			})
+			if err != nil {
+				return err, nil
+			}
+			if httpStem == nil {
+				return fmt.Errorf("missing http dependency build result: %s", req.DependencyPath), nil
+			}
+
+			targetDepPath := filepath.Join(workspacePath, "dyd", "dependencies", req.DependencyName)
+			return os.Symlink(httpStem.BasePath, targetDepPath), nil
 		}
 
 		unsafeDepReference := UnsafeRootReference{

@@ -169,6 +169,18 @@ func (requirements *SafeRootVariantRequirementsReference) AddFile(
 	return rootRequirements.AddFile(ctx, req)
 }
 
+func (requirements *SafeRootVariantRequirementsReference) AddHTTP(
+	ctx *task.ExecutionContext,
+	req RootRequirementsAddHTTPRequest,
+) (error, *SafeRootRequirementReference) {
+	rootRequirements := SafeRootRequirementsReference{
+		BasePath: requirements.BasePath,
+		Root:     requirements.Variant.Root,
+	}
+
+	return rootRequirements.AddHTTP(ctx, req)
+}
+
 func rootVariantExactSelectorDescriptor(
 	ctx *task.ExecutionContext,
 	variant *SafeRootVariantReference,

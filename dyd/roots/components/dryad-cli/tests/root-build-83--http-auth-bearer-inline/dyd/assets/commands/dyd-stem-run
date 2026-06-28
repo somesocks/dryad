@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+WORK_DIR=''
+TEMP_DIR=''
+SERVER_PID=''
+
+assert_file_content_equals() {
+	file="$1"
+	expected="$2"
+	if [ ! -f "$file" ]; then
+		echo "[ERROR] Fail: file '$file' does not exist" 1>&2
+		return 1
+	fi
+	actual=$(cat "$file")
+	if [ "$actual" != "$expected" ]; then
+		echo "[ERROR] Fail: file '$file' content does not match. expected ($expected), got ($actual)" 1>&2
+		return 1
+	fi
+}
+
+_stop_server() {
+	if [ -n "$SERVER_PID" ]; then
+		kill "$SERVER_PID" 2>/dev/null || true
+		wait "$SERVER_PID" 2>/dev/null || true
+		SERVER_PID=''
+	fi
+}
+
+_teardown() {
+	_stop_server
+	if [ -d "$WORK_DIR" ]; then
+		chmod -R 755 "$WORK_DIR"
+		rm -rf "$WORK_DIR"
+	fi
+}
+
+_compute_expected_fingerprint() {
+	fingerprint_dir="$WORK_DIR/fingerprint-garden"
+	mkdir -p "$fingerprint_dir/dyd/roots/root-fingerprint/dyd/commands" "$fingerprint_dir/dyd/roots/root-fingerprint/dyd/requirements" "$fingerprint_dir/dyd/external"
+	printf 'garden' > "$fingerprint_dir/dyd/type"
+	printf 'root' > "$fingerprint_dir/dyd/roots/root-fingerprint/dyd/type"
+	printf 'bearer-inline-data' > "$fingerprint_dir/dyd/external/data.txt"
+	printf '%s' 'file:../../../../external/data.txt?as=dyd/assets/data.txt' > "$fingerprint_dir/dyd/roots/root-fingerprint/dyd/requirements/data"
+	cat > "$fingerprint_dir/dyd/roots/root-fingerprint/dyd/commands/dyd-root-build" <<'EOF'
+#!/usr/bin/env sh
+set -eu
+mkdir -p "$DYD_BUILD/dyd/assets"
+cat "$DYD_STEM/dyd/dependencies/data/dyd/fingerprint" > "$DYD_BUILD/dyd/assets/data-fingerprint.txt"
+EOF
+	chmod +x "$fingerprint_dir/dyd/roots/root-fingerprint/dyd/commands/dyd-root-build"
+	(cd "$fingerprint_dir" && dryad root build dyd/roots/root-fingerprint --log-level=info > /dev/null 2>&1)
+	cat "$fingerprint_dir/dyd/sprouts/root-fingerprint/dyd/dependencies/stem/dyd/assets/data-fingerprint.txt"
+}
+
+_setup() {
+	WORK_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+	TEMP_DIR="$WORK_DIR/test-garden"
+	mkdir -p "$TEMP_DIR/dyd/roots" "$TEMP_DIR/dyd/shed/remotes/artifact"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	cd "$TEMP_DIR"
+}
+
+_start_server() {
+	port_file="$WORK_DIR/server.port"
+	rm -f "$port_file"
+	"$DYD_STEM/dyd/dependencies/http-server/dyd/commands/http-server" "$port_file" &
+	SERVER_PID=$!
+	for _ in {1..100}; do
+		if [ -s "$port_file" ]; then
+			return 0
+		fi
+		sleep 0.05
+	done
+	echo '[ERROR] Fail: http server did not start' 1>&2
+	return 1
+}
+
+_create_http_root() {
+	local fingerprint="$1"
+	mkdir -p dyd/roots/root-use/dyd/commands dyd/roots/root-use/dyd/requirements
+	printf 'root' > dyd/roots/root-use/dyd/type
+	printf '%s' "http://artifact/data-bearer-inline.txt?download=1#fingerprint=$fingerprint&as=dyd/assets/data.txt" > dyd/roots/root-use/dyd/requirements/data
+	cat > dyd/roots/root-use/dyd/commands/dyd-root-build <<'EOF'
+#!/usr/bin/env sh
+set -eu
+mkdir -p "$DYD_BUILD/dyd/assets"
+cat "$DYD_STEM/dyd/dependencies/data/dyd/assets/data.txt" > "$DYD_BUILD/dyd/assets/summary.txt"
+EOF
+	chmod +x dyd/roots/root-use/dyd/commands/dyd-root-build
+}
+
+_test() {
+	fingerprint=$(_compute_expected_fingerprint)
+	_start_server
+	port=$(cat "$WORK_DIR/server.port")
+	printf '%s' "127.0.0.1:$port" > "$TEMP_DIR/dyd/shed/remotes/artifact/host"
+	printf '%s' 'bearer inline-secret-token' > "$TEMP_DIR/dyd/shed/remotes/artifact/auth"
+	_create_http_root "$fingerprint"
+	dryad root build dyd/roots/root-use --log-level=info > /dev/null 2>&1
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-use/dyd/dependencies/stem/dyd/assets/summary.txt" 'bearer-inline-data'
+}
+
+trap 'echo "[ERROR] Fail near line $LINENO" 1>&2; _teardown' ERR
+trap _teardown EXIT
+_setup
+_test

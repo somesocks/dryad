@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+SRC_DIR=$DYD_STEM
+DEST_DIR=$DYD_BUILD
+
+mkdir -p "$DEST_DIR/dyd/commands"
+cd "$SRC_DIR/dyd/assets"
+GOWORK=off GO111MODULE=off go build -trimpath -buildvcs=false -o "$DEST_DIR/dyd/commands/http-server" ./main.go
+cat > "$DEST_DIR/dyd/commands/dyd-stem-run" <<'EOF'
+#!/usr/bin/env sh
+set -eu
+exit 0
+EOF
+chmod +x "$DEST_DIR/dyd/commands/dyd-stem-run"
