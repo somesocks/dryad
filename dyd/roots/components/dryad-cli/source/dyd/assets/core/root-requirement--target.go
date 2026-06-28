@@ -18,6 +18,7 @@ type RootRequirementTargetSpec struct {
 	FileSourcePath      string
 	FileDestinationAs   string
 	FileDestinationInto string
+	FileOptional        bool
 	FileUnpack          bool
 	FileFingerprint     string
 }
@@ -127,6 +128,7 @@ func (rootRequirement *SafeRootRequirementReference) TargetSpec(ctx *task.Execut
 			FileSourcePath:      filepath.Join(filepath.Dir(rootRequirement.BasePath), fileSpec.SourcePath),
 			FileDestinationAs:   fileSpec.DestinationAs,
 			FileDestinationInto: fileSpec.DestinationInto,
+			FileOptional:        fileSpec.Optional,
 			FileUnpack:          fileSpec.Unpack,
 			FileFingerprint:     fileSpec.Fingerprint,
 		}

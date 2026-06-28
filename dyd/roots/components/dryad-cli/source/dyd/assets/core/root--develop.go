@@ -508,6 +508,7 @@ func rootDevelop_stage1(
 				SourcePath:      req.FileTargetSpec.FileSourcePath,
 				DestinationAs:   req.FileTargetSpec.FileDestinationAs,
 				DestinationInto: req.FileTargetSpec.FileDestinationInto,
+				Optional:        req.FileTargetSpec.FileOptional,
 				Unpack:          req.FileTargetSpec.FileUnpack,
 			})
 			if err != nil {

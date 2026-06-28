@@ -152,7 +152,7 @@ var rootRequirementsListCommand = func() clib.Command {
 				if err != nil {
 					return err, nil
 				}
-				targetURL = dryad.RootRequirementFileTargetString(targetPath, targetSpec.FileDestinationAs, targetSpec.FileDestinationInto, targetSpec.FileUnpack, targetSpec.FileFingerprint)
+				targetURL = dryad.RootRequirementFileTargetString(targetPath, targetSpec.FileDestinationAs, targetSpec.FileDestinationInto, targetSpec.FileOptional, targetSpec.FileUnpack, targetSpec.FileFingerprint)
 			default:
 				targetPath, err := filepath.Rel(
 					filepath.Dir(requirement.BasePath),

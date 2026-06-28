@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+TEMP_DIR=''
+
+assert_file_content_equals() {
+	file="$1"
+	expected="$2"
+	if [ ! -f "$file" ]; then
+		echo "[ERROR] Fail: file '$file' does not exist" 1>&2
+		return 1
+	fi
+	actual=$(cat "$file")
+	if [ "$actual" != "$expected" ]; then
+		echo "[ERROR] Fail: file '$file' content does not match. expected ($expected), got ($actual)" 1>&2
+		return 1
+	fi
+}
+
+_setup() {
+	TEMP_DIR=`mktemp -d 2>/dev/null || mktemp -d -t 'build-dir'`
+	mkdir -p "$TEMP_DIR/dyd/roots" "$TEMP_DIR/dyd/external"
+	printf 'garden' > "$TEMP_DIR/dyd/type"
+	cd "$TEMP_DIR"
+}
+
+_write_build_script() {
+	root_name="$1"
+	cat > "dyd/roots/$root_name/dyd/commands/dyd-root-build" <<'EOF'
+#!/usr/bin/env sh
+set -eu
+
+mkdir -p "$DYD_BUILD/dyd/assets"
+
+if [ ! -d "$DYD_STEM/dyd/dependencies/optional-data" ]; then
+	echo '[ERROR] optional-data dependency was not linked' 1>&2
+	exit 1
+fi
+if [ ! -d "$DYD_STEM/dyd/dependencies/optional-archive" ]; then
+	echo '[ERROR] optional-archive dependency was not linked' 1>&2
+	exit 1
+fi
+
+data_state='missing'
+if [ -f "$DYD_STEM/dyd/dependencies/optional-data/dyd/assets/optional.txt" ]; then
+	data_state="present:$(cat "$DYD_STEM/dyd/dependencies/optional-data/dyd/assets/optional.txt")"
+fi
+
+archive_state='missing'
+if [ -d "$DYD_STEM/dyd/dependencies/optional-archive/dyd/assets/vendor/archive" ]; then
+	archive_state='present'
+fi
+
+printf '%s|%s' "$data_state" "$archive_state" > "$DYD_BUILD/dyd/assets/summary.txt"
+EOF
+	chmod +x "dyd/roots/$root_name/dyd/commands/dyd-root-build"
+}
+
+_create_root() {
+	root_name="$1"
+	optional_target="$2"
+	mkdir -p "dyd/roots/$root_name/dyd/commands" "dyd/roots/$root_name/dyd/requirements"
+	printf 'root' > "dyd/roots/$root_name/dyd/type"
+	printf '%s' "$optional_target" > "dyd/roots/$root_name/dyd/requirements/optional-data"
+	printf '%s' 'file:../../../../external/archive.tar?optional=true&unpack=true&into=dyd/assets/vendor' > "dyd/roots/$root_name/dyd/requirements/optional-archive"
+	_write_build_script "$root_name"
+}
+
+_expect_build_fails() {
+	root_name="$1"
+	set +e
+	output=$(dryad root build "dyd/roots/$root_name" --log-level=info 2>&1)
+	status=$?
+	set -e
+	if [ "$status" -eq 0 ]; then
+		echo "[ERROR] Fail: expected build of $root_name to fail" 1>&2
+		printf '%s\n' "$output" 1>&2
+		return 1
+	fi
+}
+
+_test() {
+	_create_root root-use 'file:../../../../external/optional.txt?optional=true&as=dyd/assets/optional.txt'
+	dryad root build dyd/roots/root-use --log-level=info > /dev/null 2>&1
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-use/dyd/dependencies/stem/dyd/assets/summary.txt" 'missing|missing'
+
+	printf 'local' > dyd/external/optional.txt
+	dryad root build dyd/roots/root-use --log-level=info > /dev/null 2>&1
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-use/dyd/dependencies/stem/dyd/assets/summary.txt" 'present:local|missing'
+
+	rm dyd/external/optional.txt
+	dryad root build dyd/roots/root-use --log-level=info > /dev/null 2>&1
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-use/dyd/dependencies/stem/dyd/assets/summary.txt" 'missing|missing'
+
+	_create_root root-pinned-missing 'file:../../../../external/optional.txt?optional=true&as=dyd/assets/optional.txt&fingerprint=v2-aaaaaaaaaaaaaaaaaaaaaaaaaa'
+	_expect_build_fails root-pinned-missing
+}
+
+_teardown() {
+	if [ -d "$TEMP_DIR" ]; then
+		chmod -R 755 "$TEMP_DIR"
+		rm -rf "$TEMP_DIR"
+	fi
+}
+
+trap _teardown ERR EXIT
+_setup
+_test
