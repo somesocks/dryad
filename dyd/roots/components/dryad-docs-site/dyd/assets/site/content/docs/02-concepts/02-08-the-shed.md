@@ -29,3 +29,38 @@ Each file contains a single non-negative integer depth:
 The default depth is `1`.
 
 Changing one of these files affects where new heap entries are written, but it does not change fingerprints or build outputs. Old entries in previous layouts remain disposable cache entries and may be removed later.
+
+## HTTP Remotes
+
+HTTP requirements can use remote configuration from `dyd/shed/remotes/<vhost>/`. The `<vhost>` is the literal host from the requirement URL, including the port if one is present. For example, `https://artifacts.example/data.txt#fingerprint=v2-...` uses `dyd/shed/remotes/artifacts.example/`.
+
+Remote configuration files are:
+
+- `host` - optional network host to fetch from instead of `<vhost>`.
+- `auth` - optional authentication directive used for network fetches.
+
+If `host` is missing, Dryad uses `<vhost>` as the network host. If `auth` is missing or empty, Dryad uses `none`.
+
+Example host mapping:
+
+Path: `dyd/shed/remotes/artifacts/host`
+
+Contents:
+
+```txt
+artifacts.internal.example
+```
+
+With that mapping, Dryad keeps `https://artifacts/data.txt#fingerprint=v2-...` in the requirement file but fetches from `https://artifacts.internal.example/data.txt`.
+
+Supported `auth` forms are:
+
+- `none`
+- `bearer env:NAME`
+- `bearer inline-token`
+- `basic env:USER env:PASSWORD`
+- `basic inline-user inline-password`
+
+`env:NAME` credentials are read from the host environment only when Dryad needs to fetch from the network. Cache hits by fingerprint do not require auth credentials. Use `env:` for shared or version-controlled shed config; inline credentials are stored as plaintext in the shed.
+
+Dryad allows auth over `http://`, which is useful for local test servers, but use `https://` for non-local credentials.

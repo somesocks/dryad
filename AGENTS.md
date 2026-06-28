@@ -56,6 +56,7 @@
 
 - The _shed_ is a configuration directory for the garden. It has a well-defined filesystem structure:
 	- `dyd/shed/scopes` - where scopes are stored.
+	- `dyd/shed/remotes` - optional host and auth configuration for HTTP and HTTPS requirements.
 
 
 ### Dryad concepts - scopes
@@ -99,8 +100,9 @@
       - Alias names may only contain `[A-Za-z0-9._-]+`.
       - Example unconditional requirement name: `foo`
       - Example conditional requirement name: `foo~arch=any+os=linux`
-    - each requirement file contains a root target URL (no newline), like `root:../../../foo`.
-    - target variant selectors are URL query params (`?` and `&`), for example `root:../../../foo?arch=amd64&os=linux`.
+    - each requirement file contains a target URL (no newline), like `root:../../../foo`, `env:DISPLAY`, `file:../data.txt`, or `https://example.com/data.txt#fingerprint=v2-...`.
+    - root target variant selectors are URL query params (`?` and `&`), for example `root:../../../foo?arch=amd64&os=linux`.
+    - HTTP and HTTPS targets must include a `fingerprint=` fragment entry; `dryad root requirement add` can fetch and lock a missing HTTP/HTTPS fingerprint.
 - The root build process has variant-aware stem builds plus sprout aggregation.
   - First, one or more concrete root variants are resolved and built as stems in `dyd/heap/stems`.
     - This part of the process converts requirements into dependencies and links them to each stem under `<stem>/dyd/dependencies/<name>`.
