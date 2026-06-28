@@ -33,6 +33,9 @@ func rootRequirementAdd_parseDependencyTarget(raw string) (error, string, string
 		}
 		return nil, "file", fileTarget, ""
 	}
+	if targetURL.Scheme == "http" || targetURL.Scheme == "https" {
+		return nil, "http", strings.TrimSpace(raw), ""
+	}
 
 	if targetURL.Scheme != "" && targetURL.Scheme != "root" {
 		return fmt.Errorf("unsupported scheme for root requirement: %s", targetURL.Scheme), "", "", ""
@@ -59,13 +62,21 @@ func rootRequirementAdd_parseDependencyTarget(raw string) (error, string, string
 
 var rootRequirementAddCommand = func() clib.Command {
 	type ParsedArgs struct {
-		RootPath           string
-		Variant            string
-		DepPath            string
-		DepScheme          string
-		DepVariantSelector string
-		Alias              string
-		Parallel           int
+		RootPath            string
+		Variant             string
+		DepPath             string
+		DepScheme           string
+		DepVariantSelector  string
+		Alias               string
+		HTTPDestinationAs   string
+		HTTPHasAs           bool
+		HTTPDestinationInto string
+		HTTPHasInto         bool
+		HTTPUnpack          bool
+		HTTPHasUnpack       bool
+		HTTPFingerprint     string
+		HTTPHasFingerprint  bool
+		Parallel            int
 	}
 
 	var parseArgs = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
@@ -112,14 +123,46 @@ var rootRequirementAddCommand = func() clib.Command {
 			variant = options["variant"].(string)
 		}
 
+		httpDestinationAs := ""
+		httpHasAs := options["as"] != nil
+		if httpHasAs {
+			httpDestinationAs = options["as"].(string)
+		}
+		httpDestinationInto := ""
+		httpHasInto := options["into"] != nil
+		if httpHasInto {
+			httpDestinationInto = options["into"].(string)
+		}
+		httpUnpack := false
+		httpHasUnpack := options["unpack"] != nil
+		if httpHasUnpack {
+			httpUnpack = options["unpack"].(bool)
+		}
+		httpFingerprint := ""
+		httpHasFingerprint := options["fingerprint"] != nil
+		if httpHasFingerprint {
+			httpFingerprint = options["fingerprint"].(string)
+		}
+		if depScheme != "http" && (httpHasAs || httpHasInto || httpHasUnpack || httpHasFingerprint) {
+			return fmt.Errorf("--as, --into, --unpack, and --fingerprint are only supported for http requirements"), ParsedArgs{}
+		}
+
 		return nil, ParsedArgs{
-			RootPath:           rootPath,
-			Variant:            variant,
-			DepPath:            depPath,
-			DepScheme:          depScheme,
-			DepVariantSelector: depVariantSelector,
-			Alias:              alias,
-			Parallel:           parallel,
+			RootPath:            rootPath,
+			Variant:             variant,
+			DepPath:             depPath,
+			DepScheme:           depScheme,
+			DepVariantSelector:  depVariantSelector,
+			Alias:               alias,
+			HTTPDestinationAs:   httpDestinationAs,
+			HTTPHasAs:           httpHasAs,
+			HTTPDestinationInto: httpDestinationInto,
+			HTTPHasInto:         httpHasInto,
+			HTTPUnpack:          httpUnpack,
+			HTTPHasUnpack:       httpHasUnpack,
+			HTTPFingerprint:     httpFingerprint,
+			HTTPHasFingerprint:  httpHasFingerprint,
+			Parallel:            parallel,
 		}
 	}
 
@@ -163,6 +206,29 @@ var rootRequirementAddCommand = func() clib.Command {
 				dryad.RootRequirementsAddFileRequest{
 					Alias:  args.Alias,
 					Target: args.DepPath,
+				},
+			)
+		} else if args.DepScheme == "http" {
+			err, httpTarget := dryad.RootRequirementHTTPLockTarget(ctx, dryad.RootRequirementHTTPLockTargetRequest{
+				Garden:             garden,
+				Target:             args.DepPath,
+				DestinationAs:      args.HTTPDestinationAs,
+				HasDestinationAs:   args.HTTPHasAs,
+				DestinationInto:    args.HTTPDestinationInto,
+				HasDestinationInto: args.HTTPHasInto,
+				Unpack:             args.HTTPUnpack,
+				HasUnpack:          args.HTTPHasUnpack,
+				Fingerprint:        args.HTTPFingerprint,
+				HasFingerprint:     args.HTTPHasFingerprint,
+			})
+			if err != nil {
+				return err, nil
+			}
+			err, _ = reqs.AddHTTP(
+				ctx,
+				dryad.RootRequirementsAddHTTPRequest{
+					Alias:  args.Alias,
+					Target: httpTarget,
 				},
 			)
 		} else {
@@ -212,11 +278,15 @@ var rootRequirementAddCommand = func() clib.Command {
 	command := clib.NewCommand("add", "add a requirement to the current root").
 		WithArg(
 			clib.
-				NewArg("target", "requirement target to add (for example ../dep, root:../dep?arch=amd64&os=linux, or env:DISPLAY)").
+				NewArg("target", "requirement target to add (for example ../dep, root:../dep?arch=amd64&os=linux, env:DISPLAY, file:../data.txt, or https://example.com/data.txt#fingerprint=v2-...)").
 				WithAutoComplete(ArgAutoCompletePath),
 		).
 		WithArg(clib.NewArg("alias", "the alias to add the root under. if not specified, this defaults to the basename of the linked root").AsOptional()).
 		WithOption(clib.NewOption("variant", "select the root variant to modify (using filesystem variant notation: dimension1=option1,option2+dimension2=option3). required when the root resolves to multiple variants").WithType(clib.OptionTypeString)).
+		WithOption(clib.NewOption("as", "for http requirements, place the downloaded asset at this exact package path").WithType(clib.OptionTypeString)).
+		WithOption(clib.NewOption("into", "for http requirements, place the downloaded asset under this package directory").WithType(clib.OptionTypeString)).
+		WithOption(clib.NewOption("unpack", "for http requirements, unpack the downloaded tar archive before placing it").WithType(clib.OptionTypeBool)).
+		WithOption(clib.NewOption("fingerprint", "for http requirements, use this existing stem fingerprint instead of fetching and locking the target").WithType(clib.OptionTypeString)).
 		WithAction(action)
 
 	command = ParallelCommand(command)

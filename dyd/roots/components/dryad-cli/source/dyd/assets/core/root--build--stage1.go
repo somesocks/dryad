@@ -64,7 +64,7 @@ func init() {
 		DependencyRoot              *SafeRootReference
 		DependencyPath              string
 		DependencyVariantDescriptor string
-		FileTargetSpec              *RootRequirementTargetSpec
+		ExternalTargetSpec          *RootRequirementTargetSpec
 		JoinStdout                  bool
 		JoinStderr                  bool
 		LogStdout                   struct {
@@ -185,10 +185,22 @@ func init() {
 						return err, nil
 					}
 					buildDependencyRequests = append(buildDependencyRequests, rootBuild_stage1_buildDependencyRequest{
-						BaseRequest:    req,
-						DependencyName: requirementName,
-						DependencyPath: targetSpec.FileSourcePath,
-						FileTargetSpec: targetSpec,
+						BaseRequest:        req,
+						DependencyName:     requirementName,
+						DependencyPath:     targetSpec.FileSourcePath,
+						ExternalTargetSpec: targetSpec,
+					})
+					return nil, nil
+				}
+				if rootRequirementTargetKind(targetSpec.Kind) == RootRequirementTargetKindHTTP {
+					if err := bindName(requirementName); err != nil {
+						return err, nil
+					}
+					buildDependencyRequests = append(buildDependencyRequests, rootBuild_stage1_buildDependencyRequest{
+						BaseRequest:        req,
+						DependencyName:     requirementName,
+						DependencyPath:     targetSpec.HTTPSourceURL,
+						ExternalTargetSpec: targetSpec,
 					})
 					return nil, nil
 				}
@@ -238,14 +250,14 @@ func init() {
 	}
 
 	var rootBuild_stage1_buildDependency = func(ctx *task.ExecutionContext, req rootBuild_stage1_buildDependencyRequest) (error, *RootBuildResult) {
-		if req.FileTargetSpec != nil {
+		if req.ExternalTargetSpec != nil && rootRequirementTargetKind(req.ExternalTargetSpec.Kind) == RootRequirementTargetKindFile {
 			err, fileStem := RootRequirementFileBuildStem(ctx, RootRequirementFileBuildStemRequest{
 				Garden:          req.BaseRequest.Roots.Garden,
-				SourcePath:      req.FileTargetSpec.FileSourcePath,
-				DestinationAs:   req.FileTargetSpec.FileDestinationAs,
-				DestinationInto: req.FileTargetSpec.FileDestinationInto,
-				Optional:        req.FileTargetSpec.FileOptional,
-				Unpack:          req.FileTargetSpec.FileUnpack,
+				SourcePath:      req.ExternalTargetSpec.FileSourcePath,
+				DestinationAs:   req.ExternalTargetSpec.FileDestinationAs,
+				DestinationInto: req.ExternalTargetSpec.FileDestinationInto,
+				Optional:        req.ExternalTargetSpec.FileOptional,
+				Unpack:          req.ExternalTargetSpec.FileUnpack,
 			})
 			if err != nil {
 				return err, nil
@@ -253,8 +265,8 @@ func init() {
 			if fileStem == nil {
 				return fmt.Errorf("missing file dependency build result: %s", req.DependencyPath), nil
 			}
-			if req.FileTargetSpec.FileFingerprint != "" && req.FileTargetSpec.FileFingerprint != fileStem.Fingerprint {
-				return fmt.Errorf("file requirement %s fingerprint mismatch for %s", req.DependencyName, req.FileTargetSpec.FileSourcePath), nil
+			if req.ExternalTargetSpec.FileFingerprint != "" && req.ExternalTargetSpec.FileFingerprint != fileStem.Fingerprint {
+				return fmt.Errorf("file requirement %s fingerprint mismatch for %s", req.DependencyName, req.ExternalTargetSpec.FileSourcePath), nil
 			}
 
 			err = rootBuild_linkDependency(rootBuild_linkDependencyRequest{
@@ -270,6 +282,37 @@ func init() {
 			return nil, &RootBuildResult{
 				SourceFingerprint: fileStem.Fingerprint,
 				ResultFingerprint: fileStem.Fingerprint,
+			}
+		}
+		if req.ExternalTargetSpec != nil && rootRequirementTargetKind(req.ExternalTargetSpec.Kind) == RootRequirementTargetKindHTTP {
+			err, httpStem := RootRequirementHTTPBuildStem(ctx, RootRequirementHTTPBuildStemRequest{
+				Garden:          req.BaseRequest.Roots.Garden,
+				SourceURL:       req.ExternalTargetSpec.HTTPSourceURL,
+				DestinationAs:   req.ExternalTargetSpec.HTTPDestinationAs,
+				DestinationInto: req.ExternalTargetSpec.HTTPDestinationInto,
+				Unpack:          req.ExternalTargetSpec.HTTPUnpack,
+				Fingerprint:     req.ExternalTargetSpec.HTTPFingerprint,
+			})
+			if err != nil {
+				return err, nil
+			}
+			if httpStem == nil {
+				return fmt.Errorf("missing http dependency build result: %s", req.DependencyPath), nil
+			}
+
+			err = rootBuild_linkDependency(rootBuild_linkDependencyRequest{
+				WorkspacePath:         req.BaseRequest.WorkspacePath,
+				DependencyName:        req.DependencyName,
+				DependencyHeapPath:    httpStem.BasePath,
+				DependencyFingerprint: httpStem.Fingerprint,
+			})
+			if err != nil {
+				return err, nil
+			}
+
+			return nil, &RootBuildResult{
+				SourceFingerprint: httpStem.Fingerprint,
+				ResultFingerprint: httpStem.Fingerprint,
 			}
 		}
 
