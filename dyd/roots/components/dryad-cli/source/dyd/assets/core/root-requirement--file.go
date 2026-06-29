@@ -3,6 +3,7 @@ package core
 import (
 	"archive/tar"
 	"archive/zip"
+	"compress/bzip2"
 	"compress/gzip"
 	dydfs "dryad/filesystem"
 	"dryad/internal/filepath"
@@ -402,7 +403,7 @@ func rootRequirementFileImportSourceExact(ctx *task.ExecutionContext, srcPath st
 
 func rootRequirementFileArchiveDestinationName(srcPath string) string {
 	base := filepath.Base(srcPath)
-	for _, suffix := range []string{".tar.gz", ".tgz", ".tar", ".zip"} {
+	for _, suffix := range []string{".tar.bz2", ".tbz2", ".tbz", ".tar.gz", ".tgz", ".tar", ".zip"} {
 		if strings.HasSuffix(base, suffix) {
 			return strings.TrimSuffix(base, suffix)
 		}
@@ -428,6 +429,12 @@ func rootRequirementFileArchiveReader(srcPath string) (io.ReadCloser, error) {
 			io.Reader
 			io.Closer
 		}{Reader: gz, Closer: multiCloser{gz, src}}, nil
+	}
+	if strings.HasSuffix(srcPath, ".tar.bz2") || strings.HasSuffix(srcPath, ".tbz2") || strings.HasSuffix(srcPath, ".tbz") {
+		return struct {
+			io.Reader
+			io.Closer
+		}{Reader: bzip2.NewReader(src), Closer: src}, nil
 	}
 	src.Close()
 	return nil, fmt.Errorf("unsupported archive type for unpack=true: %s", srcPath)
