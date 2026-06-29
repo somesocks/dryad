@@ -2,6 +2,7 @@ package core
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"compress/gzip"
 	dydfs "dryad/filesystem"
 	"dryad/internal/filepath"
@@ -401,7 +402,7 @@ func rootRequirementFileImportSourceExact(ctx *task.ExecutionContext, srcPath st
 
 func rootRequirementFileArchiveDestinationName(srcPath string) string {
 	base := filepath.Base(srcPath)
-	for _, suffix := range []string{".tar.gz", ".tgz", ".tar"} {
+	for _, suffix := range []string{".tar.gz", ".tgz", ".tar", ".zip"} {
 		if strings.HasSuffix(base, suffix) {
 			return strings.TrimSuffix(base, suffix)
 		}
@@ -475,6 +476,97 @@ func rootRequirementFileValidateArchiveSymlink(basePath string, entryPath string
 	return nil
 }
 
+func rootRequirementFileExtractZip(srcPath string, destPath string) error {
+	src, err := os.Open(srcPath)
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
+	info, err := src.Stat()
+	if err != nil {
+		return err
+	}
+	zipReader, err := zip.NewReader(src, info.Size())
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range zipReader.File {
+		entryPath, err := rootRequirementFileSafeArchivePath(destPath, entry.Name)
+		if err != nil {
+			return err
+		}
+
+		mode := entry.FileInfo().Mode()
+		switch {
+		case mode.IsDir() || strings.HasSuffix(entry.Name, "/"):
+			perm := mode.Perm()
+			if perm == 0 {
+				perm = 0o755
+			}
+			if err := os.MkdirAll(entryPath, perm); err != nil {
+				return err
+			}
+		case mode&os.ModeSymlink == os.ModeSymlink:
+			if err := os.MkdirAll(filepath.Dir(entryPath), 0o755); err != nil {
+				return err
+			}
+			entryReader, err := entry.Open()
+			if err != nil {
+				return err
+			}
+			linkBytes, readErr := io.ReadAll(entryReader)
+			closeErr := entryReader.Close()
+			if readErr != nil {
+				return readErr
+			}
+			if closeErr != nil {
+				return closeErr
+			}
+			linkName := string(linkBytes)
+			if err := rootRequirementFileValidateArchiveSymlink(destPath, entryPath, linkName); err != nil {
+				return err
+			}
+			if err := os.Symlink(linkName, entryPath); err != nil {
+				return err
+			}
+		case mode.IsRegular():
+			if err := os.MkdirAll(filepath.Dir(entryPath), 0o755); err != nil {
+				return err
+			}
+			entryReader, err := entry.Open()
+			if err != nil {
+				return err
+			}
+			perm := mode.Perm()
+			if perm == 0 {
+				perm = 0o644
+			}
+			dest, err := os.OpenFile(entryPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
+			if err != nil {
+				entryReader.Close()
+				return err
+			}
+			_, copyErr := io.Copy(dest, entryReader)
+			closeDestErr := dest.Close()
+			closeEntryErr := entryReader.Close()
+			if copyErr != nil {
+				return copyErr
+			}
+			if closeDestErr != nil {
+				return closeDestErr
+			}
+			if closeEntryErr != nil {
+				return closeEntryErr
+			}
+		default:
+			return fmt.Errorf("unsupported archive entry type for %s", entry.Name)
+		}
+	}
+	return nil
+}
+
 func rootRequirementFileExtractTar(srcPath string, destPath string) error {
 	reader, err := rootRequirementFileArchiveReader(srcPath)
 	if err != nil {
@@ -534,6 +626,13 @@ func rootRequirementFileExtractTar(srcPath string, destPath string) error {
 	return nil
 }
 
+func rootRequirementFileExtractArchive(srcPath string, destPath string) error {
+	if strings.HasSuffix(srcPath, ".zip") {
+		return rootRequirementFileExtractZip(srcPath, destPath)
+	}
+	return rootRequirementFileExtractTar(srcPath, destPath)
+}
+
 type RootRequirementFileBuildStemRequest struct {
 	Garden          *SafeGardenReference
 	SourcePath      string
@@ -588,7 +687,7 @@ func RootRequirementFileBuildStem(ctx *task.ExecutionContext, req RootRequiremen
 			return err, nil
 		}
 		defer os.RemoveAll(extractPath)
-		if err := rootRequirementFileExtractTar(req.SourcePath, extractPath); err != nil {
+		if err := rootRequirementFileExtractArchive(req.SourcePath, extractPath); err != nil {
 			if req.Optional && os.IsNotExist(err) {
 				missingOptionalSource = true
 			} else {
