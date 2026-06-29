@@ -6,6 +6,7 @@ import (
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
+	"encoding/base64"
 	stdos "os"
 	stdfilepath "path/filepath"
 	"testing"
@@ -265,6 +266,28 @@ func TestRootRequirementFileBuildStem_UnpackZipIntoUsesArchiveName(t *testing.T)
 	assert.Nil(err)
 	assert.Nil(zipWriter.Close())
 	assert.Nil(archiveFile.Close())
+
+	err, stem := RootRequirementFileBuildStem(task.NewContext(1), RootRequirementFileBuildStemRequest{
+		Garden:          &SafeGardenReference{BasePath: gardenPath},
+		SourcePath:      archivePath,
+		DestinationInto: "dyd/assets/vendor",
+		Unpack:          true,
+	})
+	assert.Nil(err)
+	assert.NotNil(stem)
+	assert.Equal("packed", readTrimmedFileForTest(t, filepath.Join(stem.BasePath, "dyd", "assets", "vendor", "pkg", "contents", "value.txt")))
+}
+
+func TestRootRequirementFileBuildStem_UnpackTarBz2IntoUsesArchiveName(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	makeWritableForCleanupForTest(t, gardenPath)
+	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "type"), "garden")
+	archivePath := filepath.Join(t.TempDir(), "pkg.tar.bz2")
+	archiveBytes, err := base64.StdEncoding.DecodeString("QlpoOTFBWSZTWYISVgoAAHd9hMEAAERAAf+AAAFuDd9AAACACCAAdBpNGk0NANANGnqCSgQAAANA4+jQ5yEGkAEiyBbeNeVMSQNYNmbrF+JILN5GGMErTawNSSMOMX6hHGmVaCBjymnO2dJpITqpU1TDnwJYKPVxoq2OIiA/F3JFOFCQghJWCg==")
+	assert.Nil(err)
+	assert.Nil(stdos.WriteFile(archivePath, archiveBytes, 0o644))
 
 	err, stem := RootRequirementFileBuildStem(task.NewContext(1), RootRequirementFileBuildStemRequest{
 		Garden:          &SafeGardenReference{BasePath: gardenPath},
