@@ -322,6 +322,44 @@ func TestRootRequirementFileBuildStem_UnpackTarXzIntoUsesArchiveName(t *testing.
 	assert.Equal("packed", readTrimmedFileForTest(t, filepath.Join(stem.BasePath, "dyd", "assets", "vendor", "pkg", "contents", "value.txt")))
 }
 
+func TestRootRequirementFileBuildStem_UnpackTarSkipsPaxGlobalHeader(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	makeWritableForCleanupForTest(t, gardenPath)
+	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "type"), "garden")
+	archivePath := filepath.Join(t.TempDir(), "pkg.tar")
+	archiveFile, err := stdos.Create(archivePath)
+	assert.Nil(err)
+	tarWriter := tar.NewWriter(archiveFile)
+	assert.Nil(tarWriter.WriteHeader(&tar.Header{
+		Name:       "pax_global_header",
+		Typeflag:   tar.TypeXGlobalHeader,
+		PAXRecords: map[string]string{"comment": "metadata"},
+	}))
+	contents := "packed"
+	assert.Nil(tarWriter.WriteHeader(&tar.Header{
+		Name: "contents/value.txt",
+		Mode: 0o644,
+		Size: int64(len(contents)),
+	}))
+	_, err = tarWriter.Write([]byte(contents))
+	assert.Nil(err)
+	assert.Nil(tarWriter.Close())
+	assert.Nil(archiveFile.Close())
+
+	err, stem := RootRequirementFileBuildStem(task.NewContext(1), RootRequirementFileBuildStemRequest{
+		Garden:          &SafeGardenReference{BasePath: gardenPath},
+		SourcePath:      archivePath,
+		DestinationInto: "dyd/assets/vendor",
+		Unpack:          true,
+	})
+	assert.Nil(err)
+	assert.NotNil(stem)
+	assert.Equal("packed", readTrimmedFileForTest(t, filepath.Join(stem.BasePath, "dyd", "assets", "vendor", "pkg", "contents", "value.txt")))
+	assert.NoFileExists(filepath.Join(stem.BasePath, "dyd", "assets", "vendor", "pkg", "pax_global_header"))
+}
+
 func TestRootRequirementFileBuildStem_RejectsUnsafeArchiveSymlink(t *testing.T) {
 	assert := assert.New(t)
 
