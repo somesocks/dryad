@@ -1,6 +1,8 @@
 package core
 
 import (
+	"archive/tar"
+	"bytes"
 	"dryad/internal/filepath"
 	"dryad/task"
 	"fmt"
@@ -36,12 +38,31 @@ func buildExpectedHTTPStemForTest(t *testing.T, content string, destinationAs st
 	return stem.Fingerprint
 }
 
+func makeTarArchiveForHTTPTest(t *testing.T, name string, contents string) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	tarWriter := tar.NewWriter(&buf)
+	assert.Nil(t, tarWriter.WriteHeader(&tar.Header{
+		Name: name,
+		Mode: 0o644,
+		Size: int64(len(contents)),
+	}))
+	_, err := tarWriter.Write([]byte(contents))
+	assert.Nil(t, err)
+	assert.Nil(t, tarWriter.Close())
+	return buf.Bytes()
+}
+
 func TestRootRequirementHTTPTargetNormalize(t *testing.T) {
 	assert := assert.New(t)
 
 	err, target := RootRequirementHTTPTargetNormalize("https://example.com/pkg.tar.gz?download=1#unpack=true&into=dyd/assets/vendor&fingerprint=v2-aaaaaaaaaaaaaaaaaaaaaaaaaa")
 	assert.Nil(err)
 	assert.Equal("https://example.com/pkg.tar.gz?download=1#fingerprint=v2-aaaaaaaaaaaaaaaaaaaaaaaaaa&into=dyd/assets/vendor&unpack=true", target)
+
+	err, target = RootRequirementHTTPTargetNormalize("https://example.com/pkg.tar.bz2?download=1#unpack=true&format=tbz&into=dyd/assets/vendor&fingerprint=v2-aaaaaaaaaaaaaaaaaaaaaaaaaa")
+	assert.Nil(err)
+	assert.Equal("https://example.com/pkg.tar.bz2?download=1#fingerprint=v2-aaaaaaaaaaaaaaaaaaaaaaaaaa&into=dyd/assets/vendor&unpack=true&format=tar.bz2", target)
 
 	err, _ = RootRequirementHTTPTargetNormalize("https://example.com/pkg.tar.gz?download=1")
 	assert.NotNil(err)
@@ -53,6 +74,12 @@ func TestRootRequirementHTTPTargetNormalize(t *testing.T) {
 	assert.NotNil(err)
 
 	err, _ = RootRequirementHTTPTargetNormalize("https://example.com/pkg.tar.gz#as=dyd/commands/pkg&fingerprint=v2-aaaaaaaaaaaaaaaaaaaaaaaaaa")
+	assert.NotNil(err)
+
+	err, _ = RootRequirementHTTPTargetNormalize("https://example.com/pkg.tar.gz#format=tar&fingerprint=v2-aaaaaaaaaaaaaaaaaaaaaaaaaa")
+	assert.NotNil(err)
+
+	err, _ = RootRequirementHTTPTargetNormalize("https://example.com/pkg.tar.gz#unpack=true&format=rar&fingerprint=v2-aaaaaaaaaaaaaaaaaaaaaaaaaa")
 	assert.NotNil(err)
 }
 
@@ -183,6 +210,56 @@ func TestRootRequirementHTTPLockTarget_FetchesMissingFingerprint(t *testing.T) {
 	err, normalized := RootRequirementHTTPTargetNormalize(target)
 	assert.Nil(err)
 	assert.Equal(target, normalized)
+}
+
+func TestRootRequirementHTTPLockTarget_UsesArchiveFormatOverride(t *testing.T) {
+	assert := assert.New(t)
+	gardenPath := makeGardenForHTTPTest(t)
+	archive := makeTarArchiveForHTTPTest(t, "contents/value.txt", "packed")
+	archivePath := filepath.Join(t.TempDir(), "pkg.tar.bz2")
+	writeFileForTest(t, archivePath, string(archive))
+	err, expectedStem := RootRequirementFileBuildStem(task.NewContext(1), RootRequirementFileBuildStemRequest{
+		Garden:          &SafeGardenReference{BasePath: gardenPath},
+		SourcePath:      archivePath,
+		DestinationInto: "dyd/assets/vendor",
+		Unpack:          true,
+		ArchiveFormat:   RootRequirementFileArchiveFormatTar,
+	})
+	assert.Nil(err)
+	assert.NotNil(expectedStem)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write(archive)
+	}))
+	defer server.Close()
+
+	err, target := RootRequirementHTTPLockTarget(task.NewContext(1), RootRequirementHTTPLockTargetRequest{
+		Garden:             &SafeGardenReference{BasePath: gardenPath},
+		Target:             server.URL + "/pkg.tar.bz2",
+		DestinationInto:    "dyd/assets/vendor",
+		HasDestinationInto: true,
+		Unpack:             true,
+		HasUnpack:          true,
+		ArchiveFormat:      "tar",
+		HasArchiveFormat:   true,
+	})
+	assert.Nil(err)
+	assert.Equal(server.URL+"/pkg.tar.bz2#fingerprint="+expectedStem.Fingerprint+"&into=dyd/assets/vendor&unpack=true&format=tar", target)
+
+	err, httpSpec, isHTTP := rootRequirementParseHTTPTarget(target)
+	assert.Nil(err)
+	assert.True(isHTTP)
+	err, stem := RootRequirementHTTPBuildStem(task.NewContext(1), RootRequirementHTTPBuildStemRequest{
+		Garden:          &SafeGardenReference{BasePath: gardenPath},
+		SourceURL:       httpSpec.SourceURL,
+		DestinationInto: httpSpec.DestinationInto,
+		Unpack:          httpSpec.Unpack,
+		ArchiveFormat:   httpSpec.ArchiveFormat,
+		Fingerprint:     httpSpec.Fingerprint,
+	})
+	assert.Nil(err)
+	assert.NotNil(stem)
+	assert.Equal("packed", readTrimmedFileForTest(t, filepath.Join(stem.BasePath, "dyd", "assets", "vendor", "pkg", "contents", "value.txt")))
 }
 
 func TestRootRequirementHTTPBuildStem_CacheHitSkipsNetworkAndAuth(t *testing.T) {

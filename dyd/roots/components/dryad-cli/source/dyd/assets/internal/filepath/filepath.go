@@ -13,6 +13,7 @@ type WalkFunc = stdfilepath.WalkFunc
 var Base = stdfilepath.Base
 var Clean = stdfilepath.Clean
 var Dir = stdfilepath.Dir
+var Ext = stdfilepath.Ext
 var IsAbs = stdfilepath.IsAbs
 var Join = stdfilepath.Join
 var Split = stdfilepath.Split

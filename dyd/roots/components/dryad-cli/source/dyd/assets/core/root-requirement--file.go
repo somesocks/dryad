@@ -26,6 +26,13 @@ const (
 	RootRequirementFileIntoQueryKey        = "into"
 	RootRequirementFileOptionalQueryKey    = "optional"
 	RootRequirementFileUnpackQueryKey      = "unpack"
+	RootRequirementFileFormatQueryKey      = "format"
+
+	RootRequirementFileArchiveFormatTar    = "tar"
+	RootRequirementFileArchiveFormatTarGz  = "tar.gz"
+	RootRequirementFileArchiveFormatTarBz2 = "tar.bz2"
+	RootRequirementFileArchiveFormatTarXz  = "tar.xz"
+	RootRequirementFileArchiveFormatZip    = "zip"
 )
 
 type rootRequirementFileTargetSpec struct {
@@ -34,7 +41,61 @@ type rootRequirementFileTargetSpec struct {
 	DestinationInto string
 	Optional        bool
 	Unpack          bool
+	ArchiveFormat   string
 	Fingerprint     string
+}
+
+func rootRequirementFileArchiveFormatNormalize(raw string) (string, error) {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case RootRequirementFileArchiveFormatTar:
+		return RootRequirementFileArchiveFormatTar, nil
+	case RootRequirementFileArchiveFormatTarGz, "tgz":
+		return RootRequirementFileArchiveFormatTarGz, nil
+	case RootRequirementFileArchiveFormatTarBz2, "tbz2", "tbz":
+		return RootRequirementFileArchiveFormatTarBz2, nil
+	case RootRequirementFileArchiveFormatTarXz, "txz":
+		return RootRequirementFileArchiveFormatTarXz, nil
+	case RootRequirementFileArchiveFormatZip:
+		return RootRequirementFileArchiveFormatZip, nil
+	default:
+		return "", fmt.Errorf("unsupported archive format: %s", raw)
+	}
+}
+
+func rootRequirementFileArchiveExtension(srcPath string) string {
+	base := filepath.Base(srcPath)
+	ext := filepath.Ext(base)
+	if ext != ".gz" && ext != ".bz2" && ext != ".xz" {
+		return ext
+	}
+	if filepath.Ext(strings.TrimSuffix(base, ext)) != ".tar" {
+		return ext
+	}
+	return ".tar" + ext
+}
+
+func rootRequirementFileArchiveFormatFromPath(srcPath string) (string, error) {
+	switch rootRequirementFileArchiveExtension(srcPath) {
+	case ".tar":
+		return RootRequirementFileArchiveFormatTar, nil
+	case ".tar.gz", ".tgz":
+		return RootRequirementFileArchiveFormatTarGz, nil
+	case ".tar.bz2", ".tbz2", ".tbz":
+		return RootRequirementFileArchiveFormatTarBz2, nil
+	case ".tar.xz", ".txz":
+		return RootRequirementFileArchiveFormatTarXz, nil
+	case ".zip":
+		return RootRequirementFileArchiveFormatZip, nil
+	default:
+		return "", fmt.Errorf("unsupported archive type for unpack=true: %s", srcPath)
+	}
+}
+
+func rootRequirementFileArchiveFormat(srcPath string, archiveFormat string) (string, error) {
+	if archiveFormat != "" {
+		return rootRequirementFileArchiveFormatNormalize(archiveFormat)
+	}
+	return rootRequirementFileArchiveFormatFromPath(srcPath)
 }
 
 func rootRequirementFilePlacementDefaultInto(destinationInto string) string {
@@ -154,6 +215,23 @@ func rootRequirementFileTargetFromURL(linkURL *url.URL) (error, rootRequirementF
 	}
 	query.Del(RootRequirementFileUnpackQueryKey)
 
+	archiveFormat := ""
+	archiveFormatRaw, hasArchiveFormat := query[RootRequirementFileFormatQueryKey]
+	if hasArchiveFormat {
+		if len(archiveFormatRaw) != 1 || archiveFormatRaw[0] == "" {
+			return fmt.Errorf("file requirement format must not be empty"), rootRequirementFileTargetSpec{}
+		}
+		if !unpack {
+			return fmt.Errorf("file requirement format requires unpack=true"), rootRequirementFileTargetSpec{}
+		}
+		var err error
+		archiveFormat, err = rootRequirementFileArchiveFormatNormalize(archiveFormatRaw[0])
+		if err != nil {
+			return err, rootRequirementFileTargetSpec{}
+		}
+	}
+	query.Del(RootRequirementFileFormatQueryKey)
+
 	fingerprint := query.Get(RootRequirementFileFingerprintQueryKey)
 	if fingerprint != "" {
 		err, _, _ := fingerprintParse(fingerprint)
@@ -173,11 +251,12 @@ func rootRequirementFileTargetFromURL(linkURL *url.URL) (error, rootRequirementF
 		DestinationInto: destinationInto,
 		Optional:        optional,
 		Unpack:          unpack,
+		ArchiveFormat:   archiveFormat,
 		Fingerprint:     fingerprint,
 	}
 }
 
-func rootRequirementFileTargetString(sourcePath string, destinationAs string, destinationInto string, optional bool, unpack bool, fingerprint string) string {
+func rootRequirementFileTargetString(sourcePath string, destinationAs string, destinationInto string, optional bool, unpack bool, archiveFormat string, fingerprint string) string {
 	linkURL := url.URL{
 		Scheme: "file",
 		Opaque: filepath.ToSlash(filepath.Clean(sourcePath)),
@@ -200,6 +279,9 @@ func rootRequirementFileTargetString(sourcePath string, destinationAs string, de
 	}
 	if unpack {
 		query = append(query, RootRequirementFileUnpackQueryKey+"=true")
+	}
+	if archiveFormat != "" {
+		query = append(query, RootRequirementFileFormatQueryKey+"="+escapeQueryValue(archiveFormat))
 	}
 	linkURL.RawQuery = strings.Join(query, "&")
 	return linkURL.String()
@@ -231,11 +313,11 @@ func RootRequirementFileTargetNormalize(raw string) (error, string) {
 		return fmt.Errorf("file requirement target must use file scheme: %s", raw), ""
 	}
 
-	return nil, rootRequirementFileTargetString(fileSpec.SourcePath, fileSpec.DestinationAs, fileSpec.DestinationInto, fileSpec.Optional, fileSpec.Unpack, fileSpec.Fingerprint)
+	return nil, rootRequirementFileTargetString(fileSpec.SourcePath, fileSpec.DestinationAs, fileSpec.DestinationInto, fileSpec.Optional, fileSpec.Unpack, fileSpec.ArchiveFormat, fileSpec.Fingerprint)
 }
 
-func RootRequirementFileTargetString(sourcePath string, destinationAs string, destinationInto string, optional bool, unpack bool, fingerprint string) string {
-	return rootRequirementFileTargetString(sourcePath, destinationAs, destinationInto, optional, unpack, fingerprint)
+func RootRequirementFileTargetString(sourcePath string, destinationAs string, destinationInto string, optional bool, unpack bool, archiveFormat string, fingerprint string) string {
+	return rootRequirementFileTargetString(sourcePath, destinationAs, destinationInto, optional, unpack, archiveFormat, fingerprint)
 }
 
 func rootRequirementFileIsWithin(basePath string, path string) (error, bool) {
@@ -408,23 +490,28 @@ func rootRequirementFileImportSourceExact(ctx *task.ExecutionContext, srcPath st
 
 func rootRequirementFileArchiveDestinationName(srcPath string) string {
 	base := filepath.Base(srcPath)
-	for _, suffix := range []string{".tar.xz", ".txz", ".tar.bz2", ".tbz2", ".tbz", ".tar.gz", ".tgz", ".tar", ".zip"} {
-		if strings.HasSuffix(base, suffix) {
-			return strings.TrimSuffix(base, suffix)
-		}
+	ext := rootRequirementFileArchiveExtension(base)
+	switch ext {
+	case ".tar", ".tar.gz", ".tgz", ".tar.bz2", ".tbz2", ".tbz", ".tar.xz", ".txz", ".zip":
+		return strings.TrimSuffix(base, ext)
 	}
 	return base
 }
 
-func rootRequirementFileArchiveReader(srcPath string) (io.ReadCloser, error) {
+func rootRequirementFileArchiveReader(srcPath string, archiveFormat string) (io.ReadCloser, error) {
 	src, err := os.Open(srcPath)
 	if err != nil {
 		return nil, err
 	}
-	if strings.HasSuffix(srcPath, ".tar") {
-		return src, nil
+	archiveFormat, err = rootRequirementFileArchiveFormat(srcPath, archiveFormat)
+	if err != nil {
+		src.Close()
+		return nil, err
 	}
-	if strings.HasSuffix(srcPath, ".tar.gz") || strings.HasSuffix(srcPath, ".tgz") {
+	switch archiveFormat {
+	case RootRequirementFileArchiveFormatTar:
+		return src, nil
+	case RootRequirementFileArchiveFormatTarGz:
 		gz, err := gzip.NewReader(src)
 		if err != nil {
 			src.Close()
@@ -434,14 +521,12 @@ func rootRequirementFileArchiveReader(srcPath string) (io.ReadCloser, error) {
 			io.Reader
 			io.Closer
 		}{Reader: gz, Closer: multiCloser{gz, src}}, nil
-	}
-	if strings.HasSuffix(srcPath, ".tar.bz2") || strings.HasSuffix(srcPath, ".tbz2") || strings.HasSuffix(srcPath, ".tbz") {
+	case RootRequirementFileArchiveFormatTarBz2:
 		return struct {
 			io.Reader
 			io.Closer
 		}{Reader: bzip2.NewReader(src), Closer: src}, nil
-	}
-	if strings.HasSuffix(srcPath, ".tar.xz") || strings.HasSuffix(srcPath, ".txz") {
+	case RootRequirementFileArchiveFormatTarXz:
 		xzReader, err := xz.ReaderConfig{DictCap: rootRequirementFileXZDictCap}.NewReader(src)
 		if err != nil {
 			src.Close()
@@ -451,9 +536,10 @@ func rootRequirementFileArchiveReader(srcPath string) (io.ReadCloser, error) {
 			io.Reader
 			io.Closer
 		}{Reader: xzReader, Closer: src}, nil
+	default:
+		src.Close()
+		return nil, fmt.Errorf("unsupported archive format: %s", archiveFormat)
 	}
-	src.Close()
-	return nil, fmt.Errorf("unsupported archive type for unpack=true: %s", srcPath)
 }
 
 type multiCloser []io.Closer
@@ -590,8 +676,8 @@ func rootRequirementFileExtractZip(srcPath string, destPath string) error {
 	return nil
 }
 
-func rootRequirementFileExtractTar(srcPath string, destPath string) error {
-	reader, err := rootRequirementFileArchiveReader(srcPath)
+func rootRequirementFileExtractTar(srcPath string, destPath string, archiveFormat string) error {
+	reader, err := rootRequirementFileArchiveReader(srcPath, archiveFormat)
 	if err != nil {
 		return err
 	}
@@ -655,11 +741,15 @@ func rootRequirementFileExtractTar(srcPath string, destPath string) error {
 	return nil
 }
 
-func rootRequirementFileExtractArchive(srcPath string, destPath string) error {
-	if strings.HasSuffix(srcPath, ".zip") {
+func rootRequirementFileExtractArchive(srcPath string, destPath string, archiveFormat string) error {
+	archiveFormat, err := rootRequirementFileArchiveFormat(srcPath, archiveFormat)
+	if err != nil {
+		return err
+	}
+	if archiveFormat == RootRequirementFileArchiveFormatZip {
 		return rootRequirementFileExtractZip(srcPath, destPath)
 	}
-	return rootRequirementFileExtractTar(srcPath, destPath)
+	return rootRequirementFileExtractTar(srcPath, destPath, archiveFormat)
 }
 
 type RootRequirementFileBuildStemRequest struct {
@@ -669,6 +759,7 @@ type RootRequirementFileBuildStemRequest struct {
 	DestinationInto string
 	Optional        bool
 	Unpack          bool
+	ArchiveFormat   string
 }
 
 func RootRequirementFileBuildStem(ctx *task.ExecutionContext, req RootRequirementFileBuildStemRequest) (error, *SafeHeapStemReference) {
@@ -689,6 +780,9 @@ func RootRequirementFileBuildStem(ctx *task.ExecutionContext, req RootRequiremen
 		if err != nil {
 			return err, nil
 		}
+	}
+	if req.ArchiveFormat != "" && !req.Unpack {
+		return fmt.Errorf("file requirement format requires unpack=true"), nil
 	}
 
 	stemPath, err := os.MkdirTemp("", "dryad-file-*")
@@ -716,7 +810,7 @@ func RootRequirementFileBuildStem(ctx *task.ExecutionContext, req RootRequiremen
 			return err, nil
 		}
 		defer os.RemoveAll(extractPath)
-		if err := rootRequirementFileExtractArchive(req.SourcePath, extractPath); err != nil {
+		if err := rootRequirementFileExtractArchive(req.SourcePath, extractPath, req.ArchiveFormat); err != nil {
 			if req.Optional && os.IsNotExist(err) {
 				missingOptionalSource = true
 			} else {

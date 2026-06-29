@@ -62,21 +62,23 @@ func rootRequirementAdd_parseDependencyTarget(raw string) (error, string, string
 
 var rootRequirementAddCommand = func() clib.Command {
 	type ParsedArgs struct {
-		RootPath            string
-		Variant             string
-		DepPath             string
-		DepScheme           string
-		DepVariantSelector  string
-		Alias               string
-		HTTPDestinationAs   string
-		HTTPHasAs           bool
-		HTTPDestinationInto string
-		HTTPHasInto         bool
-		HTTPUnpack          bool
-		HTTPHasUnpack       bool
-		HTTPFingerprint     string
-		HTTPHasFingerprint  bool
-		Parallel            int
+		RootPath             string
+		Variant              string
+		DepPath              string
+		DepScheme            string
+		DepVariantSelector   string
+		Alias                string
+		HTTPDestinationAs    string
+		HTTPHasAs            bool
+		HTTPDestinationInto  string
+		HTTPHasInto          bool
+		HTTPUnpack           bool
+		HTTPHasUnpack        bool
+		HTTPArchiveFormat    string
+		HTTPHasArchiveFormat bool
+		HTTPFingerprint      string
+		HTTPHasFingerprint   bool
+		Parallel             int
 	}
 
 	var parseArgs = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
@@ -138,31 +140,38 @@ var rootRequirementAddCommand = func() clib.Command {
 		if httpHasUnpack {
 			httpUnpack = options["unpack"].(bool)
 		}
+		httpArchiveFormat := ""
+		httpHasArchiveFormat := options["format"] != nil
+		if httpHasArchiveFormat {
+			httpArchiveFormat = options["format"].(string)
+		}
 		httpFingerprint := ""
 		httpHasFingerprint := options["fingerprint"] != nil
 		if httpHasFingerprint {
 			httpFingerprint = options["fingerprint"].(string)
 		}
-		if depScheme != "http" && (httpHasAs || httpHasInto || httpHasUnpack || httpHasFingerprint) {
-			return fmt.Errorf("--as, --into, --unpack, and --fingerprint are only supported for http requirements"), ParsedArgs{}
+		if depScheme != "http" && (httpHasAs || httpHasInto || httpHasUnpack || httpHasArchiveFormat || httpHasFingerprint) {
+			return fmt.Errorf("--as, --into, --unpack, --format, and --fingerprint are only supported for http requirements"), ParsedArgs{}
 		}
 
 		return nil, ParsedArgs{
-			RootPath:            rootPath,
-			Variant:             variant,
-			DepPath:             depPath,
-			DepScheme:           depScheme,
-			DepVariantSelector:  depVariantSelector,
-			Alias:               alias,
-			HTTPDestinationAs:   httpDestinationAs,
-			HTTPHasAs:           httpHasAs,
-			HTTPDestinationInto: httpDestinationInto,
-			HTTPHasInto:         httpHasInto,
-			HTTPUnpack:          httpUnpack,
-			HTTPHasUnpack:       httpHasUnpack,
-			HTTPFingerprint:     httpFingerprint,
-			HTTPHasFingerprint:  httpHasFingerprint,
-			Parallel:            parallel,
+			RootPath:             rootPath,
+			Variant:              variant,
+			DepPath:              depPath,
+			DepScheme:            depScheme,
+			DepVariantSelector:   depVariantSelector,
+			Alias:                alias,
+			HTTPDestinationAs:    httpDestinationAs,
+			HTTPHasAs:            httpHasAs,
+			HTTPDestinationInto:  httpDestinationInto,
+			HTTPHasInto:          httpHasInto,
+			HTTPUnpack:           httpUnpack,
+			HTTPHasUnpack:        httpHasUnpack,
+			HTTPArchiveFormat:    httpArchiveFormat,
+			HTTPHasArchiveFormat: httpHasArchiveFormat,
+			HTTPFingerprint:      httpFingerprint,
+			HTTPHasFingerprint:   httpHasFingerprint,
+			Parallel:             parallel,
 		}
 	}
 
@@ -218,6 +227,8 @@ var rootRequirementAddCommand = func() clib.Command {
 				HasDestinationInto: args.HTTPHasInto,
 				Unpack:             args.HTTPUnpack,
 				HasUnpack:          args.HTTPHasUnpack,
+				ArchiveFormat:      args.HTTPArchiveFormat,
+				HasArchiveFormat:   args.HTTPHasArchiveFormat,
 				Fingerprint:        args.HTTPFingerprint,
 				HasFingerprint:     args.HTTPHasFingerprint,
 			})
@@ -286,6 +297,7 @@ var rootRequirementAddCommand = func() clib.Command {
 		WithOption(clib.NewOption("as", "for http requirements, place the downloaded asset at this exact package path").WithType(clib.OptionTypeString)).
 		WithOption(clib.NewOption("into", "for http requirements, place the downloaded asset under this package directory").WithType(clib.OptionTypeString)).
 		WithOption(clib.NewOption("unpack", "for http requirements, unpack the downloaded tar, tar.gz, tar.bz2, tar.xz, or zip archive before placing it").WithType(clib.OptionTypeBool)).
+		WithOption(clib.NewOption("format", "for http requirements with --unpack, override archive format detection (tar, tar.gz, tar.bz2, tar.xz, or zip)").WithType(clib.OptionTypeString)).
 		WithOption(clib.NewOption("fingerprint", "for http requirements, use this existing stem fingerprint instead of fetching and locking the target").WithType(clib.OptionTypeString)).
 		WithAction(action)
 

@@ -161,7 +161,7 @@ func (requirements *SafeRootRequirementsReference) AddFile(
 	}
 
 	requirementPath := filepath.Join(requirements.BasePath, alias)
-	if err := os.WriteFile(requirementPath, []byte(rootRequirementFileTargetString(fileSpec.SourcePath, fileSpec.DestinationAs, fileSpec.DestinationInto, fileSpec.Optional, fileSpec.Unpack, fileSpec.Fingerprint)), 0644); err != nil {
+	if err := os.WriteFile(requirementPath, []byte(rootRequirementFileTargetString(fileSpec.SourcePath, fileSpec.DestinationAs, fileSpec.DestinationInto, fileSpec.Optional, fileSpec.Unpack, fileSpec.ArchiveFormat, fileSpec.Fingerprint)), 0644); err != nil {
 		return err, nil
 	}
 
@@ -204,7 +204,7 @@ func (requirements *SafeRootRequirementsReference) AddHTTP(
 	}
 
 	requirementPath := filepath.Join(requirements.BasePath, alias)
-	if err := os.WriteFile(requirementPath, []byte(rootRequirementHTTPTargetString(httpSpec.SourceURL, httpSpec.DestinationAs, httpSpec.DestinationInto, httpSpec.Unpack, httpSpec.Fingerprint)), 0644); err != nil {
+	if err := os.WriteFile(requirementPath, []byte(rootRequirementHTTPTargetString(httpSpec.SourceURL, httpSpec.DestinationAs, httpSpec.DestinationInto, httpSpec.Unpack, httpSpec.ArchiveFormat, httpSpec.Fingerprint)), 0644); err != nil {
 		return err, nil
 	}
 
