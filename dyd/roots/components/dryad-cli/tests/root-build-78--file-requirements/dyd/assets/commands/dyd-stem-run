@@ -47,6 +47,7 @@ secret_data=$(cat "$DYD_STEM/dyd/dependencies/secret-data/dyd/secrets/.env")
 archive_data=$(cat "$DYD_STEM/dyd/dependencies/archive-data/dyd/assets/vendor/packed/packed.txt")
 zip_archive_data=$(cat "$DYD_STEM/dyd/dependencies/zip-archive-data/dyd/assets/vendor/packed/packed.txt")
 bz2_archive_data=$(cat "$DYD_STEM/dyd/dependencies/bz2-archive-data/dyd/assets/vendor/packed/packed.txt")
+xz_archive_data=$(cat "$DYD_STEM/dyd/dependencies/xz-archive-data/dyd/assets/vendor/packed/packed.txt")
 data_fingerprint=$(cat "$DYD_STEM/dyd/dependencies/data/dyd/fingerprint")
 
 if [ -e "$DYD_STEM/dyd/dependencies/dir-data/dyd/assets/vendor/dir-data/ignored.txt" ]; then
@@ -54,7 +55,7 @@ if [ -e "$DYD_STEM/dyd/dependencies/dir-data/dyd/assets/vendor/dir-data/ignored.
 	exit 1
 fi
 
-printf '%s|%s|%s|%s|%s|%s|%s' "$data" "$renamed_data" "$dir_data" "$secret_data" "$archive_data" "$zip_archive_data" "$bz2_archive_data" > "$DYD_BUILD/dyd/assets/summary.txt"
+printf '%s|%s|%s|%s|%s|%s|%s|%s' "$data" "$renamed_data" "$dir_data" "$secret_data" "$archive_data" "$zip_archive_data" "$bz2_archive_data" "$xz_archive_data" > "$DYD_BUILD/dyd/assets/summary.txt"
 printf '%s' "$data_fingerprint" > "$DYD_BUILD/dyd/assets/data-fingerprint.txt"
 EOF
 	chmod +x "dyd/roots/$root_name/dyd/commands/dyd-root-build"
@@ -72,6 +73,7 @@ _create_file_root() {
 	printf '%s' 'file:../../../../external/packed.tar?unpack=true&into=dyd/assets/vendor' > "dyd/roots/$root_name/dyd/requirements/archive-data"
 	printf '%s' 'file:../../../../external/packed.zip?unpack=true&into=dyd/assets/vendor' > "dyd/roots/$root_name/dyd/requirements/zip-archive-data"
 	printf '%s' 'file:../../../../external/packed.tar.bz2?unpack=true&into=dyd/assets/vendor' > "dyd/roots/$root_name/dyd/requirements/bz2-archive-data"
+	printf '%s' 'file:../../../../external/packed.tar.xz?unpack=true&into=dyd/assets/vendor' > "dyd/roots/$root_name/dyd/requirements/xz-archive-data"
 	_write_build_script "$root_name"
 }
 
@@ -85,6 +87,7 @@ _prepare_sources() {
 	cp "$SRC_DIR/dyd/assets/packed.tar" dyd/external/packed.tar
 	cp "$SRC_DIR/dyd/assets/packed.zip" dyd/external/packed.zip
 	cp "$SRC_DIR/dyd/assets/packed.tar.bz2" dyd/external/packed.tar.bz2
+	cp "$SRC_DIR/dyd/assets/packed.tar.xz" dyd/external/packed.tar.xz
 }
 
 _expect_build_fails() {
@@ -104,17 +107,17 @@ _test() {
 	_prepare_sources
 	_create_file_root root-use 'file:../../../../external/data.txt'
 	dryad root build dyd/roots/root-use --log-level=info > /dev/null 2>&1
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-use/dyd/dependencies/stem/dyd/assets/summary.txt" 'one|one|kept|SECRET=1|packed|packed|packed'
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-use/dyd/dependencies/stem/dyd/assets/summary.txt" 'one|one|kept|SECRET=1|packed|packed|packed|packed'
 	assert_file_not_exists "$TEMP_DIR/dyd/sprouts/root-use/dyd/dependencies/stem/dyd/dependencies/dir-data/dyd/assets/vendor/dir-data/ignored.txt"
 
 	fingerprint=$(cat "$TEMP_DIR/dyd/sprouts/root-use/dyd/dependencies/stem/dyd/assets/data-fingerprint.txt")
 	_create_file_root root-pinned "file:../../../../external/data.txt?fingerprint=$fingerprint"
 	dryad root build dyd/roots/root-pinned --log-level=info > /dev/null 2>&1
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-pinned/dyd/dependencies/stem/dyd/assets/summary.txt" 'one|one|kept|SECRET=1|packed|packed|packed'
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-pinned/dyd/dependencies/stem/dyd/assets/summary.txt" 'one|one|kept|SECRET=1|packed|packed|packed|packed'
 
 	printf 'two' > dyd/external/data.txt
 	dryad root build dyd/roots/root-use --log-level=info > /dev/null 2>&1
-	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-use/dyd/dependencies/stem/dyd/assets/summary.txt" 'two|two|kept|SECRET=1|packed|packed|packed'
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-use/dyd/dependencies/stem/dyd/assets/summary.txt" 'two|two|kept|SECRET=1|packed|packed|packed|packed'
 	_expect_build_fails root-pinned
 }
 

@@ -7,6 +7,7 @@ require (
 	github.com/mattn/go-isatty v0.0.19
 	github.com/rs/zerolog v1.30.0
 	github.com/stretchr/testify v1.5.1
+	github.com/ulikunitz/xz v0.5.15
 	golang.org/x/crypto v0.5.0
 	golang.org/x/sys v0.21.0
 	sigs.k8s.io/yaml v1.4.0
