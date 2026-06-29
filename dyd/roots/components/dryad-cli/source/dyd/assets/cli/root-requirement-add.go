@@ -285,7 +285,7 @@ var rootRequirementAddCommand = func() clib.Command {
 		WithOption(clib.NewOption("variant", "select the root variant to modify (using filesystem variant notation: dimension1=option1,option2+dimension2=option3). required when the root resolves to multiple variants").WithType(clib.OptionTypeString)).
 		WithOption(clib.NewOption("as", "for http requirements, place the downloaded asset at this exact package path").WithType(clib.OptionTypeString)).
 		WithOption(clib.NewOption("into", "for http requirements, place the downloaded asset under this package directory").WithType(clib.OptionTypeString)).
-		WithOption(clib.NewOption("unpack", "for http requirements, unpack the downloaded tar archive before placing it").WithType(clib.OptionTypeBool)).
+		WithOption(clib.NewOption("unpack", "for http requirements, unpack the downloaded tar, tar.gz, or zip archive before placing it").WithType(clib.OptionTypeBool)).
 		WithOption(clib.NewOption("fingerprint", "for http requirements, use this existing stem fingerprint instead of fetching and locking the target").WithType(clib.OptionTypeString)).
 		WithAction(action)
 

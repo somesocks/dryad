@@ -2,6 +2,7 @@ package core
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
@@ -247,6 +248,35 @@ func TestRootRequirementFileBuildStem_UnpackIntoUsesArchiveName(t *testing.T) {
 	assert.Equal("packed", readTrimmedFileForTest(t, filepath.Join(stem.BasePath, "dyd", "assets", "vendor", "pkg", "contents", "value.txt")))
 }
 
+func TestRootRequirementFileBuildStem_UnpackZipIntoUsesArchiveName(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	makeWritableForCleanupForTest(t, gardenPath)
+	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "type"), "garden")
+	archivePath := filepath.Join(t.TempDir(), "pkg.zip")
+	archiveFile, err := stdos.Create(archivePath)
+	assert.Nil(err)
+	zipWriter := zip.NewWriter(archiveFile)
+	contents := "packed"
+	entry, err := zipWriter.Create("contents/value.txt")
+	assert.Nil(err)
+	_, err = entry.Write([]byte(contents))
+	assert.Nil(err)
+	assert.Nil(zipWriter.Close())
+	assert.Nil(archiveFile.Close())
+
+	err, stem := RootRequirementFileBuildStem(task.NewContext(1), RootRequirementFileBuildStemRequest{
+		Garden:          &SafeGardenReference{BasePath: gardenPath},
+		SourcePath:      archivePath,
+		DestinationInto: "dyd/assets/vendor",
+		Unpack:          true,
+	})
+	assert.Nil(err)
+	assert.NotNil(stem)
+	assert.Equal("packed", readTrimmedFileForTest(t, filepath.Join(stem.BasePath, "dyd", "assets", "vendor", "pkg", "contents", "value.txt")))
+}
+
 func TestRootRequirementFileBuildStem_RejectsUnsafeArchiveSymlink(t *testing.T) {
 	assert := assert.New(t)
 
@@ -264,6 +294,32 @@ func TestRootRequirementFileBuildStem_RejectsUnsafeArchiveSymlink(t *testing.T) 
 		Mode:     0o777,
 	}))
 	assert.Nil(tarWriter.Close())
+	assert.Nil(archiveFile.Close())
+
+	err, stem := RootRequirementFileBuildStem(task.SERIAL_CONTEXT, RootRequirementFileBuildStemRequest{
+		Garden:     &SafeGardenReference{BasePath: gardenPath},
+		SourcePath: archivePath,
+		Unpack:     true,
+	})
+	assert.NotNil(err)
+	assert.Nil(stem)
+}
+
+func TestRootRequirementFileBuildStem_RejectsUnsafeZipPath(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	makeWritableForCleanupForTest(t, gardenPath)
+	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "type"), "garden")
+	archivePath := filepath.Join(t.TempDir(), "bad.zip")
+	archiveFile, err := stdos.Create(archivePath)
+	assert.Nil(err)
+	zipWriter := zip.NewWriter(archiveFile)
+	entry, err := zipWriter.Create("../escape.txt")
+	assert.Nil(err)
+	_, err = entry.Write([]byte("escape"))
+	assert.Nil(err)
+	assert.Nil(zipWriter.Close())
 	assert.Nil(archiveFile.Close())
 
 	err, stem := RootRequirementFileBuildStem(task.SERIAL_CONTEXT, RootRequirementFileBuildStemRequest{
