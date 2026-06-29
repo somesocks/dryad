@@ -46,6 +46,10 @@ func TestRootRequirementFileTargetNormalize(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal("file:../foo.txt?as=dyd/secrets/.env&fingerprint=v2-aaaaaaaaaaaaaaaaaaaaaaaaaa&optional=true&unpack=true", target)
 
+	err, target = RootRequirementFileTargetNormalize("file:../foo.tar.bz2?unpack=true&format=tbz&into=dyd/assets/vendor")
+	assert.Nil(err)
+	assert.Equal("file:../foo.tar.bz2?into=dyd/assets/vendor&unpack=true&format=tar.bz2", target)
+
 	err, _ = RootRequirementFileTargetNormalize("file:/abs/foo.txt")
 	assert.NotNil(err)
 
@@ -68,6 +72,12 @@ func TestRootRequirementFileTargetNormalize(t *testing.T) {
 	assert.NotNil(err)
 
 	err, _ = RootRequirementFileTargetNormalize("file:../foo.txt?optional=maybe")
+	assert.NotNil(err)
+
+	err, _ = RootRequirementFileTargetNormalize("file:../foo.txt?format=tar")
+	assert.NotNil(err)
+
+	err, _ = RootRequirementFileTargetNormalize("file:../foo.txt?unpack=true&format=rar")
 	assert.NotNil(err)
 }
 
@@ -294,6 +304,39 @@ func TestRootRequirementFileBuildStem_UnpackTarBz2IntoUsesArchiveName(t *testing
 		SourcePath:      archivePath,
 		DestinationInto: "dyd/assets/vendor",
 		Unpack:          true,
+	})
+	assert.Nil(err)
+	assert.NotNil(stem)
+	assert.Equal("packed", readTrimmedFileForTest(t, filepath.Join(stem.BasePath, "dyd", "assets", "vendor", "pkg", "contents", "value.txt")))
+}
+
+func TestRootRequirementFileBuildStem_UnpackFormatOverrideUsesRequestedFormat(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	makeWritableForCleanupForTest(t, gardenPath)
+	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "type"), "garden")
+	archivePath := filepath.Join(t.TempDir(), "pkg.tar.bz2")
+	archiveFile, err := stdos.Create(archivePath)
+	assert.Nil(err)
+	tarWriter := tar.NewWriter(archiveFile)
+	contents := "packed"
+	assert.Nil(tarWriter.WriteHeader(&tar.Header{
+		Name: "contents/value.txt",
+		Mode: 0o644,
+		Size: int64(len(contents)),
+	}))
+	_, err = tarWriter.Write([]byte(contents))
+	assert.Nil(err)
+	assert.Nil(tarWriter.Close())
+	assert.Nil(archiveFile.Close())
+
+	err, stem := RootRequirementFileBuildStem(task.NewContext(1), RootRequirementFileBuildStemRequest{
+		Garden:          &SafeGardenReference{BasePath: gardenPath},
+		SourcePath:      archivePath,
+		DestinationInto: "dyd/assets/vendor",
+		Unpack:          true,
+		ArchiveFormat:   RootRequirementFileArchiveFormatTar,
 	})
 	assert.Nil(err)
 	assert.NotNil(stem)

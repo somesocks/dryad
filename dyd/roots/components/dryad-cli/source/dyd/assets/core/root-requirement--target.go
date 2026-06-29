@@ -20,11 +20,13 @@ type RootRequirementTargetSpec struct {
 	FileDestinationInto string
 	FileOptional        bool
 	FileUnpack          bool
+	FileArchiveFormat   string
 	FileFingerprint     string
 	HTTPSourceURL       string
 	HTTPDestinationAs   string
 	HTTPDestinationInto string
 	HTTPUnpack          bool
+	HTTPArchiveFormat   string
 	HTTPFingerprint     string
 }
 
@@ -135,6 +137,7 @@ func (rootRequirement *SafeRootRequirementReference) TargetSpec(ctx *task.Execut
 			FileDestinationInto: fileSpec.DestinationInto,
 			FileOptional:        fileSpec.Optional,
 			FileUnpack:          fileSpec.Unpack,
+			FileArchiveFormat:   fileSpec.ArchiveFormat,
 			FileFingerprint:     fileSpec.Fingerprint,
 		}
 	}
@@ -153,6 +156,7 @@ func (rootRequirement *SafeRootRequirementReference) TargetSpec(ctx *task.Execut
 			HTTPDestinationAs:   httpSpec.DestinationAs,
 			HTTPDestinationInto: httpSpec.DestinationInto,
 			HTTPUnpack:          httpSpec.Unpack,
+			HTTPArchiveFormat:   httpSpec.ArchiveFormat,
 			HTTPFingerprint:     httpSpec.Fingerprint,
 		}
 	}

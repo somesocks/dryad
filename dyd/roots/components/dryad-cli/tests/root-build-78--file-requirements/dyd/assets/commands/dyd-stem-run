@@ -50,6 +50,7 @@ bz2_archive_data=$(cat "$DYD_STEM/dyd/dependencies/bz2-archive-data/dyd/assets/v
 xz_archive_data=$(cat "$DYD_STEM/dyd/dependencies/xz-archive-data/dyd/assets/vendor/packed/packed.txt")
 pax_archive_data=$(cat "$DYD_STEM/dyd/dependencies/pax-archive-data/dyd/assets/vendor/pax-global-header/contents/value.txt")
 rootdir_archive_data=$(cat "$DYD_STEM/dyd/dependencies/rootdir-archive-data/dyd/assets/vendor/rootdir-entry/contents/value.txt")
+format_archive_data=$(cat "$DYD_STEM/dyd/dependencies/format-archive-data/dyd/assets/vendor/format-override/contents/value.txt")
 data_fingerprint=$(cat "$DYD_STEM/dyd/dependencies/data/dyd/fingerprint")
 
 if [ -e "$DYD_STEM/dyd/dependencies/dir-data/dyd/assets/vendor/dir-data/ignored.txt" ]; then
@@ -78,6 +79,14 @@ case "$rootdir_archive_data" in
 		;;
 esac
 
+case "$format_archive_data" in
+	*'format override fixture'*) ;;
+	*)
+		echo '[ERROR] Fail: format override archive content was not imported' 1>&2
+		exit 1
+		;;
+esac
+
 printf '%s|%s|%s|%s|%s|%s|%s|%s' "$data" "$renamed_data" "$dir_data" "$secret_data" "$archive_data" "$zip_archive_data" "$bz2_archive_data" "$xz_archive_data" > "$DYD_BUILD/dyd/assets/summary.txt"
 printf '%s' "$data_fingerprint" > "$DYD_BUILD/dyd/assets/data-fingerprint.txt"
 EOF
@@ -99,6 +108,7 @@ _create_file_root() {
 	printf '%s' 'file:../../../../external/packed.tar.xz?unpack=true&into=dyd/assets/vendor' > "dyd/roots/$root_name/dyd/requirements/xz-archive-data"
 	printf '%s' 'file:../../../../external/pax-global-header.tar.gz?unpack=true&into=dyd/assets/vendor' > "dyd/roots/$root_name/dyd/requirements/pax-archive-data"
 	printf '%s' 'file:../../../../external/rootdir-entry.tar.bz2?unpack=true&into=dyd/assets/vendor' > "dyd/roots/$root_name/dyd/requirements/rootdir-archive-data"
+	printf '%s' 'file:../../../../external/format-override.tar.bz2?unpack=true&format=tar&into=dyd/assets/vendor' > "dyd/roots/$root_name/dyd/requirements/format-archive-data"
 	_write_build_script "$root_name"
 }
 
@@ -115,6 +125,7 @@ _prepare_sources() {
 	cp "$SRC_DIR/dyd/assets/packed.tar.xz" dyd/external/packed.tar.xz
 	cp "$SRC_DIR/dyd/assets/pax-global-header.tar.gz" dyd/external/pax-global-header.tar.gz
 	cp "$SRC_DIR/dyd/assets/rootdir-entry.tar.bz2" dyd/external/rootdir-entry.tar.bz2
+	cp "$SRC_DIR/dyd/assets/format-override.tar.bz2" dyd/external/format-override.tar.bz2
 }
 
 _expect_build_fails() {

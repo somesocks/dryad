@@ -18,6 +18,7 @@ type rootRequirementHTTPTargetSpec struct {
 	DestinationInto string
 	Unpack          bool
 	HasUnpack       bool
+	ArchiveFormat   string
 	Fingerprint     string
 }
 
@@ -102,6 +103,20 @@ func rootRequirementHTTPTargetFromURL(linkURL *url.URL) (error, rootRequirementH
 	}
 	query.Del(RootRequirementFileUnpackQueryKey)
 
+	archiveFormat := ""
+	archiveFormatRaw, hasArchiveFormat := query[RootRequirementFileFormatQueryKey]
+	if hasArchiveFormat {
+		if len(archiveFormatRaw) != 1 || archiveFormatRaw[0] == "" {
+			return fmt.Errorf("http requirement format must not be empty"), rootRequirementHTTPTargetSpec{}
+		}
+		var err error
+		archiveFormat, err = rootRequirementFileArchiveFormatNormalize(archiveFormatRaw[0])
+		if err != nil {
+			return err, rootRequirementHTTPTargetSpec{}
+		}
+	}
+	query.Del(RootRequirementFileFormatQueryKey)
+
 	fingerprintRaw, hasFingerprint := query[RootRequirementFileFingerprintQueryKey]
 	fingerprint := ""
 	if hasFingerprint {
@@ -129,6 +144,7 @@ func rootRequirementHTTPTargetFromURL(linkURL *url.URL) (error, rootRequirementH
 		DestinationInto: destinationInto,
 		Unpack:          unpack,
 		HasUnpack:       hasUnpack,
+		ArchiveFormat:   archiveFormat,
 		Fingerprint:     fingerprint,
 	}
 }
@@ -137,10 +153,13 @@ func rootRequirementHTTPValidateStoredTargetSpec(httpSpec rootRequirementHTTPTar
 	if httpSpec.Fingerprint == "" {
 		return fmt.Errorf("http requirement fingerprint is required")
 	}
+	if httpSpec.ArchiveFormat != "" && !httpSpec.Unpack {
+		return fmt.Errorf("http requirement format requires unpack=true")
+	}
 	return nil
 }
 
-func rootRequirementHTTPTargetString(sourceURL string, destinationAs string, destinationInto string, unpack bool, fingerprint string) string {
+func rootRequirementHTTPTargetString(sourceURL string, destinationAs string, destinationInto string, unpack bool, archiveFormat string, fingerprint string) string {
 	linkURL, err := url.Parse(strings.TrimSpace(sourceURL))
 	if err != nil {
 		return sourceURL
@@ -163,6 +182,9 @@ func rootRequirementHTTPTargetString(sourceURL string, destinationAs string, des
 	}
 	if unpack {
 		query = append(query, RootRequirementFileUnpackQueryKey+"=true")
+	}
+	if archiveFormat != "" {
+		query = append(query, RootRequirementFileFormatQueryKey+"="+escapeQueryValue(archiveFormat))
 	}
 	if len(query) > 0 {
 		linkURL.Fragment = strings.Join(query, "&")
@@ -199,11 +221,11 @@ func RootRequirementHTTPTargetNormalize(raw string) (error, string) {
 		return err, ""
 	}
 
-	return nil, rootRequirementHTTPTargetString(httpSpec.SourceURL, httpSpec.DestinationAs, httpSpec.DestinationInto, httpSpec.Unpack, httpSpec.Fingerprint)
+	return nil, rootRequirementHTTPTargetString(httpSpec.SourceURL, httpSpec.DestinationAs, httpSpec.DestinationInto, httpSpec.Unpack, httpSpec.ArchiveFormat, httpSpec.Fingerprint)
 }
 
-func RootRequirementHTTPTargetString(sourceURL string, destinationAs string, destinationInto string, unpack bool, fingerprint string) string {
-	return rootRequirementHTTPTargetString(sourceURL, destinationAs, destinationInto, unpack, fingerprint)
+func RootRequirementHTTPTargetString(sourceURL string, destinationAs string, destinationInto string, unpack bool, archiveFormat string, fingerprint string) string {
+	return rootRequirementHTTPTargetString(sourceURL, destinationAs, destinationInto, unpack, archiveFormat, fingerprint)
 }
 
 type RootRequirementHTTPLockTargetRequest struct {
@@ -215,6 +237,8 @@ type RootRequirementHTTPLockTargetRequest struct {
 	HasDestinationInto bool
 	Unpack             bool
 	HasUnpack          bool
+	ArchiveFormat      string
+	HasArchiveFormat   bool
 	Fingerprint        string
 	HasFingerprint     bool
 }
@@ -256,6 +280,22 @@ func rootRequirementHTTPApplyLockOptions(httpSpec rootRequirementHTTPTargetSpec,
 		httpSpec.Unpack = req.Unpack
 		httpSpec.HasUnpack = true
 	}
+	if req.HasArchiveFormat {
+		if req.ArchiveFormat == "" {
+			return fmt.Errorf("http requirement format must not be empty"), rootRequirementHTTPTargetSpec{}
+		}
+		archiveFormat, err := rootRequirementFileArchiveFormatNormalize(req.ArchiveFormat)
+		if err != nil {
+			return err, rootRequirementHTTPTargetSpec{}
+		}
+		if httpSpec.ArchiveFormat != "" && httpSpec.ArchiveFormat != archiveFormat {
+			return fmt.Errorf("http requirement format specified both in target and --format"), rootRequirementHTTPTargetSpec{}
+		}
+		httpSpec.ArchiveFormat = archiveFormat
+	}
+	if httpSpec.ArchiveFormat != "" && !httpSpec.Unpack {
+		return fmt.Errorf("http requirement format requires unpack=true"), rootRequirementHTTPTargetSpec{}
+	}
 	if req.HasFingerprint {
 		if req.Fingerprint == "" {
 			return fmt.Errorf("http requirement fingerprint must not be empty"), rootRequirementHTTPTargetSpec{}
@@ -293,6 +333,7 @@ func RootRequirementHTTPLockTarget(ctx *task.ExecutionContext, req RootRequireme
 			DestinationAs:   httpSpec.DestinationAs,
 			DestinationInto: httpSpec.DestinationInto,
 			Unpack:          httpSpec.Unpack,
+			ArchiveFormat:   httpSpec.ArchiveFormat,
 		})
 		if err != nil {
 			return err, ""
@@ -303,7 +344,7 @@ func RootRequirementHTTPLockTarget(ctx *task.ExecutionContext, req RootRequireme
 		httpSpec.Fingerprint = stem.Fingerprint
 	}
 
-	return nil, rootRequirementHTTPTargetString(httpSpec.SourceURL, httpSpec.DestinationAs, httpSpec.DestinationInto, httpSpec.Unpack, httpSpec.Fingerprint)
+	return nil, rootRequirementHTTPTargetString(httpSpec.SourceURL, httpSpec.DestinationAs, httpSpec.DestinationInto, httpSpec.Unpack, httpSpec.ArchiveFormat, httpSpec.Fingerprint)
 }
 
 type rootRequirementHTTPAuthCredential struct {
@@ -529,6 +570,7 @@ type RootRequirementHTTPBuildStemRequest struct {
 	DestinationAs   string
 	DestinationInto string
 	Unpack          bool
+	ArchiveFormat   string
 	Fingerprint     string
 }
 
@@ -599,6 +641,7 @@ func rootRequirementHTTPDownloadBuildStem(ctx *task.ExecutionContext, req RootRe
 		DestinationAs:   req.DestinationAs,
 		DestinationInto: req.DestinationInto,
 		Unpack:          req.Unpack,
+		ArchiveFormat:   req.ArchiveFormat,
 	})
 	if err != nil {
 		return err, nil

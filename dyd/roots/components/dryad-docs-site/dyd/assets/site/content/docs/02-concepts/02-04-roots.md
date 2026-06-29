@@ -63,6 +63,7 @@ File requirements import files or directories from the local filesystem into a d
 - `as=<path>` places the imported source at an exact package path.
 - `into=<path>` places the imported source under a package directory.
 - `unpack=true` extracts a tar, tar.gz, tar.bz2, tar.xz, or zip archive before placement.
+- `format=<format>` overrides archive format detection for unpacking. This is only valid with `unpack=true`. Supported values are `tar`, `tar.gz`, `tgz`, `tar.bz2`, `tbz2`, `tbz`, `tar.xz`, `txz`, and `zip`.
 - `optional=true` allows a missing local source and creates an empty dependency package.
 - `fingerprint=<fingerprint>` pins the expected dependency package fingerprint.
 
@@ -81,6 +82,7 @@ Supported HTTP metadata parameters are:
 - `as=<path>` places the downloaded source at an exact package path.
 - `into=<path>` places the downloaded source under a package directory.
 - `unpack=true` extracts a tar, tar.gz, tar.bz2, tar.xz, or zip archive. With `into=...`, the extracted archive is placed under a directory named after the archive.
+- `format=<format>` overrides archive format detection for unpacking. This is only valid with `unpack=true`. Supported values are `tar`, `tar.gz`, `tgz`, `tar.bz2`, `tbz2`, `tbz`, `tar.xz`, `txz`, and `zip`.
 - `fingerprint=<fingerprint>` pins the expected dependency package fingerprint.
 
 If neither `as` nor `into` is specified, HTTP requirements default to `dyd/assets`.

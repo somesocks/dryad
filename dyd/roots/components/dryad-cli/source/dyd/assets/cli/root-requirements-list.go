@@ -152,9 +152,9 @@ var rootRequirementsListCommand = func() clib.Command {
 				if err != nil {
 					return err, nil
 				}
-				targetURL = dryad.RootRequirementFileTargetString(targetPath, targetSpec.FileDestinationAs, targetSpec.FileDestinationInto, targetSpec.FileOptional, targetSpec.FileUnpack, targetSpec.FileFingerprint)
+				targetURL = dryad.RootRequirementFileTargetString(targetPath, targetSpec.FileDestinationAs, targetSpec.FileDestinationInto, targetSpec.FileOptional, targetSpec.FileUnpack, targetSpec.FileArchiveFormat, targetSpec.FileFingerprint)
 			case dryad.RootRequirementTargetKindHTTP:
-				targetURL = dryad.RootRequirementHTTPTargetString(targetSpec.HTTPSourceURL, targetSpec.HTTPDestinationAs, targetSpec.HTTPDestinationInto, targetSpec.HTTPUnpack, targetSpec.HTTPFingerprint)
+				targetURL = dryad.RootRequirementHTTPTargetString(targetSpec.HTTPSourceURL, targetSpec.HTTPDestinationAs, targetSpec.HTTPDestinationInto, targetSpec.HTTPUnpack, targetSpec.HTTPArchiveFormat, targetSpec.HTTPFingerprint)
 			default:
 				targetPath, err := filepath.Rel(
 					filepath.Dir(requirement.BasePath),
