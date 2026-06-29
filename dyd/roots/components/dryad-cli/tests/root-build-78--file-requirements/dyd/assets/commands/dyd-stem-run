@@ -48,7 +48,8 @@ archive_data=$(cat "$DYD_STEM/dyd/dependencies/archive-data/dyd/assets/vendor/pa
 zip_archive_data=$(cat "$DYD_STEM/dyd/dependencies/zip-archive-data/dyd/assets/vendor/packed/packed.txt")
 bz2_archive_data=$(cat "$DYD_STEM/dyd/dependencies/bz2-archive-data/dyd/assets/vendor/packed/packed.txt")
 xz_archive_data=$(cat "$DYD_STEM/dyd/dependencies/xz-archive-data/dyd/assets/vendor/packed/packed.txt")
-pax_archive_data=$(cat "$DYD_STEM/dyd/dependencies/pax-archive-data/dyd/assets/vendor/dinit-v0.20.0-pax-minimal/dinit-0.20.0/build/version.conf")
+pax_archive_data=$(cat "$DYD_STEM/dyd/dependencies/pax-archive-data/dyd/assets/vendor/pax-global-header/contents/value.txt")
+rootdir_archive_data=$(cat "$DYD_STEM/dyd/dependencies/rootdir-archive-data/dyd/assets/vendor/rootdir-entry/contents/value.txt")
 data_fingerprint=$(cat "$DYD_STEM/dyd/dependencies/data/dyd/fingerprint")
 
 if [ -e "$DYD_STEM/dyd/dependencies/dir-data/dyd/assets/vendor/dir-data/ignored.txt" ]; then
@@ -56,15 +57,23 @@ if [ -e "$DYD_STEM/dyd/dependencies/dir-data/dyd/assets/vendor/dir-data/ignored.
 	exit 1
 fi
 
-if [ -e "$DYD_STEM/dyd/dependencies/pax-archive-data/dyd/assets/vendor/dinit-v0.20.0-pax-minimal/pax_global_header" ]; then
+if [ -e "$DYD_STEM/dyd/dependencies/pax-archive-data/dyd/assets/vendor/pax-global-header/pax_global_header" ]; then
 	echo '[ERROR] Fail: pax global header was imported' 1>&2
 	exit 1
 fi
 
 case "$pax_archive_data" in
-	*'VERSION=0.20.0'*) ;;
+	*'pax global header fixture'*) ;;
 	*)
 		echo '[ERROR] Fail: pax archive content was not imported' 1>&2
+		exit 1
+		;;
+esac
+
+case "$rootdir_archive_data" in
+	*'root directory entry fixture'*) ;;
+	*)
+		echo '[ERROR] Fail: root directory archive content was not imported' 1>&2
 		exit 1
 		;;
 esac
@@ -88,7 +97,8 @@ _create_file_root() {
 	printf '%s' 'file:../../../../external/packed.zip?unpack=true&into=dyd/assets/vendor' > "dyd/roots/$root_name/dyd/requirements/zip-archive-data"
 	printf '%s' 'file:../../../../external/packed.tar.bz2?unpack=true&into=dyd/assets/vendor' > "dyd/roots/$root_name/dyd/requirements/bz2-archive-data"
 	printf '%s' 'file:../../../../external/packed.tar.xz?unpack=true&into=dyd/assets/vendor' > "dyd/roots/$root_name/dyd/requirements/xz-archive-data"
-	printf '%s' 'file:../../../../external/dinit-v0.20.0-pax-minimal.tar.gz?unpack=true&into=dyd/assets/vendor' > "dyd/roots/$root_name/dyd/requirements/pax-archive-data"
+	printf '%s' 'file:../../../../external/pax-global-header.tar.gz?unpack=true&into=dyd/assets/vendor' > "dyd/roots/$root_name/dyd/requirements/pax-archive-data"
+	printf '%s' 'file:../../../../external/rootdir-entry.tar.bz2?unpack=true&into=dyd/assets/vendor' > "dyd/roots/$root_name/dyd/requirements/rootdir-archive-data"
 	_write_build_script "$root_name"
 }
 
@@ -103,8 +113,8 @@ _prepare_sources() {
 	cp "$SRC_DIR/dyd/assets/packed.zip" dyd/external/packed.zip
 	cp "$SRC_DIR/dyd/assets/packed.tar.bz2" dyd/external/packed.tar.bz2
 	cp "$SRC_DIR/dyd/assets/packed.tar.xz" dyd/external/packed.tar.xz
-	# Reduced from https://github.com/davmac314/dinit/archive/refs/tags/v0.20.0.tar.gz.
-	cp "$SRC_DIR/dyd/assets/dinit-v0.20.0-pax-minimal.tar.gz" dyd/external/dinit-v0.20.0-pax-minimal.tar.gz
+	cp "$SRC_DIR/dyd/assets/pax-global-header.tar.gz" dyd/external/pax-global-header.tar.gz
+	cp "$SRC_DIR/dyd/assets/rootdir-entry.tar.bz2" dyd/external/rootdir-entry.tar.bz2
 }
 
 _expect_build_fails() {
