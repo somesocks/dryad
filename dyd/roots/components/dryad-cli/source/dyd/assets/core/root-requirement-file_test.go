@@ -300,6 +300,28 @@ func TestRootRequirementFileBuildStem_UnpackTarBz2IntoUsesArchiveName(t *testing
 	assert.Equal("packed", readTrimmedFileForTest(t, filepath.Join(stem.BasePath, "dyd", "assets", "vendor", "pkg", "contents", "value.txt")))
 }
 
+func TestRootRequirementFileBuildStem_UnpackTarXzIntoUsesArchiveName(t *testing.T) {
+	assert := assert.New(t)
+
+	gardenPath := t.TempDir()
+	makeWritableForCleanupForTest(t, gardenPath)
+	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "type"), "garden")
+	archivePath := filepath.Join(t.TempDir(), "pkg.tar.xz")
+	archiveBytes, err := base64.StdEncoding.DecodeString("/Td6WFoAAATm1rRGBMCDAYBQIQEWAAAAAAAAAG1pO4vgJ/8Ae10AMZvKGdrtpRW74LwXrgbt6UOIknkGA/ZH5G5z2wfbhgjFs2Dx1jbZ+G5mUlj6UJ27RMCcS3CCXJTlu8a5lRCCYbK7M0QRklbxI1MhPoVFt2mXir+q2H28l8fQ963CA9vzxN8bdHc/LT6nCh3bcR7i5ymeDyNiQ4a9pCoAAAA6W2I7fa/EuQABnwGAUAAAcMHgk7HEZ/sCAAAAAARZWg==")
+	assert.Nil(err)
+	assert.Nil(stdos.WriteFile(archivePath, archiveBytes, 0o644))
+
+	err, stem := RootRequirementFileBuildStem(task.NewContext(1), RootRequirementFileBuildStemRequest{
+		Garden:          &SafeGardenReference{BasePath: gardenPath},
+		SourcePath:      archivePath,
+		DestinationInto: "dyd/assets/vendor",
+		Unpack:          true,
+	})
+	assert.Nil(err)
+	assert.NotNil(stem)
+	assert.Equal("packed", readTrimmedFileForTest(t, filepath.Join(stem.BasePath, "dyd", "assets", "vendor", "pkg", "contents", "value.txt")))
+}
+
 func TestRootRequirementFileBuildStem_RejectsUnsafeArchiveSymlink(t *testing.T) {
 	assert := assert.New(t)
 

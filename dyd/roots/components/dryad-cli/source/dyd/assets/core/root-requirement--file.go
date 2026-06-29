@@ -5,15 +5,20 @@ import (
 	"archive/zip"
 	"compress/bzip2"
 	"compress/gzip"
-	dydfs "dryad/filesystem"
-	"dryad/internal/filepath"
-	"dryad/internal/os"
-	"dryad/task"
 	"fmt"
 	"io"
 	"net/url"
 	"strings"
+
+	dydfs "dryad/filesystem"
+	"dryad/internal/filepath"
+	"dryad/internal/os"
+	"dryad/task"
+
+	"github.com/ulikunitz/xz"
 )
+
+const rootRequirementFileXZDictCap = 128 << 20
 
 const (
 	RootRequirementFileFingerprintQueryKey = "fingerprint"
@@ -403,7 +408,7 @@ func rootRequirementFileImportSourceExact(ctx *task.ExecutionContext, srcPath st
 
 func rootRequirementFileArchiveDestinationName(srcPath string) string {
 	base := filepath.Base(srcPath)
-	for _, suffix := range []string{".tar.bz2", ".tbz2", ".tbz", ".tar.gz", ".tgz", ".tar", ".zip"} {
+	for _, suffix := range []string{".tar.xz", ".txz", ".tar.bz2", ".tbz2", ".tbz", ".tar.gz", ".tgz", ".tar", ".zip"} {
 		if strings.HasSuffix(base, suffix) {
 			return strings.TrimSuffix(base, suffix)
 		}
@@ -435,6 +440,17 @@ func rootRequirementFileArchiveReader(srcPath string) (io.ReadCloser, error) {
 			io.Reader
 			io.Closer
 		}{Reader: bzip2.NewReader(src), Closer: src}, nil
+	}
+	if strings.HasSuffix(srcPath, ".tar.xz") || strings.HasSuffix(srcPath, ".txz") {
+		xzReader, err := xz.ReaderConfig{DictCap: rootRequirementFileXZDictCap}.NewReader(src)
+		if err != nil {
+			src.Close()
+			return nil, err
+		}
+		return struct {
+			io.Reader
+			io.Closer
+		}{Reader: xzReader, Closer: src}, nil
 	}
 	src.Close()
 	return nil, fmt.Errorf("unsupported archive type for unpack=true: %s", srcPath)
