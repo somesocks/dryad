@@ -606,6 +606,9 @@ func rootRequirementFileExtractTar(srcPath string, destPath string) error {
 		if err != nil {
 			return err
 		}
+		if header.Typeflag == tar.TypeXHeader || header.Typeflag == tar.TypeXGlobalHeader {
+			continue
+		}
 		entryPath, err := rootRequirementFileSafeArchivePath(destPath, header.Name)
 		if err != nil {
 			return err
