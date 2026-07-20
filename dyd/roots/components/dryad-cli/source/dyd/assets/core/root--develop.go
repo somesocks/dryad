@@ -519,6 +519,8 @@ func rootDevelop_stage1(
 				Optional:        req.ExternalTargetSpec.FileOptional,
 				Unpack:          req.ExternalTargetSpec.FileUnpack,
 				ArchiveFormat:   req.ExternalTargetSpec.FileArchiveFormat,
+				Include:         req.ExternalTargetSpec.FileInclude,
+				Exclude:         req.ExternalTargetSpec.FileExclude,
 			})
 			if err != nil {
 				return err, nil
@@ -541,6 +543,8 @@ func rootDevelop_stage1(
 				DestinationInto: req.ExternalTargetSpec.HTTPDestinationInto,
 				Unpack:          req.ExternalTargetSpec.HTTPUnpack,
 				ArchiveFormat:   req.ExternalTargetSpec.HTTPArchiveFormat,
+				Include:         req.ExternalTargetSpec.HTTPInclude,
+				Exclude:         req.ExternalTargetSpec.HTTPExclude,
 				Fingerprint:     req.ExternalTargetSpec.HTTPFingerprint,
 			})
 			if err != nil {

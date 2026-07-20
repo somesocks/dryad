@@ -19,6 +19,8 @@ type rootRequirementHTTPTargetSpec struct {
 	Unpack          bool
 	HasUnpack       bool
 	ArchiveFormat   string
+	Include         []string
+	Exclude         []string
 	Fingerprint     string
 }
 
@@ -117,6 +119,34 @@ func rootRequirementHTTPTargetFromURL(linkURL *url.URL) (error, rootRequirementH
 	}
 	query.Del(RootRequirementFileFormatQueryKey)
 
+	includeRaw, hasInclude := query[RootRequirementFileIncludeQueryKey]
+	include := []string{}
+	if hasInclude {
+		if !unpack {
+			return fmt.Errorf("http requirement include requires unpack=true"), rootRequirementHTTPTargetSpec{}
+		}
+		var err error
+		include, err = rootRequirementFileArchivePatternsNormalize(includeRaw)
+		if err != nil {
+			return err, rootRequirementHTTPTargetSpec{}
+		}
+	}
+	query.Del(RootRequirementFileIncludeQueryKey)
+
+	excludeRaw, hasExclude := query[RootRequirementFileExcludeQueryKey]
+	exclude := []string{}
+	if hasExclude {
+		if !unpack {
+			return fmt.Errorf("http requirement exclude requires unpack=true"), rootRequirementHTTPTargetSpec{}
+		}
+		var err error
+		exclude, err = rootRequirementFileArchivePatternsNormalize(excludeRaw)
+		if err != nil {
+			return err, rootRequirementHTTPTargetSpec{}
+		}
+	}
+	query.Del(RootRequirementFileExcludeQueryKey)
+
 	fingerprintRaw, hasFingerprint := query[RootRequirementFileFingerprintQueryKey]
 	fingerprint := ""
 	if hasFingerprint {
@@ -145,6 +175,8 @@ func rootRequirementHTTPTargetFromURL(linkURL *url.URL) (error, rootRequirementH
 		Unpack:          unpack,
 		HasUnpack:       hasUnpack,
 		ArchiveFormat:   archiveFormat,
+		Include:         include,
+		Exclude:         exclude,
 		Fingerprint:     fingerprint,
 	}
 }
@@ -156,10 +188,16 @@ func rootRequirementHTTPValidateStoredTargetSpec(httpSpec rootRequirementHTTPTar
 	if httpSpec.ArchiveFormat != "" && !httpSpec.Unpack {
 		return fmt.Errorf("http requirement format requires unpack=true")
 	}
+	if len(httpSpec.Include) > 0 && !httpSpec.Unpack {
+		return fmt.Errorf("http requirement include requires unpack=true")
+	}
+	if len(httpSpec.Exclude) > 0 && !httpSpec.Unpack {
+		return fmt.Errorf("http requirement exclude requires unpack=true")
+	}
 	return nil
 }
 
-func rootRequirementHTTPTargetString(sourceURL string, destinationAs string, destinationInto string, unpack bool, archiveFormat string, fingerprint string) string {
+func rootRequirementHTTPTargetString(sourceURL string, destinationAs string, destinationInto string, unpack bool, archiveFormat string, include []string, exclude []string, fingerprint string) string {
 	linkURL, err := url.Parse(strings.TrimSpace(sourceURL))
 	if err != nil {
 		return sourceURL
@@ -185,6 +223,12 @@ func rootRequirementHTTPTargetString(sourceURL string, destinationAs string, des
 	}
 	if archiveFormat != "" {
 		query = append(query, RootRequirementFileFormatQueryKey+"="+escapeQueryValue(archiveFormat))
+	}
+	for _, pattern := range include {
+		query = append(query, RootRequirementFileIncludeQueryKey+"="+escapeQueryValue(pattern))
+	}
+	for _, pattern := range exclude {
+		query = append(query, RootRequirementFileExcludeQueryKey+"="+escapeQueryValue(pattern))
 	}
 	if len(query) > 0 {
 		linkURL.Fragment = strings.Join(query, "&")
@@ -221,11 +265,11 @@ func RootRequirementHTTPTargetNormalize(raw string) (error, string) {
 		return err, ""
 	}
 
-	return nil, rootRequirementHTTPTargetString(httpSpec.SourceURL, httpSpec.DestinationAs, httpSpec.DestinationInto, httpSpec.Unpack, httpSpec.ArchiveFormat, httpSpec.Fingerprint)
+	return nil, rootRequirementHTTPTargetString(httpSpec.SourceURL, httpSpec.DestinationAs, httpSpec.DestinationInto, httpSpec.Unpack, httpSpec.ArchiveFormat, httpSpec.Include, httpSpec.Exclude, httpSpec.Fingerprint)
 }
 
-func RootRequirementHTTPTargetString(sourceURL string, destinationAs string, destinationInto string, unpack bool, archiveFormat string, fingerprint string) string {
-	return rootRequirementHTTPTargetString(sourceURL, destinationAs, destinationInto, unpack, archiveFormat, fingerprint)
+func RootRequirementHTTPTargetString(sourceURL string, destinationAs string, destinationInto string, unpack bool, archiveFormat string, include []string, exclude []string, fingerprint string) string {
+	return rootRequirementHTTPTargetString(sourceURL, destinationAs, destinationInto, unpack, archiveFormat, include, exclude, fingerprint)
 }
 
 type RootRequirementHTTPLockTargetRequest struct {
@@ -239,6 +283,10 @@ type RootRequirementHTTPLockTargetRequest struct {
 	HasUnpack          bool
 	ArchiveFormat      string
 	HasArchiveFormat   bool
+	Include            []string
+	HasInclude         bool
+	Exclude            []string
+	HasExclude         bool
 	Fingerprint        string
 	HasFingerprint     bool
 }
@@ -296,6 +344,32 @@ func rootRequirementHTTPApplyLockOptions(httpSpec rootRequirementHTTPTargetSpec,
 	if httpSpec.ArchiveFormat != "" && !httpSpec.Unpack {
 		return fmt.Errorf("http requirement format requires unpack=true"), rootRequirementHTTPTargetSpec{}
 	}
+	if req.HasInclude {
+		include, err := rootRequirementFileArchivePatternsNormalize(req.Include)
+		if err != nil {
+			return err, rootRequirementHTTPTargetSpec{}
+		}
+		if len(httpSpec.Include) > 0 && !rootRequirementFileArchivePatternsEqual(httpSpec.Include, include) {
+			return fmt.Errorf("http requirement include specified both in target and --include"), rootRequirementHTTPTargetSpec{}
+		}
+		httpSpec.Include = include
+	}
+	if req.HasExclude {
+		exclude, err := rootRequirementFileArchivePatternsNormalize(req.Exclude)
+		if err != nil {
+			return err, rootRequirementHTTPTargetSpec{}
+		}
+		if len(httpSpec.Exclude) > 0 && !rootRequirementFileArchivePatternsEqual(httpSpec.Exclude, exclude) {
+			return fmt.Errorf("http requirement exclude specified both in target and --exclude"), rootRequirementHTTPTargetSpec{}
+		}
+		httpSpec.Exclude = exclude
+	}
+	if len(httpSpec.Include) > 0 && !httpSpec.Unpack {
+		return fmt.Errorf("http requirement include requires unpack=true"), rootRequirementHTTPTargetSpec{}
+	}
+	if len(httpSpec.Exclude) > 0 && !httpSpec.Unpack {
+		return fmt.Errorf("http requirement exclude requires unpack=true"), rootRequirementHTTPTargetSpec{}
+	}
 	if req.HasFingerprint {
 		if req.Fingerprint == "" {
 			return fmt.Errorf("http requirement fingerprint must not be empty"), rootRequirementHTTPTargetSpec{}
@@ -334,6 +408,8 @@ func RootRequirementHTTPLockTarget(ctx *task.ExecutionContext, req RootRequireme
 			DestinationInto: httpSpec.DestinationInto,
 			Unpack:          httpSpec.Unpack,
 			ArchiveFormat:   httpSpec.ArchiveFormat,
+			Include:         httpSpec.Include,
+			Exclude:         httpSpec.Exclude,
 		})
 		if err != nil {
 			return err, ""
@@ -344,7 +420,7 @@ func RootRequirementHTTPLockTarget(ctx *task.ExecutionContext, req RootRequireme
 		httpSpec.Fingerprint = stem.Fingerprint
 	}
 
-	return nil, rootRequirementHTTPTargetString(httpSpec.SourceURL, httpSpec.DestinationAs, httpSpec.DestinationInto, httpSpec.Unpack, httpSpec.ArchiveFormat, httpSpec.Fingerprint)
+	return nil, rootRequirementHTTPTargetString(httpSpec.SourceURL, httpSpec.DestinationAs, httpSpec.DestinationInto, httpSpec.Unpack, httpSpec.ArchiveFormat, httpSpec.Include, httpSpec.Exclude, httpSpec.Fingerprint)
 }
 
 type rootRequirementHTTPAuthCredential struct {
@@ -571,6 +647,8 @@ type RootRequirementHTTPBuildStemRequest struct {
 	DestinationInto string
 	Unpack          bool
 	ArchiveFormat   string
+	Include         []string
+	Exclude         []string
 	Fingerprint     string
 }
 
@@ -642,6 +720,8 @@ func rootRequirementHTTPDownloadBuildStem(ctx *task.ExecutionContext, req RootRe
 		DestinationInto: req.DestinationInto,
 		Unpack:          req.Unpack,
 		ArchiveFormat:   req.ArchiveFormat,
+		Include:         req.Include,
+		Exclude:         req.Exclude,
 	})
 	if err != nil {
 		return err, nil

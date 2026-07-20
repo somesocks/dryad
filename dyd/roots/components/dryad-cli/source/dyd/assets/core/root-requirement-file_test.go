@@ -50,6 +50,10 @@ func TestRootRequirementFileTargetNormalize(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal("file:../foo.tar.bz2?into=dyd/assets/vendor&unpack=true&format=tar.bz2", target)
 
+	err, target = RootRequirementFileTargetNormalize("file:../foo.tar?exclude=build&include=BUILD&unpack=true")
+	assert.Nil(err)
+	assert.Equal("file:../foo.tar?unpack=true&include=BUILD&exclude=build", target)
+
 	err, _ = RootRequirementFileTargetNormalize("file:/abs/foo.txt")
 	assert.NotNil(err)
 
@@ -79,6 +83,28 @@ func TestRootRequirementFileTargetNormalize(t *testing.T) {
 
 	err, _ = RootRequirementFileTargetNormalize("file:../foo.txt?unpack=true&format=rar")
 	assert.NotNil(err)
+
+	err, _ = RootRequirementFileTargetNormalize("file:../foo.tar?include=BUILD")
+	assert.NotNil(err)
+
+	err, _ = RootRequirementFileTargetNormalize("file:../foo.tar?unpack=true&exclude=[")
+	assert.NotNil(err)
+}
+
+func TestRootRequirementFileTargetWithOptions(t *testing.T) {
+	assert := assert.New(t)
+
+	err, target := RootRequirementFileTargetWithOptions(RootRequirementFileTargetOptionsRequest{
+		Target:     "file:../pkg.tar",
+		Unpack:     true,
+		HasUnpack:  true,
+		Include:    []string{"BUILD"},
+		HasInclude: true,
+		Exclude:    []string{"build"},
+		HasExclude: true,
+	})
+	assert.Nil(err)
+	assert.Equal("file:../pkg.tar?unpack=true&include=BUILD&exclude=build", target)
 }
 
 func TestRootRequirementFileBuildStem_DirectoryHonorsIgnoreAndSymlinks(t *testing.T) {
@@ -259,6 +285,60 @@ func TestRootRequirementFileBuildStem_UnpackIntoUsesArchiveName(t *testing.T) {
 	assert.Equal("packed", readTrimmedFileForTest(t, filepath.Join(stem.BasePath, "dyd", "assets", "vendor", "pkg", "contents", "value.txt")))
 }
 
+func TestRootRequirementFileBuildStem_UnpackTarFiltersCaseCollidingPaths(t *testing.T) {
+	assert := assert.New(t)
+	gardenPath := t.TempDir()
+	makeWritableForCleanupForTest(t, gardenPath)
+	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "type"), "garden")
+	archivePath := filepath.Join(t.TempDir(), "pkg.tar")
+	archiveFile, err := stdos.Create(archivePath)
+	assert.Nil(err)
+	tarWriter := tar.NewWriter(archiveFile)
+	assert.Nil(tarWriter.WriteHeader(&tar.Header{Name: "BUILD", Mode: 0o644, Size: int64(len("metadata"))}))
+	_, err = tarWriter.Write([]byte("metadata"))
+	assert.Nil(err)
+	assert.Nil(tarWriter.WriteHeader(&tar.Header{Name: "build", Typeflag: tar.TypeDir, Mode: 0o755}))
+	assert.Nil(tarWriter.WriteHeader(&tar.Header{Name: "build/value.txt", Mode: 0o644, Size: int64(len("source"))}))
+	_, err = tarWriter.Write([]byte("source"))
+	assert.Nil(err)
+	assert.Nil(tarWriter.Close())
+	assert.Nil(archiveFile.Close())
+
+	err, metadataStem := RootRequirementFileBuildStem(task.SERIAL_CONTEXT, RootRequirementFileBuildStemRequest{
+		Garden:     &SafeGardenReference{BasePath: gardenPath},
+		SourcePath: archivePath,
+		Unpack:     true,
+		Include:    []string{"BUILD"},
+	})
+	assert.Nil(err)
+	assert.NotNil(metadataStem)
+	assert.Equal("metadata", readTrimmedFileForTest(t, filepath.Join(metadataStem.BasePath, "dyd", "assets", "pkg", "BUILD")))
+	assert.NoDirExists(filepath.Join(metadataStem.BasePath, "dyd", "assets", "pkg", "build"))
+
+	err, sourceStem := RootRequirementFileBuildStem(task.SERIAL_CONTEXT, RootRequirementFileBuildStemRequest{
+		Garden:     &SafeGardenReference{BasePath: gardenPath},
+		SourcePath: archivePath,
+		Unpack:     true,
+		Include:    []string{"build"},
+	})
+	assert.Nil(err)
+	assert.NotNil(sourceStem)
+	assert.Equal("source", readTrimmedFileForTest(t, filepath.Join(sourceStem.BasePath, "dyd", "assets", "pkg", "build", "value.txt")))
+	assert.NoFileExists(filepath.Join(sourceStem.BasePath, "dyd", "assets", "pkg", "BUILD"))
+
+	err, excludedStem := RootRequirementFileBuildStem(task.SERIAL_CONTEXT, RootRequirementFileBuildStemRequest{
+		Garden:     &SafeGardenReference{BasePath: gardenPath},
+		SourcePath: archivePath,
+		Unpack:     true,
+		Include:    []string{"BUILD", "build"},
+		Exclude:    []string{"build"},
+	})
+	assert.Nil(err)
+	assert.NotNil(excludedStem)
+	assert.Equal("metadata", readTrimmedFileForTest(t, filepath.Join(excludedStem.BasePath, "dyd", "assets", "pkg", "BUILD")))
+	assert.NoDirExists(filepath.Join(excludedStem.BasePath, "dyd", "assets", "pkg", "build"))
+}
+
 func TestRootRequirementFileBuildStem_UnpackZipIntoUsesArchiveName(t *testing.T) {
 	assert := assert.New(t)
 
@@ -286,6 +366,38 @@ func TestRootRequirementFileBuildStem_UnpackZipIntoUsesArchiveName(t *testing.T)
 	assert.Nil(err)
 	assert.NotNil(stem)
 	assert.Equal("packed", readTrimmedFileForTest(t, filepath.Join(stem.BasePath, "dyd", "assets", "vendor", "pkg", "contents", "value.txt")))
+}
+
+func TestRootRequirementFileBuildStem_UnpackZipFiltersDirectoryPrefix(t *testing.T) {
+	assert := assert.New(t)
+	gardenPath := t.TempDir()
+	makeWritableForCleanupForTest(t, gardenPath)
+	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "type"), "garden")
+	archivePath := filepath.Join(t.TempDir(), "pkg.zip")
+	archiveFile, err := stdos.Create(archivePath)
+	assert.Nil(err)
+	zipWriter := zip.NewWriter(archiveFile)
+	entry, err := zipWriter.Create("BUILD")
+	assert.Nil(err)
+	_, err = entry.Write([]byte("metadata"))
+	assert.Nil(err)
+	entry, err = zipWriter.Create("build/value.txt")
+	assert.Nil(err)
+	_, err = entry.Write([]byte("zip-source"))
+	assert.Nil(err)
+	assert.Nil(zipWriter.Close())
+	assert.Nil(archiveFile.Close())
+
+	err, stem := RootRequirementFileBuildStem(task.SERIAL_CONTEXT, RootRequirementFileBuildStemRequest{
+		Garden:     &SafeGardenReference{BasePath: gardenPath},
+		SourcePath: archivePath,
+		Unpack:     true,
+		Include:    []string{"build"},
+	})
+	assert.Nil(err)
+	assert.NotNil(stem)
+	assert.Equal("zip-source", readTrimmedFileForTest(t, filepath.Join(stem.BasePath, "dyd", "assets", "pkg", "build", "value.txt")))
+	assert.NoFileExists(filepath.Join(stem.BasePath, "dyd", "assets", "pkg", "BUILD"))
 }
 
 func TestRootRequirementFileBuildStem_UnpackTarBz2IntoUsesArchiveName(t *testing.T) {

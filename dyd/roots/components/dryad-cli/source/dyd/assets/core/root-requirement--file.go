@@ -15,6 +15,7 @@ import (
 	"dryad/internal/os"
 	"dryad/task"
 
+	"github.com/bmatcuk/doublestar/v4"
 	"github.com/ulikunitz/xz"
 )
 
@@ -27,6 +28,8 @@ const (
 	RootRequirementFileOptionalQueryKey    = "optional"
 	RootRequirementFileUnpackQueryKey      = "unpack"
 	RootRequirementFileFormatQueryKey      = "format"
+	RootRequirementFileIncludeQueryKey     = "include"
+	RootRequirementFileExcludeQueryKey     = "exclude"
 
 	RootRequirementFileArchiveFormatTar    = "tar"
 	RootRequirementFileArchiveFormatTarGz  = "tar.gz"
@@ -41,7 +44,10 @@ type rootRequirementFileTargetSpec struct {
 	DestinationInto string
 	Optional        bool
 	Unpack          bool
+	HasUnpack       bool
 	ArchiveFormat   string
+	Include         []string
+	Exclude         []string
 	Fingerprint     string
 }
 
@@ -96,6 +102,33 @@ func rootRequirementFileArchiveFormat(srcPath string, archiveFormat string) (str
 		return rootRequirementFileArchiveFormatNormalize(archiveFormat)
 	}
 	return rootRequirementFileArchiveFormatFromPath(srcPath)
+}
+
+func rootRequirementFileArchivePatternsNormalize(raw []string) ([]string, error) {
+	patterns := make([]string, 0, len(raw))
+	for _, pattern := range raw {
+		pattern = strings.TrimSpace(pattern)
+		if pattern == "" {
+			return nil, fmt.Errorf("archive filter pattern must not be empty")
+		}
+		if !doublestar.ValidatePattern(pattern) {
+			return nil, fmt.Errorf("invalid archive filter pattern: %s", pattern)
+		}
+		patterns = append(patterns, pattern)
+	}
+	return patterns, nil
+}
+
+func rootRequirementFileArchivePatternsEqual(a []string, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func rootRequirementFilePlacementDefaultInto(destinationInto string) string {
@@ -202,9 +235,12 @@ func rootRequirementFileTargetFromURL(linkURL *url.URL) (error, rootRequirementF
 	query.Del(RootRequirementFileOptionalQueryKey)
 
 	unpack := false
-	unpackRaw := query.Get(RootRequirementFileUnpackQueryKey)
-	if unpackRaw != "" {
-		switch unpackRaw {
+	unpackRaw, hasUnpack := query[RootRequirementFileUnpackQueryKey]
+	if hasUnpack {
+		if len(unpackRaw) != 1 || unpackRaw[0] == "" {
+			return fmt.Errorf("file requirement unpack must be true or false"), rootRequirementFileTargetSpec{}
+		}
+		switch unpackRaw[0] {
 		case "true":
 			unpack = true
 		case "false":
@@ -232,6 +268,34 @@ func rootRequirementFileTargetFromURL(linkURL *url.URL) (error, rootRequirementF
 	}
 	query.Del(RootRequirementFileFormatQueryKey)
 
+	includeRaw, hasInclude := query[RootRequirementFileIncludeQueryKey]
+	include := []string{}
+	if hasInclude {
+		if !unpack {
+			return fmt.Errorf("file requirement include requires unpack=true"), rootRequirementFileTargetSpec{}
+		}
+		var err error
+		include, err = rootRequirementFileArchivePatternsNormalize(includeRaw)
+		if err != nil {
+			return err, rootRequirementFileTargetSpec{}
+		}
+	}
+	query.Del(RootRequirementFileIncludeQueryKey)
+
+	excludeRaw, hasExclude := query[RootRequirementFileExcludeQueryKey]
+	exclude := []string{}
+	if hasExclude {
+		if !unpack {
+			return fmt.Errorf("file requirement exclude requires unpack=true"), rootRequirementFileTargetSpec{}
+		}
+		var err error
+		exclude, err = rootRequirementFileArchivePatternsNormalize(excludeRaw)
+		if err != nil {
+			return err, rootRequirementFileTargetSpec{}
+		}
+	}
+	query.Del(RootRequirementFileExcludeQueryKey)
+
 	fingerprint := query.Get(RootRequirementFileFingerprintQueryKey)
 	if fingerprint != "" {
 		err, _, _ := fingerprintParse(fingerprint)
@@ -251,12 +315,15 @@ func rootRequirementFileTargetFromURL(linkURL *url.URL) (error, rootRequirementF
 		DestinationInto: destinationInto,
 		Optional:        optional,
 		Unpack:          unpack,
+		HasUnpack:       hasUnpack,
 		ArchiveFormat:   archiveFormat,
+		Include:         include,
+		Exclude:         exclude,
 		Fingerprint:     fingerprint,
 	}
 }
 
-func rootRequirementFileTargetString(sourcePath string, destinationAs string, destinationInto string, optional bool, unpack bool, archiveFormat string, fingerprint string) string {
+func rootRequirementFileTargetString(sourcePath string, destinationAs string, destinationInto string, optional bool, unpack bool, archiveFormat string, include []string, exclude []string, fingerprint string) string {
 	linkURL := url.URL{
 		Scheme: "file",
 		Opaque: filepath.ToSlash(filepath.Clean(sourcePath)),
@@ -282,6 +349,12 @@ func rootRequirementFileTargetString(sourcePath string, destinationAs string, de
 	}
 	if archiveFormat != "" {
 		query = append(query, RootRequirementFileFormatQueryKey+"="+escapeQueryValue(archiveFormat))
+	}
+	for _, pattern := range include {
+		query = append(query, RootRequirementFileIncludeQueryKey+"="+escapeQueryValue(pattern))
+	}
+	for _, pattern := range exclude {
+		query = append(query, RootRequirementFileExcludeQueryKey+"="+escapeQueryValue(pattern))
 	}
 	linkURL.RawQuery = strings.Join(query, "&")
 	return linkURL.String()
@@ -313,11 +386,126 @@ func RootRequirementFileTargetNormalize(raw string) (error, string) {
 		return fmt.Errorf("file requirement target must use file scheme: %s", raw), ""
 	}
 
-	return nil, rootRequirementFileTargetString(fileSpec.SourcePath, fileSpec.DestinationAs, fileSpec.DestinationInto, fileSpec.Optional, fileSpec.Unpack, fileSpec.ArchiveFormat, fileSpec.Fingerprint)
+	return nil, rootRequirementFileTargetString(fileSpec.SourcePath, fileSpec.DestinationAs, fileSpec.DestinationInto, fileSpec.Optional, fileSpec.Unpack, fileSpec.ArchiveFormat, fileSpec.Include, fileSpec.Exclude, fileSpec.Fingerprint)
 }
 
-func RootRequirementFileTargetString(sourcePath string, destinationAs string, destinationInto string, optional bool, unpack bool, archiveFormat string, fingerprint string) string {
-	return rootRequirementFileTargetString(sourcePath, destinationAs, destinationInto, optional, unpack, archiveFormat, fingerprint)
+type RootRequirementFileTargetOptionsRequest struct {
+	Target             string
+	DestinationAs      string
+	HasDestinationAs   bool
+	DestinationInto    string
+	HasDestinationInto bool
+	Unpack             bool
+	HasUnpack          bool
+	ArchiveFormat      string
+	HasArchiveFormat   bool
+	Include            []string
+	HasInclude         bool
+	Exclude            []string
+	HasExclude         bool
+	Fingerprint        string
+	HasFingerprint     bool
+}
+
+func rootRequirementFileApplyTargetOptions(fileSpec rootRequirementFileTargetSpec, req RootRequirementFileTargetOptionsRequest) (error, rootRequirementFileTargetSpec) {
+	if req.HasDestinationAs {
+		destinationAs, err := rootRequirementFilePlacementNormalize(req.DestinationAs, true)
+		if err != nil {
+			return err, rootRequirementFileTargetSpec{}
+		}
+		if fileSpec.DestinationAs != "" && fileSpec.DestinationAs != destinationAs {
+			return fmt.Errorf("file requirement as specified both in target and --as"), rootRequirementFileTargetSpec{}
+		}
+		fileSpec.DestinationAs = destinationAs
+	}
+	if req.HasDestinationInto {
+		destinationInto, err := rootRequirementFilePlacementNormalize(req.DestinationInto, false)
+		if err != nil {
+			return err, rootRequirementFileTargetSpec{}
+		}
+		if fileSpec.DestinationInto != "" && fileSpec.DestinationInto != destinationInto {
+			return fmt.Errorf("file requirement into specified both in target and --into"), rootRequirementFileTargetSpec{}
+		}
+		fileSpec.DestinationInto = destinationInto
+	}
+	if fileSpec.DestinationAs != "" && fileSpec.DestinationInto != "" {
+		return fmt.Errorf("file requirement cannot specify both as and into"), rootRequirementFileTargetSpec{}
+	}
+	if req.HasUnpack {
+		if fileSpec.HasUnpack && fileSpec.Unpack != req.Unpack {
+			return fmt.Errorf("file requirement unpack specified both in target and --unpack with different values"), rootRequirementFileTargetSpec{}
+		}
+		fileSpec.Unpack = req.Unpack
+		fileSpec.HasUnpack = true
+	}
+	if req.HasArchiveFormat {
+		archiveFormat, err := rootRequirementFileArchiveFormatNormalize(req.ArchiveFormat)
+		if err != nil {
+			return err, rootRequirementFileTargetSpec{}
+		}
+		if fileSpec.ArchiveFormat != "" && fileSpec.ArchiveFormat != archiveFormat {
+			return fmt.Errorf("file requirement format specified both in target and --format"), rootRequirementFileTargetSpec{}
+		}
+		fileSpec.ArchiveFormat = archiveFormat
+	}
+	if req.HasInclude {
+		include, err := rootRequirementFileArchivePatternsNormalize(req.Include)
+		if err != nil {
+			return err, rootRequirementFileTargetSpec{}
+		}
+		if len(fileSpec.Include) > 0 && !rootRequirementFileArchivePatternsEqual(fileSpec.Include, include) {
+			return fmt.Errorf("file requirement include specified both in target and --include"), rootRequirementFileTargetSpec{}
+		}
+		fileSpec.Include = include
+	}
+	if req.HasExclude {
+		exclude, err := rootRequirementFileArchivePatternsNormalize(req.Exclude)
+		if err != nil {
+			return err, rootRequirementFileTargetSpec{}
+		}
+		if len(fileSpec.Exclude) > 0 && !rootRequirementFileArchivePatternsEqual(fileSpec.Exclude, exclude) {
+			return fmt.Errorf("file requirement exclude specified both in target and --exclude"), rootRequirementFileTargetSpec{}
+		}
+		fileSpec.Exclude = exclude
+	}
+	if fileSpec.ArchiveFormat != "" && !fileSpec.Unpack {
+		return fmt.Errorf("file requirement format requires unpack=true"), rootRequirementFileTargetSpec{}
+	}
+	if len(fileSpec.Include) > 0 && !fileSpec.Unpack {
+		return fmt.Errorf("file requirement include requires unpack=true"), rootRequirementFileTargetSpec{}
+	}
+	if len(fileSpec.Exclude) > 0 && !fileSpec.Unpack {
+		return fmt.Errorf("file requirement exclude requires unpack=true"), rootRequirementFileTargetSpec{}
+	}
+	if req.HasFingerprint {
+		if err, _, _ := fingerprintParse(req.Fingerprint); err != nil {
+			return err, rootRequirementFileTargetSpec{}
+		}
+		if fileSpec.Fingerprint != "" && fileSpec.Fingerprint != req.Fingerprint {
+			return fmt.Errorf("file requirement fingerprint specified both in target and --fingerprint"), rootRequirementFileTargetSpec{}
+		}
+		fileSpec.Fingerprint = req.Fingerprint
+	}
+	return nil, fileSpec
+}
+
+func RootRequirementFileTargetWithOptions(req RootRequirementFileTargetOptionsRequest) (error, string) {
+	err, fileSpec, isFile := rootRequirementParseFileTarget(req.Target)
+	if err != nil {
+		return err, ""
+	}
+	if !isFile {
+		return fmt.Errorf("file requirement target must use file scheme: %s", req.Target), ""
+	}
+	err, fileSpec = rootRequirementFileApplyTargetOptions(fileSpec, req)
+	if err != nil {
+		return err, ""
+	}
+	return nil, rootRequirementFileTargetString(fileSpec.SourcePath, fileSpec.DestinationAs, fileSpec.DestinationInto, fileSpec.Optional, fileSpec.Unpack, fileSpec.ArchiveFormat, fileSpec.Include, fileSpec.Exclude, fileSpec.Fingerprint)
+}
+
+func RootRequirementFileTargetString(sourcePath string, destinationAs string, destinationInto string, optional bool, unpack bool, archiveFormat string, include []string, exclude []string, fingerprint string) string {
+	return rootRequirementFileTargetString(sourcePath, destinationAs, destinationInto, optional, unpack, archiveFormat, include, exclude, fingerprint)
 }
 
 func rootRequirementFileIsWithin(basePath string, path string) (error, bool) {
@@ -585,7 +773,64 @@ func rootRequirementFileValidateArchiveSymlink(basePath string, entryPath string
 	return nil
 }
 
-func rootRequirementFileExtractZip(srcPath string, destPath string) error {
+type rootRequirementFileArchiveFilter struct {
+	include []string
+	exclude []string
+}
+
+func rootRequirementFileArchiveFilterPatterns(patterns []string) []string {
+	res := make([]string, 0, len(patterns)*2)
+	seen := map[string]struct{}{}
+	for _, pattern := range patterns {
+		base := strings.TrimRight(pattern, "/")
+		for _, expanded := range []string{base, base + "/**"} {
+			if _, ok := seen[expanded]; ok {
+				continue
+			}
+			seen[expanded] = struct{}{}
+			res = append(res, expanded)
+		}
+	}
+	return res
+}
+
+func rootRequirementFileArchiveFilterNew(include []string, exclude []string) rootRequirementFileArchiveFilter {
+	return rootRequirementFileArchiveFilter{
+		include: rootRequirementFileArchiveFilterPatterns(include),
+		exclude: rootRequirementFileArchiveFilterPatterns(exclude),
+	}
+}
+
+func rootRequirementFileArchiveFilterMatchesAny(patterns []string, path string) (bool, error) {
+	for _, pattern := range patterns {
+		matches, err := doublestar.Match(pattern, path)
+		if err != nil {
+			return false, err
+		}
+		if matches {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (filter rootRequirementFileArchiveFilter) Match(name string) (bool, error) {
+	path := filepath.ToSlash(filepath.Clean(name))
+	path = strings.TrimPrefix(path, "./")
+	if len(filter.include) > 0 {
+		matches, err := rootRequirementFileArchiveFilterMatchesAny(filter.include, path)
+		if err != nil || !matches {
+			return false, err
+		}
+	}
+	matches, err := rootRequirementFileArchiveFilterMatchesAny(filter.exclude, path)
+	if err != nil {
+		return false, err
+	}
+	return !matches, nil
+}
+
+func rootRequirementFileExtractZip(srcPath string, destPath string, filter rootRequirementFileArchiveFilter) error {
 	src, err := os.Open(srcPath)
 	if err != nil {
 		return err
@@ -605,6 +850,13 @@ func rootRequirementFileExtractZip(srcPath string, destPath string) error {
 		entryPath, err := rootRequirementFileSafeArchivePath(destPath, entry.Name)
 		if err != nil {
 			return err
+		}
+		matches, err := filter.Match(entry.Name)
+		if err != nil {
+			return err
+		}
+		if !matches {
+			continue
 		}
 
 		mode := entry.FileInfo().Mode()
@@ -676,7 +928,7 @@ func rootRequirementFileExtractZip(srcPath string, destPath string) error {
 	return nil
 }
 
-func rootRequirementFileExtractTar(srcPath string, destPath string, archiveFormat string) error {
+func rootRequirementFileExtractTar(srcPath string, destPath string, archiveFormat string, filter rootRequirementFileArchiveFilter) error {
 	reader, err := rootRequirementFileArchiveReader(srcPath, archiveFormat)
 	if err != nil {
 		return err
@@ -701,6 +953,13 @@ func rootRequirementFileExtractTar(srcPath string, destPath string, archiveForma
 		entryPath, err := rootRequirementFileSafeArchivePath(destPath, header.Name)
 		if err != nil {
 			return err
+		}
+		matches, err := filter.Match(header.Name)
+		if err != nil {
+			return err
+		}
+		if !matches {
+			continue
 		}
 
 		switch header.Typeflag {
@@ -741,15 +1000,15 @@ func rootRequirementFileExtractTar(srcPath string, destPath string, archiveForma
 	return nil
 }
 
-func rootRequirementFileExtractArchive(srcPath string, destPath string, archiveFormat string) error {
+func rootRequirementFileExtractArchive(srcPath string, destPath string, archiveFormat string, include []string, exclude []string) error {
 	archiveFormat, err := rootRequirementFileArchiveFormat(srcPath, archiveFormat)
 	if err != nil {
 		return err
 	}
 	if archiveFormat == RootRequirementFileArchiveFormatZip {
-		return rootRequirementFileExtractZip(srcPath, destPath)
+		return rootRequirementFileExtractZip(srcPath, destPath, rootRequirementFileArchiveFilterNew(include, exclude))
 	}
-	return rootRequirementFileExtractTar(srcPath, destPath, archiveFormat)
+	return rootRequirementFileExtractTar(srcPath, destPath, archiveFormat, rootRequirementFileArchiveFilterNew(include, exclude))
 }
 
 type RootRequirementFileBuildStemRequest struct {
@@ -760,6 +1019,8 @@ type RootRequirementFileBuildStemRequest struct {
 	Optional        bool
 	Unpack          bool
 	ArchiveFormat   string
+	Include         []string
+	Exclude         []string
 }
 
 func RootRequirementFileBuildStem(ctx *task.ExecutionContext, req RootRequirementFileBuildStemRequest) (error, *SafeHeapStemReference) {
@@ -810,7 +1071,7 @@ func RootRequirementFileBuildStem(ctx *task.ExecutionContext, req RootRequiremen
 			return err, nil
 		}
 		defer os.RemoveAll(extractPath)
-		if err := rootRequirementFileExtractArchive(req.SourcePath, extractPath, req.ArchiveFormat); err != nil {
+		if err := rootRequirementFileExtractArchive(req.SourcePath, extractPath, req.ArchiveFormat, req.Include, req.Exclude); err != nil {
 			if req.Optional && os.IsNotExist(err) {
 				missingOptionalSource = true
 			} else {

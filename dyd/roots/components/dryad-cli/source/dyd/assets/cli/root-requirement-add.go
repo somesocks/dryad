@@ -76,6 +76,10 @@ var rootRequirementAddCommand = func() clib.Command {
 		HTTPHasUnpack        bool
 		HTTPArchiveFormat    string
 		HTTPHasArchiveFormat bool
+		HTTPInclude          []string
+		HTTPHasInclude       bool
+		HTTPExclude          []string
+		HTTPHasExclude       bool
 		HTTPFingerprint      string
 		HTTPHasFingerprint   bool
 		Parallel             int
@@ -145,13 +149,23 @@ var rootRequirementAddCommand = func() clib.Command {
 		if httpHasArchiveFormat {
 			httpArchiveFormat = options["format"].(string)
 		}
+		httpInclude := []string{}
+		httpHasInclude := options["include"] != nil
+		if httpHasInclude {
+			httpInclude = options["include"].([]string)
+		}
+		httpExclude := []string{}
+		httpHasExclude := options["exclude"] != nil
+		if httpHasExclude {
+			httpExclude = options["exclude"].([]string)
+		}
 		httpFingerprint := ""
 		httpHasFingerprint := options["fingerprint"] != nil
 		if httpHasFingerprint {
 			httpFingerprint = options["fingerprint"].(string)
 		}
-		if depScheme != "http" && (httpHasAs || httpHasInto || httpHasUnpack || httpHasArchiveFormat || httpHasFingerprint) {
-			return fmt.Errorf("--as, --into, --unpack, --format, and --fingerprint are only supported for http requirements"), ParsedArgs{}
+		if depScheme != "http" && depScheme != "file" && (httpHasAs || httpHasInto || httpHasUnpack || httpHasArchiveFormat || httpHasInclude || httpHasExclude || httpHasFingerprint) {
+			return fmt.Errorf("--as, --into, --unpack, --format, --include, --exclude, and --fingerprint are only supported for file and http requirements"), ParsedArgs{}
 		}
 
 		return nil, ParsedArgs{
@@ -169,6 +183,10 @@ var rootRequirementAddCommand = func() clib.Command {
 			HTTPHasUnpack:        httpHasUnpack,
 			HTTPArchiveFormat:    httpArchiveFormat,
 			HTTPHasArchiveFormat: httpHasArchiveFormat,
+			HTTPInclude:          httpInclude,
+			HTTPHasInclude:       httpHasInclude,
+			HTTPExclude:          httpExclude,
+			HTTPHasExclude:       httpHasExclude,
 			HTTPFingerprint:      httpFingerprint,
 			HTTPHasFingerprint:   httpHasFingerprint,
 			Parallel:             parallel,
@@ -210,11 +228,31 @@ var rootRequirementAddCommand = func() clib.Command {
 				},
 			)
 		} else if args.DepScheme == "file" {
+			err, fileTarget := dryad.RootRequirementFileTargetWithOptions(dryad.RootRequirementFileTargetOptionsRequest{
+				Target:             args.DepPath,
+				DestinationAs:      args.HTTPDestinationAs,
+				HasDestinationAs:   args.HTTPHasAs,
+				DestinationInto:    args.HTTPDestinationInto,
+				HasDestinationInto: args.HTTPHasInto,
+				Unpack:             args.HTTPUnpack,
+				HasUnpack:          args.HTTPHasUnpack,
+				ArchiveFormat:      args.HTTPArchiveFormat,
+				HasArchiveFormat:   args.HTTPHasArchiveFormat,
+				Include:            args.HTTPInclude,
+				HasInclude:         args.HTTPHasInclude,
+				Exclude:            args.HTTPExclude,
+				HasExclude:         args.HTTPHasExclude,
+				Fingerprint:        args.HTTPFingerprint,
+				HasFingerprint:     args.HTTPHasFingerprint,
+			})
+			if err != nil {
+				return err, nil
+			}
 			err, _ = reqs.AddFile(
 				ctx,
 				dryad.RootRequirementsAddFileRequest{
 					Alias:  args.Alias,
-					Target: args.DepPath,
+					Target: fileTarget,
 				},
 			)
 		} else if args.DepScheme == "http" {
@@ -229,6 +267,10 @@ var rootRequirementAddCommand = func() clib.Command {
 				HasUnpack:          args.HTTPHasUnpack,
 				ArchiveFormat:      args.HTTPArchiveFormat,
 				HasArchiveFormat:   args.HTTPHasArchiveFormat,
+				Include:            args.HTTPInclude,
+				HasInclude:         args.HTTPHasInclude,
+				Exclude:            args.HTTPExclude,
+				HasExclude:         args.HTTPHasExclude,
 				Fingerprint:        args.HTTPFingerprint,
 				HasFingerprint:     args.HTTPHasFingerprint,
 			})
@@ -294,11 +336,13 @@ var rootRequirementAddCommand = func() clib.Command {
 		).
 		WithArg(clib.NewArg("alias", "the alias to add the root under. if not specified, this defaults to the basename of the linked root").AsOptional()).
 		WithOption(clib.NewOption("variant", "select the root variant to modify (using filesystem variant notation: dimension1=option1,option2+dimension2=option3). required when the root resolves to multiple variants").WithType(clib.OptionTypeString)).
-		WithOption(clib.NewOption("as", "for http requirements, place the downloaded asset at this exact package path").WithType(clib.OptionTypeString)).
-		WithOption(clib.NewOption("into", "for http requirements, place the downloaded asset under this package directory").WithType(clib.OptionTypeString)).
-		WithOption(clib.NewOption("unpack", "for http requirements, unpack the downloaded tar, tar.gz, tar.bz2, tar.xz, or zip archive before placing it").WithType(clib.OptionTypeBool)).
-		WithOption(clib.NewOption("format", "for http requirements with --unpack, override archive format detection (tar, tar.gz, tar.bz2, tar.xz, or zip)").WithType(clib.OptionTypeString)).
-		WithOption(clib.NewOption("fingerprint", "for http requirements, use this existing stem fingerprint instead of fetching and locking the target").WithType(clib.OptionTypeString)).
+		WithOption(clib.NewOption("as", "for file and http requirements, place the source at this exact package path").WithType(clib.OptionTypeString)).
+		WithOption(clib.NewOption("into", "for file and http requirements, place the source under this package directory").WithType(clib.OptionTypeString)).
+		WithOption(clib.NewOption("unpack", "for file and http requirements, unpack a tar, tar.gz, tar.bz2, tar.xz, or zip archive before placing it").WithType(clib.OptionTypeBool)).
+		WithOption(clib.NewOption("format", "for file and http requirements with --unpack, override archive format detection (tar, tar.gz, tar.bz2, tar.xz, or zip)").WithType(clib.OptionTypeString)).
+		WithOption(clib.NewOption("include", "for file and http requirements with --unpack, include archive paths matching this doublestar pattern. repeatable").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("exclude", "for file and http requirements with --unpack, exclude archive paths matching this doublestar pattern. repeatable").WithType(clib.OptionTypeMultiString)).
+		WithOption(clib.NewOption("fingerprint", "for file and http requirements, use this existing stem fingerprint instead of fetching and locking an http target").WithType(clib.OptionTypeString)).
 		WithAction(action)
 
 	command = ParallelCommand(command)

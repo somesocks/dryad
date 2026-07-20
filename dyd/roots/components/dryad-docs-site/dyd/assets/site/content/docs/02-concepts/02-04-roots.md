@@ -83,6 +83,7 @@ Supported HTTP metadata parameters are:
 - `into=<path>` places the downloaded source under a package directory.
 - `unpack=true` extracts a tar, tar.gz, tar.bz2, tar.xz, or zip archive. With `into=...`, the extracted archive is placed under a directory named after the archive.
 - `format=<format>` overrides archive format detection for unpacking. This is only valid with `unpack=true`. Supported values are `tar`, `tar.gz`, `tgz`, `tar.bz2`, `tbz2`, `tbz`, `tar.xz`, `txz`, and `zip`.
+- `include=<glob>` and `exclude=<glob>` select archive paths to unpack. These repeatable doublestar patterns are only valid with `unpack=true`; includes are unioned, excludes take precedence, and a matching directory also matches its descendants.
 - `fingerprint=<fingerprint>` pins the expected dependency package fingerprint.
 
 If neither `as` nor `into` is specified, HTTP requirements default to `dyd/assets`.
@@ -102,6 +103,8 @@ https://example.com/data.txt?download=1#as=dyd/assets/data.txt&fingerprint=v2-..
 ```
 
 Builds resolve HTTP requirements cache-first by fingerprint. If the dependency package is already cached, Dryad does not contact the remote server or read auth credentials.
+
+The same archive placement and unpack metadata is supported by `file:` requirements. `dryad root requirement add` also accepts `--include` and `--exclude` for file and HTTP archives. This allows one archive to be added under separate aliases with filters, for example to keep `BUILD` and `build/**` in separate dependency stems on case-insensitive filesystems.
 
 ## Build flow
 
