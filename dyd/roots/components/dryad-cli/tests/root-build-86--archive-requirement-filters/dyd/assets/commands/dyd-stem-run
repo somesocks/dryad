@@ -26,6 +26,15 @@ assert_path_not_exists() {
 	fi
 }
 
+assert_command_fails() {
+	description="$1"
+	shift
+	if "$@" > /dev/null 2>&1; then
+		echo "[ERROR] Fail: $description unexpectedly succeeded" 1>&2
+		return 1
+	fi
+}
+
 stop_server() {
 	if [ -n "$SERVER_PID" ]; then
 		kill "$SERVER_PID" 2>/dev/null || true
@@ -123,6 +132,21 @@ test_file_requirement() {
 	assert_file_content_equals dyd/sprouts/root-file/dyd/dependencies/stem/dyd/assets/summary.txt 'metadata|source'
 }
 
+test_file_requirement_option_conflicts() {
+	create_consumer_root root-file-conflicts
+	failed=0
+	(
+		failed=0
+		cd dyd/roots/root-file-conflicts
+		assert_command_fails 'unpack=false conflicts with --unpack=true' dryad root requirement add 'file:../../../../external/archive.tar?unpack=false' unpack-conflict --unpack=true --log-level=info || failed=1
+		assert_command_fails 'into conflicts with --as' dryad root requirement add 'file:../../../../external/archive.tar?into=dyd/assets' placement-conflict --as=dyd/assets/archive.tar --log-level=info || failed=1
+		exit "$failed"
+	) || failed=1
+	assert_path_not_exists dyd/roots/root-file-conflicts/dyd/requirements/unpack-conflict || failed=1
+	assert_path_not_exists dyd/roots/root-file-conflicts/dyd/requirements/placement-conflict || failed=1
+	return "$failed"
+}
+
 test_http_requirement() {
 	create_consumer_root root-http
 	port=$(cat "$WORK_DIR/server.port")
@@ -143,4 +167,5 @@ trap teardown EXIT
 setup
 start_server
 test_file_requirement
+test_file_requirement_option_conflicts
 test_http_requirement

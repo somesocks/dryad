@@ -27,11 +27,8 @@ func rootRequirementAdd_parseDependencyTarget(raw string) (error, string, string
 		return nil, "env", envTarget, ""
 	}
 	if targetURL.Scheme == "file" {
-		err, fileTarget := dryad.RootRequirementFileTargetNormalize(raw)
-		if err != nil {
-			return err, "", "", ""
-		}
-		return nil, "file", fileTarget, ""
+		// Preserve explicit target metadata until CLI options have been merged.
+		return nil, "file", strings.TrimSpace(raw), ""
 	}
 	if targetURL.Scheme == "http" || targetURL.Scheme == "https" {
 		return nil, "http", strings.TrimSpace(raw), ""
