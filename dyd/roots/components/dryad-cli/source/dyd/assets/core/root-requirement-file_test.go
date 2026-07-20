@@ -89,6 +89,18 @@ func TestRootRequirementFileTargetNormalize(t *testing.T) {
 
 	err, _ = RootRequirementFileTargetNormalize("file:../foo.tar?unpack=true&exclude=[")
 	assert.NotNil(err)
+
+	for _, target := range []string{
+		"file:../foo.tar?unpack=true&include=%ZZ",
+		"file:../foo.tar?unpack=true&exclude=%ZZ",
+		"file:../foo.tar?unpack=true&include=build%2",
+	} {
+		err, _ = RootRequirementFileTargetNormalize(target)
+		assert.NotNil(err, target)
+
+		err, _ = RootRequirementFileTargetWithOptions(RootRequirementFileTargetOptionsRequest{Target: target})
+		assert.NotNil(err, target)
+	}
 }
 
 func TestRootRequirementFileTargetWithOptions(t *testing.T) {

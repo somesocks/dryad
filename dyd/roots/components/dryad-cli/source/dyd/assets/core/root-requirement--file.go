@@ -185,7 +185,10 @@ func rootRequirementFileTargetFromURL(linkURL *url.URL) (error, rootRequirementF
 		return fmt.Errorf("file requirement path must be relative: %s", linkPath), rootRequirementFileTargetSpec{}
 	}
 
-	query := linkURL.Query()
+	query, err := url.ParseQuery(linkURL.RawQuery)
+	if err != nil {
+		return err, rootRequirementFileTargetSpec{}
+	}
 	if _, ok := query["target"]; ok {
 		return fmt.Errorf("file requirement target parameter is not supported; use as or into"), rootRequirementFileTargetSpec{}
 	}
