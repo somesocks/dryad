@@ -87,11 +87,11 @@ set -eu
 metadata=$(cat "$DYD_STEM/dyd/dependencies/metadata/dyd/assets/archive/BUILD")
 source=$(cat "$DYD_STEM/dyd/dependencies/source/dyd/assets/archive/build/value.txt")
 
-if [ -e "$DYD_STEM/dyd/dependencies/metadata/dyd/assets/archive/build" ]; then
+if [ -d "$DYD_STEM/dyd/dependencies/metadata/dyd/assets/archive/build" ]; then
 	echo '[ERROR] Fail: metadata dependency contains build' 1>&2
 	exit 1
 fi
-if [ -e "$DYD_STEM/dyd/dependencies/source/dyd/assets/archive/BUILD" ]; then
+if [ -f "$DYD_STEM/dyd/dependencies/source/dyd/assets/archive/BUILD" ]; then
 	echo '[ERROR] Fail: source dependency contains BUILD' 1>&2
 	exit 1
 fi
