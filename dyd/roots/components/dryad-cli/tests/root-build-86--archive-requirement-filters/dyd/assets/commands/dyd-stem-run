@@ -156,6 +156,30 @@ test_file_requirement_malformed_filter() {
 	assert_path_not_exists dyd/roots/root-file-malformed-filter/dyd/requirements/malformed-filter
 }
 
+test_file_requirement_filter_pattern_normalization() {
+	create_consumer_root root-file-pattern-normalization
+	(
+		cd dyd/roots/root-file-pattern-normalization
+		dryad root requirement add 'file:../../../../external/archive.tar?unpack=true&include=build/' trailing-slash --log-level=info
+		dryad root requirement add 'file:../../../../external/archive.tar?unpack=true&include=./build' leading-dot --log-level=info
+		dryad root requirement add 'file:../../../../external/archive.tar?unpack=true&include=a/../build' parent-segment --log-level=info
+		dryad root requirement add 'file:../../../../external/archive.tar?unpack=true&include=build/**' descendants --log-level=info
+		dryad root requirement add 'file:../../../../external/archive.tar?unpack=true&include=+BUILD' leading-space --log-level=info
+	)
+	failed=0
+	assert_file_content_equals dyd/roots/root-file-pattern-normalization/dyd/requirements/trailing-slash 'file:../../../../external/archive.tar?unpack=true&include=build' || failed=1
+	assert_file_content_equals dyd/roots/root-file-pattern-normalization/dyd/requirements/leading-dot 'file:../../../../external/archive.tar?unpack=true&include=build' || failed=1
+	assert_file_content_equals dyd/roots/root-file-pattern-normalization/dyd/requirements/parent-segment 'file:../../../../external/archive.tar?unpack=true&include=build' || failed=1
+	assert_file_content_equals dyd/roots/root-file-pattern-normalization/dyd/requirements/descendants 'file:../../../../external/archive.tar?unpack=true&include=build/%2A%2A' || failed=1
+	assert_file_content_equals dyd/roots/root-file-pattern-normalization/dyd/requirements/leading-space 'file:../../../../external/archive.tar?unpack=true&include=+BUILD' || failed=1
+	(
+		cd dyd/roots/root-file-pattern-normalization
+		assert_command_fails 'glob parent segment is rejected' dryad root requirement add 'file:../../../../external/archive.tar?unpack=true&include=**/../build' ambiguous-parent --log-level=info
+	) || failed=1
+	assert_path_not_exists dyd/roots/root-file-pattern-normalization/dyd/requirements/ambiguous-parent || failed=1
+	return "$failed"
+}
+
 test_http_requirement() {
 	create_consumer_root root-http
 	port=$(cat "$WORK_DIR/server.port")
@@ -178,4 +202,5 @@ start_server
 test_file_requirement
 test_file_requirement_option_conflicts
 test_file_requirement_malformed_filter
+test_file_requirement_filter_pattern_normalization
 test_http_requirement

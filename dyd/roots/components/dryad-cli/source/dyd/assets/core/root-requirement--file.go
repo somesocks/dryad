@@ -107,9 +107,33 @@ func rootRequirementFileArchiveFormat(srcPath string, archiveFormat string) (str
 func rootRequirementFileArchivePatternsNormalize(raw []string) ([]string, error) {
 	patterns := make([]string, 0, len(raw))
 	for _, pattern := range raw {
-		pattern = strings.TrimSpace(pattern)
 		if pattern == "" {
 			return nil, fmt.Errorf("archive filter pattern must not be empty")
+		}
+		if strings.HasPrefix(pattern, "/") {
+			return nil, fmt.Errorf("archive filter pattern must be relative: %s", pattern)
+		}
+
+		segments := []string{}
+		for _, segment := range strings.Split(pattern, "/") {
+			switch segment {
+			case "", ".":
+				continue
+			case "..":
+				if len(segments) == 0 {
+					return nil, fmt.Errorf("archive filter pattern escapes archive root: %s", pattern)
+				}
+				if strings.ContainsAny(segments[len(segments)-1], "*?[{") {
+					return nil, fmt.Errorf("archive filter pattern has ambiguous parent segment: %s", pattern)
+				}
+				segments = segments[:len(segments)-1]
+			default:
+				segments = append(segments, segment)
+			}
+		}
+		pattern = strings.Join(segments, "/")
+		if pattern == "" {
+			return nil, fmt.Errorf("archive filter pattern must not resolve to archive root")
 		}
 		if !doublestar.ValidatePattern(pattern) {
 			return nil, fmt.Errorf("invalid archive filter pattern: %s", pattern)
@@ -776,21 +800,36 @@ func rootRequirementFileValidateArchiveSymlink(basePath string, entryPath string
 	return nil
 }
 
-type rootRequirementFileArchiveFilter struct {
-	include []string
-	exclude []string
+type rootRequirementFileArchiveFilterPattern struct {
+	pattern         string
+	descendantsOnly bool
 }
 
-func rootRequirementFileArchiveFilterPatterns(patterns []string) []string {
-	res := make([]string, 0, len(patterns)*2)
+type rootRequirementFileArchiveFilter struct {
+	include []rootRequirementFileArchiveFilterPattern
+	exclude []rootRequirementFileArchiveFilterPattern
+}
+
+func rootRequirementFileArchiveFilterPatterns(patterns []string) []rootRequirementFileArchiveFilterPattern {
+	res := make([]rootRequirementFileArchiveFilterPattern, 0, len(patterns)*2)
 	seen := map[string]struct{}{}
 	for _, pattern := range patterns {
-		base := strings.TrimRight(pattern, "/")
-		for _, expanded := range []string{base, base + "/**"} {
-			if _, ok := seen[expanded]; ok {
+		if strings.HasSuffix(pattern, "/**") {
+			if _, ok := seen[pattern]; ok {
 				continue
 			}
-			seen[expanded] = struct{}{}
+			seen[pattern] = struct{}{}
+			res = append(res, rootRequirementFileArchiveFilterPattern{pattern: pattern, descendantsOnly: true})
+			continue
+		}
+		for _, expanded := range []rootRequirementFileArchiveFilterPattern{
+			{pattern: pattern},
+			{pattern: pattern + "/**", descendantsOnly: true},
+		} {
+			if _, ok := seen[expanded.pattern]; ok {
+				continue
+			}
+			seen[expanded.pattern] = struct{}{}
 			res = append(res, expanded)
 		}
 	}
@@ -804,9 +843,12 @@ func rootRequirementFileArchiveFilterNew(include []string, exclude []string) roo
 	}
 }
 
-func rootRequirementFileArchiveFilterMatchesAny(patterns []string, path string) (bool, error) {
-	for _, pattern := range patterns {
-		matches, err := doublestar.Match(pattern, path)
+func rootRequirementFileArchiveFilterMatchesAny(patterns []rootRequirementFileArchiveFilterPattern, path string) (bool, error) {
+	for _, filterPattern := range patterns {
+		if filterPattern.descendantsOnly && path == strings.TrimSuffix(filterPattern.pattern, "/**") {
+			continue
+		}
+		matches, err := doublestar.Match(filterPattern.pattern, path)
 		if err != nil {
 			return false, err
 		}

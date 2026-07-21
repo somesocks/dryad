@@ -119,6 +119,67 @@ func TestRootRequirementFileTargetWithOptions(t *testing.T) {
 	assert.Equal("file:../pkg.tar?unpack=true&include=BUILD&exclude=build", target)
 }
 
+func TestRootRequirementFileArchiveFilterPatterns(t *testing.T) {
+	assert := assert.New(t)
+
+	patterns, err := rootRequirementFileArchivePatternsNormalize([]string{" BUILD"})
+	assert.Nil(err)
+	assert.Equal([]string{" BUILD"}, patterns)
+	filter := rootRequirementFileArchiveFilterNew(patterns, nil)
+	matches, err := filter.Match(" BUILD")
+	assert.Nil(err)
+	assert.True(matches)
+	matches, err = filter.Match("BUILD")
+	assert.Nil(err)
+	assert.False(matches)
+
+	for _, pattern := range []string{"build", "build/"} {
+		patterns, err = rootRequirementFileArchivePatternsNormalize([]string{pattern})
+		assert.Nil(err, pattern)
+		filter = rootRequirementFileArchiveFilterNew(patterns, nil)
+		matches, err = filter.Match("build")
+		assert.Nil(err, pattern)
+		assert.True(matches, pattern)
+		matches, err = filter.Match("build/value.txt")
+		assert.Nil(err, pattern)
+		assert.True(matches, pattern)
+	}
+
+	patterns, err = rootRequirementFileArchivePatternsNormalize([]string{"build/**"})
+	assert.Nil(err)
+	filter = rootRequirementFileArchiveFilterNew(patterns, nil)
+	matches, err = filter.Match("build")
+	assert.Nil(err)
+	assert.False(matches)
+	matches, err = filter.Match("build/value.txt")
+	assert.Nil(err)
+	assert.True(matches)
+
+	for _, pattern := range []string{"**/../build", "/build"} {
+		_, err = rootRequirementFileArchivePatternsNormalize([]string{pattern})
+		assert.NotNil(err, pattern)
+	}
+}
+
+func TestRootRequirementFileTargetNormalize_ArchiveFilterPatterns(t *testing.T) {
+	assert := assert.New(t)
+
+	for raw, expected := range map[string]string{
+		"file:../foo.tar?unpack=true&include=build/":       "file:../foo.tar?unpack=true&include=build",
+		"file:../foo.tar?unpack=true&include=./build":      "file:../foo.tar?unpack=true&include=build",
+		"file:../foo.tar?unpack=true&include=a/../build":   "file:../foo.tar?unpack=true&include=build",
+		"file:../foo.tar?unpack=true&include=build/**":     "file:../foo.tar?unpack=true&include=build/%2A%2A",
+		"file:../foo.tar?unpack=true&include=+BUILD":       "file:../foo.tar?unpack=true&include=+BUILD",
+	} {
+		err, target := RootRequirementFileTargetNormalize(raw)
+		assert.Nil(err, raw)
+		assert.Equal(expected, target, raw)
+	}
+
+	err, _ := RootRequirementFileTargetNormalize("file:../foo.tar?unpack=true&include=**/../build")
+	assert.NotNil(err)
+}
+
 func TestRootRequirementFileBuildStem_DirectoryHonorsIgnoreAndSymlinks(t *testing.T) {
 	assert := assert.New(t)
 
