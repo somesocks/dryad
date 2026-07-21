@@ -12,10 +12,18 @@ import (
 )
 
 func main() {
-	if len(os.Args) != 2 {
-		log.Fatalf("usage: %s <port-file>", os.Args[0])
+	if len(os.Args) != 2 && len(os.Args) != 3 {
+		log.Fatalf("usage: %s <port-file> [archive-path]", os.Args[0])
 	}
 	portFile := os.Args[1]
+	var archive []byte
+	if len(os.Args) == 3 {
+		var err error
+		archive, err = os.ReadFile(os.Args[2])
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -61,6 +69,19 @@ func main() {
 	mux.HandleFunc("/data-basic-inline.txt", func(w http.ResponseWriter, r *http.Request) {
 		serve(w, r, "Basic aW5saW5lLXVzZXI6aW5saW5lLXBhc3N3b3Jk", "basic-inline-data")
 	})
+	if archive != nil {
+		mux.HandleFunc("/archive.tar", func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.RawQuery != "download=1" {
+				http.Error(w, "unexpected query", http.StatusBadRequest)
+				return
+			}
+			if r.Header.Get("Authorization") != "" {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+			_, _ = w.Write(archive)
+		})
+	}
 
 	server := &http.Server{Handler: mux}
 	done := make(chan os.Signal, 1)

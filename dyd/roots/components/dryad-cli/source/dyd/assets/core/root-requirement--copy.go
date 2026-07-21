@@ -54,7 +54,7 @@ func (rootRequirement *SafeRootRequirementReference) Copy(
 
 		return req.DestRequirements.AddFile(ctx, RootRequirementsAddFileRequest{
 			Alias:  alias,
-			Target: rootRequirementFileTargetString(relTargetPath, targetSpec.FileDestinationAs, targetSpec.FileDestinationInto, targetSpec.FileOptional, targetSpec.FileUnpack, targetSpec.FileArchiveFormat, targetSpec.FileFingerprint),
+			Target: rootRequirementFileTargetString(relTargetPath, targetSpec.FileDestinationAs, targetSpec.FileDestinationInto, targetSpec.FileOptional, targetSpec.FileUnpack, targetSpec.FileArchiveFormat, targetSpec.FileInclude, targetSpec.FileExclude, targetSpec.FileFingerprint),
 		})
 	}
 

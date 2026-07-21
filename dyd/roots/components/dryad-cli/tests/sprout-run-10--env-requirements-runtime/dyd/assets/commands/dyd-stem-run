@@ -120,18 +120,11 @@ _test() {
 #!/usr/bin/env sh
 set -eu
 printf ok > "$DYD_BUILD/dyd/assets/ok"
+cat "$DYD_STEM/dyd/requirements/RUNTIME_VALUE" > "$DYD_BUILD/dyd/assets/materialized-runtime-value"
 EOF
 	chmod +x dyd/roots/root-fp-helper/dyd/commands/dyd-root-build
 	DRYAD_TEST_RUNTIME_VALUE='fingerprinted' dryad root build dyd/roots/root-fp-helper --log-level=info > /dev/null 2>&1
-	fp_req=''
-	while IFS= read -r f; do
-		content=$(cat "$f")
-		case "$content" in env:DRYAD_TEST_RUNTIME_VALUE?fingerprint=*) fp_req="$content"; break ;; esac
-	done < <(find "$TEMP_DIR/dyd/heap/stems" -type f -path '*/dyd/requirements/*')
-	if [ -z "$fp_req" ]; then
-		echo "[ERROR] Fail: expected materialized runtime fingerprint helper requirement" 1>&2
-		return 1
-	fi
+	fp_req=$(cat "$TEMP_DIR/dyd/sprouts/root-fp-helper/dyd/dependencies/stem/dyd/assets/materialized-runtime-value")
 	_create_runtime_root root-fp-match runtime-value "$fp_req" RUNTIME_VALUE write
 	dryad root build dyd/roots/root-fp-match --log-level=info > /dev/null 2>&1
 	DRYAD_TEST_RUNTIME_VALUE='fingerprinted' dryad sprout run dyd/sprouts/root-fp-match --log-level=info > /dev/null 2>&1

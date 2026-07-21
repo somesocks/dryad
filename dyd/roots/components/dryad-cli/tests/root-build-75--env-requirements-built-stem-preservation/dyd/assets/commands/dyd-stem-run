@@ -49,16 +49,6 @@ EOF
 	chmod +x "dyd/roots/$root_name/dyd/commands/dyd-root-build"
 }
 
-_find_materialized_requirement() {
-	name="$1"
-	prefix="$2"
-	while IFS= read -r f; do
-		content=$(cat "$f")
-		case "$content" in $prefix*) printf '%s' "$content"; return 0 ;; esac
-	done < <(find "$TEMP_DIR/dyd/heap/stems" -type f -path "*/dyd/requirements/$name" 2>/dev/null)
-	return 1
-}
-
 _expect_run_fails() {
 	root_name="$1"
 	shift
@@ -80,7 +70,7 @@ _test() {
 
 	_create_root root-helper build-value env:DRYAD_TEST_COPY_VALUE yes
 	DRYAD_TEST_COPY_VALUE='copy-value' dryad root build dyd/roots/root-helper --log-level=info > /dev/null 2>&1
-	fp_req=$(_find_materialized_requirement BUILD_VALUE 'env:DRYAD_TEST_COPY_VALUE?fingerprint=')
+	fp_req=$(cat "$TEMP_DIR/dyd/sprouts/root-helper/dyd/dependencies/stem/dyd/requirements/BUILD_VALUE")
 	_create_root root-runtime-fp runtime-value "$fp_req" no
 	dryad root build dyd/roots/root-runtime-fp --log-level=info > /dev/null 2>&1
 	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-runtime-fp/dyd/dependencies/stem/dyd/requirements/RUNTIME_VALUE" "$fp_req"

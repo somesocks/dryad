@@ -1,0 +1,206 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+WORK_DIR=''
+GARDEN_DIR=''
+SERVER_PID=''
+
+assert_file_content_equals() {
+	file="$1"
+	expected="$2"
+	if [ ! -f "$file" ]; then
+		echo "[ERROR] Fail: file '$file' does not exist" 1>&2
+		return 1
+	fi
+	actual=$(cat "$file")
+	if [ "$actual" != "$expected" ]; then
+		echo "[ERROR] Fail: expected $file to contain ($expected), got ($actual)" 1>&2
+		return 1
+	fi
+}
+
+assert_path_not_exists() {
+	if [ -e "$1" ]; then
+		echo "[ERROR] Fail: path '$1' exists" 1>&2
+		return 1
+	fi
+}
+
+assert_command_fails() {
+	description="$1"
+	shift
+	if "$@" > /dev/null 2>&1; then
+		echo "[ERROR] Fail: $description unexpectedly succeeded" 1>&2
+		return 1
+	fi
+}
+
+stop_server() {
+	if [ -n "$SERVER_PID" ]; then
+		kill "$SERVER_PID" 2>/dev/null || true
+		wait "$SERVER_PID" 2>/dev/null || true
+		SERVER_PID=''
+	fi
+}
+
+teardown() {
+	stop_server
+	if [ -d "$WORK_DIR" ]; then
+		chmod -R 755 "$WORK_DIR"
+		rm -rf "$WORK_DIR"
+	fi
+}
+
+setup() {
+	WORK_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'build-dir')
+	GARDEN_DIR="$WORK_DIR/garden"
+	mkdir -p "$GARDEN_DIR/dyd/roots" "$GARDEN_DIR/dyd/external"
+	printf 'garden' > "$GARDEN_DIR/dyd/type"
+	cd "$GARDEN_DIR"
+}
+
+start_server() {
+	port_file="$WORK_DIR/server.port"
+	fixture_path="$DYD_STEM/dyd/assets/case-collision.tar"
+	archive_path="$GARDEN_DIR/dyd/external/archive.tar"
+	cp "$fixture_path" "$archive_path"
+	"$DYD_STEM/dyd/dependencies/http-server/dyd/commands/http-server" "$port_file" "$fixture_path" &
+	SERVER_PID=$!
+	for _ in {1..100}; do
+		if [ -s "$port_file" ]; then
+			return 0
+		fi
+		sleep 0.05
+	done
+	echo '[ERROR] Fail: http server did not start' 1>&2
+	return 1
+}
+
+create_consumer_root() {
+	root_name="$1"
+	mkdir -p "dyd/roots/$root_name/dyd/commands" "dyd/roots/$root_name/dyd/requirements"
+	printf 'root' > "dyd/roots/$root_name/dyd/type"
+	cat > "dyd/roots/$root_name/dyd/commands/dyd-root-build" <<'EOF'
+#!/usr/bin/env sh
+set -eu
+
+metadata=$(cat "$DYD_STEM/dyd/dependencies/metadata/dyd/assets/archive/BUILD")
+source=$(cat "$DYD_STEM/dyd/dependencies/source/dyd/assets/archive/build/value.txt")
+
+if [ -d "$DYD_STEM/dyd/dependencies/metadata/dyd/assets/archive/build" ]; then
+	echo '[ERROR] Fail: metadata dependency contains build' 1>&2
+	exit 1
+fi
+if [ -f "$DYD_STEM/dyd/dependencies/source/dyd/assets/archive/BUILD" ]; then
+	echo '[ERROR] Fail: source dependency contains BUILD' 1>&2
+	exit 1
+fi
+
+mkdir -p "$DYD_BUILD/dyd/assets"
+printf '%s|%s' "$metadata" "$source" > "$DYD_BUILD/dyd/assets/summary.txt"
+EOF
+	chmod +x "dyd/roots/$root_name/dyd/commands/dyd-root-build"
+}
+
+assert_http_target() {
+	target="$1"
+	include="$2"
+	exclude="$3"
+	suffix="&unpack=true&$include"
+	if [ -n "$exclude" ]; then
+		suffix="$suffix&$exclude"
+	fi
+	case "$target" in
+		*'#fingerprint=v2-'*"$suffix") ;;
+		*)
+			echo "[ERROR] Fail: unexpected locked http target: $target" 1>&2
+			return 1
+			;;
+	esac
+}
+
+test_file_requirement() {
+	create_consumer_root root-file
+	(
+		cd dyd/roots/root-file
+		dryad root requirement add file:../../../../external/archive.tar metadata --unpack=true --include=BUILD --include=build --exclude=build --log-level=info
+		dryad root requirement add file:../../../../external/archive.tar source --unpack=true --include=build --log-level=info
+	)
+	assert_file_content_equals dyd/roots/root-file/dyd/requirements/metadata 'file:../../../../external/archive.tar?unpack=true&include=BUILD&include=build&exclude=build'
+	assert_file_content_equals dyd/roots/root-file/dyd/requirements/source 'file:../../../../external/archive.tar?unpack=true&include=build'
+	dryad root build dyd/roots/root-file --log-level=info --join-stdout --join-stderr
+	assert_file_content_equals dyd/sprouts/root-file/dyd/dependencies/stem/dyd/assets/summary.txt 'metadata|source'
+}
+
+test_file_requirement_option_conflicts() {
+	create_consumer_root root-file-conflicts
+	failed=0
+	(
+		failed=0
+		cd dyd/roots/root-file-conflicts
+		assert_command_fails 'unpack=false conflicts with --unpack=true' dryad root requirement add 'file:../../../../external/archive.tar?unpack=false' unpack-conflict --unpack=true --log-level=info || failed=1
+		assert_command_fails 'into conflicts with --as' dryad root requirement add 'file:../../../../external/archive.tar?into=dyd/assets' placement-conflict --as=dyd/assets/archive.tar --log-level=info || failed=1
+		exit "$failed"
+	) || failed=1
+	assert_path_not_exists dyd/roots/root-file-conflicts/dyd/requirements/unpack-conflict || failed=1
+	assert_path_not_exists dyd/roots/root-file-conflicts/dyd/requirements/placement-conflict || failed=1
+	return "$failed"
+}
+
+test_file_requirement_malformed_filter() {
+	create_consumer_root root-file-malformed-filter
+	(
+		cd dyd/roots/root-file-malformed-filter
+		assert_command_fails 'malformed include query escape is rejected' dryad root requirement add 'file:../../../../external/archive.tar?unpack=true&include=%ZZ' malformed-filter --log-level=info
+	)
+	assert_path_not_exists dyd/roots/root-file-malformed-filter/dyd/requirements/malformed-filter
+}
+
+test_file_requirement_filter_pattern_normalization() {
+	create_consumer_root root-file-pattern-normalization
+	(
+		cd dyd/roots/root-file-pattern-normalization
+		dryad root requirement add 'file:../../../../external/archive.tar?unpack=true&include=build/' trailing-slash --log-level=info
+		dryad root requirement add 'file:../../../../external/archive.tar?unpack=true&include=./build' leading-dot --log-level=info
+		dryad root requirement add 'file:../../../../external/archive.tar?unpack=true&include=a/../build' parent-segment --log-level=info
+		dryad root requirement add 'file:../../../../external/archive.tar?unpack=true&include=build/**' descendants --log-level=info
+		dryad root requirement add 'file:../../../../external/archive.tar?unpack=true&include=+BUILD' leading-space --log-level=info
+	)
+	failed=0
+	assert_file_content_equals dyd/roots/root-file-pattern-normalization/dyd/requirements/trailing-slash 'file:../../../../external/archive.tar?unpack=true&include=build' || failed=1
+	assert_file_content_equals dyd/roots/root-file-pattern-normalization/dyd/requirements/leading-dot 'file:../../../../external/archive.tar?unpack=true&include=build' || failed=1
+	assert_file_content_equals dyd/roots/root-file-pattern-normalization/dyd/requirements/parent-segment 'file:../../../../external/archive.tar?unpack=true&include=build' || failed=1
+	assert_file_content_equals dyd/roots/root-file-pattern-normalization/dyd/requirements/descendants 'file:../../../../external/archive.tar?unpack=true&include=build/%2A%2A' || failed=1
+	assert_file_content_equals dyd/roots/root-file-pattern-normalization/dyd/requirements/leading-space 'file:../../../../external/archive.tar?unpack=true&include=+BUILD' || failed=1
+	(
+		cd dyd/roots/root-file-pattern-normalization
+		assert_command_fails 'glob parent segment is rejected' dryad root requirement add 'file:../../../../external/archive.tar?unpack=true&include=**/../build' ambiguous-parent --log-level=info
+	) || failed=1
+	assert_path_not_exists dyd/roots/root-file-pattern-normalization/dyd/requirements/ambiguous-parent || failed=1
+	return "$failed"
+}
+
+test_http_requirement() {
+	create_consumer_root root-http
+	port=$(cat "$WORK_DIR/server.port")
+	archive_url="http://127.0.0.1:$port/archive.tar?download=1"
+	(
+		cd dyd/roots/root-http
+		dryad root requirement add "$archive_url" metadata --unpack=true --include=BUILD --include=build --exclude=build --log-level=info
+		dryad root requirement add "$archive_url" source --unpack=true --include=build --log-level=info
+	)
+	assert_http_target "$(cat dyd/roots/root-http/dyd/requirements/metadata)" 'include=BUILD&include=build' 'exclude=build'
+	assert_http_target "$(cat dyd/roots/root-http/dyd/requirements/source)" 'include=build' ''
+	dryad root build dyd/roots/root-http --log-level=info --join-stdout --join-stderr
+	assert_file_content_equals dyd/sprouts/root-http/dyd/dependencies/stem/dyd/assets/summary.txt 'metadata|source'
+}
+
+trap 'echo "[ERROR] Fail near line $LINENO" 1>&2; teardown' ERR
+trap teardown EXIT
+setup
+start_server
+test_file_requirement
+test_file_requirement_option_conflicts
+test_file_requirement_malformed_filter
+test_file_requirement_filter_pattern_normalization
+test_http_requirement

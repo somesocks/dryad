@@ -64,6 +64,10 @@ func TestRootRequirementHTTPTargetNormalize(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal("https://example.com/pkg.tar.bz2?download=1#fingerprint=v2-aaaaaaaaaaaaaaaaaaaaaaaaaa&into=dyd/assets/vendor&unpack=true&format=tar.bz2", target)
 
+	err, target = RootRequirementHTTPTargetNormalize("https://example.com/pkg.tar?download=1#exclude=build&include=BUILD&unpack=true&fingerprint=v2-aaaaaaaaaaaaaaaaaaaaaaaaaa")
+	assert.Nil(err)
+	assert.Equal("https://example.com/pkg.tar?download=1#fingerprint=v2-aaaaaaaaaaaaaaaaaaaaaaaaaa&unpack=true&include=BUILD&exclude=build", target)
+
 	err, _ = RootRequirementHTTPTargetNormalize("https://example.com/pkg.tar.gz?download=1")
 	assert.NotNil(err)
 
@@ -80,6 +84,9 @@ func TestRootRequirementHTTPTargetNormalize(t *testing.T) {
 	assert.NotNil(err)
 
 	err, _ = RootRequirementHTTPTargetNormalize("https://example.com/pkg.tar.gz#unpack=true&format=rar&fingerprint=v2-aaaaaaaaaaaaaaaaaaaaaaaaaa")
+	assert.NotNil(err)
+
+	err, _ = RootRequirementHTTPTargetNormalize("https://example.com/pkg.tar.gz#include=BUILD&fingerprint=v2-aaaaaaaaaaaaaaaaaaaaaaaaaa")
 	assert.NotNil(err)
 }
 
@@ -224,6 +231,7 @@ func TestRootRequirementHTTPLockTarget_UsesArchiveFormatOverride(t *testing.T) {
 		DestinationInto: "dyd/assets/vendor",
 		Unpack:          true,
 		ArchiveFormat:   RootRequirementFileArchiveFormatTar,
+		Include:         []string{"contents"},
 	})
 	assert.Nil(err)
 	assert.NotNil(expectedStem)
@@ -242,9 +250,11 @@ func TestRootRequirementHTTPLockTarget_UsesArchiveFormatOverride(t *testing.T) {
 		HasUnpack:          true,
 		ArchiveFormat:      "tar",
 		HasArchiveFormat:   true,
+		Include:            []string{"contents"},
+		HasInclude:         true,
 	})
 	assert.Nil(err)
-	assert.Equal(server.URL+"/pkg.tar.bz2#fingerprint="+expectedStem.Fingerprint+"&into=dyd/assets/vendor&unpack=true&format=tar", target)
+	assert.Equal(server.URL+"/pkg.tar.bz2#fingerprint="+expectedStem.Fingerprint+"&into=dyd/assets/vendor&unpack=true&format=tar&include=contents", target)
 
 	err, httpSpec, isHTTP := rootRequirementParseHTTPTarget(target)
 	assert.Nil(err)
@@ -255,6 +265,8 @@ func TestRootRequirementHTTPLockTarget_UsesArchiveFormatOverride(t *testing.T) {
 		DestinationInto: httpSpec.DestinationInto,
 		Unpack:          httpSpec.Unpack,
 		ArchiveFormat:   httpSpec.ArchiveFormat,
+		Include:         httpSpec.Include,
+		Exclude:         httpSpec.Exclude,
 		Fingerprint:     httpSpec.Fingerprint,
 	})
 	assert.Nil(err)
