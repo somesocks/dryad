@@ -128,7 +128,7 @@ test_file_requirement() {
 	)
 	assert_file_content_equals dyd/roots/root-file/dyd/requirements/metadata 'file:../../../../external/archive.tar?unpack=true&include=BUILD&include=build&exclude=build'
 	assert_file_content_equals dyd/roots/root-file/dyd/requirements/source 'file:../../../../external/archive.tar?unpack=true&include=build'
-	dryad root build dyd/roots/root-file --log-level=info > /dev/null 2>&1
+	dryad root build dyd/roots/root-file --log-level=info
 	assert_file_content_equals dyd/sprouts/root-file/dyd/dependencies/stem/dyd/assets/summary.txt 'metadata|source'
 }
 
@@ -191,7 +191,7 @@ test_http_requirement() {
 	)
 	assert_http_target "$(cat dyd/roots/root-http/dyd/requirements/metadata)" 'include=BUILD&include=build' 'exclude=build'
 	assert_http_target "$(cat dyd/roots/root-http/dyd/requirements/source)" 'include=build' ''
-	dryad root build dyd/roots/root-http --log-level=info > /dev/null 2>&1
+	dryad root build dyd/roots/root-http --log-level=info
 	assert_file_content_equals dyd/sprouts/root-http/dyd/dependencies/stem/dyd/assets/summary.txt 'metadata|source'
 }
 
