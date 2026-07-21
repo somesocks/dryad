@@ -46,20 +46,9 @@ value=\${$injected_name}
 printf '%s' "\$value" > "\$DYD_BUILD/dyd/assets/value"
 mkdir -p "\$DYD_GARDEN/dyd/heap/env-requirements-01"
 printf 'ran' > "\$DYD_GARDEN/dyd/heap/env-requirements-01/$root_name-ran"
+cat "\$DYD_STEM/dyd/requirements/$injected_name" > "\$DYD_BUILD/dyd/assets/materialized-$req_name"
 EOF
 	chmod +x "dyd/roots/$root_name/dyd/commands/dyd-root-build"
-}
-
-_find_materialized_env_requirement() {
-	requirement_name="$1"
-	prefix="$2"
-	while IFS= read -r req_file; do
-		content=$(cat "$req_file")
-		case "$content" in
-			$prefix*) printf '%s' "$content"; return 0 ;;
-		esac
-	done < <(find "$TEMP_DIR/dyd/heap/stems" -type f -path "*/dyd/requirements/$requirement_name" 2>/dev/null)
-	return 1
 }
 
 _expect_build_fails() {
@@ -101,7 +90,7 @@ _test() {
 	fi
 	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-cache/dyd/dependencies/stem/dyd/assets/value" 'two'
 
-	materialized=$(_find_materialized_env_requirement BUILD_VALUE 'env:DRYAD_TEST_BUILD_VALUE?fingerprint=')
+	materialized=$(cat "$TEMP_DIR/dyd/sprouts/root-cache/dyd/dependencies/stem/dyd/assets/materialized-build-value")
 	_create_build_root root-fp-match build-value "$materialized" BUILD_VALUE
 	DRYAD_TEST_BUILD_VALUE='two' dryad root build dyd/roots/root-fp-match --log-level=info
 	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-fp-match/dyd/dependencies/stem/dyd/assets/value" 'two'
