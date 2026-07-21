@@ -78,7 +78,7 @@ _expect_build_fails() {
 
 _test() {
 	_create_build_root root-inject build-value env:DRYAD_TEST_BUILD_VALUE BUILD_VALUE
-	DRYAD_TEST_BUILD_VALUE='one' dryad root build dyd/roots/root-inject --log-level=info > /dev/null 2>&1
+	DRYAD_TEST_BUILD_VALUE='one' dryad root build dyd/roots/root-inject --log-level=info
 	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-inject/dyd/dependencies/stem/dyd/assets/value" 'one'
 
 	_create_build_root root-missing missing env:DRYAD_TEST_MISSING MISSING
@@ -86,14 +86,14 @@ _test() {
 	assert_file_not_exists "$TEMP_DIR/dyd/heap/env-requirements-01/root-missing-ran"
 
 	_create_build_root root-cache build-value env:DRYAD_TEST_BUILD_VALUE BUILD_VALUE
-	DRYAD_TEST_BUILD_VALUE='one' dryad root build dyd/roots/root-cache --log-level=info > "$TEMP_DIR/cache-1.log" 2>&1
-	DRYAD_TEST_BUILD_VALUE='one' dryad root build dyd/roots/root-cache --log-level=info > "$TEMP_DIR/cache-2.log" 2>&1
+	DRYAD_TEST_BUILD_VALUE='one' dryad root build dyd/roots/root-cache --log-level=info 2>&1 | tee "$TEMP_DIR/cache-1.log"
+	DRYAD_TEST_BUILD_VALUE='one' dryad root build dyd/roots/root-cache --log-level=info 2>&1 | tee "$TEMP_DIR/cache-2.log"
 	if grep -F "root build - building root" "$TEMP_DIR/cache-2.log" | grep -F "root-cache" >/dev/null 2>&1; then
 		echo "[ERROR] Fail: expected same env value to reuse root-cache derivation" 1>&2
 		cat "$TEMP_DIR/cache-2.log" 1>&2
 		return 1
 	fi
-	DRYAD_TEST_BUILD_VALUE='two' dryad root build dyd/roots/root-cache --log-level=info > "$TEMP_DIR/cache-3.log" 2>&1
+	DRYAD_TEST_BUILD_VALUE='two' dryad root build dyd/roots/root-cache --log-level=info 2>&1 | tee "$TEMP_DIR/cache-3.log"
 	if ! grep -F "root build - building root" "$TEMP_DIR/cache-3.log" | grep -F "root-cache" >/dev/null 2>&1; then
 		echo "[ERROR] Fail: expected changed env value to rebuild root-cache" 1>&2
 		cat "$TEMP_DIR/cache-3.log" 1>&2
@@ -103,14 +103,14 @@ _test() {
 
 	materialized=$(_find_materialized_env_requirement BUILD_VALUE 'env:DRYAD_TEST_BUILD_VALUE?fingerprint=')
 	_create_build_root root-fp-match build-value "$materialized" BUILD_VALUE
-	DRYAD_TEST_BUILD_VALUE='two' dryad root build dyd/roots/root-fp-match --log-level=info > /dev/null 2>&1
+	DRYAD_TEST_BUILD_VALUE='two' dryad root build dyd/roots/root-fp-match --log-level=info
 	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-fp-match/dyd/dependencies/stem/dyd/assets/value" 'two'
 	_create_build_root root-fp-mismatch build-value "$materialized" BUILD_VALUE
 	_expect_build_fails root-fp-mismatch env DRYAD_TEST_BUILD_VALUE='three'
 	assert_file_not_exists "$TEMP_DIR/dyd/heap/env-requirements-01/root-fp-mismatch-ran"
 
 	_create_build_root root-canonical my-build-value env:dryad-test-build-value MY_BUILD_VALUE
-	DRYAD_TEST_BUILD_VALUE='canonical' dryad root build dyd/roots/root-canonical --log-level=info > /dev/null 2>&1
+	DRYAD_TEST_BUILD_VALUE='canonical' dryad root build dyd/roots/root-canonical --log-level=info
 	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-canonical/dyd/dependencies/stem/dyd/assets/value" 'canonical'
 
 	_create_build_root root-invalid-alias 1bad env:DRYAD_TEST_BUILD_VALUE BAD
