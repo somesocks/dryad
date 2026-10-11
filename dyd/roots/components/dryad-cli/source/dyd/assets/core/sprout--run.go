@@ -5,6 +5,8 @@ import (
 	"dryad/internal/filepath"
 	"dryad/task"
 	"fmt"
+	"sync"
+	"sync/atomic"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -131,8 +133,11 @@ func SproutsRun(ctx context.Context, req SproutsRunRequest) error {
 	type preparedTarget struct {
 		target     SproutRunTarget
 		executions []sproutRunExecution
+		started    sync.Once
+		failed     atomic.Bool
+		remaining  atomic.Int64
 	}
-	prepared := make([]preparedTarget, 0, len(req.Targets))
+	prepared := make([]*preparedTarget, 0, len(req.Targets))
 	count := 0
 	for _, target := range req.Targets {
 		executions, err := target.Sprout.prepareRun(target.Request)
@@ -144,40 +149,53 @@ func SproutsRun(ctx context.Context, req SproutsRunRequest) error {
 			continue
 		}
 		count += len(executions)
-		prepared = append(prepared, preparedTarget{target: target, executions: executions})
+		group := &preparedTarget{target: target, executions: executions}
+		group.remaining.Store(int64(len(executions)))
+		prepared = append(prepared, group)
 	}
 	stdin, err := req.Stdin.Resolve(count, parallel, req.FromStdin)
 	if err != nil {
 		return err
 	}
-	runTarget := func(ctx context.Context, target preparedTarget) (error, any) {
-		label := sproutRunLogVariantLabel(target.target.Request.VariantDescriptor)
-		path := target.target.Sprout.BasePath
-		zlog.Info().Str("sprout", path).Str("variant_selector", label).Msg("sprout run requested")
-		for _, execution := range target.executions {
+	type scheduledExecution struct {
+		group     *preparedTarget
+		execution sproutRunExecution
+	}
+	scheduled := make([]scheduledExecution, 0, count)
+	for _, group := range prepared {
+		for _, execution := range group.executions {
 			execution.request.Stdin = stdin
-			if err := execution.run(); err != nil {
-				zlog.Warn().Str("sprout", path).Str("variant_selector", label).Err(err).Msg("sprout threw error during execution")
-				if !req.IgnoreErrors {
-					return err, nil
-				}
-				return nil, nil
-			}
+			scheduled = append(scheduled, scheduledExecution{group: group, execution: execution})
 		}
-		zlog.Info().Str("sprout", path).Str("variant_selector", label).Msg("sprout run completed")
+	}
+	runExecution := func(ctx context.Context, job scheduledExecution) (error, any) {
+		group := job.group
+		// IgnoreErrors applies to sprouts: pending variants of a failed target
+		// are skipped, while other targets may continue. Started work is awaited.
+		if group.failed.Load() {
+			return nil, nil
+		}
+		label := sproutRunLogVariantLabel(group.target.Request.VariantDescriptor)
+		path := group.target.Sprout.BasePath
+		group.started.Do(func() {
+			zlog.Info().Str("sprout", path).Str("variant_selector", label).Msg("sprout run requested")
+		})
+		if err := job.execution.run(); err != nil {
+			group.failed.Store(true)
+			zlog.Warn().Str("sprout", path).Str("variant_selector", label).Err(err).Msg("sprout threw error during execution")
+			if !req.IgnoreErrors {
+				return err, nil
+			}
+			return nil, nil
+		}
+		if group.remaining.Add(-1) == 0 {
+			zlog.Info().Str("sprout", path).Str("variant_selector", label).Msg("sprout run completed")
+		}
 		return nil, nil
 	}
-	// Retain the existing scheduling until the concurrency change: garden targets
-	// can overlap, but variants and stdin-supplied targets are still serial.
-	if req.FromStdin {
-		for _, target := range prepared {
-			if err, _ := runTarget(ctx, target); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-	err, _ = task.ParallelMap(runTarget)(ctx, prepared)
+	// Schedule only concrete executions. Nested sprout tasks would occupy slots
+	// while waiting for their variants, reducing usable process concurrency.
+	err, _ = task.ParallelMap(runExecution)(ctx, scheduled)
 	return err
 }
 

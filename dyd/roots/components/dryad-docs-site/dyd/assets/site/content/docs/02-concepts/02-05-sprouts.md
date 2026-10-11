@@ -25,7 +25,13 @@ Each sprout package contains metadata and dependency links to one or more built 
 
 Sprouts are build artifacts. Do not edit them directly; rebuild roots to regenerate them.
 
-## Running sprouts: stdin
+## Running sprouts
+
+`sprout run` and `sprouts run` execute selected concrete variants with a shared
+`--parallel` limit (default 8). This also applies to targets supplied through
+`sprouts run --from-stdin`. Use `--parallel=1` for serial execution.
+
+### Stdin
 
 `sprout run` and `sprouts run` accept an optional boolean `--join-stdin`:
 
