@@ -1,6 +1,7 @@
 package core
 
 import (
+	"dryad/internal/os"
 	"fmt"
 	"io"
 	"net/url"
@@ -11,6 +12,7 @@ import (
 )
 
 const RootRequirementEnvFingerprintQueryKey = "fingerprint"
+const RootRequirementEnvDefaultQueryKey = "default"
 
 var rootRequirementEnvNameRE = regexp.MustCompile(`^[A-Z_][A-Z0-9_]*$`)
 
@@ -43,16 +45,19 @@ func rootRequirementEnvValueFingerprint(value string) (error, string) {
 	return nil, fingerprintFormat(fingerprintVersionV2, fingerprintEncode(hashInBytes))
 }
 
-func rootRequirementEnvTargetString(envName string, fingerprint string) string {
+func rootRequirementEnvTargetString(envName string, fingerprint string, defaultValue *string) string {
 	linkURL := url.URL{
 		Scheme: "env",
 		Opaque: envName,
 	}
-	if fingerprint != "" {
-		query := url.Values{}
-		query.Set(RootRequirementEnvFingerprintQueryKey, fingerprint)
-		linkURL.RawQuery = query.Encode()
+	query := url.Values{}
+	if defaultValue != nil {
+		query.Set(RootRequirementEnvDefaultQueryKey, *defaultValue)
 	}
+	if fingerprint != "" {
+		query.Set(RootRequirementEnvFingerprintQueryKey, fingerprint)
+	}
+	linkURL.RawQuery = query.Encode()
 
 	return linkURL.String()
 }
@@ -60,6 +65,15 @@ func rootRequirementEnvTargetString(envName string, fingerprint string) string {
 type rootRequirementEnvTargetSpec struct {
 	Name        string
 	Fingerprint string
+	Default     *string
+}
+
+func rootRequirementEnvValue(envName string, defaultValue *string) (string, bool) {
+	value, exists := os.LookupEnv(envName)
+	if !exists && defaultValue != nil {
+		return *defaultValue, true
+	}
+	return value, exists
 }
 
 func rootRequirementEnvTargetFromURL(linkURL *url.URL) (error, rootRequirementEnvTargetSpec) {
@@ -80,7 +94,18 @@ func rootRequirementEnvTargetFromURL(linkURL *url.URL) (error, rootRequirementEn
 		return err, rootRequirementEnvTargetSpec{}
 	}
 
-	query := linkURL.Query()
+	query, err := url.ParseQuery(linkURL.RawQuery)
+	if err != nil {
+		return err, rootRequirementEnvTargetSpec{}
+	}
+	var defaultValue *string
+	if values, exists := query[RootRequirementEnvDefaultQueryKey]; exists {
+		if len(values) != 1 {
+			return fmt.Errorf("env requirement default must be specified once"), rootRequirementEnvTargetSpec{}
+		}
+		defaultValue = &values[0]
+	}
+	query.Del(RootRequirementEnvDefaultQueryKey)
 	fingerprint := query.Get(RootRequirementEnvFingerprintQueryKey)
 	if fingerprint != "" {
 		err, _, _ = fingerprintParse(fingerprint)
@@ -96,6 +121,7 @@ func rootRequirementEnvTargetFromURL(linkURL *url.URL) (error, rootRequirementEn
 	return nil, rootRequirementEnvTargetSpec{
 		Name:        envName,
 		Fingerprint: fingerprint,
+		Default:     defaultValue,
 	}
 }
 
@@ -125,9 +151,9 @@ func RootRequirementEnvTargetNormalize(raw string) (error, string) {
 		return fmt.Errorf("env requirement target must use env scheme: %s", raw), ""
 	}
 
-	return nil, rootRequirementEnvTargetString(envSpec.Name, envSpec.Fingerprint)
+	return nil, rootRequirementEnvTargetString(envSpec.Name, envSpec.Fingerprint, envSpec.Default)
 }
 
-func RootRequirementEnvTargetString(envName string, fingerprint string) string {
-	return rootRequirementEnvTargetString(envName, fingerprint)
+func RootRequirementEnvTargetString(envName string, fingerprint string, defaultValue *string) string {
+	return rootRequirementEnvTargetString(envName, fingerprint, defaultValue)
 }

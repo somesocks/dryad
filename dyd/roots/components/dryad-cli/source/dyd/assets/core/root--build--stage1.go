@@ -117,7 +117,7 @@ func init() {
 				return err
 			}
 
-			envValue, exists := os.LookupEnv(targetSpec.EnvName)
+			envValue, exists := rootRequirementEnvValue(targetSpec.EnvName, targetSpec.EnvDefault)
 			if !exists {
 				return fmt.Errorf("missing env requirement %s: host env %s is not set", injectName, targetSpec.EnvName)
 			}
@@ -132,7 +132,7 @@ func init() {
 
 			return os.WriteFile(
 				filepath.Join(req.WorkspacePath, "dyd", "requirements", injectName),
-				[]byte(rootRequirementEnvTargetString(targetSpec.EnvName, envFingerprint)),
+				[]byte(rootRequirementEnvTargetString(targetSpec.EnvName, envFingerprint, targetSpec.EnvDefault)),
 				0o511,
 			)
 		}

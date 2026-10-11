@@ -125,7 +125,7 @@ func (requirements *SafeRootRequirementsReference) AddEnv(
 	}
 
 	requirementPath := filepath.Join(requirements.BasePath, alias)
-	if err := os.WriteFile(requirementPath, []byte(rootRequirementEnvTargetString(envSpec.Name, envSpec.Fingerprint)), 0644); err != nil {
+	if err := os.WriteFile(requirementPath, []byte(rootRequirementEnvTargetString(envSpec.Name, envSpec.Fingerprint, envSpec.Default)), 0644); err != nil {
 		return err, nil
 	}
 

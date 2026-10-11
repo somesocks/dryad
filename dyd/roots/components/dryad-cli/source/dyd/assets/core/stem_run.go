@@ -128,7 +128,7 @@ func stemRunEnvRequirements(stemPath string) (map[string]string, error) {
 			return nil, fmt.Errorf("env requirement cannot inject reserved env var: %s", injectName)
 		}
 
-		envValue, exists := os.LookupEnv(envSpec.Name)
+		envValue, exists := rootRequirementEnvValue(envSpec.Name, envSpec.Default)
 		if !exists {
 			return nil, fmt.Errorf("missing env requirement %s: host env %s is not set", injectName, envSpec.Name)
 		}

@@ -54,7 +54,9 @@ For each variant, dryad selects at most one matching requirements directory. If 
 
 Environment requirements are execution requirements. When a stem is executed, each `env:<name>` requirement reads a host environment variable and injects it into the process environment. The requirement alias is canonicalized to the injected environment variable name by uppercasing ASCII letters and converting `-` and `.` to `_`; the canonical name must match `[A-Z_][A-Z0-9_]*`. The `env:<name>` target is canonicalized the same way before reading the host environment.
 
-For source roots, an `env:<name>` requirement is a build-time dependency because dryad executes the source stem to build the output stem. Dryad records a fingerprint of the host environment value in the materialized source stem requirement before checking the derivation cache. For built stems, an `env:<name>` requirement is a run-time dependency and the current host value is injected when the stem is run.
+An optional `default` query parameter supplies a fallback when the host variable is unset. For example, a requirement named `source-date-epoch` containing `env:SOURCE_DATE_EPOCH?default=0` uses the host's `SOURCE_DATE_EPOCH` when set, or `0` otherwise. A set-but-empty host value takes precedence over the default. Empty defaults (`env:EXAMPLE?default=`) are supported, and default values use URL query encoding (for example, `default=hello%20world`). An unset variable without a default remains an error.
+
+For source roots, an `env:<name>` requirement is a build-time dependency because dryad executes the source stem to build the output stem. Dryad records a fingerprint of the resolved host-or-default value in the materialized source stem requirement before checking the derivation cache, preserving the default for execution. For built stems, an `env:<name>` requirement is a run-time dependency and the current host-or-default value is injected when the stem is run.
 
 ### File requirements
 
