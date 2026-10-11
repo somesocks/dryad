@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	fs2 "dryad/filesystem"
 	"dryad/task"
 
@@ -8,7 +9,7 @@ import (
 	// zlog "github.com/rs/zerolog/log"
 )
 
-func resolveHeapSproutsReference(ctx *task.ExecutionContext, heapSprouts *UnsafeHeapSproutsReference) (error, *SafeHeapSproutsReference) {
+func resolveHeapSproutsReference(ctx context.Context, heapSprouts *UnsafeHeapSproutsReference) (error, *SafeHeapSproutsReference) {
 	var heapSproutsExists bool
 	var err error
 	var safeRef SafeHeapSproutsReference
@@ -53,7 +54,7 @@ func resolveHeapSproutsReference(ctx *task.ExecutionContext, heapSprouts *Unsafe
 
 var memoResolveHeapSproutsReference = task.Memoize(
 	resolveHeapSproutsReference,
-	func(ctx *task.ExecutionContext, heapSprouts *UnsafeHeapSproutsReference) (error, any) {
+	func(ctx context.Context, heapSprouts *UnsafeHeapSproutsReference) (error, any) {
 		type Key struct {
 			Group      string
 			BasePath   string
@@ -79,6 +80,6 @@ var memoResolveHeapSproutsReference = task.Memoize(
 	},
 )
 
-func (heapSprouts *UnsafeHeapSproutsReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapSproutsReference) {
+func (heapSprouts *UnsafeHeapSproutsReference) Resolve(ctx context.Context) (error, *SafeHeapSproutsReference) {
 	return memoResolveHeapSproutsReference(ctx, heapSprouts)
 }

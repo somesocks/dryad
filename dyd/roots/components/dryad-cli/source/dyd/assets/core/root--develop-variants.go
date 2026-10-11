@@ -1,14 +1,13 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"strings"
-
-	"dryad/task"
 )
 
 func rootDevelop_resolveVariant(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	root *SafeRootReference,
 	rawSelector string,
 ) (error, string) {

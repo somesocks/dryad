@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/internal/os"
@@ -23,7 +24,7 @@ var stemRunCommand = func() clib.Command {
 		Parallel int
 	}
 
-	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx context.Context, req clib.ActionRequest) (error, ParsedArgs) {
 		var args = req.Args
 		var options = req.Opts
 
@@ -66,7 +67,7 @@ var stemRunCommand = func() clib.Command {
 		}
 	}
 
-	var runStem = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var runStem = func(ctx context.Context, args ParsedArgs) (error, any) {
 		if args.Confirm != "" {
 			fmt.Println("this package will be executed:")
 			fmt.Println(args.Path)
@@ -120,8 +121,8 @@ var stemRunCommand = func() clib.Command {
 
 	runStem = task.WithContext(
 		runStem,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

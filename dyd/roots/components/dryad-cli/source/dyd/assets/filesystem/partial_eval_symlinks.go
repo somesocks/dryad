@@ -1,6 +1,7 @@
 package fs2
 
 import (
+	"context"
 	"dryad/task"
 
 	"dryad/internal/filepath"
@@ -13,7 +14,7 @@ import (
 
 var PartialEvalSymlinks = func() task.Task[string, string] {
 
-	var partialEvalSymlinks = func(ctx *task.ExecutionContext, path string) (error, string) {
+	var partialEvalSymlinks = func(ctx context.Context, path string) (error, string) {
 		var existsPath string
 		var nonExistsPath string
 		var err error
@@ -53,7 +54,7 @@ var PartialEvalSymlinks = func() task.Task[string, string] {
 	}
 
 	partialEvalSymlinks = task.Series2(
-		func(ctx *task.ExecutionContext, path string) (error, string) {
+		func(ctx context.Context, path string) (error, string) {
 			zlog.Trace().
 				Str("path", path).
 				Msg("dydfs.PartialEvalSymlinks")

@@ -1,11 +1,14 @@
 package fs2
 
 import (
+	"context"
 	"dryad/internal/os"
 	"dryad/task"
+
 	// "errors"
 	"fmt"
 	"io/fs"
+
 	// "errors"
 	"dryad/internal/filepath"
 	"math/rand"
@@ -33,7 +36,7 @@ var Symlink task.Task[SymlinkRequest, SymlinkRequest] = func() task.Task[Symlink
 	// 	}
 	// }
 
-	var symlink = func(ctx *task.ExecutionContext, request SymlinkRequest) (error, SymlinkRequest) {
+	var symlink = func(ctx context.Context, request SymlinkRequest) (error, SymlinkRequest) {
 		var parentPath string = filepath.Dir(request.Path)
 		var err error
 
@@ -114,13 +117,13 @@ var Symlink task.Task[SymlinkRequest, SymlinkRequest] = func() task.Task[Symlink
 
 	symlink = WithFileLock(
 		symlink,
-		func(ctx *task.ExecutionContext, request SymlinkRequest) (error, string) {
+		func(ctx context.Context, request SymlinkRequest) (error, string) {
 			return nil, filepath.Dir(request.Path)
 		},
 	)
 
 	symlink = task.Series2(
-		func(ctx *task.ExecutionContext, req SymlinkRequest) (error, SymlinkRequest) {
+		func(ctx context.Context, req SymlinkRequest) (error, SymlinkRequest) {
 			zlog.Trace().
 				Str("path", req.Path).
 				Msg("dydfs.symlink")

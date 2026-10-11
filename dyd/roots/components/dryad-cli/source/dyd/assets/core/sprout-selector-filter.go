@@ -1,7 +1,7 @@
 package core
 
 import (
-	"dryad/task"
+	"context"
 	"errors"
 )
 
@@ -39,7 +39,7 @@ func sproutSelectorVariantsMatch(
 }
 
 func sproutSelectorTraitValue(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	sprout *SafeSproutReference,
 	traitPath string,
 ) (error, string, bool) {
@@ -68,7 +68,7 @@ func sproutSelectorTraitValue(
 }
 
 func qualifiedSelectorMatchesSproutDescriptor(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	selector qualifiedSelector,
 	sprout *SafeSproutReference,
 ) (error, bool) {
@@ -111,7 +111,7 @@ func qualifiedSelectorMatchesSproutDescriptor(
 }
 
 func qualifiedSelectorMatchesSprout(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	selector qualifiedSelector,
 	sprout *SafeSproutReference,
 ) (error, bool) {
@@ -142,7 +142,7 @@ func SproutSelectorFilter(request SelectorFilterRequest) (error, SproutFilter) {
 		return err, nil
 	}
 
-	return nil, func(ctx *task.ExecutionContext, sprout *SafeSproutReference) (error, bool) {
+	return nil, func(ctx context.Context, sprout *SafeSproutReference) (error, bool) {
 		matchesInclude := true
 		if len(includeSelectors) > 0 {
 			err, matchesInclude = qualifiedSelectorsMatchSprout(ctx, includeSelectors, sprout)

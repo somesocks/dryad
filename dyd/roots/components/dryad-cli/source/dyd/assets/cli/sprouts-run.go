@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/internal/filepath"
@@ -24,7 +25,7 @@ var sproutsRunCommand = func() clib.Command {
 		GardenPath           string
 		Parallel             int
 		Request              clib.ActionRequest
-		IncludeExcludeFilter func(*task.ExecutionContext, *dryad.SafeSproutReference) (error, bool)
+		IncludeExcludeFilter func(context.Context, *dryad.SafeSproutReference) (error, bool)
 		Confirm              string
 		Context              string
 		VariantDescriptor    string
@@ -145,7 +146,7 @@ var sproutsRunCommand = func() clib.Command {
 	)
 
 	var sproutsRunTargetsFromStdin = func(
-		ctx *task.ExecutionContext,
+		ctx context.Context,
 		args ParsedArgs,
 		sprouts *dryad.SafeSproutsReference,
 	) (error, bool, []sproutsRunTarget) {
@@ -217,7 +218,7 @@ var sproutsRunCommand = func() clib.Command {
 		return nil, true, targets
 	}
 
-	var runSprouts = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var runSprouts = func(ctx context.Context, args ParsedArgs) (error, any) {
 		unsafeGarden := dryad.Garden(args.GardenPath)
 
 		err, garden := unsafeGarden.Resolve(ctx)
@@ -256,7 +257,7 @@ var sproutsRunCommand = func() clib.Command {
 				err := sprouts.Walk(
 					ctx,
 					dryad.SproutsWalkRequest{
-						OnSprout: func(ctx *task.ExecutionContext, sprout *dryad.SafeSproutReference) (error, any) {
+						OnSprout: func(ctx context.Context, sprout *dryad.SafeSproutReference) (error, any) {
 							err, shouldMatch := args.IncludeExcludeFilter(ctx, sprout)
 							if err != nil {
 								return err, nil
@@ -317,7 +318,7 @@ var sproutsRunCommand = func() clib.Command {
 			env["TERM"] = os.Getenv("TERM")
 		}
 
-		runTarget := func(ctx *task.ExecutionContext, sprout *dryad.SafeSproutReference, variantDescriptor string) error {
+		runTarget := func(ctx context.Context, sprout *dryad.SafeSproutReference, variantDescriptor string) error {
 			variantSelectorLabel := variantDescriptor
 			if variantSelectorLabel == "" {
 				variantSelectorLabel = "default"
@@ -395,7 +396,7 @@ var sproutsRunCommand = func() clib.Command {
 		err = sprouts.Walk(
 			ctx,
 			dryad.SproutsWalkRequest{
-				OnSprout: func(ctx *task.ExecutionContext, sprout *dryad.SafeSproutReference) (error, any) {
+				OnSprout: func(ctx context.Context, sprout *dryad.SafeSproutReference) (error, any) {
 					err, shouldMatch := args.IncludeExcludeFilter(ctx, sprout)
 					if err != nil {
 						return err, nil
@@ -423,8 +424,8 @@ var sproutsRunCommand = func() clib.Command {
 
 	runSprouts = task.WithContext(
 		runSprouts,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

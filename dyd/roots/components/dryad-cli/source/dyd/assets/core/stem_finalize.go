@@ -1,15 +1,14 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
-
-	"dryad/task"
 )
 
 // stemFinalize takes a partial stem and generates any files needed,
 // such as fingerprints
-func stemFinalize(ctx *task.ExecutionContext, stemPath string) (error, string) {
+func stemFinalize(ctx context.Context, stemPath string) (error, string) {
 	var err error
 
 	// write the type file

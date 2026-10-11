@@ -1,7 +1,7 @@
 package core
 
 import (
-	"dryad/task"
+	"context"
 	"fmt"
 	"strings"
 )
@@ -55,7 +55,7 @@ func (root *SafeRootReference) VariantFromURL(
 }
 
 func (root *SafeRootReference) ResolveBuildVariantReferences(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req RootResolveBuildVariantsRequest,
 ) (error, []*SafeRootVariantReference) {
 	err, descriptors := root.ResolveBuildVariants(ctx, req)
@@ -77,7 +77,7 @@ func (root *SafeRootReference) ResolveBuildVariantReferences(
 }
 
 func (root *SafeRootReference) ResolveBuildVariantReference(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req RootResolveBuildVariantsRequest,
 ) (error, *SafeRootVariantReference) {
 	err, variants := root.ResolveBuildVariantReferences(ctx, req)

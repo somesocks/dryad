@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	"dryad/task"
 	"fmt"
@@ -36,7 +37,7 @@ var systemCommands = func() clib.Command {
 		App      clib.App
 	}
 
-	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx context.Context, req clib.ActionRequest) (error, ParsedArgs) {
 		var opts = req.Opts
 		var parallel int
 
@@ -52,7 +53,7 @@ var systemCommands = func() clib.Command {
 		}
 	}
 
-	var listCommands = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var listCommands = func(ctx context.Context, args ParsedArgs) (error, any) {
 		_appCommandsWalk(args.App, func(commands ...clib.Command) {
 			commandList := []string{"dryad"}
 
@@ -70,8 +71,8 @@ var systemCommands = func() clib.Command {
 
 	listCommands = task.WithContext(
 		listCommands,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

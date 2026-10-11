@@ -1,10 +1,10 @@
 package core
 
 import (
+	"context"
 	dydfs "dryad/filesystem"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"dryad/task"
 	"fmt"
 	"io/fs"
 	"regexp"
@@ -17,7 +17,7 @@ type rootCopyRequest struct {
 	Unpin  bool
 }
 
-type typeRootCopy = func(*task.ExecutionContext, rootCopyRequest) (error, *SafeRootReference)
+type typeRootCopy = func(context.Context, rootCopyRequest) (error, *SafeRootReference)
 
 var rootCopy typeRootCopy = func() typeRootCopy {
 
@@ -71,7 +71,7 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 	)
 
 	// don't crawl symlinks
-	var shouldWalk = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	var shouldWalk = func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
 		if relErr != nil {
 			return relErr, false
@@ -84,7 +84,7 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 		return nil, _ROOT_COPY_CRAWL_INCLUDE_REGEXP.Match([]byte(relPath))
 	}
 
-	var shouldMatch = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	var shouldMatch = func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
 		if relErr != nil {
 			return relErr, false
@@ -95,14 +95,14 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 		return nil, res
 	}
 
-	var copyDir = func(ctx *task.ExecutionContext, path string, mode fs.FileMode) error {
+	var copyDir = func(ctx context.Context, path string, mode fs.FileMode) error {
 		// for a directory, make a new dir
 		var err = os.MkdirAll(path, mode)
 		return err
 	}
 
 	var copySymlink = func(
-		ctx *task.ExecutionContext,
+		ctx context.Context,
 		basePath string,
 		sourcePath string,
 		destPath string,
@@ -163,7 +163,7 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 		return err
 	}
 
-	var copyFile = func(ctx *task.ExecutionContext, sourcePath string, sourceMode fs.FileMode, destPath string) error {
+	var copyFile = func(ctx context.Context, sourcePath string, sourceMode fs.FileMode, destPath string) error {
 		// for a file, copy contents
 
 		srcFile, err := os.Open(sourcePath)
@@ -198,7 +198,7 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 			strings.HasPrefix(relPath, "dyd/requirements~")
 	}
 
-	var rootCopy = func(ctx *task.ExecutionContext, req rootCopyRequest) (error, *SafeRootReference) {
+	var rootCopy = func(ctx context.Context, req rootCopyRequest) (error, *SafeRootReference) {
 		var sourcePath string = req.Source.BasePath
 		var destPath string = req.Dest.BasePath
 		var err error
@@ -208,7 +208,7 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 			return fmt.Errorf("source and destination roots are not in same garden"), nil
 		}
 
-		onMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+		onMatch := func(ctx context.Context, node dydfs.Walk6Node) (error, any) {
 			var relPath, relErr = filepath.Rel(node.BasePath, node.Path)
 			if relErr != nil {
 				return relErr, nil
@@ -275,7 +275,7 @@ var rootCopy typeRootCopy = func() typeRootCopy {
 			ctx,
 			RootWalkAllRequirementsRequest{
 				OnMatch: func(
-					ctx *task.ExecutionContext,
+					ctx context.Context,
 					requirement *SafeRootRequirementReference,
 				) (error, any) {
 					relRequirementsPath, err := filepath.Rel(req.Source.BasePath, requirement.Requirements.BasePath)
@@ -317,7 +317,7 @@ type RootCopyRequest struct {
 	Unpin bool
 }
 
-func (root *SafeRootReference) Copy(ctx *task.ExecutionContext, req RootCopyRequest) (error, *SafeRootReference) {
+func (root *SafeRootReference) Copy(ctx context.Context, req RootCopyRequest) (error, *SafeRootReference) {
 	err, res := rootCopy(
 		ctx,
 		rootCopyRequest{

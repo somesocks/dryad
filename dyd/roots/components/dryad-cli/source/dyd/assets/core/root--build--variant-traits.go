@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
@@ -12,7 +13,7 @@ import (
 )
 
 func rootBuild_materializeVariantTraits(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	rootPath string,
 	traitsSourcePath string,
 	workspacePath string,

@@ -2,8 +2,8 @@ package core
 
 import (
 	// fs2 "dryad/filesystem"
+	"context"
 	"dryad/internal/os"
-	"dryad/task"
 
 	// "os"
 	"dryad/internal/filepath"
@@ -17,7 +17,7 @@ type RootRequirementCopyRequest struct {
 }
 
 func (rootRequirement *SafeRootRequirementReference) Copy(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req RootRequirementCopyRequest,
 ) (error, *SafeRootRequirementReference) {
 	err, targetSpec := rootRequirement.TargetSpec(ctx)

@@ -3,7 +3,7 @@ package core
 import (
 	// "dryad/internal/filepath"
 
-	"dryad/task"
+	"context"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -24,7 +24,7 @@ type rootsBuildRequest struct {
 	}
 }
 
-func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, any) {
+func rootsBuild(ctx context.Context, request rootsBuildRequest) (error, any) {
 	var err error
 	var sprouts *SafeSproutsReference
 
@@ -43,7 +43,7 @@ func rootsBuild(ctx *task.ExecutionContext, request rootsBuildRequest) (error, a
 		return err, nil
 	}
 
-	var buildRoot = func(ctx *task.ExecutionContext, root *SafeRootReference) (error, any) {
+	var buildRoot = func(ctx context.Context, root *SafeRootReference) (error, any) {
 		err, variantSelectorDescriptor := normalizeRootBuildVariantDescriptor(request.VariantDescriptor)
 		if err != nil {
 			return err, nil
@@ -121,7 +121,7 @@ type RootsBuildRequest struct {
 	}
 }
 
-func (roots *SafeRootsReference) Build(ctx *task.ExecutionContext, req RootsBuildRequest) error {
+func (roots *SafeRootsReference) Build(ctx context.Context, req RootsBuildRequest) error {
 	err, _ := rootsBuild(
 		ctx,
 		rootsBuildRequest{

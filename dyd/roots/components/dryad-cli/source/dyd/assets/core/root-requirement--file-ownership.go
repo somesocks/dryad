@@ -1,10 +1,10 @@
 package core
 
 import (
+	"context"
 	dydfs "dryad/filesystem"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"dryad/task"
 )
 
 type RootFileRequirementOwner struct {
@@ -12,7 +12,7 @@ type RootFileRequirementOwner struct {
 	Variant  VariantDescriptor
 }
 
-func rootRequirementFilePathIgnored(ctx *task.ExecutionContext, sourcePath string, path string) (error, bool) {
+func rootRequirementFilePathIgnored(ctx context.Context, sourcePath string, path string) (error, bool) {
 	info, err := os.Lstat(path)
 	isDir := false
 	if err == nil {
@@ -31,7 +31,7 @@ func rootRequirementFilePathIgnored(ctx *task.ExecutionContext, sourcePath strin
 	return matcher.Match(dydfs.NewGlobPath(path, isDir))
 }
 
-func rootRequirementFileDirectoryOwnsPath(ctx *task.ExecutionContext, sourcePath string, changedPath string) (error, bool) {
+func rootRequirementFileDirectoryOwnsPath(ctx context.Context, sourcePath string, changedPath string) (error, bool) {
 	err, isWithin := rootRequirementFileIsWithin(sourcePath, changedPath)
 	if err != nil {
 		return err, false
@@ -50,7 +50,7 @@ func rootRequirementFileDirectoryOwnsPath(ctx *task.ExecutionContext, sourcePath
 	return nil, false
 }
 
-func rootRequirementFileOwnsPath(ctx *task.ExecutionContext, targetSpec *RootRequirementTargetSpec, changedPath string) (error, bool) {
+func rootRequirementFileOwnsPath(ctx context.Context, targetSpec *RootRequirementTargetSpec, changedPath string) (error, bool) {
 	sourcePath, err := filepath.Abs(targetSpec.FileSourcePath)
 	if err != nil {
 		return err, false
@@ -77,15 +77,15 @@ func rootRequirementFileOwnsPath(ctx *task.ExecutionContext, targetSpec *RootReq
 	return rootAffected_pathWithin(sourcePath, changedPath)
 }
 
-func (roots *SafeRootsReference) FileRequirementOwners(ctx *task.ExecutionContext, changedPath string) (error, []RootFileRequirementOwner) {
+func (roots *SafeRootsReference) FileRequirementOwners(ctx context.Context, changedPath string) (error, []RootFileRequirementOwner) {
 	owners := []RootFileRequirementOwner{}
 	err := roots.WalkVariants(ctx, RootsWalkVariantsRequest{
-		OnMatch: func(ctx *task.ExecutionContext, variant *SafeRootVariantReference) (error, any) {
+		OnMatch: func(ctx context.Context, variant *SafeRootVariantReference) (error, any) {
 			if variant.Requirements == nil {
 				return nil, nil
 			}
 			err := variant.Requirements.Walk(ctx, RootRequirementsWalkRequest{
-				OnMatch: func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
+				OnMatch: func(ctx context.Context, requirement *SafeRootRequirementReference) (error, any) {
 					err, requirementName, condition := rootRequirementParseName(filepath.Base(requirement.BasePath))
 					if err != nil {
 						return err, nil

@@ -1,39 +1,75 @@
 package task
 
 import (
+	"context"
+	"errors"
 	"sync"
 )
 
-type ExecutionContext struct {
-	ConcurrencyChannel chan struct{}
-	ExecutionCache sync.Map
+type contextKey uint8
+
+const (
+	semaphoreKey contextKey = iota
+	cacheRegistryKey
+)
+
+var (
+	ErrMissingSemaphore     = errors.New("task: context has no semaphore; configure it with task.WithConcurrency or task.NewContext")
+	ErrMissingCacheRegistry = errors.New("task: context has no cache registry; configure it with task.WithCache or task.NewContext")
+)
+
+var DEFAULT_CONTEXT = NewContext(context.Background(), 16)
+var SERIAL_CONTEXT = NewContext(context.Background(), 1)
+
+// NewContext attaches a semaphore and an empty memoizer cache registry to parent.
+func NewContext(parent context.Context, parallel int) context.Context {
+	return WithCache(WithConcurrency(parent, parallel))
 }
 
-var DEFAULT_CONTEXT = &ExecutionContext{
-	ConcurrencyChannel: make(chan struct{}, 15),
+// WithCache derives a context with a fresh memoizer cache registry. It inherits
+// the parent's semaphore, values, deadline, and cancellation. Memoizers share
+// their individual caches within this registry; the parent's caches are unchanged.
+func WithCache(parent context.Context) context.Context {
+	return context.WithValue(parent, cacheRegistryKey, new(sync.Map))
 }
 
-var SERIAL_CONTEXT = &ExecutionContext{
-	ConcurrencyChannel: make(chan struct{}, 0),
+// WithConcurrency derives a context with a fresh semaphore and inherits the
+// parent's cache registry, values, deadline, and cancellation. The calling
+// goroutine provides one execution slot; the channel bounds additional goroutines.
+func WithConcurrency(parent context.Context, concurrency int) context.Context {
+	if concurrency < 1 {
+		panic("task: concurrency must be at least 1")
+	}
+	return context.WithValue(parent, semaphoreKey, make(chan struct{}, concurrency-1))
+}
+
+func semaphore(ctx context.Context) (chan struct{}, error) {
+	if ctx != nil {
+		if channel, ok := ctx.Value(semaphoreKey).(chan struct{}); ok && channel != nil {
+			return channel, nil
+		}
+	}
+	return nil, ErrMissingSemaphore
+}
+
+func cacheRegistry(ctx context.Context) (*sync.Map, error) {
+	if ctx != nil {
+		if registry, ok := ctx.Value(cacheRegistryKey).(*sync.Map); ok && registry != nil {
+			return registry, nil
+		}
+	}
+	return nil, ErrMissingCacheRegistry
 }
 
 func WithContext[A any, B any](
 	task Task[A, B],
-	context Task[A, *ExecutionContext],
+	getContext Task[A, context.Context],
 ) Task[A, B] {
-	return func (ctx *ExecutionContext, a A) (error, B) {
-		err, ctx2 := context(ctx, a)
+	return func(ctx context.Context, a A) (error, B) {
+		err, next := getContext(ctx, a)
 		if err != nil {
 			return err, empty[B]()
 		}
-		return task(ctx2, a);
-	}
-}
-
-func NewContext (
-	parallel int,
-) *ExecutionContext {
-	return &ExecutionContext{
-		ConcurrencyChannel: make(chan struct{}, parallel - 1),
+		return task(next, a)
 	}
 }

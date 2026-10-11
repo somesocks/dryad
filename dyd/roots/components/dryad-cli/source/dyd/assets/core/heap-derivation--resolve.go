@@ -1,8 +1,8 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/os"
-	"dryad/task"
 	"errors"
 	"io/fs"
 
@@ -14,7 +14,7 @@ import (
 
 var ErrUnresolvableHeapDerivation = errors.New("unable to resolve derivation")
 
-func (heapDerivation *UnsafeHeapDerivationReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapDerivationReference) {
+func (heapDerivation *UnsafeHeapDerivationReference) Resolve(ctx context.Context) (error, *SafeHeapDerivationReference) {
 	var err error
 	var safeRef SafeHeapDerivationReference
 	var derivationPath string

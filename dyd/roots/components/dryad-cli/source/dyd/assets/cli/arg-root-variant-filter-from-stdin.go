@@ -2,15 +2,15 @@ package cli
 
 import (
 	"bufio"
+	"context"
 	clib "dryad/cli-builder"
 	"dryad/core"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"dryad/task"
 )
 
 var ArgRootVariantFilterFromStdin = func(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req clib.ActionRequest,
 ) (error, core.RootVariantFilter) {
 	options := req.Opts
@@ -21,7 +21,7 @@ var ArgRootVariantFilterFromStdin = func(
 	}
 
 	if !fromStdin {
-		return nil, func(ctx *task.ExecutionContext, variant *core.SafeRootVariantReference) (error, bool) {
+		return nil, func(ctx context.Context, variant *core.SafeRootVariantReference) (error, bool) {
 			return nil, true
 		}
 	}
@@ -80,7 +80,7 @@ var ArgRootVariantFilterFromStdin = func(
 		return err, nil
 	}
 
-	return nil, func(ctx *task.ExecutionContext, variant *core.SafeRootVariantReference) (error, bool) {
+	return nil, func(ctx context.Context, variant *core.SafeRootVariantReference) (error, bool) {
 		err, variantURL := variant.URL()
 		if err != nil {
 			return err, false

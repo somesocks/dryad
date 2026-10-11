@@ -1,81 +1,81 @@
 package task
 
 import (
+	"context"
 	"sync"
-	"sync/atomic"
-	// zlog "github.com/rs/zerolog/log"
-	// "encoding/json"
 )
 
-func onceWrapper[A any, B any](
-	task Task[A, B],
-) Task[A, B] {
-	var done atomic.Bool
-	var mutex sync.Mutex
-
-	var err error
-	var res B
-
-	var execute = func (ctx *ExecutionContext, req A) {
-		mutex.Lock()
-		defer mutex.Unlock()
-		if done.Load() == false {
-			defer done.Store(true)
-			err, res = task(ctx, req)
-		}
-	}
-
-	return func (ctx *ExecutionContext, req A) (error, B) {
-		if done.Load() == false {
-			execute(ctx, req)	
-		}
-		return err, res
-	}
-
+// A non-zero-sized identity keeps distinct memoizer instances distinct, even
+// when their argument/result types and request keys are identical.
+type memoizerIdentity struct {
+	marker byte
 }
 
-func Memoize[A any, B any](
-	task Task[A, B],
-	keyFunc Task[A, any],
-) Task[A, B] {
-	return func (ctx *ExecutionContext, req A) (error, B) {
-		var err error
-		var key any
-		var res B
-		
-		err, key = keyFunc(ctx, req)
-		if err != nil {
-			return err, res
-		}
-
-		var cachedTask any 
-		var hasCachedTask bool
-		cachedTask, hasCachedTask = ctx.ExecutionCache.Load(key)
-		// zlog.Trace().
-		// 	Str("memoGroup", group).
-		// 	Bool("hasCachedTask", hasCachedTask).
-		// 	Str("request", string(jsonReq)).
-		// 	Msg("memogroup load")
-		if !hasCachedTask {
-			cachedTask, hasCachedTask = ctx.ExecutionCache.LoadOrStore(key, onceWrapper(task)) 
-			// zlog.Trace().
-			// 	Str("memoGroup", group).
-			// 	Bool("hasCachedTask", hasCachedTask).
-			// 	Str("request", string(jsonReq)).
-			// 	Msg("memogroup updated")
-		}
-
-		err, res = cachedTask.(Task[A, B])(ctx, req)
-
-		// var jsonReq, _ = json.Marshal(req)
-		// var jsonRes, _ = json.Marshal(res)
-
-		// zlog.Info().
-		// 	Str("memoGroup", group).
-		// 	Bool("hasCachedTask", hasCachedTask).
-		// 	Str("request", string(jsonReq)).
-		// 	Str("result", string(jsonRes)).
-		// 	Msg("memogroup updated")
+func onceWrapper[A any, B any](task Task[A, B]) Task[A, B] {
+	var once sync.Once
+	var err error
+	var res B
+	return func(ctx context.Context, req A) (error, B) {
+		once.Do(func() { err, res = task(ctx, req) })
 		return err, res
 	}
+}
+
+func Memoize[A any, B any](task Task[A, B], keyFunc Task[A, any]) Task[A, B] {
+	memoized, _ := MemoizeWithInvalidation(task, keyFunc)
+	return memoized
+}
+
+// MemoizeWithInvalidation returns a memoized task and an instance-bound task
+// that deletes the cached execution for a request. Each memoizer owns a separate
+// cache in the execution context's registry, allocated lazily on first use.
+// Cached executions are retained until invalidation or release of the registry.
+func MemoizeWithInvalidation[A any, B any](
+	task Task[A, B],
+	keyFunc Task[A, any],
+) (Task[A, B], Task[A, any]) {
+	identity := new(memoizerIdentity)
+
+	getCache := func(ctx context.Context) (*sync.Map, error) {
+		registry, err := cacheRegistry(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if cache, ok := registry.Load(identity); ok {
+			return cache.(*sync.Map), nil
+		}
+		cache, _ := registry.LoadOrStore(identity, new(sync.Map))
+		return cache.(*sync.Map), nil
+	}
+
+	memoized := func(ctx context.Context, req A) (error, B) {
+		cache, err := getCache(ctx)
+		if err != nil {
+			return err, empty[B]()
+		}
+		err, key := keyFunc(ctx, req)
+		if err != nil {
+			return err, empty[B]()
+		}
+		cached, ok := cache.Load(key)
+		if !ok {
+			cached, _ = cache.LoadOrStore(key, onceWrapper(task))
+		}
+		return cached.(Task[A, B])(ctx, req)
+	}
+
+	invalidate := func(ctx context.Context, req A) (error, any) {
+		cache, err := getCache(ctx)
+		if err != nil {
+			return err, nil
+		}
+		err, key := keyFunc(ctx, req)
+		if err != nil {
+			return err, nil
+		}
+		cache.Delete(key)
+		return nil, nil
+	}
+
+	return memoized, invalidate
 }

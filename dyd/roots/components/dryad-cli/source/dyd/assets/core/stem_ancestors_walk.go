@@ -1,13 +1,15 @@
 package core
 
 import (
+	"context"
 	fs2 "dryad/filesystem"
 	"dryad/task"
 
 	// "os"
 	"dryad/internal/filepath"
-	zlog "github.com/rs/zerolog/log"
 	"regexp"
+
+	zlog "github.com/rs/zerolog/log"
 )
 
 var RE_STEM_ANCESTORS_SHOULD_CRAWL = regexp.MustCompile(
@@ -24,12 +26,12 @@ var RE_STEM_ANCESTORS_SHOULD_CRAWL = regexp.MustCompile(
 
 // should walk
 
-func stemAncestorsShouldWalk() func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
+func stemAncestorsShouldWalk() func(ctx context.Context, node fs2.Walk6Node) (error, bool) {
 
 	var crawlMap = make(map[string]bool)
 
 	// - if the vpath matches the pattern then yes
-	return func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
+	return func(ctx context.Context, node fs2.Walk6Node) (error, bool) {
 		// don't crawl a path that's already been crawled
 		if _, seen := crawlMap[node.Path]; seen {
 			return nil, false
@@ -64,7 +66,7 @@ var stemAncestorsShouldMatch fs2.WalkDecision = func() fs2.WalkDecision {
 			")$",
 	)
 
-	shouldMatch := func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
+	shouldMatch := func(ctx context.Context, node fs2.Walk6Node) (error, bool) {
 
 		var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
 		if relErr != nil {
@@ -97,7 +99,7 @@ func StemAncestorsWalk(args StemAncestorsWalkRequest) error {
 
 	self := args.Self
 	seen := 0
-	onMatch := func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, any) {
+	onMatch := func(ctx context.Context, node fs2.Walk6Node) (error, any) {
 		// skip the first match if we don't want to see ourselves
 		seen += 1
 		if !self && (seen == 1) {

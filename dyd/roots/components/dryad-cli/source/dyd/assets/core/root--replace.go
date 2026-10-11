@@ -1,9 +1,8 @@
 package core
 
-import (
-	"dryad/task"
-	// zlog "github.com/rs/zerolog/log"
-)
+import "context"
+
+// zlog "github.com/rs/zerolog/log"
 
 type RootReplaceRequest struct {
 	Filter RootVariantFilter
@@ -11,15 +10,15 @@ type RootReplaceRequest struct {
 	Dest   RootReplaceTargetSpec
 }
 
-func (root *SafeRootReference) Replace(ctx *task.ExecutionContext, request RootReplaceRequest) error {
+func (root *SafeRootReference) Replace(ctx context.Context, request RootReplaceRequest) error {
 	filter := request.Filter
 	if filter == nil {
-		filter = func(*task.ExecutionContext, *SafeRootVariantReference) (error, bool) {
+		filter = func(context.Context, *SafeRootVariantReference) (error, bool) {
 			return nil, true
 		}
 	}
 
-	var onRootRequirement = func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
+	var onRootRequirement = func(ctx context.Context, requirement *SafeRootRequirementReference) (error, any) {
 		var targetSpec *RootRequirementTargetSpec
 		var err error
 
@@ -46,7 +45,7 @@ func (root *SafeRootReference) Replace(ctx *task.ExecutionContext, request RootR
 		return nil, nil
 	}
 
-	var onRoot = func(ctx *task.ExecutionContext, candidateRoot *SafeRootReference) (error, any) {
+	var onRoot = func(ctx context.Context, candidateRoot *SafeRootReference) (error, any) {
 		err, variants := candidateRoot.ResolveBuildVariantReferences(
 			ctx,
 			RootResolveBuildVariantsRequest{},
@@ -81,7 +80,7 @@ func (root *SafeRootReference) Replace(ctx *task.ExecutionContext, request RootR
 		err = candidateRoot.WalkAllRequirements(
 			ctx,
 			RootWalkAllRequirementsRequest{
-				OnMatch: func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
+				OnMatch: func(ctx context.Context, requirement *SafeRootRequirementReference) (error, any) {
 					if _, exists := selectedRequirementsPaths[requirement.Requirements.BasePath]; !exists {
 						return nil, nil
 					}

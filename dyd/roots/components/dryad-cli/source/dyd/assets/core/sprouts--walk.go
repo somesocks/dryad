@@ -1,21 +1,21 @@
 package core
 
 import (
+	"context"
 	fs2 "dryad/filesystem"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"dryad/task"
 	"io/ioutil"
 	"strings"
 )
 
-var sproutsWalk_ShouldWalk = func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
+var sproutsWalk_ShouldWalk = func(ctx context.Context, node fs2.Walk6Node) (error, bool) {
 	isSymlink := node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
 	isDir := node.Info.IsDir()
 	return nil, isDir && !isSymlink
 }
 
-var sproutsWalk_ShouldMatch = func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
+var sproutsWalk_ShouldMatch = func(ctx context.Context, node fs2.Walk6Node) (error, bool) {
 	typePath := filepath.Join(node.Path, "dyd", "type")
 	typeRaw, err := ioutil.ReadFile(typePath)
 	if err == nil {
@@ -35,12 +35,12 @@ var sproutsWalk_ShouldMatch = func(ctx *task.ExecutionContext, node fs2.Walk6Nod
 
 type sproutsWalkRequest struct {
 	Sprouts  *SafeSproutsReference
-	OnSprout func(*task.ExecutionContext, *SafeSproutReference) (error, any)
+	OnSprout func(context.Context, *SafeSproutReference) (error, any)
 }
 
-func sproutsWalk(ctx *task.ExecutionContext, req sproutsWalkRequest) (error, any) {
+func sproutsWalk(ctx context.Context, req sproutsWalkRequest) (error, any) {
 
-	var onMatch = func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, any) {
+	var onMatch = func(ctx context.Context, node fs2.Walk6Node) (error, any) {
 		var unsafeRef = UnsafeSproutReference{
 			BasePath: node.Path,
 			Sprouts:  req.Sprouts,
@@ -85,11 +85,11 @@ func sproutsWalk(ctx *task.ExecutionContext, req sproutsWalkRequest) (error, any
 }
 
 type SproutsWalkRequest struct {
-	OnSprout func(*task.ExecutionContext, *SafeSproutReference) (error, any)
+	OnSprout func(context.Context, *SafeSproutReference) (error, any)
 }
 
 func (sprouts *SafeSproutsReference) Walk(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req SproutsWalkRequest,
 ) error {
 	err, _ := sproutsWalk(

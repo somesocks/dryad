@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	"dryad/internal/os"
 	"dryad/task"
@@ -17,7 +18,7 @@ var rootDevelopStatusCommand = func() clib.Command {
 		Parallel int
 	}
 
-	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx context.Context, req clib.ActionRequest) (error, ParsedArgs) {
 		var opts = req.Opts
 		var parallel int
 
@@ -32,7 +33,7 @@ var rootDevelopStatusCommand = func() clib.Command {
 		}
 	}
 
-	var runStatus = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var runStatus = func(ctx context.Context, args ParsedArgs) (error, any) {
 		socketPath := os.Getenv("DYD_DEV_SOCKET")
 		if socketPath == "" {
 			return errDevSocketNotSet, nil
@@ -59,8 +60,8 @@ var rootDevelopStatusCommand = func() clib.Command {
 
 	runStatus = task.WithContext(
 		runStatus,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

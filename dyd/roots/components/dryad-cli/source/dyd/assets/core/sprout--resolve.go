@@ -1,16 +1,16 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"dryad/task"
 
 	"errors"
 	"strings"
 	// zlog "github.com/rs/zerolog/log"
 )
 
-func sproutPath(ctx *task.ExecutionContext, path string, limit string) (error, string) {
+func sproutPath(ctx context.Context, path string, limit string) (error, string) {
 	var workingPath string = path
 
 	var dydPath = filepath.Join(workingPath, "dyd")
@@ -30,7 +30,7 @@ func sproutPath(ctx *task.ExecutionContext, path string, limit string) (error, s
 	return errors.New("dyd sprout path not found"), ""
 }
 
-func (sprout *UnsafeSproutReference) Resolve(ctx *task.ExecutionContext) (error, *SafeSproutReference) {
+func (sprout *UnsafeSproutReference) Resolve(ctx context.Context) (error, *SafeSproutReference) {
 	var basePath string = sprout.BasePath
 	var err error
 	var res SafeSproutReference

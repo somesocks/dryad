@@ -1,17 +1,14 @@
-
 package core
 
-import (
-	// fs2 "dryad/filesystem"
-	"dryad/task"
+import "context"
 
-	// "os"
+// fs2 "dryad/filesystem"
 
-	// "errors"
-	// zlog "github.com/rs/zerolog/log"
-)
+// "os"
+// "errors"
+// zlog "github.com/rs/zerolog/log"
 
-func (rootRequirement *UnsafeRootRequirementReference) Resolve(ctx * task.ExecutionContext) (error, *SafeRootRequirementReference) {
+func (rootRequirement *UnsafeRootRequirementReference) Resolve(ctx context.Context) (error, *SafeRootRequirementReference) {
 	var rootRequirementExists bool
 	var err error
 	var safeRef SafeRootRequirementReference
@@ -26,9 +23,9 @@ func (rootRequirement *UnsafeRootRequirementReference) Resolve(ctx * task.Execut
 	}
 
 	safeRef = SafeRootRequirementReference{
-		BasePath: rootRequirement.BasePath,
+		BasePath:     rootRequirement.BasePath,
 		Requirements: rootRequirement.Requirements,
 	}
 
-	return nil, &safeRef 
+	return nil, &safeRef
 }

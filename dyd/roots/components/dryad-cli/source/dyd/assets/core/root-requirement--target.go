@@ -1,9 +1,9 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"dryad/task"
 	"fmt"
 	"net/url"
 	"strings"
@@ -54,7 +54,7 @@ func rootRequirementVariantSelectorFromURL(linkURL *url.URL) (error, VariantDesc
 	return variantDescriptorParseURL(selectorRaw)
 }
 
-func (rootRequirement *SafeRootRequirementReference) TargetSpec(ctx *task.ExecutionContext) (error, *RootRequirementTargetSpec) {
+func (rootRequirement *SafeRootRequirementReference) TargetSpec(ctx context.Context) (error, *RootRequirementTargetSpec) {
 	linkInfo := rootRequirement.fileInfo
 	if linkInfo == nil {
 		var err error
@@ -205,7 +205,7 @@ func (rootRequirement *SafeRootRequirementReference) TargetSpec(ctx *task.Execut
 	}
 }
 
-func (rootRequirement *SafeRootRequirementReference) Target(ctx *task.ExecutionContext) (error, *SafeRootReference) {
+func (rootRequirement *SafeRootRequirementReference) Target(ctx context.Context) (error, *SafeRootReference) {
 	err, targetSpec := rootRequirement.TargetSpec(ctx)
 	if err != nil {
 		return err, nil

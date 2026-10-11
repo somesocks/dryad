@@ -1,9 +1,9 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"dryad/task"
 	"fmt"
 	"io"
 	"sort"
@@ -180,7 +180,7 @@ func rootBuild_considerSelectorMatch(
 }
 
 func rootVariant_resolveConcreteDescriptor(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	variant *UnsafeRootVariantReference,
 ) (error, VariantDescriptor, []VariantDimension) {
 	err, normalizedDescriptor := normalizeVariantDescriptor(variant.Descriptor)
@@ -244,7 +244,7 @@ func rootVariant_resolveConcreteDescriptor(
 }
 
 func rootVariant_resolveSelectedPathValues(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	root *SafeRootReference,
 	concreteDescriptor VariantDescriptor,
 	dimensions []VariantDimension,
@@ -400,7 +400,7 @@ func rootVariant_resolveSelectedPathValues(
 }
 
 func (variant *UnsafeRootVariantReference) Resolve(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 ) (error, *SafeRootVariantReference) {
 	err, concreteDescriptor, dimensions := rootVariant_resolveConcreteDescriptor(ctx, variant)
 	if err != nil {

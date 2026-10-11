@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	dydfs "dryad/filesystem"
 	"dryad/task"
 
@@ -45,19 +46,13 @@ func rootDevelop_unfreezeMode(relPath string, mode fs.FileMode) fs.FileMode {
 }
 
 func rootDevelop_copyDirFromStem(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	srcPath string,
 	destPath string,
 	relBase string,
 ) error {
 	var err error
-
-	if ctx == nil {
-		ctx = task.DEFAULT_CONTEXT
-	}
-	ctx = &task.ExecutionContext{
-		ConcurrencyChannel: ctx.ConcurrencyChannel,
-	}
+	ctx = task.WithCache(ctx)
 
 	srcPath, err = filepath.Abs(srcPath)
 	if err != nil {
@@ -77,7 +72,7 @@ func rootDevelop_copyDirFromStem(
 		return err
 	}
 
-	shouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	shouldWalk := func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		if node.Info == nil {
 			return nil, false
 		}
@@ -90,7 +85,7 @@ func rootDevelop_copyDirFromStem(
 		return nil, true
 	}
 
-	onCopy := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+	onCopy := func(ctx context.Context, node dydfs.Walk6Node) (error, any) {
 		relPath, err := filepath.Rel(srcPath, node.VPath)
 		if err != nil {
 			return err, nil
@@ -151,19 +146,14 @@ func rootDevelop_copyDirFromStem(
 }
 
 func rootDevelop_copyDir(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	srcPath string,
 	destPath string,
 	options rootDevelopCopyOptions,
 ) error {
 	var err error
 
-	if ctx == nil {
-		ctx = task.DEFAULT_CONTEXT
-	}
-	ctx = &task.ExecutionContext{
-		ConcurrencyChannel: ctx.ConcurrencyChannel,
-	}
+	ctx = task.WithCache(ctx)
 
 	srcPath, err = filepath.Abs(srcPath)
 	if err != nil {
@@ -183,7 +173,7 @@ func rootDevelop_copyDir(
 		return err
 	}
 
-	shouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	shouldWalk := func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		if node.Info == nil {
 			return nil, false
 		}
@@ -216,7 +206,7 @@ func rootDevelop_copyDir(
 		return nil, true
 	}
 
-	onCopy := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+	onCopy := func(ctx context.Context, node dydfs.Walk6Node) (error, any) {
 		relPath, err := filepath.Rel(srcPath, node.VPath)
 		if err != nil {
 			return err, nil

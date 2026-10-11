@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	dydfs "dryad/filesystem"
@@ -67,7 +68,7 @@ var rootReplaceCommand = func() clib.Command {
 		}
 	}
 
-	var parseArgs = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs = func(ctx context.Context, req clib.ActionRequest) (error, ParsedArgs) {
 		var args = req.Args
 		var options = req.Opts
 
@@ -127,7 +128,7 @@ var rootReplaceCommand = func() clib.Command {
 		}
 	}
 
-	var replaceRoot = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var replaceRoot = func(ctx context.Context, args ParsedArgs) (error, any) {
 		err, garden := dryad.Garden(args.SourcePath).Resolve(ctx)
 		if err != nil {
 			return err, nil
@@ -173,8 +174,8 @@ var rootReplaceCommand = func() clib.Command {
 
 	replaceRoot = task.WithContext(
 		replaceRoot,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

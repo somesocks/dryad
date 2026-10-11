@@ -1,6 +1,6 @@
 package core
 
-import "dryad/task"
+import "context"
 
 func rootSelectorVariantDimensionsByName(dimensions []VariantDimension) map[string]struct{} {
 	dimensionsByName := map[string]struct{}{}
@@ -11,7 +11,7 @@ func rootSelectorVariantDimensionsByName(dimensions []VariantDimension) map[stri
 }
 
 func rootSelectorTraitValue(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	variant *SafeRootVariantReference,
 	traitPath string,
 ) (error, string, bool) {
@@ -41,7 +41,7 @@ func rootSelectorTraitValue(
 }
 
 func qualifiedSelectorMatchesRootVariantDescriptor(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	selector qualifiedSelector,
 	variant *SafeRootVariantReference,
 ) (error, bool) {
@@ -90,7 +90,7 @@ func qualifiedSelectorMatchesRootVariantDescriptor(
 }
 
 func qualifiedSelectorMatchesRootVariant(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	selector qualifiedSelector,
 	variant *SafeRootVariantReference,
 ) (error, bool) {
@@ -121,7 +121,7 @@ func RootVariantSelectorFilter(request SelectorFilterRequest) (error, RootVarian
 		return err, nil
 	}
 
-	return nil, func(ctx *task.ExecutionContext, variant *SafeRootVariantReference) (error, bool) {
+	return nil, func(ctx context.Context, variant *SafeRootVariantReference) (error, bool) {
 		matchesInclude := true
 		if len(includeSelectors) > 0 {
 			err, matchesInclude = qualifiedSelectorsMatchRootVariant(ctx, includeSelectors, variant)

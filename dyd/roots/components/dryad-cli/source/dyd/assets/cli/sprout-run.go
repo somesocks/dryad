@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/internal/filepath"
@@ -172,7 +173,7 @@ var sproutRunCommand = func() clib.Command {
 				},
 			)
 
-			var runSprout = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+			var runSprout = func(ctx context.Context, args ParsedArgs) (error, any) {
 				// if confirm is set, we want to print the list
 				// of sprouts to run
 				if args.Confirm != "" {
@@ -278,8 +279,8 @@ var sproutRunCommand = func() clib.Command {
 
 			runSprout = task.WithContext(
 				runSprout,
-				func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-					return nil, task.NewContext(args.Parallel)
+				func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+					return nil, task.NewContext(ctx, args.Parallel)
 				},
 			)
 

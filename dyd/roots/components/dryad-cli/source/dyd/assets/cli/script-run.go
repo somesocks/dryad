@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/internal/os"
@@ -65,7 +66,7 @@ var scriptRunAction = func(req clib.ActionRequest) int {
 		},
 	)
 
-	var runScript = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var runScript = func(ctx context.Context, args ParsedArgs) (error, any) {
 		unsafeGarden := dryad.Garden(args.GardenPath)
 
 		err, garden := unsafeGarden.Resolve(ctx)
@@ -120,8 +121,8 @@ var scriptRunAction = func(req clib.ActionRequest) int {
 
 	runScript = task.WithContext(
 		runScript,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

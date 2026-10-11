@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/internal/os"
@@ -26,7 +27,7 @@ var ScopedCommand = func(
 
 		unsafeGarden := dryad.Garden("")
 
-		ctx := task.NewContext(parallel)
+		ctx := task.NewContext(context.Background(), parallel)
 		err, garden := unsafeGarden.Resolve(ctx)
 		if err != nil {
 			return 1

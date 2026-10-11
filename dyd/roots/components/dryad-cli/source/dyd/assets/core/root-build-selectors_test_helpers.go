@@ -1,9 +1,9 @@
 package core
 
-import "dryad/task"
+import "context"
 
 func rootBuild_selectAssetsPathForTest(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
@@ -21,7 +21,7 @@ func rootBuild_selectAssetsPathForTest(
 }
 
 func rootBuild_selectCommandsPathForTest(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
@@ -39,7 +39,7 @@ func rootBuild_selectCommandsPathForTest(
 }
 
 func rootBuild_selectSecretsPathForTest(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
@@ -57,7 +57,7 @@ func rootBuild_selectSecretsPathForTest(
 }
 
 func rootBuild_selectDocsPathForTest(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
@@ -75,7 +75,7 @@ func rootBuild_selectDocsPathForTest(
 }
 
 func rootBuild_selectRequirementsPathForTest(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {
@@ -93,7 +93,7 @@ func rootBuild_selectRequirementsPathForTest(
 }
 
 func rootBuild_selectTraitsPathForTest(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	rootPath string,
 	variantDescriptor string,
 ) (error, string) {

@@ -1,13 +1,14 @@
 package core
 
 import (
+	"context"
 	"dryad/task"
 
 	"dryad/internal/os"
 	// zlog "github.com/rs/zerolog/log"
 )
 
-func resolveRootsReference(ctx *task.ExecutionContext, ur *UnsafeRootsReference) (error, *SafeRootsReference) {
+func resolveRootsReference(ctx context.Context, ur *UnsafeRootsReference) (error, *SafeRootsReference) {
 	var rootsExists bool
 	var err error
 	var safeRef SafeRootsReference
@@ -34,7 +35,7 @@ func resolveRootsReference(ctx *task.ExecutionContext, ur *UnsafeRootsReference)
 
 var memoResolveRootsReference = task.Memoize(
 	resolveRootsReference,
-	func(ctx *task.ExecutionContext, ur *UnsafeRootsReference) (error, any) {
+	func(ctx context.Context, ur *UnsafeRootsReference) (error, any) {
 		type Key struct {
 			Group      string
 			BasePath   string
@@ -54,6 +55,6 @@ var memoResolveRootsReference = task.Memoize(
 	},
 )
 
-func (ur *UnsafeRootsReference) Resolve(ctx *task.ExecutionContext) (error, *SafeRootsReference) {
+func (ur *UnsafeRootsReference) Resolve(ctx context.Context) (error, *SafeRootsReference) {
 	return memoResolveRootsReference(ctx, ur)
 }

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
@@ -50,7 +51,7 @@ func shedHeapDerivationsRootsDepthPath(shed *SafeShedReference) string {
 	return shedHeapPath(shed, "derivations", "roots", "depth")
 }
 
-func shedHeapDepthRead(ctx *task.ExecutionContext, req shedHeapDepthRequest) (error, int) {
+func shedHeapDepthRead(ctx context.Context, req shedHeapDepthRequest) (error, int) {
 	bytes, err := os.ReadFile(req.BasePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -77,7 +78,7 @@ func shedHeapDepthRead(ctx *task.ExecutionContext, req shedHeapDepthRequest) (er
 
 var memoShedHeapDepthRead = task.Memoize(
 	shedHeapDepthRead,
-	func(ctx *task.ExecutionContext, req shedHeapDepthRequest) (error, any) {
+	func(ctx context.Context, req shedHeapDepthRequest) (error, any) {
 		return nil, shedHeapDepthKey{
 			Group:    "ShedHeapDepthRead",
 			BasePath: req.BasePath,
@@ -86,7 +87,7 @@ var memoShedHeapDepthRead = task.Memoize(
 	},
 )
 
-func shedHeapFilesDepth(ctx *task.ExecutionContext, shed *SafeShedReference) (error, int) {
+func shedHeapFilesDepth(ctx context.Context, shed *SafeShedReference) (error, int) {
 	return memoShedHeapDepthRead(
 		ctx,
 		shedHeapDepthRequest{
@@ -96,7 +97,7 @@ func shedHeapFilesDepth(ctx *task.ExecutionContext, shed *SafeShedReference) (er
 	)
 }
 
-func shedHeapSecretsDepth(ctx *task.ExecutionContext, shed *SafeShedReference) (error, int) {
+func shedHeapSecretsDepth(ctx context.Context, shed *SafeShedReference) (error, int) {
 	return memoShedHeapDepthRead(
 		ctx,
 		shedHeapDepthRequest{
@@ -106,7 +107,7 @@ func shedHeapSecretsDepth(ctx *task.ExecutionContext, shed *SafeShedReference) (
 	)
 }
 
-func shedHeapStemsDepth(ctx *task.ExecutionContext, shed *SafeShedReference) (error, int) {
+func shedHeapStemsDepth(ctx context.Context, shed *SafeShedReference) (error, int) {
 	return memoShedHeapDepthRead(
 		ctx,
 		shedHeapDepthRequest{
@@ -116,7 +117,7 @@ func shedHeapStemsDepth(ctx *task.ExecutionContext, shed *SafeShedReference) (er
 	)
 }
 
-func shedHeapSproutsDepth(ctx *task.ExecutionContext, shed *SafeShedReference) (error, int) {
+func shedHeapSproutsDepth(ctx context.Context, shed *SafeShedReference) (error, int) {
 	return memoShedHeapDepthRead(
 		ctx,
 		shedHeapDepthRequest{
@@ -126,7 +127,7 @@ func shedHeapSproutsDepth(ctx *task.ExecutionContext, shed *SafeShedReference) (
 	)
 }
 
-func shedHeapDerivationsRootsDepth(ctx *task.ExecutionContext, shed *SafeShedReference) (error, int) {
+func shedHeapDerivationsRootsDepth(ctx context.Context, shed *SafeShedReference) (error, int) {
 	return memoShedHeapDepthRead(
 		ctx,
 		shedHeapDepthRequest{

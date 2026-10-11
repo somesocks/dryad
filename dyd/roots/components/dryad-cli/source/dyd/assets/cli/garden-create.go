@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	task "dryad/task"
@@ -11,9 +12,9 @@ import (
 var gardenCreateCommand = func() clib.Command {
 
 	type ParsedArgs struct {
-		Path string
+		Path     string
 		Parallel int
-	}	
+	}
 
 	var parseArgs = task.From(
 		func(req clib.ActionRequest) (error, ParsedArgs) {
@@ -34,15 +35,15 @@ var gardenCreateCommand = func() clib.Command {
 			} else {
 				parallel = PARALLEL_COUNT_DEFAULT
 			}
-	
+
 			return nil, ParsedArgs{
-				Path: path,
+				Path:     path,
 				Parallel: parallel,
 			}
 		},
 	)
 
-	var createGarden = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var createGarden = func(ctx context.Context, args ParsedArgs) (error, any) {
 		var unsafeGardenRef = dryad.Garden(args.Path)
 
 		err, _ := unsafeGardenRef.Create(ctx)
@@ -51,8 +52,8 @@ var gardenCreateCommand = func() clib.Command {
 
 	createGarden = task.WithContext(
 		createGarden,
-		func (ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 
@@ -61,7 +62,7 @@ var gardenCreateCommand = func() clib.Command {
 			parseArgs,
 			createGarden,
 		),
-		func (err error, val any) int {
+		func(err error, val any) int {
 			if err != nil {
 				zlog.Error().Err(err).Msg("error while creating garden")
 				return 1
@@ -82,7 +83,6 @@ var gardenCreateCommand = func() clib.Command {
 
 	command = ParallelCommand(command)
 	command = LoggingCommand(command)
-
 
 	return command
 }()

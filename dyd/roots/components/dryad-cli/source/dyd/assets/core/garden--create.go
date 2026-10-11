@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"fmt"
@@ -14,7 +15,7 @@ type gardenCreateRequest struct {
 }
 
 func gardenPrepareRequest(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path, err := filepath.Abs(req.BasePath)
@@ -26,7 +27,7 @@ func gardenPrepareRequest(
 }
 
 func gardenCreateBase(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd")
@@ -35,7 +36,7 @@ func gardenCreateBase(
 }
 
 func gardenCreateHeap(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "heap")
@@ -44,7 +45,7 @@ func gardenCreateHeap(
 }
 
 func gardenCreateHeapFiles(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "heap", "files", fingerprintVersionV2)
@@ -53,7 +54,7 @@ func gardenCreateHeapFiles(
 }
 
 func gardenCreateHeapStems(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "heap", "stems", fingerprintVersionV2)
@@ -62,7 +63,7 @@ func gardenCreateHeapStems(
 }
 
 func gardenCreateHeapSprouts(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "heap", "sprouts", fingerprintVersionV2)
@@ -71,7 +72,7 @@ func gardenCreateHeapSprouts(
 }
 
 func gardenCreateHeapDerivations(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "heap", "derivations", "roots", fingerprintVersionV2)
@@ -80,7 +81,7 @@ func gardenCreateHeapDerivations(
 }
 
 func gardenCreateHeapContexts(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "heap", "contexts")
@@ -89,7 +90,7 @@ func gardenCreateHeapContexts(
 }
 
 func gardenCreateHeapSecrets(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "heap", "secrets", fingerprintVersionV2)
@@ -98,7 +99,7 @@ func gardenCreateHeapSecrets(
 }
 
 func gardenCreateShed(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "shed")
@@ -107,7 +108,7 @@ func gardenCreateShed(
 }
 
 func gardenCreateShedScopes(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "shed", "scopes")
@@ -129,7 +130,7 @@ func gardenCreateShedHeapDepthPath(basePath string, segments ...string) string {
 }
 
 func gardenCreateShedHeapFilesDepth(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	err := gardenCreateShedHeapDepthFile(gardenCreateShedHeapDepthPath(req.BasePath, "files", "depth"))
@@ -137,7 +138,7 @@ func gardenCreateShedHeapFilesDepth(
 }
 
 func gardenCreateShedHeapSecretsDepth(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	err := gardenCreateShedHeapDepthFile(gardenCreateShedHeapDepthPath(req.BasePath, "secrets", "depth"))
@@ -145,7 +146,7 @@ func gardenCreateShedHeapSecretsDepth(
 }
 
 func gardenCreateShedHeapStemsDepth(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	err := gardenCreateShedHeapDepthFile(gardenCreateShedHeapDepthPath(req.BasePath, "stems", "depth"))
@@ -153,7 +154,7 @@ func gardenCreateShedHeapStemsDepth(
 }
 
 func gardenCreateShedHeapSproutsDepth(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	err := gardenCreateShedHeapDepthFile(gardenCreateShedHeapDepthPath(req.BasePath, "sprouts", "depth"))
@@ -161,7 +162,7 @@ func gardenCreateShedHeapSproutsDepth(
 }
 
 func gardenCreateShedHeapDerivationsRootsDepth(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	err := gardenCreateShedHeapDepthFile(gardenCreateShedHeapDepthPath(req.BasePath, "derivations", "roots", "depth"))
@@ -169,7 +170,7 @@ func gardenCreateShedHeapDerivationsRootsDepth(
 }
 
 func gardenCreateRoots(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "roots")
@@ -178,7 +179,7 @@ func gardenCreateRoots(
 }
 
 func gardenCreateSprouts(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	path := filepath.Join(req.BasePath, "dyd", "sprouts")
@@ -187,7 +188,7 @@ func gardenCreateSprouts(
 }
 
 func gardenCreateTypeFile(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req gardenCreateRequest,
 ) (error, gardenCreateRequest) {
 	// write out type file
@@ -222,7 +223,7 @@ var gardenCreate = task.Series4(
 				gardenCreateHeapSecrets,
 			),
 			func(
-				ctx *task.ExecutionContext,
+				ctx context.Context,
 				res task.Tuple6[gardenCreateRequest, gardenCreateRequest, gardenCreateRequest, gardenCreateRequest, gardenCreateRequest, gardenCreateRequest],
 			) (error, gardenCreateRequest) {
 				return nil, res.A
@@ -239,7 +240,7 @@ var gardenCreate = task.Series4(
 				gardenCreateShedHeapDerivationsRootsDepth,
 			),
 			func(
-				ctx *task.ExecutionContext,
+				ctx context.Context,
 				res task.Tuple6[gardenCreateRequest, gardenCreateRequest, gardenCreateRequest, gardenCreateRequest, gardenCreateRequest, gardenCreateRequest],
 			) (error, gardenCreateRequest) {
 				return nil, res.A
@@ -250,14 +251,14 @@ var gardenCreate = task.Series4(
 		gardenCreateTypeFile,
 	),
 	func(
-		ctx *task.ExecutionContext,
+		ctx context.Context,
 		res task.Tuple5[gardenCreateRequest, gardenCreateRequest, gardenCreateRequest, gardenCreateRequest, gardenCreateRequest],
 	) (error, gardenCreateRequest) {
 		return nil, res.A
 	},
 )
 
-func (ug *UnsafeGardenReference) Create(ctx *task.ExecutionContext) (error, *SafeGardenReference) {
+func (ug *UnsafeGardenReference) Create(ctx context.Context) (error, *SafeGardenReference) {
 	err, _ := gardenCreate(
 		ctx,
 		gardenCreateRequest{

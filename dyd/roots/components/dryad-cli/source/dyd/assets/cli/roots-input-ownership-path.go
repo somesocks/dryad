@@ -1,10 +1,10 @@
 package cli
 
 import (
+	"context"
 	dryad "dryad/core"
 	dydfs "dryad/filesystem"
 	"dryad/internal/filepath"
-	"dryad/task"
 	"strings"
 )
 
@@ -22,7 +22,7 @@ var rootsInputOwnershipDependencyCorrection = func(path string) string {
 	return path
 }
 
-func rootsInputOwnershipPaths(ctx *task.ExecutionContext, rawPath string) (error, string, string) {
+func rootsInputOwnershipPaths(ctx context.Context, rawPath string) (error, string, string) {
 	path, err := filepath.Abs(rawPath)
 	if err != nil {
 		return err, "", ""

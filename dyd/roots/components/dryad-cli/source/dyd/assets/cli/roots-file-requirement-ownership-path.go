@@ -1,12 +1,12 @@
 package cli
 
 import (
+	"context"
 	dydfs "dryad/filesystem"
 	"dryad/internal/filepath"
-	"dryad/task"
 )
 
-func rootsFileRequirementOwnershipPath(ctx *task.ExecutionContext, rawPath string) (error, string) {
+func rootsFileRequirementOwnershipPath(ctx context.Context, rawPath string) (error, string) {
 	path, err := filepath.Abs(rawPath)
 	if err != nil {
 		return err, ""

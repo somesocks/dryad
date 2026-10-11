@@ -1,8 +1,8 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
-	"dryad/task"
 	"strings"
 )
 
@@ -164,7 +164,7 @@ func rootAffected_variantMatchesChangedPath(
 }
 
 func (root *SafeRootReference) ResolveAffectedVariants(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	changedPaths []string,
 ) (error, []VariantDescriptor) {
 	err, resolvedVariants := root.ResolveBuildVariantReferences(

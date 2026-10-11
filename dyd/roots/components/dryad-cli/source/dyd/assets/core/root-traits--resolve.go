@@ -1,14 +1,12 @@
-
 package core
 
-import (
-	// fs2 "dryad/filesystem"
-	"dryad/task"
+import "context"
 
-	// zlog "github.com/rs/zerolog/log"
-)
+// fs2 "dryad/filesystem"
 
-func (rootTraits *UnsafeRootTraitsReference) Resolve(ctx * task.ExecutionContext) (error, *SafeRootTraitsReference) {
+// zlog "github.com/rs/zerolog/log"
+
+func (rootTraits *UnsafeRootTraitsReference) Resolve(ctx context.Context) (error, *SafeRootTraitsReference) {
 	var rootTraitsExists bool
 	var err error
 	var safeRef SafeRootTraitsReference
@@ -24,8 +22,8 @@ func (rootTraits *UnsafeRootTraitsReference) Resolve(ctx * task.ExecutionContext
 
 	safeRef = SafeRootTraitsReference{
 		BasePath: rootTraits.BasePath,
-		Root: rootTraits.Root,
+		Root:     rootTraits.Root,
 	}
 
-	return nil, &safeRef 
+	return nil, &safeRef
 }

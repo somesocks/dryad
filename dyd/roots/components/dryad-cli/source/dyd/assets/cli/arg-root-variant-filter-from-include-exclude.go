@@ -1,13 +1,13 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	"dryad/core"
-	"dryad/task"
 )
 
 var ArgRootVariantFilterFromIncludeExclude = func(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req clib.ActionRequest,
 ) (error, core.RootVariantFilter) {
 	options := req.Opts

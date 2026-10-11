@@ -2,11 +2,11 @@ package core
 
 import (
 	// dydfs "dryad/filesystem"
-	"dryad/task"
 
 	// "io/fs"
 	// "io/ioutil"
 	// "os"
+	"context"
 	"dryad/internal/filepath"
 
 	zlog "github.com/rs/zerolog/log"
@@ -31,7 +31,7 @@ type rootBuild_stage5_request struct {
 }
 
 // stage 5 - execute the root to build its stem,
-var rootBuild_stage5 func(ctx *task.ExecutionContext, req rootBuild_stage5_request) (error, string) = func(ctx *task.ExecutionContext, req rootBuild_stage5_request) (error, string) {
+var rootBuild_stage5 func(ctx context.Context, req rootBuild_stage5_request) (error, string) = func(ctx context.Context, req rootBuild_stage5_request) (error, string) {
 	zlog.Trace().
 		Str("path", req.RelRootPath).
 		Msg("root build - stage5")

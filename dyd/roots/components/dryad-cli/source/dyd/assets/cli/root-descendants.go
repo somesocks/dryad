@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	dydfs "dryad/filesystem"
@@ -22,7 +23,7 @@ var rootDescendantsCommand = func() clib.Command {
 		Parallel    int
 	}
 
-	var parseArgs = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs = func(ctx context.Context, req clib.ActionRequest) (error, ParsedArgs) {
 		var args = req.Args
 		var options = req.Opts
 
@@ -86,7 +87,7 @@ var rootDescendantsCommand = func() clib.Command {
 		}
 	}
 
-	var findDescendants = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var findDescendants = func(ctx context.Context, args ParsedArgs) (error, any) {
 
 		rootPath := args.RootPath
 		relative := args.Relative
@@ -165,8 +166,8 @@ var rootDescendantsCommand = func() clib.Command {
 
 	findDescendants = task.WithContext(
 		findDescendants,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

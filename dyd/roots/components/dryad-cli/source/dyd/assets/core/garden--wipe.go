@@ -1,13 +1,13 @@
 package core
 
 import (
+	"context"
 	fs2 "dryad/filesystem"
-	"dryad/task"
 
 	"dryad/internal/filepath"
 )
 
-func (sg *SafeGardenReference) Wipe(ctx *task.ExecutionContext) error {
+func (sg *SafeGardenReference) Wipe(ctx context.Context) error {
 	var err error
 	var gardenPath string = sg.BasePath
 

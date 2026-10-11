@@ -1,9 +1,9 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"dryad/task"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -15,7 +15,7 @@ type VariantExclusion struct {
 	Enabled    bool
 }
 
-func (rootVariants *SafeRootVariantsReference) Exclusions(ctx *task.ExecutionContext) (error, []VariantExclusion) {
+func (rootVariants *SafeRootVariantsReference) Exclusions(ctx context.Context) (error, []VariantExclusion) {
 	exclusionsPath := filepath.Join(rootVariants.BasePath, "_exclude")
 
 	exclusionsInfo, err := os.Stat(exclusionsPath)

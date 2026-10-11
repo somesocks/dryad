@@ -1,10 +1,10 @@
 package core
 
 import (
-	"dryad/task"
 
 	// "io/fs"
 	// "io/ioutil"
+	"context"
 	"dryad/internal/filepath"
 
 	zlog "github.com/rs/zerolog/log"
@@ -16,11 +16,11 @@ type rootBuild_stage2_request struct {
 }
 
 // stage 2 - generate the artificial links to all executable stems for the path
-var rootBuild_stage2 func(ctx *task.ExecutionContext, req rootBuild_stage2_request) (error, any)
+var rootBuild_stage2 func(ctx context.Context, req rootBuild_stage2_request) (error, any)
 
 func init() {
 
-	rootBuild_stage2 = func(ctx *task.ExecutionContext, req rootBuild_stage2_request) (error, any) {
+	rootBuild_stage2 = func(ctx context.Context, req rootBuild_stage2_request) (error, any) {
 		relRootPath, err := filepath.Rel(
 			filepath.Join(req.GardenPath, "dyd", "roots"),
 			req.RootPath,

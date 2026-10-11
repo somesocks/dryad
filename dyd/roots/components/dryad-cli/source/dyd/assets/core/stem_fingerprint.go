@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	fs2 "dryad/filesystem"
 	"dryad/internal/os"
 	"io"
@@ -30,7 +31,7 @@ var RE_STEM_FINGERPRINT_SHOULD_MATCH = regexp.MustCompile(
 		")$",
 )
 
-func StemFingerprintShouldMatch(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
+func StemFingerprintShouldMatch(ctx context.Context, node fs2.Walk6Node) (error, bool) {
 	var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
 	if relErr != nil {
 		return relErr, false
@@ -72,11 +73,11 @@ type StemFingerprintRequest struct {
 }
 
 var StemFingerprint task.Task[StemFingerprintRequest, string] = func() task.Task[StemFingerprintRequest, string] {
-	var stemFingerprint = func(ctx *task.ExecutionContext, args StemFingerprintRequest) (error, string) {
+	var stemFingerprint = func(ctx context.Context, args StemFingerprintRequest) (error, string) {
 		var checksumMap = make(map[string]string)
 		var checksumMutex sync.Mutex
 
-		var onMatch = func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, any) {
+		var onMatch = func(ctx context.Context, node fs2.Walk6Node) (error, any) {
 			var relPath, relErr = filepath.Rel(node.BasePath, node.VPath)
 			if relErr != nil {
 				return relErr, nil
@@ -162,16 +163,11 @@ var StemFingerprint task.Task[StemFingerprintRequest, string] = func() task.Task
 		return nil, fingerprint
 	}
 
-	// we want to replace the execution context, but with the same concurrency channel as before.
-	// only the execution cache is replaced, to limit the scope of memoized calls to fetch dyd-ignore files
-	stemFingerprint = task.WithContext(
+	// Each calculation reads fresh ignore data without replacing concurrency.
+	return task.WithContext(
 		stemFingerprint,
-		func(ctx *task.ExecutionContext, args StemFingerprintRequest) (error, *task.ExecutionContext) {
-			return nil, &task.ExecutionContext{
-				ConcurrencyChannel: ctx.ConcurrencyChannel,
-			}
+		func(ctx context.Context, args StemFingerprintRequest) (error, context.Context) {
+			return nil, task.WithCache(ctx)
 		},
 	)
-
-	return stemFingerprint
 }()

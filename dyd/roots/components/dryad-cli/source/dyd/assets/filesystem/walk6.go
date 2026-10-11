@@ -1,6 +1,7 @@
 package fs2
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
@@ -15,15 +16,15 @@ type Walk6Node struct {
 	Info     fs.FileInfo
 }
 
-type WalkDecision func(ctx *task.ExecutionContext, node Walk6Node) (error, bool)
+type WalkDecision func(ctx context.Context, node Walk6Node) (error, bool)
 
-type WalkAction func(ctx *task.ExecutionContext, node Walk6Node) (error, any)
+type WalkAction func(ctx context.Context, node Walk6Node) (error, any)
 
 func ConditionalWalkAction(
 	action WalkAction,
 	decision WalkDecision,
 ) WalkAction {
-	return func(ctx *task.ExecutionContext, node Walk6Node) (error, any) {
+	return func(ctx context.Context, node Walk6Node) (error, any) {
 		err, match := decision(ctx, node)
 		if err != nil {
 			return err, nil
@@ -45,19 +46,19 @@ type Walk6Request struct {
 	OnPostMatch WalkAction
 }
 
-var defaultShouldWalk6 WalkDecision = func(ctx *task.ExecutionContext, node Walk6Node) (error, bool) {
+var defaultShouldWalk6 WalkDecision = func(ctx context.Context, node Walk6Node) (error, bool) {
 	return nil, true
 }
 
-var defaultOnPreMatch6 WalkAction = func(ctx *task.ExecutionContext, node Walk6Node) (error, any) {
+var defaultOnPreMatch6 WalkAction = func(ctx context.Context, node Walk6Node) (error, any) {
 	return nil, nil
 }
 
-var defaultOnPostMatch6 WalkAction = func(ctx *task.ExecutionContext, node Walk6Node) (error, any) {
+var defaultOnPostMatch6 WalkAction = func(ctx context.Context, node Walk6Node) (error, any) {
 	return nil, nil
 }
 
-func _walk6(ctx *task.ExecutionContext, request Walk6Request) error {
+func _walk6(ctx context.Context, request Walk6Request) error {
 
 	var err error
 	var info fs.FileInfo
@@ -164,7 +165,7 @@ func _walk6(ctx *task.ExecutionContext, request Walk6Request) error {
 					return err
 				}
 
-				parallelWalk := func(ctx *task.ExecutionContext, entry fs.DirEntry) (error, any) {
+				parallelWalk := func(ctx context.Context, entry fs.DirEntry) (error, any) {
 					err := _walk6(
 						ctx,
 						Walk6Request{
@@ -207,7 +208,7 @@ func _walk6(ctx *task.ExecutionContext, request Walk6Request) error {
 	return nil
 }
 
-func Walk6(ctx *task.ExecutionContext, request Walk6Request) (error, any) {
+func Walk6(ctx context.Context, request Walk6Request) (error, any) {
 
 	if request.ShouldWalk == nil {
 		request.ShouldWalk = defaultShouldWalk6

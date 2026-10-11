@@ -1,10 +1,8 @@
 package core
 
-import (
-	"dryad/task"
-)
+import "context"
 
-func (rootVariants *UnsafeRootVariantsReference) Resolve(ctx *task.ExecutionContext) (error, *SafeRootVariantsReference) {
+func (rootVariants *UnsafeRootVariantsReference) Resolve(ctx context.Context) (error, *SafeRootVariantsReference) {
 	var variantsExists bool
 	var err error
 	var safeRef SafeRootVariantsReference

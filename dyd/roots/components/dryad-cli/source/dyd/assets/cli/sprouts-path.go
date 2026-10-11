@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/internal/os"
@@ -39,7 +40,7 @@ var sproutsPathAction = func(req clib.ActionRequest) int {
 		},
 	)
 
-	var printSproutsPath = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var printSproutsPath = func(ctx context.Context, args ParsedArgs) (error, any) {
 		err, garden := dryad.Garden(args.GardenPath).Resolve(ctx)
 		if err != nil {
 			return err, nil
@@ -56,8 +57,8 @@ var sproutsPathAction = func(req clib.ActionRequest) int {
 
 	printSproutsPath = task.WithContext(
 		printSproutsPath,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 
