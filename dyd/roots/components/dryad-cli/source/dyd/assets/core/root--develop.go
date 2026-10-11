@@ -727,8 +727,9 @@ func rootDevelop_stage5(
 		MainOverride: shell,
 		Env:          env,
 		Args:         shellArgs,
-		JoinStdout:   true,
-		JoinStderr:   true,
+		Stdin:        InputConfig{Mode: InputInherit},
+		Stdout:       OutputConfig{Mode: OutputInherit},
+		Stderr:       OutputConfig{Mode: OutputInherit},
 		InheritEnv:   inherit,
 	})
 	if err != nil {

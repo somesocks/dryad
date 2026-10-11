@@ -42,6 +42,21 @@ func TestContextPreservesParent(t *testing.T) {
 	}
 }
 
+func TestConcurrencyReadsConfiguredLimit(t *testing.T) {
+	ctx := task.NewContext(context.Background(), 4)
+	if limit, err := task.Concurrency(ctx); err != nil || limit != 4 {
+		t.Fatalf("concurrency: %d, %v", limit, err)
+	}
+	if limit, err := task.Concurrency(task.WithConcurrency(ctx, 1)); err != nil || limit != 1 {
+		t.Fatalf("serial concurrency: %d, %v", limit, err)
+	}
+	for _, ctx := range []context.Context{nil, context.Background()} {
+		if _, err := task.Concurrency(ctx); !errors.Is(err, task.ErrMissingSemaphore) {
+			t.Fatalf("unconfigured concurrency: %v", err)
+		}
+	}
+}
+
 func TestMissingContextConfiguration(t *testing.T) {
 	var calls int
 	work := func(context.Context, int) (error, int) { calls++; return nil, 1 }

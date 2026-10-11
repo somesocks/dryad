@@ -47,6 +47,7 @@ var sproutRunCommand = func() clib.Command {
 		WithOption(clib.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(clib.OptionTypeBool)).
 		WithOption(clib.NewOption("command", "run this command in the stem run environment instead of the main")).
 		WithOption(clib.NewOption("confirm", "ask for a confirmation string to be entered to execute this command").WithType(clib.OptionTypeString)).
+		WithOption(joinStdinOption()).
 		WithOption(clib.NewOption("join-stdout", "join the stdout of child processes to the stderr of the parent dryad process. default true").WithType(clib.OptionTypeBool)).
 		WithOption(clib.NewOption("join-stderr", "join the stderr of child processes to the stderr of the parent dryad process. default true").WithType(clib.OptionTypeBool)).
 		WithOption(clib.NewOption("log-stdout", "log the stdout of child processes to a file in the specified directory. disables joining").WithType(clib.OptionTypeString)).
@@ -62,6 +63,7 @@ var sproutRunCommand = func() clib.Command {
 				Command           string
 				Inherit           bool
 				Confirm           string
+				Stdin             dryad.InputConfig
 				JoinStdout        bool
 				JoinStderr        bool
 				LogStdout         string
@@ -164,6 +166,7 @@ var sproutRunCommand = func() clib.Command {
 						Command:           command,
 						Inherit:           inherit,
 						Confirm:           confirm,
+						Stdin:             inputConfigFromOptions(opts),
 						JoinStdout:        joinStdout,
 						JoinStderr:        joinStderr,
 						LogStdout:         logStdout,
@@ -229,16 +232,6 @@ var sproutRunCommand = func() clib.Command {
 					return err, nil
 				}
 
-				variantSelectorLabel := args.VariantDescriptor
-				if variantSelectorLabel == "" {
-					variantSelectorLabel = "default"
-				}
-
-				zlog.Info().
-					Str("sprout", sprout.BasePath).
-					Str("variant_selector", variantSelectorLabel).
-					Msg("sprout run requested")
-
 				err = sprout.Run(
 					ctx,
 					dryad.SproutRunRequest{
@@ -246,33 +239,15 @@ var sproutRunCommand = func() clib.Command {
 						VariantDescriptor: args.VariantDescriptor,
 						Env:               env,
 						Args:              args.Extras,
-						JoinStdout:        args.JoinStdout,
-						LogStdout: struct {
-							Path string
-							Name string
-						}{
-							Path: args.LogStdout,
-							Name: "",
-						},
-						JoinStderr: args.JoinStderr,
-						LogStderr: struct {
-							Path string
-							Name string
-						}{
-							Path: args.LogStderr,
-							Name: "",
-						},
-						Context: args.Context,
+						Stdin:             args.Stdin,
+						Stdout:            dryad.OutputConfigFromOptions(args.JoinStdout, args.LogStdout, ""),
+						Stderr:            dryad.OutputConfigFromOptions(args.JoinStderr, args.LogStderr, ""),
+						Context:           args.Context,
 					},
 				)
 				if err != nil {
 					return err, nil
 				}
-
-				zlog.Info().
-					Str("sprout", sprout.BasePath).
-					Str("variant_selector", variantSelectorLabel).
-					Msg("sprout run completed")
 
 				return nil, nil
 			}

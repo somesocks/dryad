@@ -48,23 +48,10 @@ var rootBuild_stage5 func(ctx context.Context, req rootBuild_stage5_request) (er
 		Env: map[string]string{
 			"DYD_BUILD": req.StemBuildPath,
 		},
-		Args:       []string{req.StemBuildPath},
-		JoinStdout: req.JoinStdout,
-		JoinStderr: req.JoinStderr,
-		LogStdout: struct {
-			Path string
-			Name string
-		}{
-			Path: req.LogStdout.Path,
-			Name: "dyd-root-build--" + sanitizePathSegment(req.RelRootPath) + ".out",
-		},
-		LogStderr: struct {
-			Path string
-			Name string
-		}{
-			Path: req.LogStderr.Path,
-			Name: "dyd-root-build--" + sanitizePathSegment(req.RelRootPath) + ".err",
-		},
+		Args:         []string{req.StemBuildPath},
+		Stdin:        InputConfig{Mode: InputInherit},
+		Stdout:       OutputConfigFromOptions(req.JoinStdout, req.LogStdout.Path, "dyd-root-build--"+sanitizePathSegment(req.RelRootPath)+".out"),
+		Stderr:       OutputConfigFromOptions(req.JoinStderr, req.LogStderr.Path, "dyd-root-build--"+sanitizePathSegment(req.RelRootPath)+".err"),
 		MainOverride: filepath.Join(req.RootStemPath, "dyd", "commands", "dyd-root-build"),
 	})
 	if err != nil {

@@ -22,6 +22,7 @@ var stemRunCommand = func() clib.Command {
 		Confirm  string
 		Extras   []string
 		Parallel int
+		Stdin    dryad.InputConfig
 	}
 
 	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx context.Context, req clib.ActionRequest) (error, ParsedArgs) {
@@ -64,6 +65,7 @@ var stemRunCommand = func() clib.Command {
 			Confirm:  confirm,
 			Extras:   args[1:],
 			Parallel: parallel,
+			Stdin:    inputConfigFromOptions(options),
 		}
 	}
 
@@ -109,7 +111,9 @@ var stemRunCommand = func() clib.Command {
 			MainOverride: args.Command,
 			Env:          env,
 			Args:         args.Extras,
-			JoinStdout:   true,
+			Stdin:        args.Stdin,
+			Stdout:       dryad.OutputConfig{Mode: dryad.OutputInherit},
+			Stderr:       dryad.OutputConfig{Mode: dryad.OutputNone},
 			Context:      args.Context,
 		})
 		if err != nil {
@@ -151,6 +155,7 @@ var stemRunCommand = func() clib.Command {
 		WithOption(clib.NewOption("inherit", "pass all environment variables from the parent environment to the stem").WithType(clib.OptionTypeBool)).
 		WithOption(clib.NewOption("command", "run this command in the stem run environment instead of the main")).
 		WithOption(clib.NewOption("confirm", "ask for a confirmation string to be entered to execute this command").WithType(clib.OptionTypeString)).
+		WithOption(joinStdinOption()).
 		WithArg(clib.NewArg("-- args", "args to pass to the stem").AsOptional()).
 		WithAction(action)
 
