@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	fs2 "dryad/filesystem"
 	"dryad/task"
 
@@ -8,7 +9,7 @@ import (
 	// zlog "github.com/rs/zerolog/log"
 )
 
-func resolveHeapStemsReference(ctx *task.ExecutionContext, heapStems *UnsafeHeapStemsReference) (error, *SafeHeapStemsReference) {
+func resolveHeapStemsReference(ctx context.Context, heapStems *UnsafeHeapStemsReference) (error, *SafeHeapStemsReference) {
 	var heapStemsExists bool
 	var err error
 	var safeRef SafeHeapStemsReference
@@ -54,7 +55,7 @@ func resolveHeapStemsReference(ctx *task.ExecutionContext, heapStems *UnsafeHeap
 
 var memoResolveHeapStemsReference = task.Memoize(
 	resolveHeapStemsReference,
-	func(ctx *task.ExecutionContext, heapStems *UnsafeHeapStemsReference) (error, any) {
+	func(ctx context.Context, heapStems *UnsafeHeapStemsReference) (error, any) {
 		type Key struct {
 			Group      string
 			BasePath   string
@@ -80,6 +81,6 @@ var memoResolveHeapStemsReference = task.Memoize(
 	},
 )
 
-func (heapStems *UnsafeHeapStemsReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapStemsReference) {
+func (heapStems *UnsafeHeapStemsReference) Resolve(ctx context.Context) (error, *SafeHeapStemsReference) {
 	return memoResolveHeapStemsReference(ctx, heapStems)
 }

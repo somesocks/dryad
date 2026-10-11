@@ -1,9 +1,9 @@
 package core
 
 import (
+	"context"
 	fs2 "dryad/filesystem"
 	"dryad/internal/filepath"
-	"dryad/task"
 	"fmt"
 	"regexp"
 )
@@ -13,12 +13,12 @@ type StemFilesArgs struct {
 	MatchDeny *regexp.Regexp
 }
 
-func StemFiles(ctx *task.ExecutionContext, args StemFilesArgs) error {
+func StemFiles(ctx context.Context, args StemFilesArgs) error {
 	err, _ := StemWalk(
 		ctx,
 		StemWalkRequest{
 			BasePath: args.BasePath,
-			OnMatch: func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, any) {
+			OnMatch: func(ctx context.Context, node fs2.Walk6Node) (error, any) {
 				relPath, err := filepath.Rel(node.BasePath, node.VPath)
 				if err != nil {
 					return err, nil

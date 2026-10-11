@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	dydfs "dryad/filesystem"
@@ -82,7 +83,7 @@ var rootRequirementAddCommand = func() clib.Command {
 		Parallel             int
 	}
 
-	var parseArgs = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs = func(ctx context.Context, req clib.ActionRequest) (error, ParsedArgs) {
 		var args = req.Args
 		var options = req.Opts
 
@@ -190,7 +191,7 @@ var rootRequirementAddCommand = func() clib.Command {
 		}
 	}
 
-	var addRequirement = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var addRequirement = func(ctx context.Context, args ParsedArgs) (error, any) {
 		err, garden := dryad.Garden(args.RootPath).Resolve(ctx)
 		if err != nil {
 			return err, nil
@@ -305,8 +306,8 @@ var rootRequirementAddCommand = func() clib.Command {
 
 	addRequirement = task.WithContext(
 		addRequirement,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

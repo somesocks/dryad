@@ -1,14 +1,14 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
-	"dryad/task"
 	"errors"
 	// "os"
 	// zlog "github.com/rs/zerolog/log"
 )
 
-func (heapSprout *UnsafeHeapSproutReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapSproutReference) {
+func (heapSprout *UnsafeHeapSproutReference) Resolve(ctx context.Context) (error, *SafeHeapSproutReference) {
 	var heapSproutExists bool
 	var err error
 	var safeRef SafeHeapSproutReference

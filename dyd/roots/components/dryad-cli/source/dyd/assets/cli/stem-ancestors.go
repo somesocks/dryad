@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	fs2 "dryad/filesystem"
@@ -22,7 +23,7 @@ var stemAncestorsCommand = func() clib.Command {
 		Parallel int
 	}
 
-	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx context.Context, req clib.ActionRequest) (error, ParsedArgs) {
 		var args = req.Args
 		var options = req.Opts
 
@@ -69,7 +70,7 @@ var stemAncestorsCommand = func() clib.Command {
 		}
 	}
 
-	var runAncestors = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var runAncestors = func(ctx context.Context, args ParsedArgs) (error, any) {
 		err, garden := dryad.Garden(args.Path).Resolve(ctx)
 		if err != nil {
 			return err, nil
@@ -104,8 +105,8 @@ var stemAncestorsCommand = func() clib.Command {
 
 	runAncestors = task.WithContext(
 		runAncestors,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

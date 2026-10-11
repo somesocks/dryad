@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/internal/filepath"
@@ -51,7 +52,7 @@ var rootSecretsPathCommand = func() clib.Command {
 		},
 	)
 
-	var printSecretsPath = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var printSecretsPath = func(ctx context.Context, args ParsedArgs) (error, any) {
 		path := args.Path
 
 		// normalize the path to point to the closest secrets
@@ -75,8 +76,8 @@ var rootSecretsPathCommand = func() clib.Command {
 
 	printSecretsPath = task.WithContext(
 		printSecretsPath,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

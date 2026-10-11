@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	fs2 "dryad/filesystem"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
@@ -30,7 +31,7 @@ type heapAddStemRequest struct {
 
 // heapAddStem takes a stem in a directory, and adds it to the heap.
 // the heap path is normalized before adding
-func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *SafeHeapStemReference) {
+func heapAddStem(ctx context.Context, req heapAddStemRequest) (error, *SafeHeapStemReference) {
 	var stemPath = req.StemPath
 
 	heapStemsPath := req.HeapStems.BasePath
@@ -105,7 +106,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 		ctx,
 		StemWalkRequest{
 			BasePath: stemPath,
-			OnMatch: func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, any) {
+			OnMatch: func(ctx context.Context, node fs2.Walk6Node) (error, any) {
 				zlog.
 					Trace().
 					Str("path", node.Path).
@@ -262,7 +263,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 
 	}
 
-	var setPermissionsShouldCrawl = func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
+	var setPermissionsShouldCrawl = func(ctx context.Context, node fs2.Walk6Node) (error, bool) {
 		isDir := node.Info.IsDir()
 
 		zlog.Trace().
@@ -273,7 +274,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 		return nil, isDir
 	}
 
-	var setPermissionsShouldMatch = func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
+	var setPermissionsShouldMatch = func(ctx context.Context, node fs2.Walk6Node) (error, bool) {
 		isDir := node.Info.IsDir()
 
 		zlog.Trace().
@@ -284,7 +285,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 		return nil, isDir
 	}
 
-	var setPermissionsOnMatch = func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, any) {
+	var setPermissionsOnMatch = func(ctx context.Context, node fs2.Walk6Node) (error, any) {
 		zlog.Trace().
 			Str("path", node.VPath).
 			Msg("heap add stem - dir OnMatch")
@@ -357,7 +358,7 @@ func heapAddStem(ctx *task.ExecutionContext, req heapAddStemRequest) (error, *Sa
 
 var memoHeapAddStem = task.Memoize(
 	heapAddStem,
-	func(ctx *task.ExecutionContext, req heapAddStemRequest) (error, any) {
+	func(ctx context.Context, req heapAddStemRequest) (error, any) {
 		type Key struct {
 			Group       string
 			Fingerprint string
@@ -387,7 +388,7 @@ type HeapAddStemRequest struct {
 }
 
 func (heapStems *SafeHeapStemsReference) AddStem(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req HeapAddStemRequest,
 ) (error, *SafeHeapStemReference) {
 	err, res := memoHeapAddStem(

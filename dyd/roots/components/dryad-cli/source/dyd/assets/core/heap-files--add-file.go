@@ -1,10 +1,10 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/internal/time"
-	"dryad/task"
 	"errors"
 	"io/fs"
 
@@ -16,7 +16,7 @@ type heapAddFileRequest struct {
 	SourcePath string
 }
 
-func heapAddFile(ctx *task.ExecutionContext, req heapAddFileRequest) (error, string) {
+func heapAddFile(ctx context.Context, req heapAddFileRequest) (error, string) {
 	var heapFilesPath string = req.HeapFiles.BasePath
 	var sourcePath string = req.SourcePath
 	var err error
@@ -119,7 +119,7 @@ func heapAddFile(ctx *task.ExecutionContext, req heapAddFileRequest) (error, str
 }
 
 func (heapFiles *SafeHeapFilesReference) AddFile(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	sourcePath string,
 ) (error, string) {
 	err, res := heapAddFile(

@@ -1,27 +1,27 @@
 package core
 
 import (
+	"context"
 	dydfs "dryad/filesystem"
-	"dryad/task"
 	// "dryad/internal/filepath"
 )
 
 type RootRequirementsWalkRequest struct {
-	OnMatch func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any)
+	OnMatch func(ctx context.Context, requirement *SafeRootRequirementReference) (error, any)
 }
 
-func (requirements *SafeRootRequirementsReference) Walk(ctx *task.ExecutionContext, req RootRequirementsWalkRequest) error {
+func (requirements *SafeRootRequirementsReference) Walk(ctx context.Context, req RootRequirementsWalkRequest) error {
 	var err error
 
-	var shouldWalk = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	var shouldWalk = func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		return nil, node.Path == node.BasePath
 	}
 
-	var shouldMatch = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	var shouldMatch = func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		return nil, node.Path != node.BasePath
 	}
 
-	var onMatch = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+	var onMatch = func(ctx context.Context, node dydfs.Walk6Node) (error, any) {
 		safeRequirementRef := &SafeRootRequirementReference{
 			BasePath:     node.Path,
 			fileInfo:     node.Info,

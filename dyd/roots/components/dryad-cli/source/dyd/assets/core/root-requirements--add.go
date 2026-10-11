@@ -1,9 +1,9 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"dryad/task"
 	"fmt"
 	"net/url"
 	"strings"
@@ -32,7 +32,7 @@ type RootRequirementsAddHTTPRequest struct {
 }
 
 func (requirements *SafeRootRequirementsReference) Add(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req RootRequirementsAddRequest,
 ) (error, *SafeRootRequirementReference) {
 
@@ -91,7 +91,7 @@ func (requirements *SafeRootRequirementsReference) Add(
 }
 
 func (requirements *SafeRootRequirementsReference) AddEnv(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req RootRequirementsAddEnvRequest,
 ) (error, *SafeRootRequirementReference) {
 	err, envSpec, isEnv := rootRequirementParseEnvTarget(req.Target)
@@ -136,7 +136,7 @@ func (requirements *SafeRootRequirementsReference) AddEnv(
 }
 
 func (requirements *SafeRootRequirementsReference) AddFile(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req RootRequirementsAddFileRequest,
 ) (error, *SafeRootRequirementReference) {
 	err, fileSpec, isFile := rootRequirementParseFileTarget(req.Target)
@@ -172,7 +172,7 @@ func (requirements *SafeRootRequirementsReference) AddFile(
 }
 
 func (requirements *SafeRootRequirementsReference) AddHTTP(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req RootRequirementsAddHTTPRequest,
 ) (error, *SafeRootRequirementReference) {
 	err, httpSpec, isHTTP := rootRequirementParseHTTPTarget(req.Target)

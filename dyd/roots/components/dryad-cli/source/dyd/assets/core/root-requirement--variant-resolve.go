@@ -1,7 +1,7 @@
 package core
 
 import (
-	"dryad/task"
+	"context"
 	"fmt"
 	"runtime"
 	"sort"
@@ -184,7 +184,7 @@ func rootRequirementDimensionHasEnabledNone(dimension VariantDimension) bool {
 }
 
 func (targetSpec *RootRequirementTargetSpec) ResolveVariants(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req RootRequirementResolveVariantsRequest,
 ) (error, []VariantDescriptor) {
 	if rootRequirementTargetKind(targetSpec.Kind) != RootRequirementTargetKindRoot {
@@ -289,7 +289,7 @@ func (targetSpec *RootRequirementTargetSpec) ResolveVariants(
 }
 
 func (rootRequirement *SafeRootRequirementReference) ResolveTargets(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req RootRequirementResolveTargetsRequest,
 ) (error, []RootRequirementResolvedTarget) {
 	err, targetSpec := rootRequirement.TargetSpec(ctx)

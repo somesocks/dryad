@@ -1,18 +1,18 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"dryad/task"
 	"strings"
 )
 
 type RootWalkAllRequirementsRequest struct {
-	OnMatch func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any)
+	OnMatch func(ctx context.Context, requirement *SafeRootRequirementReference) (error, any)
 }
 
 func (root *SafeRootReference) WalkAllRequirements(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req RootWalkAllRequirementsRequest,
 ) error {
 	dydPath := filepath.Join(root.BasePath, "dyd")

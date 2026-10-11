@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	dydfs "dryad/filesystem"
 	"dryad/task"
 	"fmt"
@@ -12,7 +13,7 @@ type rootMoveRequest struct {
 	Unpin  bool
 }
 
-func rootMove(ctx *task.ExecutionContext, req rootMoveRequest) (error, *SafeRootReference) {
+func rootMove(ctx context.Context, req rootMoveRequest) (error, *SafeRootReference) {
 	var sourcePath string = req.Source.BasePath
 	var err error
 
@@ -61,7 +62,7 @@ type RootMoveRequest struct {
 	Unpin bool
 }
 
-func (root *SafeRootReference) Move(ctx *task.ExecutionContext, req RootMoveRequest) error {
+func (root *SafeRootReference) Move(ctx context.Context, req RootMoveRequest) error {
 	err, _ := rootMove(
 		ctx,
 		rootMoveRequest{

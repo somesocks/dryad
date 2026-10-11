@@ -3,6 +3,8 @@ package core
 import (
 	"archive/tar"
 	"compress/gzip"
+	"context"
+
 	// "errors"
 	fs2 "dryad/filesystem"
 	"dryad/internal/filepath"
@@ -23,7 +25,7 @@ type stemPackRequest struct {
 }
 
 func stemPack(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	context BuildContext,
 	request stemPackRequest,
 ) (string, error) {
@@ -222,7 +224,7 @@ func stemArchive(request StemPackRequest) (string, error) {
 			defer tarWriter.Close()
 		}
 
-		var shouldWalk = func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
+		var shouldWalk = func(ctx context.Context, node fs2.Walk6Node) (error, bool) {
 			// don't crawl symlinks
 			if node.Info.Mode()&os.ModeSymlink == os.ModeSymlink {
 				return nil, false
@@ -230,7 +232,7 @@ func stemArchive(request StemPackRequest) (string, error) {
 			return nil, true
 		}
 
-		var onMatch = func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, any) {
+		var onMatch = func(ctx context.Context, node fs2.Walk6Node) (error, any) {
 			zlog.
 				Trace().
 				Str("node.Path", node.Path).
@@ -372,7 +374,7 @@ type StemPackRequest struct {
 }
 
 func StemPack(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	request StemPackRequest,
 ) (string, error) {
 	zlog.

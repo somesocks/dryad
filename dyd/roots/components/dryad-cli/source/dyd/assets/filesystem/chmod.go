@@ -1,11 +1,13 @@
 package fs2
 
 import (
+	"context"
 	"dryad/task"
 
 	// "errors"
 	"dryad/internal/os"
 	"io/fs"
+
 	// "dryad/internal/filepath"
 
 	zlog "github.com/rs/zerolog/log"
@@ -21,7 +23,7 @@ type ChmodResult = ChmodRequest
 
 var Chmod = func() task.Task[ChmodRequest, ChmodResult] {
 
-	var chmod = func(ctx *task.ExecutionContext, req ChmodRequest) (error, ChmodResult) {
+	var chmod = func(ctx context.Context, req ChmodRequest) (error, ChmodResult) {
 		var res = ChmodResult{
 			Path: req.Path,
 			Mode: req.Mode,
@@ -33,7 +35,7 @@ var Chmod = func() task.Task[ChmodRequest, ChmodResult] {
 
 	chmod = WithFileLock(
 		chmod,
-		func(ctx *task.ExecutionContext, req ChmodRequest) (error, string) {
+		func(ctx context.Context, req ChmodRequest) (error, string) {
 			if req.SkipLock {
 				return nil, ""
 			}
@@ -42,7 +44,7 @@ var Chmod = func() task.Task[ChmodRequest, ChmodResult] {
 	)
 
 	chmod = task.Series2(
-		func(ctx *task.ExecutionContext, req ChmodRequest) (error, ChmodRequest) {
+		func(ctx context.Context, req ChmodRequest) (error, ChmodRequest) {
 			zlog.Trace().
 				Str("path", req.Path).
 				Str("mode", req.Mode.String()).

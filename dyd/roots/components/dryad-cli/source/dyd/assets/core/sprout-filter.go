@@ -1,9 +1,5 @@
-
-
 package core
 
-import (
-	"dryad/task"
-)
+import "context"
 
-type SproutFilter func (*task.ExecutionContext, *SafeSproutReference) (error, bool)
+type SproutFilter func(context.Context, *SafeSproutReference) (error, bool)

@@ -2,6 +2,7 @@ package core
 
 import (
 	"bufio"
+	"context"
 	dydfs "dryad/filesystem"
 	"dryad/internal/exec"
 	"dryad/internal/filepath"
@@ -22,7 +23,7 @@ import (
 // stage 0 - build a shallow partial clone of the root into a working directory,
 // so we can build it into a stem
 func rootDevelop_stage0(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	workspacePath string,
 	selectedPaths rootDevelopSelectedPaths,
 ) error {
@@ -120,7 +121,7 @@ func rootDevelop_stage0(
 }
 
 func rootDevelop_resetWorkspace(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	snapshotStemPath string,
 	workspacePath string,
 ) error {
@@ -237,7 +238,7 @@ func rootDevelop_snapshotFile(workspacePath string) string {
 }
 
 func rootDevelop_snapshotStemPath(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	garden *SafeGardenReference,
 	workspacePath string,
 ) (string, error) {
@@ -251,7 +252,7 @@ func rootDevelop_snapshotStemPath(
 }
 
 func rootDevelop_createSnapshotStem(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	rootPath string,
 	garden *SafeGardenReference,
 ) (string, error) {
@@ -403,7 +404,7 @@ func rootDevelop_createSnapshotStem(
 // stage 1 - walk through the root dependencies,
 // and add the fingerprint as a dependency
 func rootDevelop_stage1(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	rootPath string,
 	workspacePath string,
 	roots *SafeRootsReference,
@@ -439,7 +440,7 @@ func rootDevelop_stage1(
 	}
 
 	err = requirementsRef.Walk(task.SERIAL_CONTEXT, RootRequirementsWalkRequest{
-		OnMatch: func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
+		OnMatch: func(ctx context.Context, requirement *SafeRootRequirementReference) (error, any) {
 			err, requirementName, condition := rootRequirementParseName(filepath.Base(requirement.BasePath))
 			if err != nil {
 				return err, nil
@@ -509,7 +510,7 @@ func rootDevelop_stage1(
 		return err
 	}
 
-	buildDependency := func(ctx *task.ExecutionContext, req rootDevelop_stage1_buildDependencyRequest) (error, any) {
+	buildDependency := func(ctx context.Context, req rootDevelop_stage1_buildDependencyRequest) (error, any) {
 		if req.ExternalTargetSpec != nil && rootRequirementTargetKind(req.ExternalTargetSpec.Kind) == RootRequirementTargetKindFile {
 			err, fileStem := RootRequirementFileBuildStem(ctx, RootRequirementFileBuildStemRequest{
 				Garden:          roots.Garden,
@@ -759,7 +760,7 @@ func rootDevelop_stage5(
 }
 
 func rootDevelop_handleUnsavedChanges(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	rootPath string,
 	workspacePath string,
 	garden *SafeGardenReference,
@@ -856,7 +857,7 @@ type rootDevelopRequest struct {
 }
 
 func rootDevelop(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req rootDevelopRequest,
 ) (string, error) {
 
@@ -1041,7 +1042,7 @@ type RootDevelopRequest struct {
 	OnExit            string
 }
 
-func (root *SafeRootReference) Develop(ctx *task.ExecutionContext, req RootDevelopRequest) (error, string) {
+func (root *SafeRootReference) Develop(ctx context.Context, req RootDevelopRequest) (error, string) {
 	res, err := rootDevelop(
 		ctx,
 		rootDevelopRequest{

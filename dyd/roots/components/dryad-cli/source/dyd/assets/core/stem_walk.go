@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	dydfs "dryad/filesystem"
 	"dryad/task"
 
@@ -19,7 +20,7 @@ type DydIgnoreRequest struct {
 var readDydIgnore task.Task[DydIgnoreRequest, *dydfs.GlobMatcher] = func() task.Task[DydIgnoreRequest, *dydfs.GlobMatcher] {
 	var read task.Task[DydIgnoreRequest, *dydfs.GlobMatcher]
 
-	read = func(ctx *task.ExecutionContext, req DydIgnoreRequest) (error, *dydfs.GlobMatcher) {
+	read = func(ctx context.Context, req DydIgnoreRequest) (error, *dydfs.GlobMatcher) {
 		var parentMatcher *dydfs.GlobMatcher
 		var err error
 
@@ -58,8 +59,8 @@ var readDydIgnore task.Task[DydIgnoreRequest, *dydfs.GlobMatcher] = func() task.
 
 	read = task.Memoize(
 		read,
-		func(ctx *task.ExecutionContext, req DydIgnoreRequest) (error, any) {
-			return nil, "readDydIgnore" + "-" + req.BasePath + "-" + req.Path
+		func(ctx context.Context, req DydIgnoreRequest) (error, any) {
+			return nil, req
 		},
 	)
 
@@ -106,7 +107,7 @@ var RE_STEM_WALK_SHOULD_CHECK_DYD_IGNORE = regexp.MustCompile(
 // - else if the node is a directory then yes
 // - else if the node is a file then no
 // - else error?
-func StemWalkShouldCrawl(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+func StemWalkShouldCrawl(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 	zlog.
 		Trace().
 		Str("path", node.Path).
@@ -220,7 +221,7 @@ var RE_STEM_WALK_SHOULD_MATCH = regexp.MustCompile(
 // - else if the node is a directory then no,
 // - else if the node is a file then yes,
 // - else error?
-func StemWalkShouldMatch(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+func StemWalkShouldMatch(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 	zlog.
 		Trace().
 		Str("path", node.Path).
@@ -268,12 +269,12 @@ func StemWalkShouldMatch(ctx *task.ExecutionContext, node dydfs.Walk6Node) (erro
 
 type StemWalkRequest struct {
 	BasePath string
-	OnMatch  func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any)
+	OnMatch  func(ctx context.Context, node dydfs.Walk6Node) (error, any)
 }
 
 var StemWalk task.Task[StemWalkRequest, any] = func() task.Task[StemWalkRequest, any] {
 	var stemWalk = func(
-		ctx *task.ExecutionContext,
+		ctx context.Context,
 		args StemWalkRequest,
 	) (error, any) {
 		var path string
@@ -289,10 +290,7 @@ var StemWalk task.Task[StemWalkRequest, any] = func() task.Task[StemWalkRequest,
 			return err, nil
 		}
 
-		onMatch := dydfs.ConditionalWalkAction(
-			args.OnMatch,
-			StemWalkShouldMatch,
-		)
+		onMatch := dydfs.ConditionalWalkAction(args.OnMatch, StemWalkShouldMatch)
 
 		err, _ = dydfs.Walk6(
 			ctx,
@@ -313,16 +311,11 @@ var StemWalk task.Task[StemWalkRequest, any] = func() task.Task[StemWalkRequest,
 		return err, nil
 	}
 
-	// we want to replace the execution context, but with the same concurrency channel as before.
-	// only the execution cache is replaced, to limit the scope of memoized calls to fetch dyd-ignore files
-	stemWalk = task.WithContext(
+	// Keep ignore-file caching local to this walk while sharing concurrency.
+	return task.WithContext(
 		stemWalk,
-		func(ctx *task.ExecutionContext, args StemWalkRequest) (error, *task.ExecutionContext) {
-			return nil, &task.ExecutionContext{
-				ConcurrencyChannel: ctx.ConcurrencyChannel,
-			}
+		func(ctx context.Context, args StemWalkRequest) (error, context.Context) {
+			return nil, task.WithCache(ctx)
 		},
 	)
-
-	return stemWalk
 }()

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/internal/os"
@@ -44,7 +45,7 @@ var scopeCreateCommand = func() clib.Command {
 		},
 	)
 
-	var createScope = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var createScope = func(ctx context.Context, args ParsedArgs) (error, any) {
 		unsafeGarden := dryad.Garden(args.GardenPath)
 
 		err, garden := unsafeGarden.Resolve(ctx)
@@ -64,8 +65,8 @@ var scopeCreateCommand = func() clib.Command {
 
 	createScope = task.WithContext(
 		createScope,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

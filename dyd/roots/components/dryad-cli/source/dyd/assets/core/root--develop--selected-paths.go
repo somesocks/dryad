@@ -1,12 +1,11 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"encoding/json"
 	"strings"
-
-	"dryad/task"
 )
 
 type rootDevelopSelectedPaths struct {
@@ -23,7 +22,7 @@ func rootDevelop_selectedPathsFile(workspacePath string) string {
 }
 
 func rootDevelop_resolveSelectedPaths(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	rootPath string,
 	variantDescriptor string,
 ) (error, rootDevelopSelectedPaths) {

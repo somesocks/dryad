@@ -1,16 +1,16 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"dryad/task"
 	"errors"
 	"io/fs"
 	// zlog "github.com/rs/zerolog/log"
 )
 
 func (derivations *SafeHeapDerivationsReference) Add(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	sourceFingerprint string,
 	resultFingerprint string,
 ) (error, *SafeHeapDerivationReference) {

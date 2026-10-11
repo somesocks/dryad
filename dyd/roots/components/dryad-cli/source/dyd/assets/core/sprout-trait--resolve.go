@@ -1,7 +1,7 @@
 package core
 
 import (
-	"dryad/task"
+	"context"
 	"errors"
 	// "dryad/internal/filepath"
 	// "os"
@@ -10,7 +10,7 @@ import (
 
 var ErrorNoSproutTrait = errors.New("sprout does not have trait")
 
-func (sproutTrait *UnsafeSproutTraitReference) Resolve(ctx *task.ExecutionContext) (error, *SafeSproutTraitReference) {
+func (sproutTrait *UnsafeSproutTraitReference) Resolve(ctx context.Context) (error, *SafeSproutTraitReference) {
 	var sproutTraitExists bool
 	var err error
 	var safeRef SafeSproutTraitReference

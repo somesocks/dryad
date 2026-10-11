@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	"dryad/internal/os"
 	"dryad/task"
@@ -17,7 +18,7 @@ var rootDevelopSnapshotCommand = func() clib.Command {
 		Parallel int
 	}
 
-	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx context.Context, req clib.ActionRequest) (error, ParsedArgs) {
 		var opts = req.Opts
 		var parallel int
 
@@ -32,7 +33,7 @@ var rootDevelopSnapshotCommand = func() clib.Command {
 		}
 	}
 
-	var runSnapshot = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var runSnapshot = func(ctx context.Context, args ParsedArgs) (error, any) {
 		socketPath := os.Getenv("DYD_DEV_SOCKET")
 		if socketPath == "" {
 			return errDevSocketNotSet, nil
@@ -61,8 +62,8 @@ var rootDevelopSnapshotCommand = func() clib.Command {
 
 	runSnapshot = task.WithContext(
 		runSnapshot,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

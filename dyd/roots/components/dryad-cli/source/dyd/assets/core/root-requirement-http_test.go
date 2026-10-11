@@ -3,6 +3,7 @@ package core
 import (
 	"archive/tar"
 	"bytes"
+	"context"
 	"dryad/internal/filepath"
 	"dryad/task"
 	"fmt"
@@ -28,7 +29,7 @@ func buildExpectedHTTPStemForTest(t *testing.T, content string, destinationAs st
 	gardenPath := makeGardenForHTTPTest(t)
 	sourcePath := filepath.Join(t.TempDir(), "data.txt")
 	writeFileForTest(t, sourcePath, content)
-	err, stem := RootRequirementFileBuildStem(task.NewContext(1), RootRequirementFileBuildStemRequest{
+	err, stem := RootRequirementFileBuildStem(task.NewContext(context.Background(), 1), RootRequirementFileBuildStemRequest{
 		Garden:        &SafeGardenReference{BasePath: gardenPath},
 		SourcePath:    sourcePath,
 		DestinationAs: destinationAs,
@@ -118,7 +119,7 @@ func TestRootRequirementHTTPRemoteConfigMemoizesWithinContext(t *testing.T) {
 	writeFileForTest(t, filepath.Join(remotePath, "host"), "first.example.com")
 	writeFileForTest(t, filepath.Join(remotePath, "auth"), "bearer first-token")
 	garden := &SafeGardenReference{BasePath: gardenPath}
-	ctx := task.NewContext(1)
+	ctx := task.NewContext(context.Background(), 1)
 
 	err, config := memoRootRequirementHTTPResolveRemoteConfig(ctx, rootRequirementHTTPRemoteConfigRequest{Garden: garden, VHost: "repo"})
 	assert.Nil(err)
@@ -130,7 +131,7 @@ func TestRootRequirementHTTPRemoteConfigMemoizesWithinContext(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal("first.example.com", config.Host)
 
-	err, config = memoRootRequirementHTTPResolveRemoteConfig(task.NewContext(1), rootRequirementHTTPRemoteConfigRequest{Garden: garden, VHost: "repo"})
+	err, config = memoRootRequirementHTTPResolveRemoteConfig(task.NewContext(context.Background(), 1), rootRequirementHTTPRemoteConfigRequest{Garden: garden, VHost: "repo"})
 	assert.Nil(err)
 	assert.Equal("second.example.com", config.Host)
 }
@@ -155,11 +156,11 @@ func TestRootRequirementHTTPRemoteConfigRejectsUnsafeVHost(t *testing.T) {
 		"host\x00name",
 	}
 	for _, vhost := range invalidVHosts {
-		err, _ := rootRequirementHTTPResolveRemoteConfig(task.NewContext(1), rootRequirementHTTPRemoteConfigRequest{Garden: garden, VHost: vhost})
+		err, _ := rootRequirementHTTPResolveRemoteConfig(task.NewContext(context.Background(), 1), rootRequirementHTTPRemoteConfigRequest{Garden: garden, VHost: vhost})
 		assert.NotNil(err, "expected invalid vhost %q to fail", vhost)
 	}
 
-	err, config := rootRequirementHTTPResolveRemoteConfig(task.NewContext(1), rootRequirementHTTPRemoteConfigRequest{Garden: garden, VHost: "repo:443"})
+	err, config := rootRequirementHTTPResolveRemoteConfig(task.NewContext(context.Background(), 1), rootRequirementHTTPRemoteConfigRequest{Garden: garden, VHost: "repo:443"})
 	assert.Nil(err)
 	assert.Equal("repo:443", config.Host)
 }
@@ -182,7 +183,7 @@ func TestRootRequirementHTTPBuildStem_DownloadsWithRemoteAuth(t *testing.T) {
 	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "shed", "remotes", "artifact", "host"), serverURL.Host)
 	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "shed", "remotes", "artifact", "auth"), "bearer env:DRYAD_HTTP_TOKEN")
 
-	err, stem := RootRequirementHTTPBuildStem(task.NewContext(1), RootRequirementHTTPBuildStemRequest{
+	err, stem := RootRequirementHTTPBuildStem(task.NewContext(context.Background(), 1), RootRequirementHTTPBuildStemRequest{
 		Garden:        &SafeGardenReference{BasePath: gardenPath},
 		SourceURL:     "http://artifact/data.txt?download=1",
 		DestinationAs: "dyd/assets/data.txt",
@@ -205,7 +206,7 @@ func TestRootRequirementHTTPLockTarget_FetchesMissingFingerprint(t *testing.T) {
 	}))
 	defer server.Close()
 
-	err, target := RootRequirementHTTPLockTarget(task.NewContext(1), RootRequirementHTTPLockTargetRequest{
+	err, target := RootRequirementHTTPLockTarget(task.NewContext(context.Background(), 1), RootRequirementHTTPLockTargetRequest{
 		Garden:           &SafeGardenReference{BasePath: gardenPath},
 		Target:           server.URL + "/data.txt?download=1",
 		DestinationAs:    "dyd/assets/data.txt",
@@ -225,7 +226,7 @@ func TestRootRequirementHTTPLockTarget_UsesArchiveFormatOverride(t *testing.T) {
 	archive := makeTarArchiveForHTTPTest(t, "contents/value.txt", "packed")
 	archivePath := filepath.Join(t.TempDir(), "pkg.tar.bz2")
 	writeFileForTest(t, archivePath, string(archive))
-	err, expectedStem := RootRequirementFileBuildStem(task.NewContext(1), RootRequirementFileBuildStemRequest{
+	err, expectedStem := RootRequirementFileBuildStem(task.NewContext(context.Background(), 1), RootRequirementFileBuildStemRequest{
 		Garden:          &SafeGardenReference{BasePath: gardenPath},
 		SourcePath:      archivePath,
 		DestinationInto: "dyd/assets/vendor",
@@ -241,7 +242,7 @@ func TestRootRequirementHTTPLockTarget_UsesArchiveFormatOverride(t *testing.T) {
 	}))
 	defer server.Close()
 
-	err, target := RootRequirementHTTPLockTarget(task.NewContext(1), RootRequirementHTTPLockTargetRequest{
+	err, target := RootRequirementHTTPLockTarget(task.NewContext(context.Background(), 1), RootRequirementHTTPLockTargetRequest{
 		Garden:             &SafeGardenReference{BasePath: gardenPath},
 		Target:             server.URL + "/pkg.tar.bz2",
 		DestinationInto:    "dyd/assets/vendor",
@@ -259,7 +260,7 @@ func TestRootRequirementHTTPLockTarget_UsesArchiveFormatOverride(t *testing.T) {
 	err, httpSpec, isHTTP := rootRequirementParseHTTPTarget(target)
 	assert.Nil(err)
 	assert.True(isHTTP)
-	err, stem := RootRequirementHTTPBuildStem(task.NewContext(1), RootRequirementHTTPBuildStemRequest{
+	err, stem := RootRequirementHTTPBuildStem(task.NewContext(context.Background(), 1), RootRequirementHTTPBuildStemRequest{
 		Garden:          &SafeGardenReference{BasePath: gardenPath},
 		SourceURL:       httpSpec.SourceURL,
 		DestinationInto: httpSpec.DestinationInto,
@@ -279,7 +280,7 @@ func TestRootRequirementHTTPBuildStem_CacheHitSkipsNetworkAndAuth(t *testing.T) 
 	gardenPath := makeGardenForHTTPTest(t)
 	sourcePath := filepath.Join(t.TempDir(), "data.txt")
 	writeFileForTest(t, sourcePath, "cached-data")
-	err, cachedStem := RootRequirementFileBuildStem(task.NewContext(1), RootRequirementFileBuildStemRequest{
+	err, cachedStem := RootRequirementFileBuildStem(task.NewContext(context.Background(), 1), RootRequirementFileBuildStemRequest{
 		Garden:        &SafeGardenReference{BasePath: gardenPath},
 		SourcePath:    sourcePath,
 		DestinationAs: "dyd/assets/data.txt",
@@ -297,7 +298,7 @@ func TestRootRequirementHTTPBuildStem_CacheHitSkipsNetworkAndAuth(t *testing.T) 
 	assert.Nil(err)
 	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "shed", "remotes", serverURL.Host, "auth"), "bearer env:MISSING_HTTP_TOKEN")
 
-	err, stem := RootRequirementHTTPBuildStem(task.NewContext(1), RootRequirementHTTPBuildStemRequest{
+	err, stem := RootRequirementHTTPBuildStem(task.NewContext(context.Background(), 1), RootRequirementHTTPBuildStemRequest{
 		Garden:        &SafeGardenReference{BasePath: gardenPath},
 		SourceURL:     server.URL + "/data.txt",
 		DestinationAs: "dyd/assets/data.txt",
@@ -317,7 +318,7 @@ func TestRootRequirementHTTPBuildStem_FingerprintMismatchFails(t *testing.T) {
 	}))
 	defer server.Close()
 
-	err, stem := RootRequirementHTTPBuildStem(task.NewContext(1), RootRequirementHTTPBuildStemRequest{
+	err, stem := RootRequirementHTTPBuildStem(task.NewContext(context.Background(), 1), RootRequirementHTTPBuildStemRequest{
 		Garden:        &SafeGardenReference{BasePath: gardenPath},
 		SourceURL:     server.URL + "/data.txt",
 		DestinationAs: "dyd/assets/data.txt",

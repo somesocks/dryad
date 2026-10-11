@@ -1,11 +1,11 @@
 package fs2
 
 import (
+	"context"
 	"dryad/internal/os"
-	"dryad/task"
 )
 
-func RemoveAll(ctx *task.ExecutionContext, path string) (error, any) {
+func RemoveAll(ctx context.Context, path string) (error, any) {
 	_, err := os.Lstat(path)
 	if err != nil {
 		// if the path does not exist, silently return
@@ -16,13 +16,13 @@ func RemoveAll(ctx *task.ExecutionContext, path string) (error, any) {
 		}
 	}
 
-	shouldWalk := func(ctx *task.ExecutionContext, node Walk6Node) (error, bool) {
+	shouldWalk := func(ctx context.Context, node Walk6Node) (error, bool) {
 		isSymlink := node.Info.Mode()&os.ModeSymlink == os.ModeSymlink
 		shouldWalk := !isSymlink
 		return nil, shouldWalk
 	}
 
-	onPreMatch := func(ctx *task.ExecutionContext, node Walk6Node) (error, any) {
+	onPreMatch := func(ctx context.Context, node Walk6Node) (error, any) {
 		isDir := node.Info.IsDir()
 		isWritable := node.Info.Mode()&0o200 == 0o200
 
@@ -36,7 +36,7 @@ func RemoveAll(ctx *task.ExecutionContext, path string) (error, any) {
 		return nil, nil
 	}
 
-	onPostMatch := func(ctx *task.ExecutionContext, node Walk6Node) (error, any) {
+	onPostMatch := func(ctx context.Context, node Walk6Node) (error, any) {
 		err = os.Remove(node.Path)
 		return err, nil
 	}

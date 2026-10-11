@@ -1,19 +1,17 @@
-
 package core
 
 import (
-	// fs2 "dryad/filesystem"
-	"dryad/task"
 
 	// "os"
 
+	"context"
 	"errors"
 	// zlog "github.com/rs/zerolog/log"
 )
 
 var ErrorNoSproutTraits = errors.New("sprout does not have traits")
 
-func (sproutTraits *UnsafeSproutTraitsReference) Resolve(ctx * task.ExecutionContext) (error, *SafeSproutTraitsReference) {
+func (sproutTraits *UnsafeSproutTraitsReference) Resolve(ctx context.Context) (error, *SafeSproutTraitsReference) {
 	var sproutTraitsExists bool
 	var err error
 	var safeRef SafeSproutTraitsReference
@@ -29,8 +27,8 @@ func (sproutTraits *UnsafeSproutTraitsReference) Resolve(ctx * task.ExecutionCon
 
 	safeRef = SafeSproutTraitsReference{
 		BasePath: sproutTraits.BasePath,
-		Sprout: sproutTraits.Sprout,
+		Sprout:   sproutTraits.Sprout,
 	}
 
-	return nil, &safeRef 
+	return nil, &safeRef
 }

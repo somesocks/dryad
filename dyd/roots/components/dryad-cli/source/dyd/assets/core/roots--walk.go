@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	dydfs "dryad/filesystem"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
@@ -10,8 +11,8 @@ import (
 
 type rootsWalkRequest struct {
 	Roots       *SafeRootsReference
-	ShouldMatch func(*task.ExecutionContext, *SafeRootReference) (error, bool)
-	OnMatch     func(ctx *task.ExecutionContext, match *SafeRootReference) (error, any)
+	ShouldMatch func(context.Context, *SafeRootReference) (error, bool)
+	OnMatch     func(ctx context.Context, match *SafeRootReference) (error, any)
 }
 
 type rootsWalkIsRootKey struct {
@@ -26,19 +27,14 @@ func rootsWalkIsRootCacheKey(path string) rootsWalkIsRootKey {
 	}
 }
 
-func rootsWalk(ctx *task.ExecutionContext, req rootsWalkRequest) (error, any) {
+func rootsWalk(ctx context.Context, req rootsWalkRequest) (error, any) {
 	var rootsPath = req.Roots.BasePath
 	var err error
 
-	var isRootCtx = &task.ExecutionContext{
-		ConcurrencyChannel: task.DEFAULT_CONTEXT.ConcurrencyChannel,
-	}
-	if ctx != nil {
-		isRootCtx.ConcurrencyChannel = ctx.ConcurrencyChannel
-	}
-
-	var isRoot = task.Memoize(
-		func(ctx *task.ExecutionContext, path string) (error, bool) {
+	// Root detection owns a cache layer; caller callbacks keep the incoming one.
+	isRootCtx := task.WithCache(ctx)
+	isRoot, invalidateIsRoot := task.MemoizeWithInvalidation(
+		func(ctx context.Context, path string) (error, bool) {
 			typePath := filepath.Join(path, "dyd", "type")
 			typeBytes, err := os.ReadFile(typePath)
 
@@ -46,23 +42,29 @@ func rootsWalk(ctx *task.ExecutionContext, req rootsWalkRequest) (error, any) {
 
 			return nil, isRoot
 		},
-		func(ctx *task.ExecutionContext, path string) (error, any) {
+		func(ctx context.Context, path string) (error, any) {
 			return nil, rootsWalkIsRootCacheKey(path)
 		},
 	)
 	isRoot = task.WithContext(
 		isRoot,
-		func(ctx *task.ExecutionContext, path string) (error, *task.ExecutionContext) {
+		func(ctx context.Context, path string) (error, context.Context) {
+			return nil, isRootCtx
+		},
+	)
+	invalidateIsRoot = task.WithContext(
+		invalidateIsRoot,
+		func(ctx context.Context, path string) (error, context.Context) {
 			return nil, isRootCtx
 		},
 	)
 
-	var shouldWalk = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	var shouldWalk = func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		err, root := isRoot(ctx, node.Path)
 		return err, !root
 	}
 
-	var shouldMatch = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	var shouldMatch = func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		// Only directories and symlinks can be roots; regular files cannot contain dyd/type.
 		if !node.Info.IsDir() && node.Info.Mode()&os.ModeSymlink != os.ModeSymlink {
 			return nil, false
@@ -72,7 +74,7 @@ func rootsWalk(ctx *task.ExecutionContext, req rootsWalkRequest) (error, any) {
 		return err, root
 	}
 
-	var onMatch = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+	var onMatch = func(ctx context.Context, node dydfs.Walk6Node) (error, any) {
 		var safeRootRef SafeRootReference
 		var err error
 		relPath, relErr := filepath.Rel(req.Roots.BasePath, node.Path)
@@ -112,16 +114,9 @@ func rootsWalk(ctx *task.ExecutionContext, req rootsWalkRequest) (error, any) {
 
 	onMatch = dydfs.ConditionalWalkAction(onMatch, shouldMatch)
 
-	var onPostMatch = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
-		ctx.ExecutionCache.Delete(rootsWalkIsRootCacheKey(node.Path))
-		return nil, nil
+	var onPostMatch = func(ctx context.Context, node dydfs.Walk6Node) (error, any) {
+		return invalidateIsRoot(ctx, node.Path)
 	}
-	onPostMatch = task.WithContext(
-		onPostMatch,
-		func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, *task.ExecutionContext) {
-			return nil, isRootCtx
-		},
-	)
 
 	err, _ = dydfs.Walk6(
 		ctx,
@@ -139,13 +134,13 @@ func rootsWalk(ctx *task.ExecutionContext, req rootsWalkRequest) (error, any) {
 }
 
 type RootsWalkRequest struct {
-	ShouldMatch func(*task.ExecutionContext, *SafeRootReference) (error, bool)
-	OnMatch     func(*task.ExecutionContext, *SafeRootReference) (error, any)
+	ShouldMatch func(context.Context, *SafeRootReference) (error, bool)
+	OnMatch     func(context.Context, *SafeRootReference) (error, any)
 }
 
-func (roots *SafeRootsReference) Walk(ctx *task.ExecutionContext, req RootsWalkRequest) error {
+func (roots *SafeRootsReference) Walk(ctx context.Context, req RootsWalkRequest) error {
 	if req.ShouldMatch == nil {
-		req.ShouldMatch = func(*task.ExecutionContext, *SafeRootReference) (error, bool) {
+		req.ShouldMatch = func(context.Context, *SafeRootReference) (error, bool) {
 			return nil, true
 		}
 	}

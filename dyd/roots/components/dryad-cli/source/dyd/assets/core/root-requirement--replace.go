@@ -1,8 +1,8 @@
 package core
 
 import (
+	"context"
 	fs2 "dryad/filesystem"
-	"dryad/task"
 	"fmt"
 
 	"dryad/internal/filepath"
@@ -75,7 +75,7 @@ func rootRequirementTargetSpecApplyReplaceTarget(
 	}
 }
 
-func (rootRequirement *SafeRootRequirementReference) Replace(ctx *task.ExecutionContext, targetSpec *RootRequirementTargetSpec) error {
+func (rootRequirement *SafeRootRequirementReference) Replace(ctx context.Context, targetSpec *RootRequirementTargetSpec) error {
 	var err error
 	var linkTarget string
 

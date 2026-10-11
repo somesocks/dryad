@@ -1,16 +1,17 @@
 package core
 
 import (
-	"dryad/task"
+
 	// "errors"
 
+	"context"
 	"io/ioutil"
 	// "dryad/internal/filepath"
 	// "os"
 	// zlog "github.com/rs/zerolog/log"
 )
 
-func (rootTrait *SafeRootTraitReference) Get(ctx *task.ExecutionContext) (error, string) {
+func (rootTrait *SafeRootTraitReference) Get(ctx context.Context) (error, string) {
 	bytes, err := ioutil.ReadFile(rootTrait.BasePath)
 	if err != nil {
 		return err, ""

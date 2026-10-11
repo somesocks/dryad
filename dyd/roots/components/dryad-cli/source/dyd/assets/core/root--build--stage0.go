@@ -2,6 +2,7 @@ package core
 
 import (
 	// dydfs "dryad/filesystem"
+	"context"
 	"dryad/task"
 
 	// "io/fs"
@@ -28,9 +29,9 @@ type rootBuild_stage0_request struct {
 
 // stage 0 - build a shallow partial clone of the root into a working directory,
 // so we can build it into a stem
-var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
+var rootBuild_stage0 = func() func(ctx context.Context, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
 
-	var prepReq = func(ctx *task.ExecutionContext, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
+	var prepReq = func(ctx context.Context, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
 		zlog.Trace().
 			Msg("RootBuild/stage0")
 
@@ -74,7 +75,7 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		return nil, req
 	}
 
-	var mkBaseDir = func(ctx *task.ExecutionContext, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
+	var mkBaseDir = func(ctx context.Context, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
 		zlog.Trace().
 			Msg("RootBuild/stage0/mkBaseDir")
 
@@ -85,7 +86,7 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		return err, req
 	}
 
-	var linkAssetsDir = func(ctx *task.ExecutionContext, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
+	var linkAssetsDir = func(ctx context.Context, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
 		zlog.Trace().
 			Msg("RootBuild/stage0/linkAssetsDir")
 
@@ -104,7 +105,7 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		return nil, req
 	}
 
-	var linkCommandsDir = func(ctx *task.ExecutionContext, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
+	var linkCommandsDir = func(ctx context.Context, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
 		zlog.Trace().
 			Msg("RootBuild/stage0/linkCommandsDir")
 
@@ -123,7 +124,7 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		return nil, req
 	}
 
-	var linkSecretsDir = func(ctx *task.ExecutionContext, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
+	var linkSecretsDir = func(ctx context.Context, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
 		zlog.Trace().
 			Msg("RootBuild/stage0/linkSecretsDir")
 
@@ -142,7 +143,7 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		return nil, req
 	}
 
-	var linkTraitsDir = func(ctx *task.ExecutionContext, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
+	var linkTraitsDir = func(ctx context.Context, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
 		zlog.Trace().
 			Msg("RootBuild/stage0/linkTraitsDir")
 
@@ -161,7 +162,7 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		return nil, req
 	}
 
-	var linkDocsDir = func(ctx *task.ExecutionContext, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
+	var linkDocsDir = func(ctx context.Context, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
 		zlog.Trace().
 			Msg("RootBuild/stage0/linkDocsDir")
 
@@ -180,7 +181,7 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 		return nil, req
 	}
 
-	var mkDependenciesDir = func(ctx *task.ExecutionContext, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
+	var mkDependenciesDir = func(ctx context.Context, req rootBuild_stage0_request) (error, rootBuild_stage0_request) {
 		zlog.Trace().
 			Msg("RootBuild/stage0/mkDependenciesDir")
 
@@ -203,7 +204,7 @@ var rootBuild_stage0 = func() func(ctx *task.ExecutionContext, req rootBuild_sta
 			linkDocsDir,
 		),
 		func(
-			ctx *task.ExecutionContext,
+			ctx context.Context,
 			req task.Tuple6[
 				rootBuild_stage0_request,
 				rootBuild_stage0_request,

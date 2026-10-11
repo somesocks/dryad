@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	dydfs "dryad/filesystem"
 	"dryad/task"
 
@@ -32,26 +33,21 @@ type rootDevelopCollectSpec struct {
 }
 
 func rootDevelop_collectState(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	spec rootDevelopCollectSpec,
 ) (map[string]rootDevelopFileState, error) {
 	var err error
 	var states = make(map[string]rootDevelopFileState)
 	var statesMutex sync.Mutex
 
-	if ctx == nil {
-		ctx = task.DEFAULT_CONTEXT
-	}
-	ctx = &task.ExecutionContext{
-		ConcurrencyChannel: ctx.ConcurrencyChannel,
-	}
+	ctx = task.WithCache(ctx)
 
 	basePath, err := filepath.Abs(spec.BasePath)
 	if err != nil {
 		return nil, err
 	}
 
-	shouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	shouldWalk := func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		if node.Info == nil {
 			return nil, false
 		}
@@ -84,7 +80,7 @@ func rootDevelop_collectState(
 		return nil, true
 	}
 
-	onMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+	onMatch := func(ctx context.Context, node dydfs.Walk6Node) (error, any) {
 		relPath, err := filepath.Rel(basePath, node.VPath)
 		if err != nil {
 			return err, nil
@@ -172,7 +168,7 @@ func rootDevelop_collectState(
 }
 
 func rootDevelop_collectAll(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	basePath string,
 	selectedPaths *rootDevelopSelectedPaths,
 ) (map[string]rootDevelopFileState, error) {
@@ -272,7 +268,7 @@ func rootDevelop_applyFile(
 }
 
 func rootDevelop_saveChanges(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	rootPath string,
 	workspacePath string,
 	snapshotStemPath string,
@@ -367,7 +363,7 @@ func rootDevelop_saveChanges(
 }
 
 func rootDevelop_statusChanges(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	rootPath string,
 	workspacePath string,
 	snapshotStemPath string,

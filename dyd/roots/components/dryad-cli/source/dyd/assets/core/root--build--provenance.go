@@ -1,9 +1,9 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"dryad/task"
 	"fmt"
 )
 
@@ -75,7 +75,7 @@ type rootBuildProvenanceStemRequest struct {
 	BuildResult *RootBuildResult
 }
 
-func rootBuildProvenanceStem(ctx *task.ExecutionContext, req rootBuildProvenanceStemRequest) (error, *SafeHeapStemReference) {
+func rootBuildProvenanceStem(ctx context.Context, req rootBuildProvenanceStemRequest) (error, *SafeHeapStemReference) {
 	if req.Garden == nil {
 		return fmt.Errorf("missing garden for provenance stem"), nil
 	}

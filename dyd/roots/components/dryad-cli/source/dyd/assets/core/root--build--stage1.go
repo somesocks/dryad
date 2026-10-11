@@ -2,6 +2,7 @@ package core
 
 import (
 	// dydfs "dryad/filesystem"
+	"context"
 	"dryad/internal/os"
 	"dryad/task"
 	"fmt"
@@ -52,7 +53,7 @@ func rootBuild_stage1DependencyName(
 
 // stage 1 - walk through the root dependencies, build them if necessary,
 // and add the fingerprint as a dependency
-var rootBuild_stage1 func(ctx *task.ExecutionContext, req rootBuild_stage1_request) (error, []*RootBuildResult)
+var rootBuild_stage1 func(ctx context.Context, req rootBuild_stage1_request) (error, []*RootBuildResult)
 
 func init() {
 
@@ -77,7 +78,7 @@ func init() {
 		}
 	}
 
-	var rootBuild_stage1_prepReq = func(ctx *task.ExecutionContext, req rootBuild_stage1_request) (error, rootBuild_stage1_request) {
+	var rootBuild_stage1_prepReq = func(ctx context.Context, req rootBuild_stage1_request) (error, rootBuild_stage1_request) {
 		zlog.Trace().
 			Msg("RootBuild/stage1")
 
@@ -93,7 +94,7 @@ func init() {
 	}
 
 	var rootBuild_stage1_generateRequests = func(
-		ctx *task.ExecutionContext,
+		ctx context.Context,
 		req rootBuild_stage1_request,
 	) (error, []rootBuild_stage1_buildDependencyRequest) {
 		var buildDependencyRequests []rootBuild_stage1_buildDependencyRequest
@@ -156,7 +157,7 @@ func init() {
 		}
 
 		err = requirementsRef.Walk(task.SERIAL_CONTEXT, RootRequirementsWalkRequest{
-			OnMatch: func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
+			OnMatch: func(ctx context.Context, requirement *SafeRootRequirementReference) (error, any) {
 				err, requirementName, condition := rootRequirementParseName(filepath.Base(requirement.BasePath))
 				if err != nil {
 					return err, nil
@@ -249,7 +250,7 @@ func init() {
 		return nil, buildDependencyRequests
 	}
 
-	var rootBuild_stage1_buildDependency = func(ctx *task.ExecutionContext, req rootBuild_stage1_buildDependencyRequest) (error, *RootBuildResult) {
+	var rootBuild_stage1_buildDependency = func(ctx context.Context, req rootBuild_stage1_buildDependencyRequest) (error, *RootBuildResult) {
 		if req.ExternalTargetSpec != nil && rootRequirementTargetKind(req.ExternalTargetSpec.Kind) == RootRequirementTargetKindFile {
 			err, fileStem := RootRequirementFileBuildStem(ctx, RootRequirementFileBuildStemRequest{
 				Garden:          req.BaseRequest.Roots.Garden,
@@ -368,7 +369,7 @@ func init() {
 
 	var rootBuild_stage1_buildDependencies = task.ParallelMap(rootBuild_stage1_buildDependency)
 
-	var rootBuild_stage1_processResults = func(ctx *task.ExecutionContext, req []*RootBuildResult) (error, []*RootBuildResult) {
+	var rootBuild_stage1_processResults = func(ctx context.Context, req []*RootBuildResult) (error, []*RootBuildResult) {
 		return nil, req
 	}
 

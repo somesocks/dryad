@@ -1,16 +1,15 @@
 package fs2
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"io/fs"
 
-	"dryad/task"
-
 	zlog "github.com/rs/zerolog/log"
 )
 
-var remove = func(ctx *task.ExecutionContext, path string) (error, any) {
+var remove = func(ctx context.Context, path string) (error, any) {
 	var parentPath string = filepath.Dir(path)
 	var err error
 
@@ -68,7 +67,7 @@ var remove = func(ctx *task.ExecutionContext, path string) (error, any) {
 
 var remove2 = WithFileLock(
 	remove,
-	func(ctx *task.ExecutionContext, path string) (error, string) {
+	func(ctx context.Context, path string) (error, string) {
 		return nil, filepath.Dir(path)
 	},
 )

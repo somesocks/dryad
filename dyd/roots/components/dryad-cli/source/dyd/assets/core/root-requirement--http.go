@@ -386,7 +386,7 @@ func rootRequirementHTTPApplyLockOptions(httpSpec rootRequirementHTTPTargetSpec,
 	return nil, httpSpec
 }
 
-func RootRequirementHTTPLockTarget(ctx *task.ExecutionContext, req RootRequirementHTTPLockTargetRequest) (error, string) {
+func RootRequirementHTTPLockTarget(ctx context.Context, req RootRequirementHTTPLockTargetRequest) (error, string) {
 	err, httpSpec, isHTTP := rootRequirementParseHTTPTarget(req.Target)
 	if err != nil {
 		return err, ""
@@ -550,7 +550,7 @@ func rootRequirementHTTPAuthParse(raw string) (error, rootRequirementHTTPAuthSpe
 	return nil, spec
 }
 
-func rootRequirementHTTPResolveRemoteConfig(ctx *task.ExecutionContext, req rootRequirementHTTPRemoteConfigRequest) (error, rootRequirementHTTPRemoteConfig) {
+func rootRequirementHTTPResolveRemoteConfig(ctx context.Context, req rootRequirementHTTPRemoteConfigRequest) (error, rootRequirementHTTPRemoteConfig) {
 	if err := rootRequirementHTTPValidateRemoteVHost(req.VHost); err != nil {
 		return err, rootRequirementHTTPRemoteConfig{}
 	}
@@ -585,7 +585,7 @@ func rootRequirementHTTPResolveRemoteConfig(ctx *task.ExecutionContext, req root
 
 var memoRootRequirementHTTPResolveRemoteConfig = task.Memoize(
 	rootRequirementHTTPResolveRemoteConfig,
-	func(ctx *task.ExecutionContext, req rootRequirementHTTPRemoteConfigRequest) (error, any) {
+	func(ctx context.Context, req rootRequirementHTTPRemoteConfigRequest) (error, any) {
 		type Key struct {
 			Group      string
 			GardenPath string
@@ -652,7 +652,7 @@ type RootRequirementHTTPBuildStemRequest struct {
 	Fingerprint     string
 }
 
-func rootRequirementHTTPDownloadBuildStem(ctx *task.ExecutionContext, req RootRequirementHTTPBuildStemRequest) (error, *SafeHeapStemReference) {
+func rootRequirementHTTPDownloadBuildStem(ctx context.Context, req RootRequirementHTTPBuildStemRequest) (error, *SafeHeapStemReference) {
 	sourceURL, err := url.Parse(req.SourceURL)
 	if err != nil {
 		return err, nil
@@ -732,7 +732,7 @@ func rootRequirementHTTPDownloadBuildStem(ctx *task.ExecutionContext, req RootRe
 	return nil, stem
 }
 
-func RootRequirementHTTPBuildStem(ctx *task.ExecutionContext, req RootRequirementHTTPBuildStemRequest) (error, *SafeHeapStemReference) {
+func RootRequirementHTTPBuildStem(ctx context.Context, req RootRequirementHTTPBuildStemRequest) (error, *SafeHeapStemReference) {
 	if req.Fingerprint == "" {
 		return fmt.Errorf("http requirement fingerprint is required"), nil
 	}

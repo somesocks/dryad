@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/internal/filepath"
@@ -17,13 +18,13 @@ var sproutsListCommand = func() clib.Command {
 		Relative   bool
 		Parallel   int
 		Request    clib.ActionRequest
-		BaseFilter func(*task.ExecutionContext, *dryad.SafeSproutReference) (error, bool)
+		BaseFilter func(context.Context, *dryad.SafeSproutReference) (error, bool)
 	}
 
 	type PreparedArgs struct {
 		GardenPath string
 		Relative   bool
-		Filter     func(*task.ExecutionContext, *dryad.SafeSproutReference) (error, bool)
+		Filter     func(context.Context, *dryad.SafeSproutReference) (error, bool)
 	}
 
 	var parseArgs = task.From(
@@ -84,7 +85,7 @@ var sproutsListCommand = func() clib.Command {
 		},
 	)
 
-	var prepareFilters = func(ctx *task.ExecutionContext, args ParsedArgs) (error, PreparedArgs) {
+	var prepareFilters = func(ctx context.Context, args ParsedArgs) (error, PreparedArgs) {
 		err, fromStdinFilter := ArgSproutFilterFromStdin(ctx, args.Request)
 		if err != nil {
 			return err, PreparedArgs{}
@@ -100,7 +101,7 @@ var sproutsListCommand = func() clib.Command {
 		}
 	}
 
-	var listSprouts = func(ctx *task.ExecutionContext, args PreparedArgs) (error, any) {
+	var listSprouts = func(ctx context.Context, args PreparedArgs) (error, any) {
 		unsafeGarden := dryad.Garden(args.GardenPath)
 
 		err, garden := unsafeGarden.Resolve(ctx)
@@ -116,7 +117,7 @@ var sproutsListCommand = func() clib.Command {
 		err = sprouts.Walk(
 			ctx,
 			dryad.SproutsWalkRequest{
-				OnSprout: func(ctx *task.ExecutionContext, sprout *dryad.SafeSproutReference) (error, any) {
+				OnSprout: func(ctx context.Context, sprout *dryad.SafeSproutReference) (error, any) {
 					// calculate the relative path to the root from the base of the garden
 					relPath, err := filepath.Rel(sprout.Sprouts.Garden.BasePath, sprout.BasePath)
 					if err != nil {
@@ -148,8 +149,8 @@ var sproutsListCommand = func() clib.Command {
 			prepareFilters,
 			listSprouts,
 		),
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

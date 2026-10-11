@@ -1,13 +1,9 @@
-
-
 package core
 
-import (
-	"dryad/task"
-)
+import "context"
 
-func SproutFiltersCompose (filters ...SproutFilter) SproutFilter {
-	return func (ctx *task.ExecutionContext, sprout *SafeSproutReference) (error, bool) {
+func SproutFiltersCompose(filters ...SproutFilter) SproutFilter {
+	return func(ctx context.Context, sprout *SafeSproutReference) (error, bool) {
 		for _, filter := range filters {
 			err, match := filter(ctx, sprout)
 			if err != nil {

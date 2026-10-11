@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"errors"
@@ -58,7 +59,7 @@ func sproutPackPath(path string) (string, error) {
 }
 
 func sproutPack(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	context BuildContext,
 	request sproutPackRequest,
 ) (string, error) {
@@ -131,7 +132,7 @@ type SproutPackRequest struct {
 }
 
 func SproutPack(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	request SproutPackRequest,
 ) (string, error) {
 	zlog.

@@ -1,9 +1,9 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"dryad/task"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -15,7 +15,7 @@ type VariantInclusion struct {
 	Enabled    bool
 }
 
-func (rootVariants *SafeRootVariantsReference) Inclusions(ctx *task.ExecutionContext) (error, []VariantInclusion) {
+func (rootVariants *SafeRootVariantsReference) Inclusions(ctx context.Context) (error, []VariantInclusion) {
 	inclusionsPath := filepath.Join(rootVariants.BasePath, "_include")
 
 	inclusionsInfo, err := os.Stat(inclusionsPath)

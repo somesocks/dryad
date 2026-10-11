@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	fs2 "dryad/filesystem"
 	"dryad/task"
 	"errors"
@@ -11,7 +12,7 @@ import (
 	// zlog "github.com/rs/zerolog/log"
 )
 
-func resolveHeapDerivationsReference(ctx *task.ExecutionContext, heapDerivations *UnsafeHeapDerivationsReference) (error, *SafeHeapDerivationsReference) {
+func resolveHeapDerivationsReference(ctx context.Context, heapDerivations *UnsafeHeapDerivationsReference) (error, *SafeHeapDerivationsReference) {
 	var heapDerivationsExists bool
 	var err error
 	var safeRef SafeHeapDerivationsReference
@@ -78,7 +79,7 @@ func resolveHeapDerivationsReference(ctx *task.ExecutionContext, heapDerivations
 
 var memoResolveHeapDerivationsReference = task.Memoize(
 	resolveHeapDerivationsReference,
-	func(ctx *task.ExecutionContext, heapDerivations *UnsafeHeapDerivationsReference) (error, any) {
+	func(ctx context.Context, heapDerivations *UnsafeHeapDerivationsReference) (error, any) {
 		type Key struct {
 			Group      string
 			BasePath   string
@@ -104,6 +105,6 @@ var memoResolveHeapDerivationsReference = task.Memoize(
 	},
 )
 
-func (heapDerivations *UnsafeHeapDerivationsReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapDerivationsReference) {
+func (heapDerivations *UnsafeHeapDerivationsReference) Resolve(ctx context.Context) (error, *SafeHeapDerivationsReference) {
 	return memoResolveHeapDerivationsReference(ctx, heapDerivations)
 }

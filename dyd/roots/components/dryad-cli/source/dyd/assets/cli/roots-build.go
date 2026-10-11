@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/task"
@@ -21,7 +22,7 @@ var rootsBuildCommand = func() clib.Command {
 		LogStderr         string
 	}
 
-	var parseArgs = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs = func(ctx context.Context, req clib.ActionRequest) (error, ParsedArgs) {
 		// var args = req.Args
 		var options = req.Opts
 
@@ -82,7 +83,7 @@ var rootsBuildCommand = func() clib.Command {
 			return err, ParsedArgs{}
 		}
 
-		var compositeFilter = func(ctx *task.ExecutionContext, variant *dryad.SafeRootVariantReference) (error, bool) {
+		var compositeFilter = func(ctx context.Context, variant *dryad.SafeRootVariantReference) (error, bool) {
 			var err error
 			var shouldMatch bool
 
@@ -109,7 +110,7 @@ var rootsBuildCommand = func() clib.Command {
 		}
 	}
 
-	var buildGarden = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var buildGarden = func(ctx context.Context, args ParsedArgs) (error, any) {
 		unsafeGarden := dryad.Garden(args.Path)
 
 		err, garden := unsafeGarden.Resolve(ctx)
@@ -151,8 +152,8 @@ var rootsBuildCommand = func() clib.Command {
 
 	buildGarden = task.WithContext(
 		buildGarden,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

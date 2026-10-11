@@ -1,16 +1,15 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"fmt"
 	"strings"
-
-	"dryad/task"
 )
 
 func rootDevelop_materializeVariantTraits(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	rootPath string,
 	workspacePath string,
 	variantDescriptor string,

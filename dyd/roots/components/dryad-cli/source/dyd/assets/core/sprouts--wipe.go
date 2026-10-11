@@ -1,13 +1,13 @@
 package core
 
 import (
+	"context"
 	fs2 "dryad/filesystem"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"dryad/task"
 )
 
-func sproutsWipe_inner(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) (error, any) {
+func sproutsWipe_inner(ctx context.Context, sprouts *SafeSproutsReference) (error, any) {
 	sproutsInfo, err := os.Lstat(sprouts.BasePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -58,10 +58,10 @@ func sproutsWipe_inner(ctx *task.ExecutionContext, sprouts *SafeSproutsReference
 	return nil, nil
 }
 
-func sproutsWipe(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) error {
+func sproutsWipe(ctx context.Context, sprouts *SafeSproutsReference) error {
 	wipeTask := fs2.WithFileLock(
 		sproutsWipe_inner,
-		func(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) (error, string) {
+		func(ctx context.Context, sprouts *SafeSproutsReference) (error, string) {
 			return nil, sprouts.BasePath
 		},
 	)
@@ -71,7 +71,7 @@ func sproutsWipe(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) erro
 }
 
 func (sprouts *SafeSproutsReference) Wipe(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 ) error {
 	err := sproutsWipe(
 		ctx,

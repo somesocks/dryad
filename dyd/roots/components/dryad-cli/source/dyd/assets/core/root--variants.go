@@ -1,8 +1,8 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
-	"dryad/task"
 )
 
 func (root *SafeRootReference) Variants() *UnsafeRootVariantsReference {
@@ -13,7 +13,7 @@ func (root *SafeRootReference) Variants() *UnsafeRootVariantsReference {
 	return &rootVariantsRef
 }
 
-func (root *SafeRootReference) VariantDimensions(ctx *task.ExecutionContext) (error, []VariantDimension) {
+func (root *SafeRootReference) VariantDimensions(ctx context.Context) (error, []VariantDimension) {
 	err, variants := root.Variants().Resolve(ctx)
 	if err != nil {
 		return err, nil
@@ -24,7 +24,7 @@ func (root *SafeRootReference) VariantDimensions(ctx *task.ExecutionContext) (er
 	return variants.Dimensions(ctx)
 }
 
-func (root *SafeRootReference) VariantExclusions(ctx *task.ExecutionContext) (error, []VariantExclusion) {
+func (root *SafeRootReference) VariantExclusions(ctx context.Context) (error, []VariantExclusion) {
 	err, variants := root.Variants().Resolve(ctx)
 	if err != nil {
 		return err, nil
@@ -35,7 +35,7 @@ func (root *SafeRootReference) VariantExclusions(ctx *task.ExecutionContext) (er
 	return variants.Exclusions(ctx)
 }
 
-func (root *SafeRootReference) VariantInclusions(ctx *task.ExecutionContext) (error, []VariantInclusion) {
+func (root *SafeRootReference) VariantInclusions(ctx context.Context) (error, []VariantInclusion) {
 	err, variants := root.Variants().Resolve(ctx)
 	if err != nil {
 		return err, nil
@@ -46,7 +46,7 @@ func (root *SafeRootReference) VariantInclusions(ctx *task.ExecutionContext) (er
 	return variants.Inclusions(ctx)
 }
 
-func (root *SafeRootReference) variantMetadata(ctx *task.ExecutionContext) (error, []VariantDimension, []VariantInclusion, []VariantExclusion) {
+func (root *SafeRootReference) variantMetadata(ctx context.Context) (error, []VariantDimension, []VariantInclusion, []VariantExclusion) {
 	err, variants := root.Variants().Resolve(ctx)
 	if err != nil {
 		return err, nil, nil, nil

@@ -1,12 +1,14 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"os"
 	"strconv"
 	"testing"
 
 	"dryad/task"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,7 +51,7 @@ func TestHeapFilesAddFile_UsesFlatLayoutWhenDepthZero(t *testing.T) {
 	writeHeapFilesDepthForTest(t, garden, 0)
 
 	sourcePath := writeSourceFileForHeapFilesTest(t, t.TempDir(), "source.txt", "hello")
-	ctx := task.NewContext(1)
+	ctx := task.NewContext(context.Background(), 1)
 	err, fingerprint := heapFiles.AddFile(ctx, sourcePath)
 	assert.Nil(err)
 
@@ -71,7 +73,7 @@ func TestHeapFilesAddFile_UsesFanoutLayoutWhenDepthTwo(t *testing.T) {
 	writeHeapFilesDepthForTest(t, garden, 2)
 
 	sourcePath := writeSourceFileForHeapFilesTest(t, t.TempDir(), "source.txt", "hello")
-	ctx := task.NewContext(1)
+	ctx := task.NewContext(context.Background(), 1)
 	err, fingerprint := heapFiles.AddFile(ctx, sourcePath)
 	assert.Nil(err)
 
@@ -95,7 +97,7 @@ func TestHeapFilesAddFile_UsesUpdatedDepthWithNewContext(t *testing.T) {
 	writeHeapFilesDepthForTest(t, garden, 0)
 
 	sourceA := writeSourceFileForHeapFilesTest(t, t.TempDir(), "a.txt", "alpha")
-	ctxA := task.NewContext(1)
+	ctxA := task.NewContext(context.Background(), 1)
 	err, fingerprintA := heapFiles.AddFile(ctxA, sourceA)
 	assert.Nil(err)
 
@@ -107,7 +109,7 @@ func TestHeapFilesAddFile_UsesUpdatedDepthWithNewContext(t *testing.T) {
 	writeHeapFilesDepthForTest(t, garden, 2)
 
 	sourceB := writeSourceFileForHeapFilesTest(t, t.TempDir(), "b.txt", "beta")
-	ctxB := task.NewContext(1)
+	ctxB := task.NewContext(context.Background(), 1)
 	err, fingerprintB := heapFiles.AddFile(ctxB, sourceB)
 	assert.Nil(err)
 
@@ -130,7 +132,7 @@ func TestHeapFilesFingerprintPath_MemoizesDepthWithinContext(t *testing.T) {
 	fingerprint := testFingerprint("memoized-depth")
 
 	writeHeapFilesDepthForTest(t, garden, 0)
-	ctxA := task.NewContext(1)
+	ctxA := task.NewContext(context.Background(), 1)
 	err, flatPath := heapFilesFingerprintPath(ctxA, garden, heapFiles.BasePath, fingerprint)
 	assert.Nil(err)
 
@@ -140,7 +142,7 @@ func TestHeapFilesFingerprintPath_MemoizesDepthWithinContext(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(flatPath, stillFlatPath)
 
-	ctxB := task.NewContext(1)
+	ctxB := task.NewContext(context.Background(), 1)
 	err, fanoutPath := heapFilesFingerprintPath(ctxB, garden, heapFiles.BasePath, fingerprint)
 	assert.Nil(err)
 	assert.NotEqual(flatPath, fanoutPath)

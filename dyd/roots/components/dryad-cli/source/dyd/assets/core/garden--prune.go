@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	dydfs "dryad/filesystem"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
@@ -39,7 +40,7 @@ func gardenPruneFingerprintFromVersionPath(versionPath string, objectPath string
 	return nil, fingerprint
 }
 
-var gardenPrune_prepareRequest = func(ctx *task.ExecutionContext, req gardenPruneRequest) (error, gardenPruneRequest) {
+var gardenPrune_prepareRequest = func(ctx context.Context, req gardenPruneRequest) (error, gardenPruneRequest) {
 
 	// truncate the snapshot time to a second,
 	// to avoid issues with common filesystems with low-resolution timestamps
@@ -48,14 +49,14 @@ var gardenPrune_prepareRequest = func(ctx *task.ExecutionContext, req gardenPrun
 	return nil, req
 }
 
-var gardenPrune_mark = func(ctx *task.ExecutionContext, req gardenPruneRequest) (error, gardenPruneRequest) {
+var gardenPrune_mark = func(ctx context.Context, req gardenPruneRequest) (error, gardenPruneRequest) {
 
 	sproutsPath := filepath.Join(req.Garden.BasePath, "dyd", "sprouts")
 
 	markStatsChecked := 0
 	markStatsMarked := 0
 
-	markShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	markShouldWalk := func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		isSproutsTraversal := strings.HasPrefix(node.VPath, sproutsPath)
 
 		// crawl if we haven't marked already or the timestamp is newer
@@ -91,7 +92,7 @@ var gardenPrune_mark = func(ctx *task.ExecutionContext, req gardenPruneRequest) 
 		return nil, shouldCrawl
 	}
 
-	markShouldMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	markShouldMatch := func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		isSproutsTraversal := strings.HasPrefix(node.VPath, sproutsPath)
 
 		// match if we haven't marked already or the timestamp is newer
@@ -114,7 +115,7 @@ var gardenPrune_mark = func(ctx *task.ExecutionContext, req gardenPruneRequest) 
 		return nil, shouldMatch
 	}
 
-	markOnMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+	markOnMatch := func(ctx context.Context, node dydfs.Walk6Node) (error, any) {
 		markStatsMarked += 1
 
 		zlog.Trace().
@@ -221,13 +222,13 @@ func gardenPruneStemLikeLeaf(path string, versionPath string) (error, bool) {
 	return nil, gardenPruneStemLikeLeafPattern.MatchString(relPath)
 }
 
-var gardenPrune_sweepStems = func(ctx *task.ExecutionContext, req gardenPruneRequest) (error, gardenPruneRequest) {
+var gardenPrune_sweepStems = func(ctx context.Context, req gardenPruneRequest) (error, gardenPruneRequest) {
 	err, stemsVersionPath := gardenPruneVersionPath(heapStemsVersionDir(filepath.Join(req.Garden.BasePath, "dyd", "heap", "stems")))
 	if err != nil || stemsVersionPath == "" {
 		return err, req
 	}
 
-	sweepStemShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	sweepStemShouldWalk := func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		if !node.Info.IsDir() {
 			return nil, false
 		}
@@ -247,7 +248,7 @@ var gardenPrune_sweepStems = func(ctx *task.ExecutionContext, req gardenPruneReq
 	sweepStemStatsCheck := 0
 	sweepStemStatsCount := 0
 
-	sweepStemPost := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+	sweepStemPost := func(ctx context.Context, node dydfs.Walk6Node) (error, any) {
 		if !node.Info.IsDir() {
 			return nil, nil
 		}
@@ -307,13 +308,13 @@ var gardenPrune_sweepStems = func(ctx *task.ExecutionContext, req gardenPruneReq
 	return nil, req
 }
 
-var gardenPrune_sweepSprouts = func(ctx *task.ExecutionContext, req gardenPruneRequest) (error, gardenPruneRequest) {
+var gardenPrune_sweepSprouts = func(ctx context.Context, req gardenPruneRequest) (error, gardenPruneRequest) {
 	err, sproutsVersionPath := gardenPruneVersionPath(heapSproutsVersionDir(filepath.Join(req.Garden.BasePath, "dyd", "heap", "sprouts")))
 	if err != nil || sproutsVersionPath == "" {
 		return err, req
 	}
 
-	sweepSproutShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	sweepSproutShouldWalk := func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		if !node.Info.IsDir() {
 			return nil, false
 		}
@@ -333,7 +334,7 @@ var gardenPrune_sweepSprouts = func(ctx *task.ExecutionContext, req gardenPruneR
 	sweepSproutStatsCheck := 0
 	sweepSproutStatsCount := 0
 
-	sweepSproutPost := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+	sweepSproutPost := func(ctx context.Context, node dydfs.Walk6Node) (error, any) {
 		if !node.Info.IsDir() {
 			return nil, nil
 		}
@@ -393,7 +394,7 @@ var gardenPrune_sweepSprouts = func(ctx *task.ExecutionContext, req gardenPruneR
 	return nil, req
 }
 
-var gardenPrune_sweepDerivations = func(ctx *task.ExecutionContext, req gardenPruneRequest) (error, gardenPruneRequest) {
+var gardenPrune_sweepDerivations = func(ctx context.Context, req gardenPruneRequest) (error, gardenPruneRequest) {
 	heapPath := filepath.Join(req.Garden.BasePath, "dyd", "heap")
 	err, derivationsVersionPath := gardenPruneVersionPath(heapDerivationsRootsVersionDir(filepath.Join(heapPath, "derivations")))
 	if err != nil || derivationsVersionPath == "" {
@@ -403,11 +404,11 @@ var gardenPrune_sweepDerivations = func(ctx *task.ExecutionContext, req gardenPr
 	sweepDerivationStatsCheck := 0
 	sweepDerivationStatsCount := 0
 
-	sweepDerivationsShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	sweepDerivationsShouldWalk := func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		return nil, node.Info.IsDir()
 	}
 
-	sweepDerivationPost := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+	sweepDerivationPost := func(ctx context.Context, node dydfs.Walk6Node) (error, any) {
 		if node.Info.IsDir() {
 			err, _ := gardenPruneRemoveEmptyDir(node.Path, derivationsVersionPath)
 			return err, nil
@@ -491,7 +492,7 @@ var gardenPrune_sweepDerivations = func(ctx *task.ExecutionContext, req gardenPr
 	return nil, req
 }
 
-var gardenPrune_sweepFiles = func(ctx *task.ExecutionContext, req gardenPruneRequest) (error, gardenPruneRequest) {
+var gardenPrune_sweepFiles = func(ctx context.Context, req gardenPruneRequest) (error, gardenPruneRequest) {
 	err, filesVersionPath := gardenPruneVersionPath(heapFilesVersionDir(filepath.Join(req.Garden.BasePath, "dyd", "heap", "files")))
 	if err != nil || filesVersionPath == "" {
 		return err, req
@@ -499,11 +500,11 @@ var gardenPrune_sweepFiles = func(ctx *task.ExecutionContext, req gardenPruneReq
 	sweepFileStatsCheck := 0
 	sweepFileStatsCount := 0
 
-	sweepFileShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	sweepFileShouldWalk := func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		return nil, node.Info.IsDir()
 	}
 
-	sweepFilePost := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+	sweepFilePost := func(ctx context.Context, node dydfs.Walk6Node) (error, any) {
 		if node.Info.IsDir() {
 			err, _ := gardenPruneRemoveEmptyDir(node.Path, filesVersionPath)
 			return err, nil
@@ -548,7 +549,7 @@ var gardenPrune_sweepFiles = func(ctx *task.ExecutionContext, req gardenPruneReq
 
 }
 
-var gardenPrune_sweepSecrets = func(ctx *task.ExecutionContext, req gardenPruneRequest) (error, gardenPruneRequest) {
+var gardenPrune_sweepSecrets = func(ctx context.Context, req gardenPruneRequest) (error, gardenPruneRequest) {
 	err, secretsVersionPath := gardenPruneVersionPath(heapSecretsVersionDir(filepath.Join(req.Garden.BasePath, "dyd", "heap", "secrets")))
 	if err != nil || secretsVersionPath == "" {
 		return err, req
@@ -556,11 +557,11 @@ var gardenPrune_sweepSecrets = func(ctx *task.ExecutionContext, req gardenPruneR
 	sweepSecretStatsCheck := 0
 	sweepSecretStatsCount := 0
 
-	sweepSecretShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	sweepSecretShouldWalk := func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		return nil, node.Info.IsDir()
 	}
 
-	sweepSecretPost := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+	sweepSecretPost := func(ctx context.Context, node dydfs.Walk6Node) (error, any) {
 		if node.Info.IsDir() {
 			err, _ := gardenPruneRemoveEmptyDir(node.Path, secretsVersionPath)
 			return err, nil
@@ -613,7 +614,7 @@ var gardenPrune = task.Series8(
 	gardenPrune_sweepDerivations,
 	gardenPrune_sweepFiles,
 	gardenPrune_sweepSecrets,
-	func(ctx *task.ExecutionContext, req gardenPruneRequest) (error, any) {
+	func(ctx context.Context, req gardenPruneRequest) (error, any) {
 		return nil, nil
 	},
 )
@@ -622,7 +623,7 @@ type GardenPruneRequest struct {
 	Snapshot time.Time
 }
 
-func (sg *SafeGardenReference) Prune(ctx *task.ExecutionContext, req GardenPruneRequest) error {
+func (sg *SafeGardenReference) Prune(ctx context.Context, req GardenPruneRequest) error {
 	err, _ := gardenPrune(
 		ctx,
 		gardenPruneRequest{

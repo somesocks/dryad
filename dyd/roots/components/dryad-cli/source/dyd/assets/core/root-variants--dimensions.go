@@ -1,9 +1,9 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"dryad/task"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -71,7 +71,7 @@ func variantOptionEnabledFromFile(path string) (error, bool) {
 	}
 }
 
-func (rootVariants *SafeRootVariantsReference) Dimensions(ctx *task.ExecutionContext) (error, []VariantDimension) {
+func (rootVariants *SafeRootVariantsReference) Dimensions(ctx context.Context) (error, []VariantDimension) {
 	variantsPath := rootVariants.BasePath
 
 	variantsInfo, err := os.Stat(variantsPath)

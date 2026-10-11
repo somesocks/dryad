@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	dydfs "dryad/filesystem"
@@ -22,7 +23,7 @@ var rootBuildCommand = func() clib.Command {
 		LogStderr         string
 	}
 
-	var parseArgs = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs = func(ctx context.Context, req clib.ActionRequest) (error, ParsedArgs) {
 		var args = req.Args
 		var options = req.Opts
 
@@ -108,7 +109,7 @@ var rootBuildCommand = func() clib.Command {
 		}
 	}
 
-	var buildRoot = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var buildRoot = func(ctx context.Context, args ParsedArgs) (error, any) {
 
 		err, garden := dryad.Garden(args.RootPath).Resolve(ctx)
 		if err != nil {
@@ -157,8 +158,8 @@ var rootBuildCommand = func() clib.Command {
 
 	buildRoot = task.WithContext(
 		buildRoot,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

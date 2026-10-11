@@ -2,11 +2,11 @@ package core
 
 import (
 	// dydfs "dryad/filesystem"
-	"dryad/task"
 
 	// "io/fs"
 	// "io/ioutil"
 	// "os"
+	"context"
 	"dryad/internal/filepath"
 
 	zlog "github.com/rs/zerolog/log"
@@ -20,7 +20,7 @@ type rootBuild_stage4_request struct {
 
 // stage 4 - check the garden to see if the stem exists,
 // and add it if it doesn't
-var rootBuild_stage4 func(ctx *task.ExecutionContext, req rootBuild_stage4_request) (error, *SafeHeapStemReference) = func(ctx *task.ExecutionContext, req rootBuild_stage4_request) (error, *SafeHeapStemReference) {
+var rootBuild_stage4 func(ctx context.Context, req rootBuild_stage4_request) (error, *SafeHeapStemReference) = func(ctx context.Context, req rootBuild_stage4_request) (error, *SafeHeapStemReference) {
 	relRootPath, err := filepath.Rel(
 		filepath.Join(req.Garden.BasePath, "dyd", "roots"),
 		req.RootPath,

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/task"
@@ -17,7 +18,7 @@ var sproutPackCommand = func() clib.Command {
 		Parallel   int
 	}
 
-	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx context.Context, req clib.ActionRequest) (error, ParsedArgs) {
 		var args = req.Args
 		var options = req.Opts
 		var format string
@@ -46,7 +47,7 @@ var sproutPackCommand = func() clib.Command {
 		}
 	}
 
-	var runPack = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var runPack = func(ctx context.Context, args ParsedArgs) (error, any) {
 		targetPath, err := dryad.SproutPack(
 			ctx,
 			dryad.SproutPackRequest{
@@ -65,8 +66,8 @@ var sproutPackCommand = func() clib.Command {
 
 	runPack = task.WithContext(
 		runPack,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

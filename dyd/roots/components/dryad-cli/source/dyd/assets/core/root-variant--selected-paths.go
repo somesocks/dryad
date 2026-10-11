@@ -1,8 +1,8 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
-	"dryad/task"
 )
 
 type SafeRootVariantAssetsReference struct {
@@ -111,7 +111,7 @@ func rootVariantSelectedRequirements(path string, variant *SafeRootVariantRefere
 }
 
 func (requirements *SafeRootVariantRequirementsReference) Walk(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req RootRequirementsWalkRequest,
 ) error {
 	rootRequirements := SafeRootRequirementsReference{
@@ -134,7 +134,7 @@ func (requirements *SafeRootVariantRequirementsReference) Requirement(
 }
 
 func (requirements *SafeRootVariantRequirementsReference) Add(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req RootRequirementsAddRequest,
 ) (error, *SafeRootRequirementReference) {
 	rootRequirements := SafeRootRequirementsReference{
@@ -146,7 +146,7 @@ func (requirements *SafeRootVariantRequirementsReference) Add(
 }
 
 func (requirements *SafeRootVariantRequirementsReference) AddEnv(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req RootRequirementsAddEnvRequest,
 ) (error, *SafeRootRequirementReference) {
 	rootRequirements := SafeRootRequirementsReference{
@@ -158,7 +158,7 @@ func (requirements *SafeRootVariantRequirementsReference) AddEnv(
 }
 
 func (requirements *SafeRootVariantRequirementsReference) AddFile(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req RootRequirementsAddFileRequest,
 ) (error, *SafeRootRequirementReference) {
 	rootRequirements := SafeRootRequirementsReference{
@@ -170,7 +170,7 @@ func (requirements *SafeRootVariantRequirementsReference) AddFile(
 }
 
 func (requirements *SafeRootVariantRequirementsReference) AddHTTP(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req RootRequirementsAddHTTPRequest,
 ) (error, *SafeRootRequirementReference) {
 	rootRequirements := SafeRootRequirementsReference{
@@ -182,7 +182,7 @@ func (requirements *SafeRootVariantRequirementsReference) AddHTTP(
 }
 
 func rootVariantExactSelectorDescriptor(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	variant *SafeRootVariantReference,
 ) (error, VariantDescriptor) {
 	err, dimensions := variant.Root.VariantDimensions(ctx)
@@ -209,7 +209,7 @@ func rootVariantExactSelectorDescriptor(
 }
 
 func (variant *SafeRootVariantReference) EnsureRequirements(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 ) (error, *SafeRootVariantRequirementsReference) {
 	if variant.Requirements != nil {
 		return nil, variant.Requirements

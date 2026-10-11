@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	dydfs "dryad/filesystem"
 	"dryad/task"
 	"errors"
@@ -43,7 +44,7 @@ type rootMaterializeSproutRequest struct {
 	BuildResultByVariant map[string]*RootBuildResult
 }
 
-func rootMaterializeSprout(ctx *task.ExecutionContext, req rootMaterializeSproutRequest) (error, string) {
+func rootMaterializeSprout(ctx context.Context, req rootMaterializeSproutRequest) (error, string) {
 	rootPath := req.Root.BasePath
 	gardenPath := req.Root.Roots.Garden.BasePath
 
@@ -280,7 +281,7 @@ func rootMaterializeSprout(ctx *task.ExecutionContext, req rootMaterializeSprout
 	return nil, sproutFingerprint
 }
 
-func rootBuildStemResult(ctx *task.ExecutionContext, req rootBuildRequest) (error, *RootBuildResult) {
+func rootBuildStemResult(ctx context.Context, req rootBuildRequest) (error, *RootBuildResult) {
 	rootPath := req.Root.BasePath
 	gardenPath := req.Root.Roots.Garden.BasePath
 	variantLabel := rootBuildLogVariantLabel(req.VariantDescriptor)
@@ -459,7 +460,7 @@ func rootBuildStemResult(ctx *task.ExecutionContext, req rootBuildRequest) (erro
 
 var rootBuildStem2 = task.OnFailure(
 	rootBuildStemResult,
-	func(ctx *task.ExecutionContext, args task.Tuple2[rootBuildRequest, error]) (error, any) {
+	func(ctx context.Context, args task.Tuple2[rootBuildRequest, error]) (error, any) {
 		req := args.A
 		err := args.B
 
@@ -476,7 +477,7 @@ var rootBuildStem2 = task.OnFailure(
 
 var memoRootBuildStem = task.Memoize(
 	rootBuildStem2,
-	func(ctx *task.ExecutionContext, req rootBuildRequest) (error, any) {
+	func(ctx context.Context, req rootBuildRequest) (error, any) {
 		res := struct {
 			Group             string
 			GardenPath        string
@@ -492,7 +493,7 @@ var memoRootBuildStem = task.Memoize(
 	},
 )
 
-var rootBuildStemResultWrapper = func(ctx *task.ExecutionContext, req rootBuildRequest) (error, *RootBuildResult) {
+var rootBuildStemResultWrapper = func(ctx context.Context, req rootBuildRequest) (error, *RootBuildResult) {
 	err, res := memoRootBuildStem(ctx, req)
 	return err, res
 }
@@ -561,7 +562,7 @@ func normalizeRootBuildVariantDescriptor(raw string) (error, string) {
 	return nil, variantDescriptor
 }
 
-func (root *SafeRootReference) BuildStem(ctx *task.ExecutionContext, req RootBuildStemRequest) (error, *RootBuildResult) {
+func (root *SafeRootReference) BuildStem(ctx context.Context, req RootBuildStemRequest) (error, *RootBuildResult) {
 	err, variantDescriptor := normalizeRootBuildVariantDescriptor(req.VariantDescriptor)
 	if err != nil {
 		return err, nil
@@ -581,7 +582,7 @@ func (root *SafeRootReference) BuildStem(ctx *task.ExecutionContext, req RootBui
 	return err, res
 }
 
-func (root *SafeRootReference) buildStemResolvedVariant(ctx *task.ExecutionContext, variant *SafeRootVariantReference, req RootBuildStemRequest) (error, *RootBuildResult) {
+func (root *SafeRootReference) buildStemResolvedVariant(ctx context.Context, variant *SafeRootVariantReference, req RootBuildStemRequest) (error, *RootBuildResult) {
 	if variant == nil {
 		return fmt.Errorf("missing resolved root variant"), nil
 	}
@@ -606,7 +607,7 @@ func (root *SafeRootReference) buildStemResolvedVariant(ctx *task.ExecutionConte
 	return err, res
 }
 
-func (root *SafeRootReference) BuildSprout(ctx *task.ExecutionContext, req RootBuildSproutRequest) (error, string) {
+func (root *SafeRootReference) BuildSprout(ctx context.Context, req RootBuildSproutRequest) (error, string) {
 	err, variantDescriptor := normalizeRootBuildVariantDescriptor(req.VariantDescriptor)
 	if err != nil {
 		return err, ""
@@ -659,8 +660,8 @@ type rootBuildVariantResult struct {
 	BuildResult *RootBuildResult
 }
 
-func (root *SafeRootReference) buildSproutResolvedVariants(ctx *task.ExecutionContext, req rootBuildSproutResolvedVariantsRequest) (error, string) {
-	buildVariant := func(ctx *task.ExecutionContext, variant *SafeRootVariantReference) (error, rootBuildVariantResult) {
+func (root *SafeRootReference) buildSproutResolvedVariants(ctx context.Context, req rootBuildSproutResolvedVariantsRequest) (error, string) {
+	buildVariant := func(ctx context.Context, variant *SafeRootVariantReference) (error, rootBuildVariantResult) {
 		err, descriptor := variant.Filesystem()
 		if err != nil {
 			return err, rootBuildVariantResult{}
@@ -694,8 +695,8 @@ func (root *SafeRootReference) buildSproutResolvedVariants(ctx *task.ExecutionCo
 	return root.materializeBuiltSproutVariants(ctx, builtVariants)
 }
 
-func (root *SafeRootReference) BuildSproutVariants(ctx *task.ExecutionContext, req RootBuildSproutVariantsRequest) (error, string) {
-	buildVariant := func(ctx *task.ExecutionContext, concreteDescriptor string) (error, rootBuildVariantResult) {
+func (root *SafeRootReference) BuildSproutVariants(ctx context.Context, req RootBuildSproutVariantsRequest) (error, string) {
+	buildVariant := func(ctx context.Context, concreteDescriptor string) (error, rootBuildVariantResult) {
 		err, buildResult := root.BuildStem(
 			ctx,
 			RootBuildStemRequest{
@@ -724,7 +725,7 @@ func (root *SafeRootReference) BuildSproutVariants(ctx *task.ExecutionContext, r
 	return root.materializeBuiltSproutVariants(ctx, builtVariants)
 }
 
-func (root *SafeRootReference) materializeBuiltSproutVariants(ctx *task.ExecutionContext, builtVariants []rootBuildVariantResult) (error, string) {
+func (root *SafeRootReference) materializeBuiltSproutVariants(ctx context.Context, builtVariants []rootBuildVariantResult) (error, string) {
 	stemByVariant := map[string]string{}
 	buildResultByVariant := map[string]*RootBuildResult{}
 	for _, builtVariant := range builtVariants {

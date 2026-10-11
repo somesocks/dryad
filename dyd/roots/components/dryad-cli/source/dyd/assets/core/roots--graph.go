@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"sort"
 	"strings"
@@ -162,7 +163,7 @@ type rootsGraphRequest struct {
 }
 
 func rootsGraph(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req rootsGraphRequest,
 ) (error, TRootsGraph) {
 	var relative bool = req.Relative
@@ -170,7 +171,7 @@ func rootsGraph(
 	graph := make(TRootsGraph)
 	var graphMux sync.Mutex
 
-	var onVariant = func(ctx *task.ExecutionContext, sourceVariant *SafeRootVariantReference) (error, any) {
+	var onVariant = func(ctx context.Context, sourceVariant *SafeRootVariantReference) (error, any) {
 		var rootPath string
 		var root *SafeRootReference = sourceVariant.Root
 		var gardenPath string = root.Roots.Garden.BasePath
@@ -199,7 +200,7 @@ func rootsGraph(
 		}
 
 		err = requirements.Walk(task.SERIAL_CONTEXT, RootRequirementsWalkRequest{
-			OnMatch: func(ctx *task.ExecutionContext, requirement *SafeRootRequirementReference) (error, any) {
+			OnMatch: func(ctx context.Context, requirement *SafeRootRequirementReference) (error, any) {
 				requirementNameRaw := filepath.Base(requirement.BasePath)
 
 				err, requirementName := RootRequirementNormalizeName(requirementNameRaw)
@@ -275,7 +276,7 @@ type RootsGraphRequest struct {
 	Relative bool
 }
 
-func (roots *SafeRootsReference) Graph(ctx *task.ExecutionContext, req RootsGraphRequest) (error, TRootsGraph) {
+func (roots *SafeRootsReference) Graph(ctx context.Context, req RootsGraphRequest) (error, TRootsGraph) {
 	err, graph := rootsGraph(
 		ctx,
 		rootsGraphRequest{

@@ -5,6 +5,7 @@ import (
 	"archive/zip"
 	"compress/bzip2"
 	"compress/gzip"
+	"context"
 	"fmt"
 	"io"
 	"net/url"
@@ -13,7 +14,6 @@ import (
 	dydfs "dryad/filesystem"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"dryad/task"
 
 	"github.com/bmatcuk/doublestar/v4"
 	"github.com/ulikunitz/xz"
@@ -564,7 +564,7 @@ func rootRequirementFileCopyFile(srcPath string, destPath string, mode os.FileMo
 	return err
 }
 
-func rootRequirementFileCopyDir(ctx *task.ExecutionContext, srcPath string, destPath string) error {
+func rootRequirementFileCopyDir(ctx context.Context, srcPath string, destPath string) error {
 	srcPath, err := filepath.Abs(srcPath)
 	if err != nil {
 		return err
@@ -573,7 +573,7 @@ func rootRequirementFileCopyDir(ctx *task.ExecutionContext, srcPath string, dest
 		return err
 	}
 
-	shouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	shouldWalk := func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		if node.Info == nil {
 			return nil, false
 		}
@@ -611,7 +611,7 @@ func rootRequirementFileCopyDir(ctx *task.ExecutionContext, srcPath string, dest
 		return nil, !match
 	}
 
-	onCopy := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+	onCopy := func(ctx context.Context, node dydfs.Walk6Node) (error, any) {
 		relPath, err := filepath.Rel(srcPath, node.VPath)
 		if err != nil {
 			return err, nil
@@ -678,7 +678,7 @@ func rootRequirementFileCopyDir(ctx *task.ExecutionContext, srcPath string, dest
 	return err
 }
 
-func rootRequirementFileImportSourceExact(ctx *task.ExecutionContext, srcPath string, destPath string) error {
+func rootRequirementFileImportSourceExact(ctx context.Context, srcPath string, destPath string) error {
 	info, err := os.Lstat(srcPath)
 	if err != nil {
 		return err
@@ -1068,7 +1068,7 @@ type RootRequirementFileBuildStemRequest struct {
 	Exclude         []string
 }
 
-func RootRequirementFileBuildStem(ctx *task.ExecutionContext, req RootRequirementFileBuildStemRequest) (error, *SafeHeapStemReference) {
+func RootRequirementFileBuildStem(ctx context.Context, req RootRequirementFileBuildStemRequest) (error, *SafeHeapStemReference) {
 	destinationAs := req.DestinationAs
 	destinationInto := req.DestinationInto
 	if destinationAs != "" && destinationInto != "" {

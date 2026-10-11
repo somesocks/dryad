@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/internal/os"
@@ -47,7 +48,7 @@ var scopeSettingGetCommand = func() clib.Command {
 		},
 	)
 
-	var getScopeSetting = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var getScopeSetting = func(ctx context.Context, args ParsedArgs) (error, any) {
 		unsafeGarden := dryad.Garden(args.GardenPath)
 
 		err, garden := unsafeGarden.Resolve(ctx)
@@ -69,8 +70,8 @@ var scopeSettingGetCommand = func() clib.Command {
 
 	getScopeSetting = task.WithContext(
 		getScopeSetting,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

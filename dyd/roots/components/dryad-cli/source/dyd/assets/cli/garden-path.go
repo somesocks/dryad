@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/task"
@@ -15,7 +16,7 @@ var gardenPathCommand = func() clib.Command {
 		Parallel   int
 	}
 
-	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx context.Context, req clib.ActionRequest) (error, ParsedArgs) {
 		var args = req.Args
 		var options = req.Opts
 
@@ -38,7 +39,7 @@ var gardenPathCommand = func() clib.Command {
 		}
 	}
 
-	var printGardenPath = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var printGardenPath = func(ctx context.Context, args ParsedArgs) (error, any) {
 		unsafeGarden := dryad.Garden(args.GardenPath)
 
 		err, garden := unsafeGarden.Resolve(ctx)
@@ -52,8 +53,8 @@ var gardenPathCommand = func() clib.Command {
 
 	printGardenPath = task.WithContext(
 		printGardenPath,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

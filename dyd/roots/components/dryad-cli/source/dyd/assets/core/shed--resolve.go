@@ -1,13 +1,14 @@
 package core
 
 import (
+	"context"
 	fs2 "dryad/filesystem"
 	"dryad/task"
 
 	"dryad/internal/os"
 )
 
-func resolveShedReference(ctx *task.ExecutionContext, shed *UnsafeShedReference) (error, *SafeShedReference) {
+func resolveShedReference(ctx context.Context, shed *UnsafeShedReference) (error, *SafeShedReference) {
 	var shedExists bool
 	var err error
 	var safeRef SafeShedReference
@@ -40,7 +41,7 @@ func resolveShedReference(ctx *task.ExecutionContext, shed *UnsafeShedReference)
 
 var memoResolveShedReference = task.Memoize(
 	resolveShedReference,
-	func(ctx *task.ExecutionContext, shed *UnsafeShedReference) (error, any) {
+	func(ctx context.Context, shed *UnsafeShedReference) (error, any) {
 		type Key struct {
 			Group      string
 			BasePath   string
@@ -60,6 +61,6 @@ var memoResolveShedReference = task.Memoize(
 	},
 )
 
-func (shed *UnsafeShedReference) Resolve(ctx *task.ExecutionContext) (error, *SafeShedReference) {
+func (shed *UnsafeShedReference) Resolve(ctx context.Context) (error, *SafeShedReference) {
 	return memoResolveShedReference(ctx, shed)
 }

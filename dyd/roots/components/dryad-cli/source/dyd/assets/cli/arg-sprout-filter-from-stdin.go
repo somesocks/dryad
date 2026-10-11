@@ -1,9 +1,10 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	"dryad/core"
-	"dryad/task"
+
 	// "fmt"
 	"dryad/internal/filepath"
 
@@ -14,7 +15,7 @@ import (
 )
 
 var ArgSproutFilterFromStdin = func(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req clib.ActionRequest,
 ) (error, core.SproutFilter) {
 	var options = req.Opts
@@ -78,13 +79,13 @@ var ArgSproutFilterFromStdin = func(
 			return err, fromStdinFilter
 		}
 
-		fromStdinFilter = func(ctx *task.ExecutionContext, sprout *core.SafeSproutReference) (error, bool) {
+		fromStdinFilter = func(ctx context.Context, sprout *core.SafeSproutReference) (error, bool) {
 			_, ok := sproutSet[sprout.BasePath]
 			return nil, ok
 		}
 
 	} else {
-		fromStdinFilter = func(ctx *task.ExecutionContext, sprout *core.SafeSproutReference) (error, bool) {
+		fromStdinFilter = func(ctx context.Context, sprout *core.SafeSproutReference) (error, bool) {
 			return nil, true
 		}
 	}

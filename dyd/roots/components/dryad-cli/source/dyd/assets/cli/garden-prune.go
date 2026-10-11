@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/internal/time"
@@ -43,7 +44,7 @@ var gardenPruneCommand = func() clib.Command {
 		},
 	)
 
-	var pruneGarden = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var pruneGarden = func(ctx context.Context, args ParsedArgs) (error, any) {
 		unsafeGarden := dryad.Garden(args.Path)
 
 		err, garden := unsafeGarden.Resolve(ctx)
@@ -62,8 +63,8 @@ var gardenPruneCommand = func() clib.Command {
 
 	pruneGarden = task.WithContext(
 		pruneGarden,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	fs2 "dryad/filesystem"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
@@ -19,7 +20,7 @@ type heapAddSproutRequest struct {
 
 // heapAddSprout takes a sprout in a directory and adds it to the heap.
 // the heap path is normalized before adding
-func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error, *SafeHeapSproutReference) {
+func heapAddSprout(ctx context.Context, req heapAddSproutRequest) (error, *SafeHeapSproutReference) {
 	sproutPath := req.SproutPath
 
 	heapSproutsPath := req.HeapSprouts.BasePath
@@ -87,7 +88,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 		ctx,
 		StemWalkRequest{
 			BasePath: sproutPath,
-			OnMatch: func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, any) {
+			OnMatch: func(ctx context.Context, node fs2.Walk6Node) (error, any) {
 				zlog.
 					Trace().
 					Str("path", node.Path).
@@ -200,7 +201,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 		}
 	}
 
-	setPermissionsShouldCrawl := func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
+	setPermissionsShouldCrawl := func(ctx context.Context, node fs2.Walk6Node) (error, bool) {
 		isDir := node.Info.IsDir()
 
 		zlog.Trace().
@@ -211,7 +212,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 		return nil, isDir
 	}
 
-	setPermissionsShouldMatch := func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, bool) {
+	setPermissionsShouldMatch := func(ctx context.Context, node fs2.Walk6Node) (error, bool) {
 		isDir := node.Info.IsDir()
 
 		zlog.Trace().
@@ -222,7 +223,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 		return nil, isDir
 	}
 
-	setPermissionsOnMatch := func(ctx *task.ExecutionContext, node fs2.Walk6Node) (error, any) {
+	setPermissionsOnMatch := func(ctx context.Context, node fs2.Walk6Node) (error, any) {
 		zlog.Trace().
 			Str("path", node.VPath).
 			Msg("heap add sprout - dir OnMatch")
@@ -295,7 +296,7 @@ func heapAddSprout(ctx *task.ExecutionContext, req heapAddSproutRequest) (error,
 
 var memoHeapAddSprout = task.Memoize(
 	heapAddSprout,
-	func(ctx *task.ExecutionContext, req heapAddSproutRequest) (error, any) {
+	func(ctx context.Context, req heapAddSproutRequest) (error, any) {
 		type Key struct {
 			Group       string
 			Fingerprint string
@@ -325,7 +326,7 @@ type HeapAddSproutRequest struct {
 }
 
 func (heapSprouts *SafeHeapSproutsReference) AddSprout(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req HeapAddSproutRequest,
 ) (error, *SafeHeapSproutReference) {
 	err, res := memoHeapAddSprout(

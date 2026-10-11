@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/task"
@@ -12,14 +13,14 @@ import (
 var gardenPackCommand = func() clib.Command {
 
 	type ParsedArgs struct {
-		GardenPath string
-		TargetPath string
-		IncludeRoots bool
-		IncludeHeap bool
+		GardenPath      string
+		TargetPath      string
+		IncludeRoots    bool
+		IncludeHeap     bool
 		IncludeContexts bool
-		IncludeSprouts bool
-		IncludeShed bool
-		Parallel int
+		IncludeSprouts  bool
+		IncludeShed     bool
+		Parallel        int
 	}
 
 	var parseArgs = task.From(
@@ -83,21 +84,21 @@ var gardenPackCommand = func() clib.Command {
 			}
 
 			return nil, ParsedArgs{
-				GardenPath: gardenPath,
-				TargetPath: targetPath,
-				IncludeRoots: includeRoots,
-				IncludeHeap: includeHeap,
+				GardenPath:      gardenPath,
+				TargetPath:      targetPath,
+				IncludeRoots:    includeRoots,
+				IncludeHeap:     includeHeap,
 				IncludeContexts: includeContexts,
-				IncludeSprouts: includeSprouts,
-				IncludeShed: includeShed,
-				Parallel: parallel,
+				IncludeSprouts:  includeSprouts,
+				IncludeShed:     includeShed,
+				Parallel:        parallel,
 			}
 		},
 	)
 
-	var packGarden = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var packGarden = func(ctx context.Context, args ParsedArgs) (error, any) {
 		unsafeGarden := dryad.Garden(args.GardenPath)
-		
+
 		err, garden := unsafeGarden.Resolve(ctx)
 		if err != nil {
 			return err, nil
@@ -106,12 +107,12 @@ var gardenPackCommand = func() clib.Command {
 		err, targetPath := garden.Pack(
 			ctx,
 			dryad.GardenPackRequest{
-				TargetPath: args.TargetPath,
-				IncludeRoots: args.IncludeRoots,
-				IncludeHeap: args.IncludeHeap,
+				TargetPath:      args.TargetPath,
+				IncludeRoots:    args.IncludeRoots,
+				IncludeHeap:     args.IncludeHeap,
 				IncludeContexts: args.IncludeContexts,
-				IncludeSprouts: args.IncludeSprouts,
-				IncludeShed: args.IncludeShed,
+				IncludeSprouts:  args.IncludeSprouts,
+				IncludeShed:     args.IncludeShed,
 			},
 		)
 		fmt.Println(targetPath)
@@ -120,8 +121,8 @@ var gardenPackCommand = func() clib.Command {
 
 	packGarden = task.WithContext(
 		packGarden,
-		func (ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 
@@ -130,7 +131,7 @@ var gardenPackCommand = func() clib.Command {
 			parseArgs,
 			packGarden,
 		),
-		func (err error, val any) int {
+		func(err error, val any) int {
 			if err != nil {
 				zlog.Error().Err(err).Msg("error while packing garden")
 				return 1
@@ -139,7 +140,6 @@ var gardenPackCommand = func() clib.Command {
 			return 0
 		},
 	)
-
 
 	command := clib.NewCommand("pack", "pack the current garden into an archive").
 		WithOption(

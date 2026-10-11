@@ -1,6 +1,7 @@
 package fs2
 
 import (
+	"context"
 	"dryad/task"
 
 	"dryad/internal/filepath"
@@ -21,7 +22,7 @@ type MkdirResult = MkdirRequest
 
 var Mkdir2 = func() task.Task[MkdirRequest, *MkdirResult] {
 
-	var mkdir2 = func(ctx *task.ExecutionContext, req MkdirRequest) (error, *MkdirResult) {
+	var mkdir2 = func(ctx context.Context, req MkdirRequest) (error, *MkdirResult) {
 		var res = MkdirResult{
 			Path: req.Path,
 			Mode: req.Mode,
@@ -136,13 +137,13 @@ var Mkdir2 = func() task.Task[MkdirRequest, *MkdirResult] {
 
 	mkdir2 = WithFileLock(
 		mkdir2,
-		func(ctx *task.ExecutionContext, req MkdirRequest) (error, string) {
+		func(ctx context.Context, req MkdirRequest) (error, string) {
 			return nil, filepath.Dir(req.Path)
 		},
 	)
 
 	mkdir2 = task.Series2(
-		func(ctx *task.ExecutionContext, req MkdirRequest) (error, MkdirRequest) {
+		func(ctx context.Context, req MkdirRequest) (error, MkdirRequest) {
 			zlog.Trace().
 				Str("path", req.Path).
 				Str("mode", req.Mode.String()).
@@ -153,7 +154,7 @@ var Mkdir2 = func() task.Task[MkdirRequest, *MkdirResult] {
 	)
 
 	mkdir2 = task.Series2(
-		func(ctx *task.ExecutionContext, req MkdirRequest) (error, MkdirRequest) {
+		func(ctx context.Context, req MkdirRequest) (error, MkdirRequest) {
 			if req.Recursive {
 				var parentPath string = filepath.Dir(req.Path)
 				var err error

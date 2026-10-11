@@ -1,11 +1,11 @@
 package core
 
-import "dryad/task"
+import "context"
 
-type RootVariantFilter func(*task.ExecutionContext, *SafeRootVariantReference) (error, bool)
+type RootVariantFilter func(context.Context, *SafeRootVariantReference) (error, bool)
 
 func RootVariantFiltersCompose(filters ...RootVariantFilter) RootVariantFilter {
-	return func(ctx *task.ExecutionContext, variant *SafeRootVariantReference) (error, bool) {
+	return func(ctx context.Context, variant *SafeRootVariantReference) (error, bool) {
 		for _, filter := range filters {
 			err, match := filter(ctx, variant)
 			if err != nil {

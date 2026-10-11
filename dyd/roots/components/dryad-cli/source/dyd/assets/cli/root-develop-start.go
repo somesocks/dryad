@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	dydfs "dryad/filesystem"
@@ -22,7 +23,7 @@ var rootDevelopStartCommand = func() clib.Command {
 		OnExit    string
 	}
 
-	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx context.Context, req clib.ActionRequest) (error, ParsedArgs) {
 		var args = req.Args
 		var opts = req.Opts
 
@@ -96,7 +97,7 @@ var rootDevelopStartCommand = func() clib.Command {
 		}
 	}
 
-	var runStart = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var runStart = func(ctx context.Context, args ParsedArgs) (error, any) {
 		err, path := dydfs.PartialEvalSymlinks(ctx, args.Path)
 		if err != nil {
 			return err, nil
@@ -137,8 +138,8 @@ var rootDevelopStartCommand = func() clib.Command {
 
 	runStart = task.WithContext(
 		runStart,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

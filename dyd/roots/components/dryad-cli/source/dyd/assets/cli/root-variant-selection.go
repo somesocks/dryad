@@ -1,13 +1,13 @@
 package cli
 
 import (
+	"context"
 	dryad "dryad/core"
-	"dryad/task"
 	"strings"
 )
 
 func resolveSingleRootVariantReference(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	roots *dryad.SafeRootsReference,
 	rootPath string,
 	variantRaw string,

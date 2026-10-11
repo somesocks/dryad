@@ -1,11 +1,13 @@
 package fs2
 
 import (
+	"context"
 	"dryad/task"
 
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"io/fs"
+
 	// "fmt"
 
 	zlog "github.com/rs/zerolog/log"
@@ -15,7 +17,7 @@ func WithFileLock[A any, B any](
 	baseTask task.Task[A, B],
 	pathFunc task.Task[A, string],
 ) task.Task[A, B] {
-	var wrapper task.Task[A, B] = func(ctx *task.ExecutionContext, req A) (error, B) {
+	var wrapper task.Task[A, B] = func(ctx context.Context, req A) (error, B) {
 		var path string
 		var err error
 		var res B

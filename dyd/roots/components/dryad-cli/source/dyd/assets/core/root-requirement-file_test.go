@@ -3,6 +3,7 @@ package core
 import (
 	"archive/tar"
 	"archive/zip"
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/task"
@@ -165,11 +166,11 @@ func TestRootRequirementFileTargetNormalize_ArchiveFilterPatterns(t *testing.T) 
 	assert := assert.New(t)
 
 	for raw, expected := range map[string]string{
-		"file:../foo.tar?unpack=true&include=build/":       "file:../foo.tar?unpack=true&include=build",
-		"file:../foo.tar?unpack=true&include=./build":      "file:../foo.tar?unpack=true&include=build",
-		"file:../foo.tar?unpack=true&include=a/../build":   "file:../foo.tar?unpack=true&include=build",
-		"file:../foo.tar?unpack=true&include=build/**":     "file:../foo.tar?unpack=true&include=build/%2A%2A",
-		"file:../foo.tar?unpack=true&include=+BUILD":       "file:../foo.tar?unpack=true&include=+BUILD",
+		"file:../foo.tar?unpack=true&include=build/":     "file:../foo.tar?unpack=true&include=build",
+		"file:../foo.tar?unpack=true&include=./build":    "file:../foo.tar?unpack=true&include=build",
+		"file:../foo.tar?unpack=true&include=a/../build": "file:../foo.tar?unpack=true&include=build",
+		"file:../foo.tar?unpack=true&include=build/**":   "file:../foo.tar?unpack=true&include=build/%2A%2A",
+		"file:../foo.tar?unpack=true&include=+BUILD":     "file:../foo.tar?unpack=true&include=+BUILD",
 	} {
 		err, target := RootRequirementFileTargetNormalize(raw)
 		assert.Nil(err, raw)
@@ -292,7 +293,7 @@ func TestRootRequirementFileBuildStem_MissingOptionalFileBuildsEmptyStem(t *test
 	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "type"), "garden")
 	sourcePath := filepath.Join(t.TempDir(), "missing.txt")
 
-	err, stem := RootRequirementFileBuildStem(task.NewContext(1), RootRequirementFileBuildStemRequest{
+	err, stem := RootRequirementFileBuildStem(task.NewContext(context.Background(), 1), RootRequirementFileBuildStemRequest{
 		Garden:        &SafeGardenReference{BasePath: gardenPath},
 		SourcePath:    sourcePath,
 		DestinationAs: "dyd/assets/missing.txt",
@@ -313,7 +314,7 @@ func TestRootRequirementFileBuildStem_MissingOptionalArchiveBuildsEmptyStem(t *t
 	writeFileForTest(t, filepath.Join(gardenPath, "dyd", "type"), "garden")
 	sourcePath := filepath.Join(t.TempDir(), "missing.tar")
 
-	err, stem := RootRequirementFileBuildStem(task.NewContext(1), RootRequirementFileBuildStemRequest{
+	err, stem := RootRequirementFileBuildStem(task.NewContext(context.Background(), 1), RootRequirementFileBuildStemRequest{
 		Garden:          &SafeGardenReference{BasePath: gardenPath},
 		SourcePath:      sourcePath,
 		DestinationInto: "dyd/assets/vendor",
@@ -430,7 +431,7 @@ func TestRootRequirementFileBuildStem_UnpackZipIntoUsesArchiveName(t *testing.T)
 	assert.Nil(zipWriter.Close())
 	assert.Nil(archiveFile.Close())
 
-	err, stem := RootRequirementFileBuildStem(task.NewContext(1), RootRequirementFileBuildStemRequest{
+	err, stem := RootRequirementFileBuildStem(task.NewContext(context.Background(), 1), RootRequirementFileBuildStemRequest{
 		Garden:          &SafeGardenReference{BasePath: gardenPath},
 		SourcePath:      archivePath,
 		DestinationInto: "dyd/assets/vendor",
@@ -484,7 +485,7 @@ func TestRootRequirementFileBuildStem_UnpackTarBz2IntoUsesArchiveName(t *testing
 	assert.Nil(err)
 	assert.Nil(stdos.WriteFile(archivePath, archiveBytes, 0o644))
 
-	err, stem := RootRequirementFileBuildStem(task.NewContext(1), RootRequirementFileBuildStemRequest{
+	err, stem := RootRequirementFileBuildStem(task.NewContext(context.Background(), 1), RootRequirementFileBuildStemRequest{
 		Garden:          &SafeGardenReference{BasePath: gardenPath},
 		SourcePath:      archivePath,
 		DestinationInto: "dyd/assets/vendor",
@@ -516,7 +517,7 @@ func TestRootRequirementFileBuildStem_UnpackFormatOverrideUsesRequestedFormat(t 
 	assert.Nil(tarWriter.Close())
 	assert.Nil(archiveFile.Close())
 
-	err, stem := RootRequirementFileBuildStem(task.NewContext(1), RootRequirementFileBuildStemRequest{
+	err, stem := RootRequirementFileBuildStem(task.NewContext(context.Background(), 1), RootRequirementFileBuildStemRequest{
 		Garden:          &SafeGardenReference{BasePath: gardenPath},
 		SourcePath:      archivePath,
 		DestinationInto: "dyd/assets/vendor",
@@ -539,7 +540,7 @@ func TestRootRequirementFileBuildStem_UnpackTarXzIntoUsesArchiveName(t *testing.
 	assert.Nil(err)
 	assert.Nil(stdos.WriteFile(archivePath, archiveBytes, 0o644))
 
-	err, stem := RootRequirementFileBuildStem(task.NewContext(1), RootRequirementFileBuildStemRequest{
+	err, stem := RootRequirementFileBuildStem(task.NewContext(context.Background(), 1), RootRequirementFileBuildStemRequest{
 		Garden:          &SafeGardenReference{BasePath: gardenPath},
 		SourcePath:      archivePath,
 		DestinationInto: "dyd/assets/vendor",
@@ -576,7 +577,7 @@ func TestRootRequirementFileBuildStem_UnpackTarSkipsPaxGlobalHeader(t *testing.T
 	assert.Nil(tarWriter.Close())
 	assert.Nil(archiveFile.Close())
 
-	err, stem := RootRequirementFileBuildStem(task.NewContext(1), RootRequirementFileBuildStemRequest{
+	err, stem := RootRequirementFileBuildStem(task.NewContext(context.Background(), 1), RootRequirementFileBuildStemRequest{
 		Garden:          &SafeGardenReference{BasePath: gardenPath},
 		SourcePath:      archivePath,
 		DestinationInto: "dyd/assets/vendor",
@@ -614,7 +615,7 @@ func TestRootRequirementFileBuildStem_UnpackTarSkipsRootDirectoryEntry(t *testin
 	assert.Nil(tarWriter.Close())
 	assert.Nil(archiveFile.Close())
 
-	err, stem := RootRequirementFileBuildStem(task.NewContext(1), RootRequirementFileBuildStemRequest{
+	err, stem := RootRequirementFileBuildStem(task.NewContext(context.Background(), 1), RootRequirementFileBuildStemRequest{
 		Garden:          &SafeGardenReference{BasePath: gardenPath},
 		SourcePath:      archivePath,
 		DestinationInto: "dyd/assets/vendor",

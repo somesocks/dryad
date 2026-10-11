@@ -1,10 +1,10 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"dryad/internal/time"
-	"dryad/task"
 	"errors"
 	"io/fs"
 
@@ -16,7 +16,7 @@ type heapAddSecretFileRequest struct {
 	SourcePath  string
 }
 
-func heapAddSecretFile(ctx *task.ExecutionContext, req heapAddSecretFileRequest) (error, string) {
+func heapAddSecretFile(ctx context.Context, req heapAddSecretFileRequest) (error, string) {
 	var heapSecretsPath string = req.HeapSecrets.BasePath
 	var sourcePath string = req.SourcePath
 	var err error
@@ -119,7 +119,7 @@ func heapAddSecretFile(ctx *task.ExecutionContext, req heapAddSecretFileRequest)
 }
 
 func (heapSecrets *SafeHeapSecretsReference) AddFile(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	sourcePath string,
 ) (error, string) {
 	err, res := heapAddSecretFile(

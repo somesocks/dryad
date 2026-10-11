@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/internal/os"
@@ -23,7 +24,7 @@ var rootsGraphCommand = func() clib.Command {
 		Parallel   int
 	}
 
-	var parseArgs = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs = func(ctx context.Context, req clib.ActionRequest) (error, ParsedArgs) {
 		var options = req.Opts
 
 		var relative bool = true
@@ -75,7 +76,7 @@ var rootsGraphCommand = func() clib.Command {
 		}
 	}
 
-	var printGraph = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var printGraph = func(ctx context.Context, args ParsedArgs) (error, any) {
 		unsafeGarden := dryad.Garden(args.GardenPath)
 
 		err, garden := unsafeGarden.Resolve(ctx)
@@ -129,8 +130,8 @@ var rootsGraphCommand = func() clib.Command {
 
 	printGraph = task.WithContext(
 		printGraph,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

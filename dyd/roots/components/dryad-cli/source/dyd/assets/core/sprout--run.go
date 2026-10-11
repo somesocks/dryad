@@ -1,8 +1,8 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
-	"dryad/task"
 	"fmt"
 
 	zlog "github.com/rs/zerolog/log"
@@ -37,7 +37,7 @@ func sproutRunLogVariantLabel(descriptor string) string {
 }
 
 func (sprout *SafeSproutReference) Run(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req SproutRunRequest,
 ) error {
 	err, variantSelector := resolveSproutRunVariantSelector(req.VariantDescriptor)

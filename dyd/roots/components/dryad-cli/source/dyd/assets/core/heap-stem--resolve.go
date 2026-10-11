@@ -1,14 +1,14 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
-	"dryad/task"
 	"errors"
 	// "os"
 	// zlog "github.com/rs/zerolog/log"
 )
 
-func (heapStem *UnsafeHeapStemReference) Resolve(ctx *task.ExecutionContext) (error, *SafeHeapStemReference) {
+func (heapStem *UnsafeHeapStemReference) Resolve(ctx context.Context) (error, *SafeHeapStemReference) {
 	var heapStemExists bool
 	var err error
 	var safeRef SafeHeapStemReference

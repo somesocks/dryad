@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/internal/os"
@@ -15,7 +16,7 @@ var stemsPathCommand = func() clib.Command {
 		Parallel int
 	}
 
-	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx context.Context, req clib.ActionRequest) (error, ParsedArgs) {
 		var options = req.Opts
 		var parallel int
 
@@ -30,7 +31,7 @@ var stemsPathCommand = func() clib.Command {
 		}
 	}
 
-	var printStemsPath = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var printStemsPath = func(ctx context.Context, args ParsedArgs) (error, any) {
 		path, err := os.Getwd()
 		if err != nil {
 			return err, nil
@@ -47,8 +48,8 @@ var stemsPathCommand = func() clib.Command {
 
 	printStemsPath = task.WithContext(
 		printStemsPath,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

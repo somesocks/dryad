@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/internal/filepath"
@@ -24,7 +25,7 @@ var rootsListCommand = func() clib.Command {
 		IncludeExcludeFilter dryad.RootVariantFilter
 	}
 
-	var parseArgs = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs = func(ctx context.Context, req clib.ActionRequest) (error, ParsedArgs) {
 		var args = req.Args
 		var options = req.Opts
 
@@ -76,7 +77,7 @@ var rootsListCommand = func() clib.Command {
 		}
 	}
 
-	var listRoots = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var listRoots = func(ctx context.Context, args ParsedArgs) (error, any) {
 		unsafeGarden := dryad.Garden(args.GardenPath)
 
 		err, garden := unsafeGarden.Resolve(ctx)
@@ -101,7 +102,7 @@ var rootsListCommand = func() clib.Command {
 					args.FromStdinFilter,
 					args.IncludeExcludeFilter,
 				),
-				OnMatch: func(ctx *task.ExecutionContext, variant *dryad.SafeRootVariantReference) (error, any) {
+				OnMatch: func(ctx context.Context, variant *dryad.SafeRootVariantReference) (error, any) {
 					if args.ToSprouts {
 						rootPath, err := filepath.Rel(variant.Root.Roots.BasePath, variant.Root.BasePath)
 						if err != nil {
@@ -138,8 +139,8 @@ var rootsListCommand = func() clib.Command {
 
 	listRoots = task.WithContext(
 		listRoots,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

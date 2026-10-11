@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/task"
@@ -11,7 +12,7 @@ import (
 var gardenWipeCommand = func() clib.Command {
 
 	type ParsedArgs struct {
-		Path string
+		Path     string
 		Parallel int
 	}
 
@@ -34,31 +35,31 @@ var gardenWipeCommand = func() clib.Command {
 			} else {
 				parallel = PARALLEL_COUNT_DEFAULT
 			}
-	
+
 			return nil, ParsedArgs{
-				Path: path,
+				Path:     path,
 				Parallel: parallel,
 			}
 		},
 	)
 
-	var wipeGarden = func (ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var wipeGarden = func(ctx context.Context, args ParsedArgs) (error, any) {
 		unsafeGarden := dryad.Garden(args.Path)
-		
+
 		err, garden := unsafeGarden.Resolve(ctx)
 		if err != nil {
 			return err, nil
 		}
 
-		err = garden.Wipe(ctx) 
+		err = garden.Wipe(ctx)
 
 		return err, nil
 	}
 
 	wipeGarden = task.WithContext(
 		wipeGarden,
-		func (ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 
@@ -67,7 +68,7 @@ var gardenWipeCommand = func() clib.Command {
 			parseArgs,
 			wipeGarden,
 		),
-		func (err error, val any) int {
+		func(err error, val any) int {
 			if err != nil {
 				zlog.Error().Err(err).Msg("error while wiping garden")
 				return 1
@@ -83,7 +84,6 @@ var gardenWipeCommand = func() clib.Command {
 
 	command = ParallelCommand(command)
 	command = LoggingCommand(command)
-
 
 	return command
 }()

@@ -1,7 +1,7 @@
 package core
 
 import (
-	"dryad/task"
+	"context"
 	"fmt"
 	"sort"
 )
@@ -130,7 +130,7 @@ func rootBuildResolveChoicesForDimension(
 }
 
 func (root *SafeRootReference) ResolveBuildVariants(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	req RootResolveBuildVariantsRequest,
 ) (error, []VariantDescriptor) {
 	err, selector := normalizeVariantDescriptor(req.Selector)

@@ -3,10 +3,10 @@ package core
 import (
 	"archive/tar"
 	"compress/gzip"
+	"context"
 	dydfs "dryad/filesystem"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"dryad/task"
 	"errors"
 	"io"
 	"io/fs"
@@ -26,7 +26,7 @@ type gardenPackRequest struct {
 	IncludeShed     bool
 }
 
-func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, string) {
+func gardenPack(ctx context.Context, req gardenPackRequest) (error, string) {
 	var gardenPath = req.Garden.BasePath
 	var targetPath = req.TargetPath
 	var err error
@@ -64,7 +64,7 @@ func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, strin
 	var packMutex sync.Mutex
 	var packMap = make(map[string]bool)
 
-	var packEntry = func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+	var packEntry = func(ctx context.Context, node dydfs.Walk6Node) (error, any) {
 		zlog.Trace().
 			Str("path", node.Path).
 			Msg("GardenPack/packEntry")
@@ -157,7 +157,7 @@ func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, strin
 		return nil, nil
 	}
 
-	packDirShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	packDirShouldWalk := func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		var relativePath string
 		var err error
 
@@ -190,7 +190,7 @@ func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, strin
 		return nil, shouldCrawl
 	}
 
-	packDirShouldMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	packDirShouldMatch := func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		var relativePath string
 		var err error
 
@@ -238,7 +238,7 @@ func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, strin
 		return err, ""
 	}
 
-	packFilesShouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	packFilesShouldWalk := func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		var relativePath string
 		var err error
 
@@ -271,7 +271,7 @@ func gardenPack(ctx *task.ExecutionContext, req gardenPackRequest) (error, strin
 		return nil, shouldCrawl
 	}
 
-	packFilesShouldMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	packFilesShouldMatch := func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		var relativePath string
 		var err error
 
@@ -333,7 +333,7 @@ type GardenPackRequest struct {
 	IncludeShed     bool
 }
 
-func (sg *SafeGardenReference) Pack(ctx *task.ExecutionContext, req GardenPackRequest) (error, string) {
+func (sg *SafeGardenReference) Pack(ctx context.Context, req GardenPackRequest) (error, string) {
 	err, res := gardenPack(
 		ctx,
 		gardenPackRequest{

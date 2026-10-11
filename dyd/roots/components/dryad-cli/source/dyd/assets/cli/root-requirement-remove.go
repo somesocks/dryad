@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	core "dryad/core"
 	dydfs "dryad/filesystem"
@@ -19,7 +20,7 @@ var rootRequirementRemoveCommand = func() clib.Command {
 		Parallel        int
 	}
 
-	var parseArgs = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs = func(ctx context.Context, req clib.ActionRequest) (error, ParsedArgs) {
 		var args = req.Args
 		var options = req.Opts
 
@@ -57,7 +58,7 @@ var rootRequirementRemoveCommand = func() clib.Command {
 		}
 	}
 
-	var removeRequirement = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var removeRequirement = func(ctx context.Context, args ParsedArgs) (error, any) {
 		err, garden := core.Garden(args.RootPath).Resolve(ctx)
 		if err != nil {
 			return err, nil
@@ -100,8 +101,8 @@ var rootRequirementRemoveCommand = func() clib.Command {
 
 	removeRequirement = task.WithContext(
 		removeRequirement,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

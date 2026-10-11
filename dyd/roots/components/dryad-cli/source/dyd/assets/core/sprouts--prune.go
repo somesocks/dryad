@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	dydfs "dryad/filesystem"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
@@ -10,7 +11,7 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-func sproutsPrune(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) error {
+func sproutsPrune(ctx context.Context, sprouts *SafeSproutsReference) error {
 	var roots *SafeRootsReference
 	var err error
 
@@ -20,7 +21,7 @@ func sproutsPrune(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) err
 	}
 
 	// crawl everything that isn't a symlink
-	shouldWalk := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	shouldWalk := func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 		var shouldWalk bool = node.Info.Mode()&os.ModeSymlink != os.ModeSymlink
 
 		zlog.Trace().
@@ -31,7 +32,7 @@ func sproutsPrune(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) err
 	}
 
 	// match any path that we should delete
-	shouldMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, bool) {
+	shouldMatch := func(ctx context.Context, node dydfs.Walk6Node) (error, bool) {
 
 		zlog.Trace().
 			Str("path", node.Path).
@@ -58,7 +59,7 @@ func sproutsPrune(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) err
 		return nil, false
 	}
 
-	onMatch := func(ctx *task.ExecutionContext, node dydfs.Walk6Node) (error, any) {
+	onMatch := func(ctx context.Context, node dydfs.Walk6Node) (error, any) {
 		zlog.Trace().
 			Str("path", node.Path).
 			Msg("SproutsPrune.onMatch")
@@ -93,7 +94,7 @@ func sproutsPrune(ctx *task.ExecutionContext, sprouts *SafeSproutsReference) err
 }
 
 func (sprouts *SafeSproutsReference) Prune(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 ) error {
 	err := sproutsPrune(
 		ctx,

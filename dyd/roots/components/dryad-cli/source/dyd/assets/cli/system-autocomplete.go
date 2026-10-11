@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	"dryad/task"
 	"fmt"
@@ -17,7 +18,7 @@ var systemAutocomplete = func() clib.Command {
 		App       clib.App
 	}
 
-	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs task.Task[clib.ActionRequest, ParsedArgs] = func(ctx context.Context, req clib.ActionRequest) (error, ParsedArgs) {
 		var opts = req.Opts
 		var separator string
 		var parallel int
@@ -42,7 +43,7 @@ var systemAutocomplete = func() clib.Command {
 		}
 	}
 
-	var runAutocomplete = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var runAutocomplete = func(ctx context.Context, args ParsedArgs) (error, any) {
 		var err, results = args.App.AutoComplete(args.Args)
 		if err != nil {
 			return err, nil
@@ -55,8 +56,8 @@ var systemAutocomplete = func() clib.Command {
 
 	runAutocomplete = task.WithContext(
 		runAutocomplete,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

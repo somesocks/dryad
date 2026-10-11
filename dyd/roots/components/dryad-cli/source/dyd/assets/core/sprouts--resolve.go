@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	fs2 "dryad/filesystem"
 	"dryad/task"
 
@@ -9,7 +10,7 @@ import (
 	zlog "github.com/rs/zerolog/log"
 )
 
-func resolveSproutsReference(ctx *task.ExecutionContext, sprouts *UnsafeSproutsReference) (error, *SafeSproutsReference) {
+func resolveSproutsReference(ctx context.Context, sprouts *UnsafeSproutsReference) (error, *SafeSproutsReference) {
 	zlog.Trace().
 		Str("path", sprouts.BasePath).
 		Msg("UnsafeSproutsReference.Resolve")
@@ -47,7 +48,7 @@ func resolveSproutsReference(ctx *task.ExecutionContext, sprouts *UnsafeSproutsR
 
 var memoResolveSproutsReference = task.Memoize(
 	resolveSproutsReference,
-	func(ctx *task.ExecutionContext, sprouts *UnsafeSproutsReference) (error, any) {
+	func(ctx context.Context, sprouts *UnsafeSproutsReference) (error, any) {
 		type Key struct {
 			Group      string
 			BasePath   string
@@ -67,6 +68,6 @@ var memoResolveSproutsReference = task.Memoize(
 	},
 )
 
-func (sprouts *UnsafeSproutsReference) Resolve(ctx *task.ExecutionContext) (error, *SafeSproutsReference) {
+func (sprouts *UnsafeSproutsReference) Resolve(ctx context.Context) (error, *SafeSproutsReference) {
 	return memoResolveSproutsReference(ctx, sprouts)
 }

@@ -1,13 +1,13 @@
 package core
 
 import (
-	// dydfs "dryad/filesystem"
-	"dryad/task"
 
 	// "io/fs"
 	// "io/ioutil"
 	// "os"
 	// "dryad/internal/filepath"
+
+	"context"
 
 	zlog "github.com/rs/zerolog/log"
 )
@@ -19,7 +19,7 @@ type rootBuild_stage6_request struct {
 }
 
 // stage 6 - pack the derived stem into the heap and garden
-var rootBuild_stage6 func(ctx *task.ExecutionContext, req rootBuild_stage6_request) (error, *SafeHeapStemReference) = func(ctx *task.ExecutionContext, req rootBuild_stage6_request) (error, *SafeHeapStemReference) {
+var rootBuild_stage6 func(ctx context.Context, req rootBuild_stage6_request) (error, *SafeHeapStemReference) = func(ctx context.Context, req rootBuild_stage6_request) (error, *SafeHeapStemReference) {
 	zlog.Trace().
 		Str("path", req.RelRootPath).
 		Msg("root build - stage6")

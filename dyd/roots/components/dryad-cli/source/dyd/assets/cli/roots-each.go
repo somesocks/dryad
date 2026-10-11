@@ -1,9 +1,11 @@
 package cli
 
 import (
+	"context"
 	clib "dryad/cli-builder"
 	dryad "dryad/core"
 	"dryad/task"
+
 	// "fmt"
 
 	"dryad/internal/exec"
@@ -28,7 +30,7 @@ var rootsEachCommand = func() clib.Command {
 		IgnoreErrors         bool
 	}
 
-	var parseArgs = func(ctx *task.ExecutionContext, req clib.ActionRequest) (error, ParsedArgs) {
+	var parseArgs = func(ctx context.Context, req clib.ActionRequest) (error, ParsedArgs) {
 		var args = req.Args
 		var options = req.Opts
 
@@ -101,7 +103,7 @@ var rootsEachCommand = func() clib.Command {
 		}
 	}
 
-	var eachRoots = func(ctx *task.ExecutionContext, args ParsedArgs) (error, any) {
+	var eachRoots = func(ctx context.Context, args ParsedArgs) (error, any) {
 		unsafeGarden := dryad.Garden(args.GardenPath)
 
 		err, garden := unsafeGarden.Resolve(ctx)
@@ -121,7 +123,7 @@ var rootsEachCommand = func() clib.Command {
 					args.FromStdinFilter,
 					args.IncludeExcludeFilter,
 				),
-				OnMatch: func(ctx *task.ExecutionContext, variant *dryad.SafeRootVariantReference) (error, any) {
+				OnMatch: func(ctx context.Context, variant *dryad.SafeRootVariantReference) (error, any) {
 					var err error
 
 					cmd := exec.Command(
@@ -171,8 +173,8 @@ var rootsEachCommand = func() clib.Command {
 
 	eachRoots = task.WithContext(
 		eachRoots,
-		func(ctx *task.ExecutionContext, args ParsedArgs) (error, *task.ExecutionContext) {
-			return nil, task.NewContext(args.Parallel)
+		func(ctx context.Context, args ParsedArgs) (error, context.Context) {
+			return nil, task.NewContext(ctx, args.Parallel)
 		},
 	)
 

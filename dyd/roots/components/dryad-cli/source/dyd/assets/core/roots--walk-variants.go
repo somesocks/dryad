@@ -1,15 +1,15 @@
 package core
 
-import "dryad/task"
+import "context"
 
 type RootsWalkVariantsRequest struct {
-	ShouldMatch func(*task.ExecutionContext, *SafeRootVariantReference) (error, bool)
-	OnMatch     func(*task.ExecutionContext, *SafeRootVariantReference) (error, any)
+	ShouldMatch func(context.Context, *SafeRootVariantReference) (error, bool)
+	OnMatch     func(context.Context, *SafeRootVariantReference) (error, any)
 }
 
-func (roots *SafeRootsReference) WalkVariants(ctx *task.ExecutionContext, req RootsWalkVariantsRequest) error {
+func (roots *SafeRootsReference) WalkVariants(ctx context.Context, req RootsWalkVariantsRequest) error {
 	if req.ShouldMatch == nil {
-		req.ShouldMatch = func(*task.ExecutionContext, *SafeRootVariantReference) (error, bool) {
+		req.ShouldMatch = func(context.Context, *SafeRootVariantReference) (error, bool) {
 			return nil, true
 		}
 	}
@@ -17,7 +17,7 @@ func (roots *SafeRootsReference) WalkVariants(ctx *task.ExecutionContext, req Ro
 	return roots.Walk(
 		ctx,
 		RootsWalkRequest{
-			OnMatch: func(ctx *task.ExecutionContext, root *SafeRootReference) (error, any) {
+			OnMatch: func(ctx context.Context, root *SafeRootReference) (error, any) {
 				err, variants := root.ResolveBuildVariantReferences(
 					ctx,
 					RootResolveBuildVariantsRequest{},

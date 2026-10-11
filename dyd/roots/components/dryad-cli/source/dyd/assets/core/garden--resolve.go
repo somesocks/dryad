@@ -1,8 +1,7 @@
 package core
 
 import (
-	"dryad/task"
-
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
 	"errors"
@@ -61,7 +60,7 @@ func _gardenPath(path string) (string, error) {
 	return "", errors.New("dyd garden path not found starting from " + path)
 }
 
-func (ug *UnsafeGardenReference) Resolve(ctx *task.ExecutionContext) (error, *SafeGardenReference) {
+func (ug *UnsafeGardenReference) Resolve(ctx context.Context) (error, *SafeGardenReference) {
 	zlog.Trace().
 		Str("BasePath", ug.BasePath).
 		Msg("UnsafeGardenReference.Resolve")

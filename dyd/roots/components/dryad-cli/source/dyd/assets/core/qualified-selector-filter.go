@@ -1,11 +1,11 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"dryad/internal/filepath"
-	"dryad/task"
 
 	"github.com/bmatcuk/doublestar/v4"
 )
@@ -155,7 +155,7 @@ func sproutGardenPath(sprout *SafeSproutReference) (string, error) {
 }
 
 func qualifiedSelectorsMatchRootVariant(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	selectors []qualifiedSelector,
 	variant *SafeRootVariantReference,
 ) (error, bool) {
@@ -173,7 +173,7 @@ func qualifiedSelectorsMatchRootVariant(
 }
 
 func qualifiedSelectorsMatchSprout(
-	ctx *task.ExecutionContext,
+	ctx context.Context,
 	selectors []qualifiedSelector,
 	sprout *SafeSproutReference,
 ) (error, bool) {

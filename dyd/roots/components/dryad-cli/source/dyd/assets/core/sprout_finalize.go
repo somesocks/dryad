@@ -1,15 +1,14 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
-
-	"dryad/task"
 )
 
 // sproutFinalize takes a partial sprout and generates package files,
 // such as the sprout type sentinel and fingerprint.
-func sproutFinalize(ctx *task.ExecutionContext, sproutPath string) (error, string) {
+func sproutFinalize(ctx context.Context, sproutPath string) (error, string) {
 	var err error
 
 	// write the type file

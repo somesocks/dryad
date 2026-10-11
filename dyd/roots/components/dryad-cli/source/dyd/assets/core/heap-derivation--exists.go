@@ -1,16 +1,16 @@
 package core
 
 import (
+	"context"
 	"dryad/internal/filepath"
 	"dryad/internal/os"
-	"dryad/task"
 	"errors"
 	"io/fs"
 	// "os"
 	// zlog "github.com/rs/zerolog/log"
 )
 
-func (heapDerivation *UnsafeHeapDerivationReference) Exists(ctx *task.ExecutionContext) (error, bool) {
+func (heapDerivation *UnsafeHeapDerivationReference) Exists(ctx context.Context) (error, bool) {
 	err, derivationPath := heapDerivationsRootsFingerprintPath(
 		ctx,
 		heapDerivation.Derivations.Heap.Garden,
