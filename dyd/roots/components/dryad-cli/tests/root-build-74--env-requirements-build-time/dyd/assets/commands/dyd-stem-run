@@ -108,6 +108,61 @@ _test() {
 	_expect_build_fails root-invalid-target env VALUE='bad'
 }
 
+_test_defaults() {
+	_create_build_root root-default build-value 'env:DRYAD_TEST_BUILD_VALUE?default=0' BUILD_VALUE
+	env -u DRYAD_TEST_BUILD_VALUE dryad root build dyd/roots/root-default --log-level=info
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-default/dyd/dependencies/stem/dyd/assets/value" '0'
+	materialized=$(cat "$TEMP_DIR/dyd/sprouts/root-default/dyd/dependencies/stem/dyd/assets/materialized-build-value")
+	case "$materialized" in
+		'env:DRYAD_TEST_BUILD_VALUE?default=0&fingerprint=v2-'*) ;;
+		*) echo "[ERROR] Fail: default was not preserved in $materialized" >&2; return 1 ;;
+	esac
+
+	# Both another fallback build and a host value equal to the default reuse the derivation.
+	rm "$TEMP_DIR/dyd/heap/env-requirements-01/root-default-ran"
+	env -u DRYAD_TEST_BUILD_VALUE dryad root build dyd/roots/root-default --log-level=info
+	assert_file_not_exists "$TEMP_DIR/dyd/heap/env-requirements-01/root-default-ran"
+	DRYAD_TEST_BUILD_VALUE='0' dryad root build dyd/roots/root-default --log-level=info
+	assert_file_not_exists "$TEMP_DIR/dyd/heap/env-requirements-01/root-default-ran"
+
+	DRYAD_TEST_BUILD_VALUE='override' dryad root build dyd/roots/root-default --log-level=info
+	assert_file_content_equals "$TEMP_DIR/dyd/heap/env-requirements-01/root-default-ran" 'ran'
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-default/dyd/dependencies/stem/dyd/assets/value" 'override'
+
+	DRYAD_TEST_BUILD_VALUE='' dryad root build dyd/roots/root-default --log-level=info
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-default/dyd/dependencies/stem/dyd/assets/value" ''
+
+	_create_build_root root-default-empty build-value 'env:DRYAD_TEST_BUILD_VALUE?default=' BUILD_VALUE
+	env -u DRYAD_TEST_BUILD_VALUE dryad root build dyd/roots/root-default-empty --log-level=info
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-default-empty/dyd/dependencies/stem/dyd/assets/value" ''
+
+	# Locked requirements verify defaulted values as well as host values.
+	_create_build_root root-default-locked build-value "$materialized" BUILD_VALUE
+	env -u DRYAD_TEST_BUILD_VALUE dryad root build dyd/roots/root-default-locked --log-level=info
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-default-locked/dyd/dependencies/stem/dyd/assets/value" '0'
+	_expect_build_fails root-default-locked env DRYAD_TEST_BUILD_VALUE='different'
+
+	# CLI addition and listing preserve URL-encoded and empty defaults.
+	_create_build_root root-default-cli build-value 'env:DRYAD_TEST_BUILD_VALUE' BUILD_VALUE
+	(
+		cd "$TEMP_DIR/dyd/roots/root-default-cli"
+		dryad root requirement add 'env:DRYAD_TEST_BUILD_VALUE?default=hello%20world%26%2B' build-value --log-level=info
+	)
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-default-cli/dyd/requirements/build-value" 'env:DRYAD_TEST_BUILD_VALUE?default=hello+world%26%2B'
+	listing=$(dryad root requirements list dyd/roots/root-default-cli --log-level=info)
+	case "$listing" in
+		*'env:DRYAD_TEST_BUILD_VALUE?default=hello+world%26%2B'*) ;;
+		*) echo "[ERROR] Fail: default missing from requirements listing" >&2; return 1 ;;
+	esac
+	env -u DRYAD_TEST_BUILD_VALUE dryad root build dyd/roots/root-default-cli --log-level=info
+	assert_file_content_equals "$TEMP_DIR/dyd/sprouts/root-default-cli/dyd/dependencies/stem/dyd/assets/value" 'hello world&+'
+	(
+		cd "$TEMP_DIR/dyd/roots/root-default-cli"
+		dryad root requirement add 'env:DRYAD_TEST_BUILD_VALUE?default=' build-value --log-level=info
+	)
+	assert_file_content_equals "$TEMP_DIR/dyd/roots/root-default-cli/dyd/requirements/build-value" 'env:DRYAD_TEST_BUILD_VALUE?default='
+}
+
 _teardown() {
 	if [ -d "$TEMP_DIR" ]; then
 		chmod -R 755 "$TEMP_DIR"
@@ -118,3 +173,4 @@ _teardown() {
 trap _teardown ERR EXIT
 _setup
 _test
+_test_defaults

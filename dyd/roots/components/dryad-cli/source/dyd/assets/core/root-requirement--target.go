@@ -15,6 +15,7 @@ type RootRequirementTargetSpec struct {
 	VariantSelector     VariantDescriptor
 	EnvName             string
 	EnvFingerprint      string
+	EnvDefault          *string
 	FileSourcePath      string
 	FileDestinationAs   string
 	FileDestinationInto string
@@ -126,6 +127,7 @@ func (rootRequirement *SafeRootRequirementReference) TargetSpec(ctx context.Cont
 			Kind:           RootRequirementTargetKindEnv,
 			EnvName:        envSpec.Name,
 			EnvFingerprint: envSpec.Fingerprint,
+			EnvDefault:     envSpec.Default,
 		}
 	}
 	if linkScheme == "file" {
