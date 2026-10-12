@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+. "$DYD_STEM/dyd/dependencies/fixtures/dyd/assets/run-fixtures.sh"
+fixture_setup one
+run=(sprout run dyd/sprouts/one --scope=none --log-level=info --log-format=json)
+
+fixture_concurrency_case 2 '' 'one-a one-b' "${run[@]}" --variant=flavor=a,b -- hold
+fixture_concurrency_case 2 '' 'one-a one-b' "${run[@]}" --variant=flavor=a,b --parallel=2 -- hold
+fixture_concurrency_case 1 '' 'one-a one-b one-c' "${run[@]}" --variant=flavor=a,b,c --parallel=1 -- hold
+
+fixture_start '' 'one-a one-b' "${run[@]}" --variant=flavor=a,b --parallel=2 -- fail-hold
+fixture_wait_started 2
+fixture_release one-a
+fixture_wait_failure
+fixture_release one-b
+fixture_finish 1
+fixture_assert_contains "$RUN_TEMP/stderr" 'error running sprout variant flavor=a'
+fixture_assert_content "$RUN_GARDEN/results/one-b" done
+fixture_assert_absent one-a
+fixture_assert_content "$RUN_GARDEN/control/active" 0

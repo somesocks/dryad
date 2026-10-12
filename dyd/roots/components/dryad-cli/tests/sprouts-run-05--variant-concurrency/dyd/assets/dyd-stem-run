@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+. "$DYD_STEM/dyd/dependencies/fixtures/dyd/assets/run-fixtures.sh"
+fixture_setup one two
+run=(sprouts run --scope=none --log-level=info --log-format=json)
+
+fixture_concurrency_case 2 '' 'one-a one-b one-c one-d' "${run[@]}" --include=dyd/sprouts/one --parallel=2 -- hold
+fixture_concurrency_case 3 '' 'one-a one-b one-c two-a two-b two-c' "${run[@]}" --variant=flavor=a,b,c --parallel=3 -- hold
+fixture_concurrency_case 1 '' 'one-a one-b two-a two-b' "${run[@]}" --variant=flavor=a,b --parallel=1 -- hold
+
+fixture_concurrency_case 2 $'dyd/sprouts/one~flavor=a\ndyd/sprouts/two~flavor=a\n' \
+    'one-a two-a' "${run[@]}" --from-stdin --parallel=2 -- hold
+fixture_concurrency_case 2 $'dyd/sprouts/one~flavor=a,b,c\n' \
+    'one-a one-b one-c' "${run[@]}" --from-stdin --parallel=2 -- hold
+fixture_concurrency_case 3 $'dyd/sprouts/one~flavor=a,b,c\ndyd/sprouts/two~flavor=a,b,c\n' \
+    'one-a one-b one-c two-a two-b two-c' "${run[@]}" --from-stdin --parallel=3 -- hold
+fixture_concurrency_case 1 $'dyd/sprouts/one~flavor=a,b\ndyd/sprouts/two~flavor=a,b\n' \
+    'one-a one-b two-a two-b' "${run[@]}" --from-stdin --parallel=1 -- hold
+
+refs=$'dyd/sprouts/one~flavor=a,b\ndyd/sprouts/two~flavor=a,b\n'
+fixture_start "$refs" 'one-a one-b two-a two-b' "${run[@]}" --from-stdin --parallel=2 --ignore-errors -- fail-hold
+fixture_wait_started 2
+[ -f "$RUN_GARDEN/control/start-one-a" ] && [ -f "$RUN_GARDEN/control/start-one-b" ] || fixture_fail 'expected both first-sprout variants to start'
+fixture_release one-a one-b two-a two-b
+fixture_finish 0
+fixture_assert_contains "$RUN_TEMP/stderr" 'error running sprout variant flavor=a'
+for id in one-b two-a two-b; do fixture_assert_content "$RUN_GARDEN/results/$id" done; done
+if grep -F '"message":"sprout run completed"' "$RUN_TEMP/stderr" | grep -Fq "$RUN_GARDEN/dyd/sprouts/one"; then
+    fixture_fail 'failed sprout was reported as completed'
+fi
+
+fixture_run "$refs" 1 "${run[@]}" --from-stdin --parallel=1 -- fail
+fixture_assert_contains "$RUN_TEMP/stderr" 'error running sprout variant flavor=a'
+fixture_assert_absent one-b
+fixture_assert_absent two-a
+fixture_run "$refs" 0 "${run[@]}" --from-stdin --parallel=1 --ignore-errors -- fail
+fixture_assert_contains "$RUN_TEMP/stderr" 'error running sprout variant flavor=a'
+fixture_assert_absent one-b
+fixture_assert_content "$RUN_GARDEN/results/two-a" done
+fixture_assert_content "$RUN_GARDEN/results/two-b" done

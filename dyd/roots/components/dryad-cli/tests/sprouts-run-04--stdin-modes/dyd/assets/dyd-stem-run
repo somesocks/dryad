@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+. "$DYD_STEM/dyd/dependencies/fixtures/dyd/assets/run-fixtures.sh"
+fixture_setup one two
+run=(sprouts run --scope=none --log-level=info --variant=flavor=a)
+input=$'first\nsecond\n'
+
+for mode in auto false; do
+    if [ "$mode" = auto ]; then
+        fixture_run "$input" 0 "${run[@]}" --parallel=4 -- stdin
+    else
+        fixture_run "$input" 0 "${run[@]}" --parallel=4 --join-stdin=false -- stdin
+    fi
+    fixture_assert_content "$RUN_GARDEN/results/one-a" EOF
+    fixture_assert_content "$RUN_GARDEN/results/two-a" EOF
+    [ ! -s "$RUN_TEMP/stdout" ] || fixture_fail 'collection stdout should default to unjoined'
+    if grep -Fq stderr-one-a "$RUN_TEMP/stderr"; then fixture_fail 'collection stderr should default to unjoined'; fi
+done
+
+for mode in auto true; do
+    if [ "$mode" = auto ]; then
+        fixture_run "$input" 0 "${run[@]}" --include=dyd/sprouts/one --parallel=4 -- stdin
+    else
+        fixture_run "$input" 0 "${run[@]}" --include=dyd/sprouts/one --parallel=4 --join-stdin=true -- stdin
+    fi
+    fixture_assert_content "$RUN_GARDEN/results/one-a" first
+    fixture_assert_absent two-a
+done
+
+for mode in auto true false; do
+    if [ "$mode" = auto ]; then
+        fixture_run "$input" 0 "${run[@]}" --parallel=1 -- stdin
+    else
+        fixture_run "$input" 0 "${run[@]}" --parallel=1 --join-stdin="$mode" -- stdin
+    fi
+    if [ "$mode" = false ]; then
+        fixture_assert_content "$RUN_GARDEN/results/one-a" EOF
+        fixture_assert_content "$RUN_GARDEN/results/two-a" EOF
+    else
+        values=$(printf '%s\n' "$(cat "$RUN_GARDEN/results/one-a")" "$(cat "$RUN_GARDEN/results/two-a")" | sort)
+        [ "$values" = $'first\nsecond' ] || fixture_fail 'serial sprouts did not inherit the input stream'
+    fi
+done
+
+refs=$'dyd/sprouts/one~flavor=a,b\ndyd/sprouts/two~flavor=a\n'
+for setting in auto none serial; do
+    case "$setting" in
+        auto) fixture_run "$refs" 0 sprouts run --scope=none --from-stdin -- stdin ;;
+        none) fixture_run "$refs" 0 sprouts run --scope=none --from-stdin --join-stdin=false -- stdin ;;
+        serial) fixture_run "$refs" 0 sprouts run --scope=none --from-stdin --parallel=1 -- stdin ;;
+    esac
+    for id in one-a one-b two-a; do fixture_assert_content "$RUN_GARDEN/results/$id" EOF; done
+done
+
+for parallel in 1 4; do
+    fixture_run "$refs" 1 sprouts run --scope=none --from-stdin --parallel="$parallel" --join-stdin=true -- stdin
+    fixture_assert_contains "$RUN_TEMP/stderr" 'cannot be used with --from-stdin'
+    for id in one-a one-b two-a; do fixture_assert_absent "$id"; done
+done
+
+# Two single-variant sprouts must not each conclude they own stdin.
+fixture_run "$input" 1 "${run[@]}" --parallel=2 --join-stdin=true -- stdin
+fixture_assert_contains "$RUN_TEMP/stderr" 'requires --parallel=1'
+fixture_assert_absent one-a
+fixture_assert_absent two-a
+
+fixture_run '' 0 "${run[@]}" --join-stdout=true --join-stderr=true -- stdin
+fixture_assert_contains "$RUN_TEMP/stdout" stdout-one-a
+fixture_assert_contains "$RUN_TEMP/stderr" stderr-two-a
