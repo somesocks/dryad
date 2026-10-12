@@ -1,80 +1,80 @@
 #!/usr/bin/env bash
 set -euf -o pipefail
 
-. "$DYD_STEM/dyd/dependencies/fixtures/dyd/assets/run-fixtures.sh"
-fixture_setup one
+. "$DYD_STEM/dyd/dependencies/sprout-run-fixtures/dyd/assets/sprout-run-fixtures.sh"
+sprout_fixture_setup one
 run=(sprout run dyd/sprouts/one --scope=none --log-level=info)
 input=$'first\nsecond\n'
 
 for mode in auto true false; do
     if [ "$mode" = auto ]; then
-        fixture_run "$input" 0 "${run[@]}" --variant=flavor=a -- stdin
+        sprout_fixture_run "$input" 0 "${run[@]}" --variant=flavor=a -- stdin
     else
-        fixture_run "$input" 0 "${run[@]}" --variant=flavor=a --join-stdin="$mode" -- stdin
+        sprout_fixture_run "$input" 0 "${run[@]}" --variant=flavor=a --join-stdin="$mode" -- stdin
     fi
     expected=first
     if [ "$mode" = false ]; then expected=EOF; fi
-    fixture_assert_content "$RUN_GARDEN/results/one-a" "$expected"
-    fixture_assert_absent one-b
+    sprout_fixture_assert_content "$RUN_GARDEN/results/one-a" "$expected"
+    sprout_fixture_assert_absent one-b
 done
 
 for mode in auto true false; do
     if [ "$mode" = auto ]; then
-        fixture_run "$input" 0 "${run[@]}" --variant=flavor=a,b --parallel=1 -- stdin
+        sprout_fixture_run "$input" 0 "${run[@]}" --variant=flavor=a,b --parallel=1 -- stdin
     else
-        fixture_run "$input" 0 "${run[@]}" --variant=flavor=a,b --parallel=1 --join-stdin="$mode" -- stdin
+        sprout_fixture_run "$input" 0 "${run[@]}" --variant=flavor=a,b --parallel=1 --join-stdin="$mode" -- stdin
     fi
     if [ "$mode" = false ]; then
-        fixture_assert_content "$RUN_GARDEN/results/one-a" EOF
-        fixture_assert_content "$RUN_GARDEN/results/one-b" EOF
+        sprout_fixture_assert_content "$RUN_GARDEN/results/one-a" EOF
+        sprout_fixture_assert_content "$RUN_GARDEN/results/one-b" EOF
     else
-        fixture_assert_content "$RUN_GARDEN/results/one-a" first
-        fixture_assert_content "$RUN_GARDEN/results/one-b" second
+        sprout_fixture_assert_content "$RUN_GARDEN/results/one-a" first
+        sprout_fixture_assert_content "$RUN_GARDEN/results/one-b" second
     fi
 done
 
-fixture_run "$input" 0 "${run[@]}" --variant=flavor=a,b --parallel=4 -- stdin
-fixture_assert_content "$RUN_GARDEN/results/one-a" EOF
-fixture_assert_content "$RUN_GARDEN/results/one-b" EOF
-fixture_run "$input" 0 "${run[@]}" --variant=flavor=a,b --parallel=4 --join-stdin=false -- stdin
-fixture_assert_content "$RUN_GARDEN/results/one-a" EOF
-fixture_assert_content "$RUN_GARDEN/results/one-b" EOF
+sprout_fixture_run "$input" 0 "${run[@]}" --variant=flavor=a,b --parallel=4 -- stdin
+sprout_fixture_assert_content "$RUN_GARDEN/results/one-a" EOF
+sprout_fixture_assert_content "$RUN_GARDEN/results/one-b" EOF
+sprout_fixture_run "$input" 0 "${run[@]}" --variant=flavor=a,b --parallel=4 --join-stdin=false -- stdin
+sprout_fixture_assert_content "$RUN_GARDEN/results/one-a" EOF
+sprout_fixture_assert_content "$RUN_GARDEN/results/one-b" EOF
 
-fixture_run "$input" 0 sprout run 'dyd/sprouts/one~flavor=a' --scope=none --parallel=4 --join-stdin=true -- stdin
-fixture_assert_content "$RUN_GARDEN/results/one-a" first
-fixture_assert_absent one-b
+sprout_fixture_run "$input" 0 sprout run 'dyd/sprouts/one~flavor=a' --scope=none --parallel=4 --join-stdin=true -- stdin
+sprout_fixture_assert_content "$RUN_GARDEN/results/one-a" first
+sprout_fixture_assert_absent one-b
 
-fixture_run "$input" 1 "${run[@]}" --variant=flavor=a,b --parallel=4 --join-stdin=true -- stdin
-fixture_assert_contains "$RUN_TEMP/stderr" 'requires --parallel=1'
-fixture_assert_absent one-a
-fixture_assert_absent one-b
+sprout_fixture_run "$input" 1 "${run[@]}" --variant=flavor=a,b --parallel=4 --join-stdin=true -- stdin
+sprout_fixture_assert_contains "$RUN_TEMP/stderr" 'requires --parallel=1'
+sprout_fixture_assert_absent one-a
+sprout_fixture_assert_absent one-b
 
 for mode in auto true false; do
     stem='dyd/sprouts/one/dyd/dependencies/stem~flavor=a'
     if [ "$mode" = auto ]; then
-        fixture_run "$input" 0 stem run "$stem" -- stdin
+        sprout_fixture_run "$input" 0 stem run "$stem" -- stdin
     else
-        fixture_run "$input" 0 stem run "$stem" --join-stdin="$mode" -- stdin
+        sprout_fixture_run "$input" 0 stem run "$stem" --join-stdin="$mode" -- stdin
     fi
     expected=first
     if [ "$mode" = false ]; then expected=EOF; fi
-    fixture_assert_content "$RUN_GARDEN/results/one-a" "$expected"
+    sprout_fixture_assert_content "$RUN_GARDEN/results/one-a" "$expected"
 done
 
-fixture_run '' 0 "${run[@]}" --variant=flavor=a,b -- stdin
-fixture_assert_contains "$RUN_TEMP/stdout" stdout-one-a
-fixture_assert_contains "$RUN_TEMP/stderr" stderr-one-b
-fixture_run '' 0 "${run[@]}" --variant=flavor=a,b --join-stdout=false --join-stderr=false -- stdin
-[ ! -s "$RUN_TEMP/stdout" ] || fixture_fail 'stdout was joined despite false'
-if grep -Fq stderr-one-a "$RUN_TEMP/stderr"; then fixture_fail 'stderr was joined despite false'; fi
+sprout_fixture_run '' 0 "${run[@]}" --variant=flavor=a,b -- stdin
+sprout_fixture_assert_contains "$RUN_TEMP/stdout" stdout-one-a
+sprout_fixture_assert_contains "$RUN_TEMP/stderr" stderr-one-b
+sprout_fixture_run '' 0 "${run[@]}" --variant=flavor=a,b --join-stdout=false --join-stderr=false -- stdin
+[ ! -s "$RUN_TEMP/stdout" ] || sprout_fixture_fail 'stdout was joined despite false'
+if grep -Fq stderr-one-a "$RUN_TEMP/stderr"; then sprout_fixture_fail 'stderr was joined despite false'; fi
 
 mkdir -p "$RUN_TEMP/logs"
-fixture_run '' 0 "${run[@]}" --variant=flavor=a,b --join-stdout=true --join-stderr=true \
+sprout_fixture_run '' 0 "${run[@]}" --variant=flavor=a,b --join-stdout=true --join-stderr=true \
     --log-stdout="$RUN_TEMP/logs" --log-stderr="$RUN_TEMP/logs" -- stdin
-[ ! -s "$RUN_TEMP/stdout" ] || fixture_fail 'logging did not disable stdout joining'
-if grep -Fq stderr-one-a "$RUN_TEMP/stderr"; then fixture_fail 'logging did not disable stderr joining'; fi
+[ ! -s "$RUN_TEMP/stdout" ] || sprout_fixture_fail 'logging did not disable stdout joining'
+if grep -Fq stderr-one-a "$RUN_TEMP/stderr"; then sprout_fixture_fail 'logging did not disable stderr joining'; fi
 for variant in a b; do
     base="$RUN_TEMP/logs/dyd-sprout-run--dyd-sprouts-one--flavor=$variant"
-    fixture_assert_content "$base.out" "stdout-one-$variant"
-    fixture_assert_content "$base.err" "stderr-one-$variant"
+    sprout_fixture_assert_content "$base.out" "stdout-one-$variant"
+    sprout_fixture_assert_content "$base.err" "stderr-one-$variant"
 done

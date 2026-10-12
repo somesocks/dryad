@@ -2,7 +2,7 @@
 set -euf -o pipefail
 
 cp "$DYD_STEM/dyd/assets/dyd-stem-run" "$DYD_BUILD/dyd/commands/dyd-stem-run"
-for alias in dryad fixtures; do
+for alias in dryad sprout-run-fixtures; do
     ln -s "$DYD_STEM/dyd/dependencies/$alias" "$DYD_BUILD/dyd/dependencies/$alias"
 done
 cp "$DYD_STEM/dyd/docs/about.md" "$DYD_BUILD/dyd/docs/"
