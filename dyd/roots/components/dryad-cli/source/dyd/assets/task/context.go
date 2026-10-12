@@ -52,6 +52,15 @@ func semaphore(ctx context.Context) (chan struct{}, error) {
 	return nil, ErrMissingSemaphore
 }
 
+// Concurrency returns the configured execution limit, including the calling goroutine.
+func Concurrency(ctx context.Context) (int, error) {
+	channel, err := semaphore(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return cap(channel) + 1, nil
+}
+
 func cacheRegistry(ctx context.Context) (*sync.Map, error) {
 	if ctx != nil {
 		if registry, ok := ctx.Value(cacheRegistryKey).(*sync.Map); ok && registry != nil {

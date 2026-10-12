@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+cp -R "$DYD_STEM/dyd/assets/." "$DYD_BUILD/dyd/assets/"
+printf '#!/bin/sh\nexit 0\n' > "$DYD_BUILD/dyd/commands/dyd-stem-run"
+chmod +x "$DYD_BUILD/dyd/commands/dyd-stem-run"

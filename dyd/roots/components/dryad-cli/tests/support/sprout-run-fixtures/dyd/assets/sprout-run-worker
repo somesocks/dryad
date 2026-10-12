@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euf -o pipefail
+
+id="$(cat "$DYD_STEM/dyd/traits/name")-$(cat "$DYD_STEM/dyd/traits/flavor")"
+g=$DYD_GARDEN
+mode=$1
+
+lock_counter() {
+    attempts=0
+    while ! mkdir "$g/control/lock" 2>/dev/null; do
+        attempts=$((attempts + 1))
+        if [ "$attempts" -gt 1500 ]; then exit 90; fi
+        sleep 0.02
+    done
+}
+
+case "$mode" in
+    stdin)
+        line=EOF
+        IFS= read -r line || line=EOF
+        printf '%s' "$line" > "$g/results/$id"
+        printf 'stdout-%s\n' "$id"
+        printf 'stderr-%s\n' "$id" >&2
+        ;;
+    hold|fail-hold)
+        lock_counter
+        active=$(cat "$g/control/active")
+        active=$((active + 1))
+        printf '%s' "$active" > "$g/control/active"
+        peak=$(cat "$g/control/peak")
+        if [ "$active" -gt "$peak" ]; then printf '%s' "$active" > "$g/control/peak"; fi
+        rmdir "$g/control/lock"
+        : > "$g/control/start-$id"
+
+        attempts=0
+        while [ ! -f "$g/control/release-$id" ]; do
+            attempts=$((attempts + 1))
+            if [ "$attempts" -gt 1500 ]; then exit 90; fi
+            sleep 0.02
+        done
+
+        lock_counter
+        active=$(cat "$g/control/active")
+        printf '%s' "$((active - 1))" > "$g/control/active"
+        rmdir "$g/control/lock"
+        if [ "$mode" = fail-hold ] && [ "$id" = one-a ]; then exit 7; fi
+        printf '%s' done > "$g/results/$id"
+        ;;
+    fail)
+        if [ "$id" = one-a ]; then exit 7; fi
+        printf '%s' done > "$g/results/$id"
+        ;;
+    *)
+        printf 'unknown worker mode: %s\n' "$mode" >&2
+        exit 1
+        ;;
+esac
